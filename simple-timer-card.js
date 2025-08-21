@@ -28,9 +28,11 @@ class SimpleTimerCard extends LitElement {
   }
 
   setConfig(config) {
-    if (!config.entities || !Array.isArray(config.entities)) {
-      throw new Error("You need to define an array of entities.");
+    // Allow empty entities array when timer presets are enabled
+    if (!config.entities && !config.show_timer_presets) {
+      throw new Error("You need to define an array of entities or enable timer presets.");
     }
+    
     this._config = {
       layout: "vertical",                  // 'vertical' | 'horizontal'
       style: "bar",                        // 'bar' | 'circle' | 'chip'
@@ -44,6 +46,7 @@ class SimpleTimerCard extends LitElement {
       auto_dismiss_writable: false,        // auto-dismiss helper timers when 0
       show_progress_when_unknown: false,   // show an empty track if duration unknown
       ...config,
+      entities: config.entities || [],     // ensure entities is always an array
     };
   }
 
@@ -51,7 +54,11 @@ class SimpleTimerCard extends LitElement {
     return document.createElement("simple-timer-card-editor");
   }
   static getStubConfig() {
-    return { entities: [] };
+    return { 
+      entities: [],
+      show_timer_presets: true,
+      timer_presets: [15, 30, 60, 120]
+    };
   }
 
   connectedCallback() {
@@ -317,6 +324,7 @@ class SimpleTimerCard extends LitElement {
       });
     } else {
       // Store locally
+      newTimer.source_entity = "local"; // For consistency in timer handling
       this._localTimers.push(newTimer);
       this.requestUpdate();
     }
@@ -411,7 +419,7 @@ class SimpleTimerCard extends LitElement {
       .filter((id) => id && id.startsWith("input_text."));
 
     const showAddButton = this._config.show_add_timer && (helperEntities.length > 0 || this._config.show_timer_presets);
-    const showPresets = this._config.show_timer_presets && this._config.timer_presets && this._config.timer_presets.length > 0;
+    const showPresets = this._config.show_timer_presets !== false && this._config.timer_presets && this._config.timer_presets.length > 0;
 
     return html`
       <ha-card>
