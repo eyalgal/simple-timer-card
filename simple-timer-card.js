@@ -47,7 +47,7 @@ class SimpleTimerCard extends LitElement {
     return document.createElement("simple-timer-card-editor");
   }
   static getStubConfig() {
-    return { title: "Timers", entities: [] };
+    return { entities: [] };
   }
 
   connectedCallback() {
@@ -335,12 +335,13 @@ class SimpleTimerCard extends LitElement {
 
     return html`
       <ha-card>
+        ${this._config.title || (this._config.show_add_timer && helperEntities.length > 0) ? html`
         <div class="card-header">
-          <span>${this._config.title || "Timers"}</span>
+          ${this._config.title ? html`<span>${this._config.title}</span>` : html`<span></span>`}
           ${this._config.show_add_timer && helperEntities.length > 0
             ? html`<ha-icon-button icon="mdi:plus" @click=${() => (this._isAdding = !this._isAdding)} .title=${"Add timer"}></ha-icon-button>`
             : ""}
-        </div>
+        </div>` : ""}
 
         ${this._isAdding ? this._renderAddTimerForm(helperEntities) : ""}
 
@@ -780,7 +781,9 @@ class SimpleTimerCardEditor extends LitElement {
 
         <div class="entities-header">
           <h3>Timer Entities</h3>
-          <ha-icon-button icon="mdi:plus" @click=${this._addEntity}></ha-icon-button>
+          <button class="add-entity-button" @click=${this._addEntity} title="Add timer entity">
+            <ha-icon icon="mdi:plus"></ha-icon>
+          </button>
         </div>
 
         ${(this._config.entities || []).length === 0 
@@ -821,7 +824,9 @@ class SimpleTimerCardEditor extends LitElement {
                   </div>
                 </div>
 
-                <ha-icon-button class="remove-entity" icon="mdi:delete" @click=${() => this._removeEntity(index)}></ha-icon-button>
+                <button class="remove-entity" @click=${() => this._removeEntity(index)} title="Remove entity">
+                  <ha-icon icon="mdi:delete"></ha-icon>
+                </button>
               </div>
             `;
           })
@@ -837,6 +842,26 @@ class SimpleTimerCardEditor extends LitElement {
       .side-by-side > * { flex: 1; min-width: 0; }
       .entities-header { display: flex; justify-content: space-between; align-items: center; }
       .entities-header h3 { margin: 0; }
+      .add-entity-button {
+        background: var(--primary-color);
+        border: none;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: white;
+        transition: background-color 0.2s;
+      }
+      .add-entity-button:hover {
+        background: var(--primary-color-dark, var(--primary-color));
+        filter: brightness(0.9);
+      }
+      .add-entity-button ha-icon {
+        --mdc-icon-size: 24px;
+      }
       .no-entities { 
         text-align: center; 
         color: var(--secondary-text-color); 
@@ -848,7 +873,29 @@ class SimpleTimerCardEditor extends LitElement {
       }
       .entity-editor { border: 1px solid var(--divider-color); border-radius: 8px; padding: 12px; position: relative; }
       .entity-options { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
-      .remove-entity { position: absolute; top: 4px; right: 4px; }
+      .remove-entity { 
+        position: absolute; 
+        top: 4px; 
+        right: 4px; 
+        background: var(--error-color, #f44336);
+        border: none;
+        border-radius: 50%;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: white;
+        transition: background-color 0.2s;
+      }
+      .remove-entity:hover {
+        background: var(--error-color-dark, #d32f2f);
+        filter: brightness(0.9);
+      }
+      .remove-entity ha-icon {
+        --mdc-icon-size: 20px;
+      }
     `;
   }
 }
