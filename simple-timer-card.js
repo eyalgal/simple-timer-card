@@ -25,6 +25,7 @@ class SimpleTimerCard extends LitElement {
     this._isAdding = false;
     this._dismissed = new Set(); // local UI dismissal for read-only sources (e.g., Alexa)
     this._presetTarget = null;
+    this._ringingTimers = new Set(); // track which timers are currently ringing for audio
   }
 
   setConfig(config) {
@@ -45,6 +46,9 @@ class SimpleTimerCard extends LitElement {
       expire_keep_for: 120,             // seconds to keep a rung timer visible
       auto_dismiss_writable: false,     // auto-dismiss helper timers when 0
       show_progress_when_unknown: false,  // show an empty track if duration unknown
+      audio_enabled: false,             // enable audio notifications
+      audio_file_url: "",               // URL or path to audio file
+      audio_repeat_count: 1,            // number of times to play audio
       ...config,
       entities: config.entities || [],    // ensure entities is always an array
     };
@@ -263,6 +267,29 @@ class SimpleTimerCard extends LitElement {
       })
       .sort((a, b) => a.remaining - b.remaining);
 
+    // Check for newly ringing timers and play audio notifications
+    for (const timer of this._timers) {
+      const isNowRinging = timer.remaining <= 0;
+      const wasRinging = this._ringingTimers.has(timer.id);
+      
+      if (isNowRinging && !wasRinging) {
+        // Timer just started ringing - play audio notification
+        this._ringingTimers.add(timer.id);
+        this._playAudioNotification();
+      } else if (!isNowRinging && wasRinging) {
+        // Timer stopped ringing (was snoozed or time remaining)
+        this._ringingTimers.delete(timer.id);
+      }
+    }
+
+    // Clean up ringing state for timers that no longer exist
+    const currentTimerIds = new Set(this._timers.map(t => t.id));
+    for (const ringingId of this._ringingTimers) {
+      if (!currentTimerIds.has(ringingId)) {
+        this._ringingTimers.delete(ringingId);
+      }
+    }
+
     // Expiration policy for helper and local timers
     for (const timer of [...this._timers]) {
       if (timer.remaining > 0) continue;
@@ -291,6 +318,33 @@ class SimpleTimerCard extends LitElement {
           }
         }
       }
+    }
+  }
+
+  _playAudioNotification() {
+    if (!this._config.audio_enabled || !this._config.audio_file_url) {
+      return;
+    }
+
+    try {
+      const audio = new Audio(this._config.audio_file_url);
+      let playCount = 0;
+      const maxPlays = Math.max(1, Math.min(10, this._config.audio_repeat_count || 1)); // limit to 1-10 repetitions
+
+      const playNext = () => {
+        if (playCount < maxPlays) {
+          playCount++;
+          audio.currentTime = 0;
+          audio.play().catch(error => {
+            console.warn('Failed to play timer audio notification:', error);
+          });
+        }
+      };
+
+      audio.addEventListener('ended', playNext);
+      playNext();
+    } catch (error) {
+      console.warn('Failed to create audio notification:', error);
     }
   }
 
@@ -403,6 +457,9 @@ class SimpleTimerCard extends LitElement {
   }
 
   _handleCancel(timer) {
+    // Clean up ringing state
+    this._ringingTimers.delete(timer.id);
+    
     if (timer.source === "helper") {
       this._mutateHelper(timer.source_entity, (data) => {
         data.timers = data.timers.filter((t) => t.id !== timer.id);
@@ -416,6 +473,9 @@ class SimpleTimerCard extends LitElement {
   }
 
   _handleDismiss(timer) {
+    // Clean up ringing state
+    this._ringingTimers.delete(timer.id);
+    
     if (timer.source === "helper") {
       this._mutateHelper(timer.source_entity, (data) => {
         data.timers = data.timers.filter((t) => t.id !== timer.id);
@@ -429,6 +489,9 @@ class SimpleTimerCard extends LitElement {
   }
 
   _handleSnooze(timer) {
+    // Clean up ringing state when snoozed
+    this._ringingTimers.delete(timer.id);
+    
     if (timer.source === "helper") {
       const snoozeMinutes = this._config.snooze_duration;
       const newDurationMs = snoozeMinutes * 60000;
@@ -1064,6 +1127,31 @@ class SimpleTimerCardEditor extends LitElement {
         <ha-formfield label="Show progress track when duration unknown">
           <ha-switch .checked=${this._config.show_progress_when_unknown === true} .configValue=${"show_progress_when_unknown"} @change=${this._valueChanged}></ha-switch>
         </ha-formfield>
+
+        <ha-formfield label="Enable audio notifications">
+          <ha-switch .checked=${this._config.audio_enabled === true} .configValue=${"audio_enabled"} @change=${this._valueChanged}></ha-switch>
+        </ha-formfield>
+
+        ${this._config.audio_enabled ? html`
+          <ha-textfield 
+            label="Audio file URL or path" 
+            .value=${this._config.audio_file_url || ""} 
+            .configValue=${"audio_file_url"} 
+            @input=${this._valueChanged}
+            helper="URL to audio file (e.g., /local/timer-sound.mp3)"
+          ></ha-textfield>
+
+          <ha-textfield 
+            label="Number of times to play" 
+            type="number" 
+            min="1" 
+            max="10" 
+            .value=${this._config.audio_repeat_count ?? 1} 
+            .configValue=${"audio_repeat_count"} 
+            @input=${this._valueChanged}
+            helper="How many times to repeat the audio (1-10)"
+          ></ha-textfield>
+        ` : ''}
 
         <div class="entities-header">
           <h3>Timer Entities</h3>
