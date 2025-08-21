@@ -950,24 +950,26 @@ class SimpleTimerCardEditor extends LitElement {
           <ha-switch .checked=${this._config.show_timer_presets !== false} .configValue=${"show_timer_presets"} @change=${this._valueChanged}></ha-switch>
         </ha-formfield>
 
-        <ha-textfield 
-          label="Timer presets (minutes, comma-separated)" 
-          .value=${(this._config.timer_presets || [15, 30, 60, 120]).join(', ')} 
-          .configValue=${"timer_presets"} 
-          @input=${this._valueChanged}
-          helper="e.g., 15, 30, 60, 120"
-        ></ha-textfield>
+        ${this._config.show_timer_presets !== false ? html`
+          <ha-textfield 
+            label="Timer presets (minutes, comma-separated)" 
+            .value=${(this._config.timer_presets || [15, 30, 60, 120]).join(', ')} 
+            .configValue=${"timer_presets"} 
+            @input=${this._valueChanged}
+            helper="e.g., 15, 30, 60, 120"
+          ></ha-textfield>
 
-        <ha-entity-picker
-          .hass=${this.hass}
-          .value=${this._config.default_timer_entity || ""}
-          .configValue=${"default_timer_entity"}
-          @value-changed=${this._valueChanged}
-          label="Default timer entity (optional)"
-          allow-custom-entity
-          .includeDomains=${["input_text", "text"]}
-          helper="Default entity for preset timers. Leave empty for local timers."
-        ></ha-entity-picker>
+          <ha-entity-picker
+            .hass=${this.hass}
+            .value=${this._config.default_timer_entity || ""}
+            .configValue=${"default_timer_entity"}
+            @value-changed=${this._valueChanged}
+            label="Default timer entity (optional)"
+            allow-custom-entity
+            .includeDomains=${["input_text", "text"]}
+            helper="Default entity for preset timers. Leave empty for local timers."
+          ></ha-entity-picker>
+        ` : ''}
 
         <ha-formfield label="Show progress track when duration unknown">
           <ha-switch .checked=${this._config.show_progress_when_unknown === true} .configValue=${"show_progress_when_unknown"} @change=${this._valueChanged}></ha-switch>
