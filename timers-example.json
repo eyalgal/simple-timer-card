@@ -1,0 +1,16 @@
+{
+  "timers": [
+    {
+      "id": "preset-1640995200000",
+      "label": "15 minutes",
+      "icon": "mdi:timer-outline",
+      "color": "var(--primary-color)",
+      "end": 1640996100000,
+      "duration": 900000,
+      "source": "local",
+      "source_entity": "local"
+    }
+  ],
+  "version": 1,
+  "lastUpdated": 1640995200000
+}
