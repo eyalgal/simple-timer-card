@@ -530,8 +530,31 @@ class SimpleTimerCard extends LitElement {
 class SimpleTimerCardEditor extends LitElement {
   static get properties() { return { hass: {}, _config: {} }; }
 
+  constructor() {
+    super();
+    this._debounceTimeout = null;
+    this._emitTimeout = null;
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    // Clean up any pending timeouts
+    if (this._debounceTimeout) {
+      clearTimeout(this._debounceTimeout);
+      this._debounceTimeout = null;
+    }
+    if (this._emitTimeout) {
+      clearTimeout(this._emitTimeout);
+      this._emitTimeout = null;
+    }
+  }
+
   setConfig(config) {
-    this._config = { ...config, entities: [...(config.entities || [])] };
+    // Ensure we always have a valid entities array
+    this._config = { 
+      ...config, 
+      entities: Array.isArray(config.entities) ? [...config.entities] : []
+    };
   }
 
   // Generic handler for text/switch
@@ -545,13 +568,11 @@ class SimpleTimerCardEditor extends LitElement {
     const hasChecked = target.checked !== undefined;
     const value = hasChecked ? target.checked : target.value;
 
-    // Ignore undefined (e.g., transient ha-select events)
-    if (value === undefined) return;
+    // Ignore undefined/null values that could cause issues
+    if (value === undefined || value === null) return;
 
-    const newConfig = { ...this._config };
-    newConfig[key] = value;
-    this._config = newConfig;
-    this._emitChange();
+    // Use a more defensive approach to config updates
+    this._updateConfig({ [key]: value });
   }
 
   // Dedicated handler for ha-select to avoid crashes
@@ -562,58 +583,134 @@ class SimpleTimerCardEditor extends LitElement {
     if (!key) return;
 
     // ha-select emits several events while opening/closing.
-    // Only commit when we actually have a string value.
+    // Only commit when we actually have a valid string value.
     const value = target.value;
-    if (value === undefined || value === null) return;
+    if (typeof value !== 'string' || value === '') return;
 
-    this._config = { ...this._config, [key]: value };
-    this._emitChange();
+    // Debounce rapid fire events to prevent crashes
+    this._debouncedUpdate({ [key]: value });
   }
 
   _entityValueChanged(e, index) {
     if (!this._config || !this.hass) return;
+    
+    // Validate index bounds
+    if (index < 0 || index >= (this._config.entities || []).length) return;
 
-    const newConfig = { ...this._config };
-    const entities = [...newConfig.entities];
     const target = e.target;
     const key = target.configValue;
-    const value = e.detail?.value !== undefined ? e.detail.value : target.value;
-
     if (!key) return;
 
-    let entityConf = { ...(typeof entities[index] === "string" ? { entity: entities[index] } : entities[index]) };
+    // Get value from different event types
+    const value = e.detail?.value !== undefined ? e.detail.value : target.value;
 
-    if (value === "" || value === undefined) delete entityConf[key];
-    else entityConf[key] = value;
+    // Create a safe copy of the config
+    const newConfig = { ...this._config };
+    const entities = [...(newConfig.entities || [])];
+    
+    // Ensure we have a valid entity config object
+    let entityConf;
+    if (typeof entities[index] === "string") {
+      entityConf = { entity: entities[index] };
+    } else if (entities[index] && typeof entities[index] === "object") {
+      entityConf = { ...entities[index] };
+    } else {
+      entityConf = { entity: "" };
+    }
 
-    if (Object.keys(entityConf).length === 1 && entityConf.entity) entities[index] = entityConf.entity;
-    else entities[index] = entityConf;
+    // Update the specific property
+    if (value === "" || value === undefined || value === null) {
+      delete entityConf[key];
+    } else {
+      entityConf[key] = value;
+    }
+
+    // Simplify to string if only entity is set, otherwise keep as object
+    if (Object.keys(entityConf).length === 1 && entityConf.entity) {
+      entities[index] = entityConf.entity;
+    } else if (Object.keys(entityConf).length > 0) {
+      entities[index] = entityConf;
+    } else {
+      entities[index] = "";
+    }
 
     newConfig.entities = entities;
-    this._config = newConfig;
-    this._emitChange();
+    this._updateConfig(newConfig, true);
   }
 
   _addEntity() {
+    if (!this._config) return;
+    
     const newConfig = { ...this._config };
     const entities = [...(newConfig.entities || [])];
     entities.push("");
     newConfig.entities = entities;
-    this._config = newConfig;
-    this._emitChange();
+    this._updateConfig(newConfig, true);
   }
 
   _removeEntity(i) {
+    if (!this._config || i < 0 || i >= (this._config.entities || []).length) return;
+    
     const newConfig = { ...this._config };
     const entities = [...newConfig.entities];
     entities.splice(i, 1);
     newConfig.entities = entities;
-    this._config = newConfig;
-    this._emitChange();
+    this._updateConfig(newConfig, true);
+  }
+
+  // Helper method for debounced config updates
+  _debouncedUpdate(changes) {
+    if (this._debounceTimeout) {
+      clearTimeout(this._debounceTimeout);
+    }
+    
+    this._debounceTimeout = setTimeout(() => {
+      this._updateConfig(changes);
+      this._debounceTimeout = null;
+    }, 100); // 100ms debounce
+  }
+
+  // Unified config update method
+  _updateConfig(changes, immediate = false) {
+    if (!this._config) return;
+    
+    if (typeof changes === 'object' && changes !== null) {
+      if (changes.entities !== undefined) {
+        // Full config replacement
+        this._config = changes;
+      } else {
+        // Partial config update
+        this._config = { ...this._config, ...changes };
+      }
+    }
+    
+    if (immediate) {
+      this._emitChange();
+    } else {
+      // Debounce the emit for rapid changes
+      if (this._emitTimeout) {
+        clearTimeout(this._emitTimeout);
+      }
+      this._emitTimeout = setTimeout(() => {
+        this._emitChange();
+        this._emitTimeout = null;
+      }, 50);
+    }
   }
 
   _emitChange() {
-    this.dispatchEvent(new CustomEvent("config-changed", { detail: { config: this._config } }));
+    if (!this._config) return;
+    
+    try {
+      const event = new CustomEvent("config-changed", { 
+        detail: { config: this._config },
+        bubbles: true,
+        composed: true
+      });
+      this.dispatchEvent(event);
+    } catch (error) {
+      console.error('Error emitting config change:', error);
+    }
   }
 
   render() {
@@ -673,46 +770,49 @@ class SimpleTimerCardEditor extends LitElement {
           <ha-icon-button icon="mdi:plus" @click=${this._addEntity}></ha-icon-button>
         </div>
 
-        ${(this._config.entities || []).map((entityConf, index) => {
-          const entityId = typeof entityConf === "string" ? entityConf : entityConf.entity;
-          const conf = typeof entityConf === "string" ? {} : entityConf;
+        ${(this._config.entities || []).length === 0 
+          ? html`<div class="no-entities">No entities configured. Click the + button above to add timer entities.</div>`
+          : (this._config.entities || []).map((entityConf, index) => {
+            const entityId = typeof entityConf === "string" ? entityConf : (entityConf?.entity || "");
+            const conf = typeof entityConf === "string" ? {} : (entityConf || {});
 
-          return html`
-            <div class="entity-editor">
-              <ha-entity-picker .hass=${this.hass} .value=${entityId} .configValue=${"entity"} allow-custom-entity
-                @value-changed=${(e) => this._entityValueChanged(e, index)}></ha-entity-picker>
+            return html`
+              <div class="entity-editor">
+                <ha-entity-picker .hass=${this.hass} .value=${entityId} .configValue=${"entity"} allow-custom-entity
+                  @value-changed=${(e) => this._entityValueChanged(e, index)}></ha-entity-picker>
 
-              <div class="entity-options">
-                <div class="side-by-side">
-                  <ha-select label="Mode" .value=${conf.mode || "auto"} .configValue=${"mode"}
-                    @selected=${(e) => this._entityValueChanged(e, index)} @closed=${(e) => this._entityValueChanged(e, index)}>
-                    <mwc-list-item value="auto">Auto</mwc-list-item>
-                    <mwc-list-item value="alexa">Alexa</mwc-list-item>
-                    <mwc-list-item value="helper">Helper (input_text)</mwc-list-item>
-                    <mwc-list-item value="timestamp">Timestamp sensor</mwc-list-item>
-                    <mwc-list-item value="minutes_attr">Minutes attribute</mwc-list-item>
-                  </ha-select>
+                <div class="entity-options">
+                  <div class="side-by-side">
+                    <ha-select label="Mode" .value=${conf.mode || "auto"} .configValue=${"mode"}
+                      @selected=${(e) => this._entityValueChanged(e, index)} @closed=${(e) => this._entityValueChanged(e, index)}>
+                      <mwc-list-item value="auto">Auto</mwc-list-item>
+                      <mwc-list-item value="alexa">Alexa</mwc-list-item>
+                      <mwc-list-item value="helper">Helper (input_text)</mwc-list-item>
+                      <mwc-list-item value="timestamp">Timestamp sensor</mwc-list-item>
+                      <mwc-list-item value="minutes_attr">Minutes attribute</mwc-list-item>
+                    </ha-select>
 
-                  <ha-textfield label="Minutes attribute (for minutes_attr)" .value=${conf.minutes_attr || ""} .configValue=${"minutes_attr"}
-                    @input=${(e) => this._entityValueChanged(e, index)}></ha-textfield>
+                    <ha-textfield label="Minutes attribute (for minutes_attr)" .value=${conf.minutes_attr || ""} .configValue=${"minutes_attr"}
+                      @input=${(e) => this._entityValueChanged(e, index)}></ha-textfield>
+                  </div>
+
+                  <div class="side-by-side">
+                    <ha-textfield label="Name Override" .value=${conf.name || ""} .configValue=${"name"}
+                      @input=${(e) => this._entityValueChanged(e, index)}></ha-textfield>
+
+                    <ha-icon-picker label="Icon Override" .value=${conf.icon || ""} .configValue=${"icon"}
+                      @value-changed=${(e) => this._entityValueChanged(e, index)}></ha-icon-picker>
+
+                    <ha-textfield label="Color Override" .value=${conf.color || ""} .configValue=${"color"}
+                      @input=${(e) => this._entityValueChanged(e, index)}></ha-textfield>
+                  </div>
                 </div>
 
-                <div class="side-by-side">
-                  <ha-textfield label="Name Override" .value=${conf.name || ""} .configValue=${"name"}
-                    @input=${(e) => this._entityValueChanged(e, index)}></ha-textfield>
-
-                  <ha-icon-picker label="Icon Override" .value=${conf.icon || ""} .configValue=${"icon"}
-                    @value-changed=${(e) => this._entityValueChanged(e, index)}></ha-icon-picker>
-
-                  <ha-textfield label="Color Override" .value=${conf.color || ""} .configValue=${"color"}
-                    @input=${(e) => this._entityValueChanged(e, index)}></ha-textfield>
-                </div>
+                <ha-icon-button class="remove-entity" icon="mdi:delete" @click=${() => this._removeEntity(index)}></ha-icon-button>
               </div>
-
-              <ha-icon-button class="remove-entity" icon="mdi:delete" @click=${() => this._removeEntity(index)}></ha-icon-button>
-            </div>
-          `;
-        })}
+            `;
+          })
+        }
       </div>
     `;
   }
@@ -724,6 +824,15 @@ class SimpleTimerCardEditor extends LitElement {
       .side-by-side > * { flex: 1; min-width: 0; }
       .entities-header { display: flex; justify-content: space-between; align-items: center; }
       .entities-header h3 { margin: 0; }
+      .no-entities { 
+        text-align: center; 
+        color: var(--secondary-text-color); 
+        padding: 16px; 
+        font-style: italic;
+        border: 2px dashed var(--divider-color);
+        border-radius: 8px;
+        margin: 8px 0;
+      }
       .entity-editor { border: 1px solid var(--divider-color); border-radius: 8px; padding: 12px; position: relative; }
       .entity-options { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
       .remove-entity { position: absolute; top: 4px; right: 4px; }
