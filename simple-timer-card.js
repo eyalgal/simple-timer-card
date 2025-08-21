@@ -17,14 +17,13 @@ console.info(`%c SIMPLE-TIMER-CARD %c v${cardVersion} `, "color: white; backgrou
 
 class SimpleTimerCard extends LitElement {
   static get properties() {
-    return { hass: {}, _config: {}, _timers: { state: true }, _isAdding: { state: true }, _presetTarget: { state: true } };
+    return { hass: {}, _config: {}, _timers: { state: true }, _presetTarget: { state: true } };
   }
 
   constructor() {
     super();
     this._timers = [];
     this._timerInterval = null;
-    this._isAdding = false;
     this._dismissed = new Set(); // local UI dismissal for read-only sources (e.g., Alexa)
     this._presetTarget = null;
     this._ringingTimers = new Set(); // track which timers are currently ringing for audio
@@ -572,8 +571,6 @@ class SimpleTimerCard extends LitElement {
       };
       data.timers.push(newTimer);
     });
-
-    this._isAdding = false;
   }
 
   _handleCreateCustomTimer(e) {
@@ -653,8 +650,6 @@ class SimpleTimerCard extends LitElement {
       this._addTimerToStorage(newTimer);
       this.requestUpdate();
     }
-
-    this._isAdding = false;
   }
 
   _formatTimerLabel(minutes) {
