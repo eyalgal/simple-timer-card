@@ -18,6 +18,12 @@ A Home Assistant custom card for displaying and managing timers from various sou
   - Snooze, dismiss, and cancel timer operations
   - Automatic expiration handling with configurable policies
 
+- **Audio Notifications:**
+  - **NEW:** Play audio files when timers expire
+  - Support for locally hosted audio files (MP3, WAV, etc.)
+  - Configurable repeat count (1-10 times)
+  - Automatic state tracking to prevent duplicate notifications
+
 - **Display Options:**
   - Multiple layout styles: vertical, horizontal
   - Progress indicators: bar, circle, chip
@@ -69,8 +75,27 @@ entities:
 show_timer_presets: true
 timer_presets: [15, 30, 60, 120]  # minutes
 expire_action: keep  # keep | dismiss | remove
+audio_enabled: true  # Enable audio notifications
+audio_file_url: /local/timer-sound.mp3  # Path to audio file
+audio_repeat_count: 3  # Number of times to play audio (1-10)
 ```
 
+### Audio Configuration
+
+To use audio notifications:
+
+1. **Upload Audio File**: Place your audio file (MP3, WAV, etc.) in the `/config/www/` directory
+2. **Set Audio URL**: Use `/local/filename.mp3` format in the configuration
+3. **Configure Repeat**: Set how many times the audio should play (1-10 times)
+4. **Enable Audio**: Toggle the audio notifications on/off
+
+**Example audio file paths:**
+- Local file: `/local/timer-sound.mp3`
+- External URL: `https://example.com/sound.wav`
+- Longer path: `/local/sounds/timer-finished.mp3`
+
+**Note**: Due to browser security policies, audio may require user interaction before playing. Test your setup to ensure audio plays correctly in your environment.
+=======
 ### Timer Entity Support
 
 The card automatically detects and supports Home Assistant timer entities (`timer.*`):
@@ -88,6 +113,7 @@ The card automatically detects and supports Home Assistant timer entities (`time
 
 ## Version History
 
+- **v1.4.0:** Added audio notification support for timer expiration with configurable repeat count
 - **v1.3.5:** Added support for Home Assistant timer entities (timer.*) with full control integration
 - **v1.3.4:** Added JSON-based localStorage timer storage for persistent local timers
 - **v1.3.3:** Editor and service call fixes
