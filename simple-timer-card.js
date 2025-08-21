@@ -17,14 +17,13 @@ console.info(`%c SIMPLE-TIMER-CARD %c v${cardVersion} `, "color: white; backgrou
 
 class SimpleTimerCard extends LitElement {
   static get properties() {
-    return { hass: {}, _config: {}, _timers: { state: true }, _isAdding: { state: true }, _presetTarget: { state: true } };
+    return { hass: {}, _config: {}, _timers: { state: true }, _presetTarget: { state: true } };
   }
 
   constructor() {
     super();
     this._timers = [];
     this._timerInterval = null;
-    this._isAdding = false;
     this._dismissed = new Set(); // local UI dismissal for read-only sources (e.g., Alexa)
     this._presetTarget = null;
     this._ringingTimers = new Set(); // track which timers are currently ringing for audio
@@ -46,7 +45,7 @@ class SimpleTimerCard extends LitElement {
       layout: "vertical",               // 'vertical' | 'horizontal'
       style: "bar",                     // 'bar' | 'circle' | 'chip'
       snooze_duration: 5,               // minutes
-      show_add_timer: false,
+      show_time_selector: false,        // show time selector for custom timers
       timer_presets: [15, 30, 60, 120],   // preset durations in minutes
       show_timer_presets: true,         // show preset buttons
       default_timer_entity: null,       // default entity for timer storage
@@ -572,8 +571,49 @@ class SimpleTimerCard extends LitElement {
       };
       data.timers.push(newTimer);
     });
+  }
 
-    this._isAdding = false;
+  _handleCreateCustomTimer(e) {
+    const form = e.target;
+    const durationStr = form.elements.duration.value;
+    const label = form.elements.label.value;
+    const targetEntity = this._presetTarget 
+      || this._config.default_timer_entity 
+      || (form.elements.target_entity ? form.elements.target_entity.value : null);
+
+    const durationMs = this._parseDuration(durationStr);
+    if (durationMs <= 0) {
+      console.error("Invalid duration provided.");
+      return;
+    }
+    const endTime = Date.now() + durationMs;
+
+    const newTimer = {
+      id: `custom-${Date.now()}`,
+      label: label || "Timer",
+      icon: "mdi:timer-outline",
+      color: "var(--primary-color)",
+      end: endTime,
+      duration: durationMs,
+      source: targetEntity ? "helper" : "local",
+    };
+
+    if (targetEntity) {
+      // Store in helper entity
+      newTimer.source_entity = targetEntity;
+      this._mutateHelper(targetEntity, (data) => {
+        data.timers.push(newTimer);
+      });
+    } else {
+      // Store locally using the configured storage method
+      newTimer.source_entity = this._config.storage === 'mqtt' ? this._config.mqtt.sensor_entity : "local";
+      newTimer.source = this._config.storage === 'mqtt' ? 'mqtt' : 'local';
+      this._addTimerToStorage(newTimer);
+      this.requestUpdate();
+    }
+
+    // Clear the form
+    form.reset();
   }
 
   _createPresetTimer(minutes, entity = null) {
@@ -588,23 +628,28 @@ class SimpleTimerCard extends LitElement {
       color: "var(--primary-color)",
       end: endTime,
       duration: durationMs,
-      source: entity ? "helper" : "local",
     };
 
-    if (entity) {
-      // Store in helper entity
+    if (entity && entity.startsWith("sensor.")) {
+      // MQTT sensor entity - store using MQTT storage
+      newTimer.source = "mqtt";
+      newTimer.source_entity = entity;
+      this._addTimerToStorage(newTimer);
+      this.requestUpdate();
+    } else if (entity && (entity.startsWith("input_text.") || entity.startsWith("text."))) {
+      // Helper entity - use helper storage
+      newTimer.source = "helper";
       newTimer.source_entity = entity;
       this._mutateHelper(entity, (data) => {
         data.timers.push(newTimer);
       });
     } else {
-      // Store in JSON storage
-      newTimer.source_entity = "local"; // For consistency in timer handling
+      // Store using the configured storage method (local/mqtt)
+      newTimer.source_entity = this._config.storage === 'mqtt' ? this._config.mqtt.sensor_entity : "local";
+      newTimer.source = this._config.storage === 'mqtt' ? 'mqtt' : 'local';
       this._addTimerToStorage(newTimer);
       this.requestUpdate();
     }
-
-    this._isAdding = false;
   }
 
   _formatTimerLabel(minutes) {
@@ -627,7 +672,7 @@ class SimpleTimerCard extends LitElement {
       this._mutateHelper(timer.source_entity, (data) => {
         data.timers = data.timers.filter((t) => t.id !== timer.id);
       });
-    } else if (timer.source === "local") {
+    } else if (timer.source === "local" || timer.source === "mqtt") {
       this._removeTimerFromStorage(timer.id);
       this.requestUpdate();
     } else if (timer.source === "timer") {
@@ -647,7 +692,7 @@ class SimpleTimerCard extends LitElement {
       this._mutateHelper(timer.source_entity, (data) => {
         data.timers = data.timers.filter((t) => t.id !== timer.id);
       });
-    } else if (timer.source === "local") {
+    } else if (timer.source === "local" || timer.source === "mqtt") {
       this._removeTimerFromStorage(timer.id);
       this.requestUpdate();
     } else if (timer.source === "timer") {
@@ -675,7 +720,7 @@ class SimpleTimerCard extends LitElement {
           data.timers[idx].duration = newDurationMs;
         }
       });
-    } else if (timer.source === "local") {
+    } else if (timer.source === "local" || timer.source === "mqtt") {
       const snoozeMinutes = this._config.snooze_duration;
       const newDurationMs = snoozeMinutes * 60000;
       const newEndTime = Date.now() + newDurationMs;
@@ -694,7 +739,7 @@ class SimpleTimerCard extends LitElement {
         duration: snoozeDurationStr
       });
     } else {
-      this._toast?.("Only helper, local, and timer entities can be snoozed here.");
+      this._toast?.("Only helper, local, MQTT, and timer entities can be snoozed here.");
     }
   }
 
@@ -729,22 +774,19 @@ class SimpleTimerCard extends LitElement {
       .map((e) => (typeof e === "string" ? e : e.entity))
       .filter((id) => id && (id.startsWith("input_text.") || id.startsWith("text.")));
 
-    const showAddButton = this._config.show_add_timer && (helperEntities.length > 0 || this._config.show_timer_presets);
     const showPresets = this._config.show_timer_presets !== false && this._config.timer_presets && this._config.timer_presets.length > 0;
+    const showTimeSelector = this._config.show_time_selector === true;
 
     return html`
       <ha-card>
-        ${this._config.title || showAddButton ? html`
+        ${this._config.title ? html`
         <div class="card-header">
-          ${this._config.title ? html`<span>${this._config.title}</span>` : html`<span></span>`}
-          ${showAddButton
-            ? html`<ha-icon-button icon="mdi:plus" @click=${() => (this._isAdding = !this._isAdding)} .title=${"Add timer"}></ha-icon-button>`
-            : ""}
+          <span>${this._config.title}</span>
         </div>` : ""}
 
-        ${this._isAdding ? this._renderAddTimerForm(helperEntities) : ""}
+        ${showTimeSelector ? this._renderTimeSelector(helperEntities) : ""}
         
-        ${showPresets && !this._isAdding ? this._renderTimerPresets(helperEntities) : ""}
+        ${showPresets ? this._renderTimerPresets(helperEntities) : ""}
 
         <div class="timers-container ${this._config.layout}">
           ${this._timers.length === 0 ? html`<div class="no-timers">No active timers</div>` : this._timers.map((t) => this._renderTimer(t))}
@@ -773,6 +815,74 @@ class SimpleTimerCard extends LitElement {
           <mwc-button type="submit">Start</mwc-button>
         </div>
       </form>
+    `;
+  }
+
+  _renderTimeSelector(helperEntities) {
+    if (!this.hass) return html``;
+    
+    const targetEntity = this._presetTarget
+      || this._config.default_timer_entity
+      || (helperEntities.length === 1 ? helperEntities[0] : null);
+
+    return html`
+      <div class="time-selector">
+        <div class="selector-header">
+          <span>Custom Timer</span>
+        </div>
+        <form class="time-selector-form" @submit=${(e) => { e.preventDefault(); this._handleCreateCustomTimer(e); }}>
+          <div class="time-input-row">
+            <ha-textfield 
+              name="duration" 
+              label="Duration (e.g., 15m, 1h, 45s)" 
+              required
+              style="flex: 1;"
+            ></ha-textfield>
+            <ha-textfield 
+              name="label" 
+              label="Label (Optional)"
+              style="flex: 1;"
+            ></ha-textfield>
+            <mwc-button type="submit" style="margin-left: 8px;">Start</mwc-button>
+          </div>
+          
+          ${helperEntities.length > 1 ? html`
+            <div class="target-selector">
+              <ha-select
+                name="target_entity"
+                label="Store timer in…"
+                .value=${this._presetTarget || ""}
+                @selected=${(e) => {
+                  e.stopPropagation();
+                  const v = e.detail?.value ?? e.target?.value ?? "";
+                  this._presetTarget = v || null;
+                }}
+                @closed=${(e) => {
+                  e.stopPropagation();
+                  const v = e.detail?.value ?? e.target?.value ?? "";
+                  this._presetTarget = v || null;
+                }}
+              >
+                <mwc-list-item value="">(Store locally)</mwc-list-item>
+                ${helperEntities.map(id => html`
+                  <mwc-list-item value=${id}>
+                    ${this.hass.states[id]?.attributes?.friendly_name || id}
+                  </mwc-list-item>
+                `)}
+              </ha-select>
+            </div>
+          ` : ""}
+          
+          <div class="entity-note">
+            <small>
+              Timer will be stored
+              ${targetEntity
+                ? 'in ' + (this.hass.states[targetEntity]?.attributes?.friendly_name || targetEntity)
+                : 'locally'}
+            </small>
+          </div>
+        </form>
+      </div>
     `;
   }
 
@@ -852,11 +962,12 @@ class SimpleTimerCard extends LitElement {
     const isRinging = timer.remaining <= 0;
     const isHelper = timer.source === "helper";
     const isLocal = timer.source === "local";
+    const isMqtt = timer.source === "mqtt";
     const isAlexa = timer.source === "alexa";
     const isTimer = timer.source === "timer";
 
-    const canCancel = isHelper || isLocal || isTimer;
-    const canSnooze = isHelper || isLocal || isTimer;
+    const canCancel = isHelper || isLocal || isMqtt || isTimer;
+    const canSnooze = isHelper || isLocal || isMqtt || isTimer;
     const canDismiss = true;
 
     const containerClass = `timer-item ${this._config.layout} ${isRinging ? "ringing" : ""}`;
@@ -958,6 +1069,12 @@ class SimpleTimerCard extends LitElement {
 
       .add-timer-form { padding: 0 16px 16px; display: flex; flex-direction: column; gap: 8px; }
       .add-timer-actions { display: flex; justify-content: flex-end; margin-top: 8px; }
+
+      .time-selector { padding: 0 16px 16px; }
+      .selector-header { font-weight: 500; font-size: 14px; color: var(--primary-text-color); margin-bottom: 8px; }
+      .time-selector-form { display: flex; flex-direction: column; gap: 8px; }
+      .time-input-row { display: flex; gap: 8px; align-items: flex-end; }
+      .target-selector { margin-top: 8px; }
 
       .timer-presets { padding: 0 16px 16px; }
       .presets-header { font-weight: 500; font-size: 14px; color: var(--primary-text-color); margin-bottom: 8px; }
@@ -1353,8 +1470,10 @@ class SimpleTimerCardEditor extends LitElement {
           </ha-formfield>
         </div>
 
-        <ha-formfield label="Show 'Add Timer' Button">
-          <ha-switch .checked=${this._config.show_add_timer === true} .configValue=${"show_add_timer"} @change=${this._valueChanged}></ha-switch>
+
+
+        <ha-formfield label="Show time selector for custom timers">
+          <ha-switch .checked=${this._config.show_time_selector === true} .configValue=${"show_time_selector"} @change=${this._valueChanged}></ha-switch>
         </ha-formfield>
 
         <ha-formfield label="Show timer preset buttons">
@@ -1377,7 +1496,7 @@ class SimpleTimerCardEditor extends LitElement {
             @value-changed=${this._detailValueChanged}
             label="Default timer entity (optional)"
             allow-custom-entity
-            .includeDomains=${["input_text", "text", "timer"]}
+            .includeDomains=${["input_text", "text", "timer", "sensor"]}
             helper="Default entity for preset timers. Leave empty for local timers."
           ></ha-entity-picker>
         ` : ''}
