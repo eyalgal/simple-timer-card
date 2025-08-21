@@ -1,6 +1,6 @@
 /*
  * Simple Timer Card (Adapterized)
- * v1.4.0 — Audio notification support for timer expiration
+ * v1.3.6 — Added MQTT-backed cross-device timer storage
  *
  * - Alexa timers (read-only)
  * - Home Assistant timer entities (timer.*) with full control
@@ -8,11 +8,11 @@
  * - sensors with a numeric "minutes to arrival" attribute (ETA)
  * - input_text helper (JSON store) for fully controllable shared timers
  * - localStorage JSON storage for persistent local timers
- * - Audio notifications when timers expire
+ * - MQTT retained storage for cross-device sync
  */
 import { LitElement, html, css } from "https://unpkg.com/lit-element@2.0.1/lit-element.js?module";
 
-const cardVersion = "1.4.0";
+const cardVersion = "1.3.6";
 console.info(`%c SIMPLE-TIMER-CARD %c v${cardVersion} `, "color: white; background: #4285f4; font-weight: 700;", "color: #4285f4; background: white; font-weight: 700;");
 
 class SimpleTimerCard extends LitElement {
@@ -36,6 +36,12 @@ class SimpleTimerCard extends LitElement {
       throw new Error("You need to define an array of entities or enable timer presets.");
     }
     
+    const mqttDefaults = {
+      topic: 'simple_timer_card/timers',
+      state_topic: 'simple_timer_card/timers/state',
+      sensor_entity: 'sensor.simple_timer_store',
+    };
+    
     this._config = {
       layout: "vertical",               // 'vertical' | 'horizontal'
       style: "bar",                     // 'bar' | 'circle' | 'chip'
@@ -48,11 +54,14 @@ class SimpleTimerCard extends LitElement {
       expire_keep_for: 120,             // seconds to keep a rung timer visible
       auto_dismiss_writable: false,     // auto-dismiss helper timers when 0
       show_progress_when_unknown: false,  // show an empty track if duration unknown
+      storage: "local",                 // 'local' | 'helper' | 'mqtt'
+      mqtt: mqttDefaults,               // MQTT configuration
       audio_enabled: false,             // enable audio notifications
       audio_file_url: "",               // URL or path to audio file
       audio_repeat_count: 1,            // number of times to play audio
       ...config,
       entities: config.entities || [],    // ensure entities is always an array
+      mqtt: { ...mqttDefaults, ...(config.mqtt || {}) }, // merge MQTT config properly
     };
     
     this._presetTarget = this._config.default_timer_entity || null;
@@ -64,7 +73,7 @@ class SimpleTimerCard extends LitElement {
     return `simple-timer-card-timers-${this._config?.title || 'default'}`;
   }
 
-  _loadTimersFromStorage() {
+  _loadTimersFromStorage_local() {
     try {
       const stored = localStorage.getItem(this._getStorageKey());
       if (stored) {
@@ -77,7 +86,7 @@ class SimpleTimerCard extends LitElement {
     return [];
   }
 
-  _saveTimersToStorage(timers) {
+  _saveTimersToStorage_local(timers) {
     try {
       const data = {
         timers: timers || [],
@@ -90,24 +99,116 @@ class SimpleTimerCard extends LitElement {
     }
   }
 
+  _updateTimerInStorage_local(timerId, updates) {
+    const timers = this._loadTimersFromStorage_local();
+    const index = timers.findIndex(t => t.id === timerId);
+    if (index !== -1) {
+      timers[index] = { ...timers[index], ...updates };
+      this._saveTimersToStorage_local(timers);
+    }
+  }
+
+  _removeTimerFromStorage_local(timerId) {
+    const timers = this._loadTimersFromStorage_local().filter(t => t.id !== timerId);
+    this._saveTimersToStorage_local(timers);
+  }
+
+  // MQTT Timer Storage Methods
+  _loadTimersFromStorage_mqtt() {
+    try {
+      const entity = this.hass?.states?.[this._config.mqtt.sensor_entity];
+      const timers = entity?.attributes?.timers;
+      return Array.isArray(timers) ? timers : [];
+    } catch (e) {
+      console.warn('Failed to load timers from MQTT storage:', e);
+      return [];
+    }
+  }
+
+  _saveTimersToStorage_mqtt(timers) {
+    try {
+      const payload = { 
+        timers: timers || [], 
+        version: 1, 
+        lastUpdated: Date.now() 
+      };
+      
+      // Publish main payload with retain
+      this.hass.callService('mqtt', 'publish', {
+        topic: this._config.mqtt.topic,
+        payload: JSON.stringify(payload),
+        retain: true,
+      });
+      
+      // Optional: publish tiny state to keep sensor state evolving
+      if (this._config.mqtt.state_topic) {
+        this.hass.callService('mqtt', 'publish', {
+          topic: this._config.mqtt.state_topic,
+          payload: JSON.stringify({ version: payload.version, t: payload.lastUpdated }),
+          retain: true,
+        });
+      }
+    } catch (e) {
+      console.warn('Failed to save timers to MQTT storage:', e);
+    }
+  }
+
+  _updateTimerInStorage_mqtt(timerId, updates) {
+    const timers = this._loadTimersFromStorage_mqtt();
+    const index = timers.findIndex(t => t.id === timerId);
+    if (index !== -1) {
+      timers[index] = { ...timers[index], ...updates };
+      this._saveTimersToStorage_mqtt(timers);
+    }
+  }
+
+  _removeTimerFromStorage_mqtt(timerId) {
+    const timers = this._loadTimersFromStorage_mqtt().filter(t => t.id !== timerId);
+    this._saveTimersToStorage_mqtt(timers);
+  }
+
+  // Storage Dispatcher Methods
+  _loadTimersFromStorage() {
+    const storage = this._config.storage;
+    if (storage === 'mqtt') {
+      return this._loadTimersFromStorage_mqtt();
+    } else if (storage === 'local') {
+      return this._loadTimersFromStorage_local();
+    }
+    return []; // helper timers are loaded via _parseHelper, not here
+  }
+
+  _saveTimersToStorage(timers) {
+    const storage = this._config.storage;
+    if (storage === 'mqtt') {
+      return this._saveTimersToStorage_mqtt(timers);
+    } else if (storage === 'local') {
+      return this._saveTimersToStorage_local(timers);
+    }
+  }
+
+  _updateTimerInStorage(timerId, updates) {
+    const storage = this._config.storage;
+    if (storage === 'mqtt') {
+      return this._updateTimerInStorage_mqtt(timerId, updates);
+    } else if (storage === 'local') {
+      return this._updateTimerInStorage_local(timerId, updates);
+    }
+  }
+
+  _removeTimerFromStorage(timerId) {
+    const storage = this._config.storage;
+    if (storage === 'mqtt') {
+      return this._removeTimerFromStorage_mqtt(timerId);
+    } else if (storage === 'local') {
+      return this._removeTimerFromStorage_local(timerId);
+    }
+  }
+
   _addTimerToStorage(timer) {
     const timers = this._loadTimersFromStorage();
     timers.push(timer);
     this._saveTimersToStorage(timers);
-  }
-
-  _removeTimerFromStorage(timerId) {
-    const timers = this._loadTimersFromStorage().filter(t => t.id !== timerId);
-    this._saveTimersToStorage(timers);
-  }
-
-  _updateTimerInStorage(timerId, updates) {
-    const timers = this._loadTimersFromStorage();
-    const index = timers.findIndex(t => t.id === timerId);
-    if (index !== -1) {
-      timers[index] = { ...timers[index], ...updates };
-      this._saveTimersToStorage(timers);
-    }
   }
 
   static async getConfigElement() {
@@ -310,8 +411,10 @@ class SimpleTimerCard extends LitElement {
       }
     }
 
-    // Add local timers from storage
-    collected.push(...this._loadTimersFromStorage());
+    // Add timers from selected storage
+    if (this._config.storage === 'local' || this._config.storage === 'mqtt') {
+      collected.push(...this._loadTimersFromStorage());
+    }
 
     // Hide locally dismissed Alexa timers until the sensor list changes
     const filtered = collected.filter(
@@ -1140,12 +1243,78 @@ class SimpleTimerCardEditor extends LitElement {
     }
   }
 
+  // Handler for MQTT config text fields
+  _mqttValueChanged(ev) {
+    if (!this._config || !this.hass) return;
+    const target = ev.target;
+    const key = target.configValue;
+    if (!key) return;
+
+    const value = target.value || '';
+    const mqttKey = key.replace('mqtt_', ''); // remove mqtt_ prefix
+    
+    const newMqttConfig = { ...this._config.mqtt, [mqttKey]: value };
+    this._updateConfig({ mqtt: newMqttConfig });
+  }
+
+  // Handler for MQTT config entity picker
+  _mqttDetailValueChanged(ev) {
+    if (!this._config || !this.hass) return;
+    const target = ev.target;
+    const key = target.configValue;
+    if (!key) return;
+
+    const value = ev.detail.value || '';
+    const mqttKey = key.replace('mqtt_', ''); // remove mqtt_ prefix
+    
+    const newMqttConfig = { ...this._config.mqtt, [mqttKey]: value };
+    this._updateConfig({ mqtt: newMqttConfig });
+  }
+
   render() {
     if (!this.hass || !this._config) return html``;
 
     return html`
       <div class="card-config">
         <ha-textfield label="Title (Optional)" .value=${this._config.title || ""} .configValue=${"title"} @input=${this._valueChanged}></ha-textfield>
+
+        <ha-select label="Storage backend" .value=${this._config.storage || "local"} .configValue=${"storage"}
+          @selected=${this._selectChanged} @closed=${(e) => { e.stopPropagation(); this._selectChanged(e); }}>
+          <mwc-list-item value="local">Local</mwc-list-item>
+          <mwc-list-item value="helper">Helper</mwc-list-item>
+          <mwc-list-item value="mqtt">MQTT</mwc-list-item>
+        </ha-select>
+
+        ${this._config.storage === 'mqtt' ? html`
+          <div class="mqtt-config">
+            <ha-textfield 
+              label="Topic" 
+              .value=${this._config.mqtt?.topic || 'simple_timer_card/timers'} 
+              .configValue=${"mqtt_topic"} 
+              @input=${this._mqttValueChanged}
+              helper="Retained MQTT topic for timer storage"
+            ></ha-textfield>
+            
+            <ha-textfield 
+              label="State topic (optional)" 
+              .value=${this._config.mqtt?.state_topic || 'simple_timer_card/timers/state'} 
+              .configValue=${"mqtt_state_topic"} 
+              @input=${this._mqttValueChanged}
+              helper="Topic for sensor state updates"
+            ></ha-textfield>
+            
+            <ha-entity-picker
+              .hass=${this.hass}
+              .value=${this._config.mqtt?.sensor_entity || 'sensor.simple_timer_store'}
+              .configValue=${"mqtt_sensor_entity"}
+              @value-changed=${this._mqttDetailValueChanged}
+              label="Sensor entity"
+              allow-custom-entity
+              .includeDomains=${["sensor"]}
+              helper="MQTT sensor exposing timer attributes"
+            ></ha-entity-picker>
+          </div>
+        ` : ''}
 
         <div class="side-by-side">
           <ha-select label="Layout" .value=${this._config.layout || "vertical"} .configValue=${"layout"}
@@ -1303,6 +1472,15 @@ class SimpleTimerCardEditor extends LitElement {
       .card-config { display: flex; flex-direction: column; gap: 12px; }
       .side-by-side { display: flex; gap: 12px; }
       .side-by-side > * { flex: 1; min-width: 0; }
+      .mqtt-config { 
+        display: flex; 
+        flex-direction: column; 
+        gap: 8px; 
+        padding: 12px; 
+        border: 1px solid var(--divider-color); 
+        border-radius: 8px;
+        background: var(--card-background-color);
+      }
       .entities-header { display: flex; justify-content: space-between; align-items: center; }
       .entities-header h3 { margin: 0; }
       .add-entity-button {
