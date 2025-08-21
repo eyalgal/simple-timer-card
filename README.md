@@ -6,10 +6,11 @@ A Home Assistant custom card for displaying and managing timers from various sou
 
 - **Multiple Timer Sources:**
   - Alexa timers (read-only)
+  - **NEW:** Home Assistant timer entities (timer.*)
   - device_class: timestamp sensors (completion times)
   - sensors with numeric "minutes to arrival" attribute (ETA)
   - input_text helper entities (JSON store) for shared timers
-  - **NEW:** localStorage JSON storage for persistent local timers
+  - localStorage JSON storage for persistent local timers
 
 - **Timer Management:**
   - Create timers with custom durations and labels
@@ -62,11 +63,22 @@ Each card instance uses a unique localStorage key: `simple-timer-card-timers-{ti
 type: custom:simple-timer-card
 title: My Timers
 entities:
+  - timer.kitchen          # Home Assistant timer entity
+  - timer.workout          # Another timer entity  
   - input_text.timer_helper  # Optional: for shared timers
 show_timer_presets: true
 timer_presets: [15, 30, 60, 120]  # minutes
 expire_action: keep  # keep | dismiss | remove
 ```
+
+### Timer Entity Support
+
+The card automatically detects and supports Home Assistant timer entities (`timer.*`):
+
+- **States:** Displays `active` and `paused` timers
+- **Controls:** Cancel (timer.cancel), Dismiss (timer.finish), Snooze (timer.start)
+- **Attributes:** Uses `finishes_at`, `remaining`, and `duration` attributes
+- **Icons:** `mdi:timer` for active, `mdi:timer-pause` for paused timers
 
 ## Installation
 
@@ -76,6 +88,7 @@ expire_action: keep  # keep | dismiss | remove
 
 ## Version History
 
+- **v1.3.5:** Added support for Home Assistant timer entities (timer.*) with full control integration
 - **v1.3.4:** Added JSON-based localStorage timer storage for persistent local timers
 - **v1.3.3:** Editor and service call fixes
 - **v1.3.2:** Previous improvements
