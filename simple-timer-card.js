@@ -138,6 +138,7 @@ class SimpleTimerCard extends LitElement {
   // --------- Adapters ----------
   _detectMode(entityId, entityState, entityConf) {
     if (entityId.startsWith("input_text.") || entityId.startsWith("text.")) return "helper";
+    if (entityId.startsWith("timer.")) return "timer";
     if (entityId.startsWith("sensor.") && entityState?.attributes?.sorted_active) return "alexa";
     if (entityState?.attributes?.device_class === "timestamp") return "timestamp";
     const guessAttr = entityConf?.minutes_attr || "Minutes to arrival";
@@ -218,6 +219,62 @@ class SimpleTimerCard extends LitElement {
       },
     ];
   }
+
+  _parseTimer(entityId, entityState, entityConf) {
+    const state = entityState.state;
+    const attrs = entityState.attributes;
+    
+    // Only parse active or paused timers
+    if (state !== "active" && state !== "paused") return [];
+    
+    let endMs = null;
+    let duration = null;
+    
+    // Calculate end time from finishes_at attribute if available
+    if (attrs.finishes_at) {
+      endMs = Date.parse(attrs.finishes_at);
+    } else if (attrs.remaining && attrs.remaining !== "0:00:00") {
+      // Parse remaining time (format: H:MM:SS or M:SS)
+      const remaining = this._parseHMSToMs(attrs.remaining);
+      if (remaining > 0) {
+        endMs = Date.now() + remaining;
+      }
+    }
+    
+    // Get duration from duration attribute if available
+    if (attrs.duration) {
+      duration = this._parseHMSToMs(attrs.duration);
+    }
+    
+    if (!endMs) return [];
+    
+    return [
+      {
+        id: `${entityId}-${state}`,
+        source: "timer",
+        source_entity: entityId,
+        label: entityConf?.name || entityState.attributes.friendly_name || "Timer",
+        icon: entityConf?.icon || (state === "paused" ? "mdi:timer-pause" : "mdi:timer"),
+        color: entityConf?.color || (state === "paused" ? "var(--warning-color)" : "var(--primary-color)"),
+        end: endMs,
+        duration: duration,
+        paused: state === "paused"
+      },
+    ];
+  }
+
+  _parseHMSToMs(timeStr) {
+    if (!timeStr) return 0;
+    const parts = timeStr.split(':').map(p => parseInt(p, 10));
+    if (parts.length === 3) {
+      // H:MM:SS format
+      return (parts[0] * 3600 + parts[1] * 60 + parts[2]) * 1000;
+    } else if (parts.length === 2) {
+      // M:SS format
+      return (parts[0] * 60 + parts[1]) * 1000;
+    }
+    return 0;
+  }
   // -----------------------------
 
   _updateTimers() {
@@ -238,6 +295,7 @@ class SimpleTimerCard extends LitElement {
       try {
         if (mode === "alexa") collected.push(...this._parseAlexa(entityId, st, conf));
         else if (mode === "helper") collected.push(...this._parseHelper(entityId, st, conf));
+        else if (mode === "timer") collected.push(...this._parseTimer(entityId, st, conf));
         else if (mode === "minutes_attr") collected.push(...this._parseMinutesAttr(entityId, st, conf));
         else if (mode === "timestamp") collected.push(...this._parseTimestamp(entityId, st, conf));
         else console.warn(`Unknown mode '${mode}' for ${entityId}`);
@@ -410,6 +468,10 @@ class SimpleTimerCard extends LitElement {
     } else if (timer.source === "local") {
       this._removeTimerFromStorage(timer.id);
       this.requestUpdate();
+    } else if (timer.source === "timer") {
+      this.hass.callService("timer", "cancel", {
+        entity_id: timer.source_entity
+      });
     } else {
       this._toast?.("This timer can't be cancelled from here.");
     }
@@ -423,6 +485,10 @@ class SimpleTimerCard extends LitElement {
     } else if (timer.source === "local") {
       this._removeTimerFromStorage(timer.id);
       this.requestUpdate();
+    } else if (timer.source === "timer") {
+      this.hass.callService("timer", "finish", {
+        entity_id: timer.source_entity
+      });
     } else {
       this._dismissed.add(`${timer.source_entity}:${timer.id}`);
     }
@@ -451,8 +517,28 @@ class SimpleTimerCard extends LitElement {
         duration: newDurationMs
       });
       this.requestUpdate();
+    } else if (timer.source === "timer") {
+      const snoozeMinutes = this._config.snooze_duration;
+      const snoozeDurationStr = this._formatDurationForTimer(snoozeMinutes * 60);
+      
+      this.hass.callService("timer", "start", {
+        entity_id: timer.source_entity,
+        duration: snoozeDurationStr
+      });
     } else {
-      this._toast?.("Only helper and local timers can be snoozed here.");
+      this._toast?.("Only helper, local, and timer entities can be snoozed here.");
+    }
+  }
+
+  _formatDurationForTimer(totalSeconds) {
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    
+    if (hours > 0) {
+      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    } else {
+      return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     }
   }
 
@@ -599,9 +685,10 @@ class SimpleTimerCard extends LitElement {
     const isHelper = timer.source === "helper";
     const isLocal = timer.source === "local";
     const isAlexa = timer.source === "alexa";
+    const isTimer = timer.source === "timer";
 
-    const canCancel = isHelper || isLocal;
-    const canSnooze = isHelper || isLocal;
+    const canCancel = isHelper || isLocal || isTimer;
+    const canSnooze = isHelper || isLocal || isTimer;
     const canDismiss = true;
 
     const containerClass = `timer-item ${this._config.layout} ${isRinging ? "ringing" : ""}`;
@@ -1056,7 +1143,7 @@ class SimpleTimerCardEditor extends LitElement {
             @value-changed=${this._detailValueChanged}
             label="Default timer entity (optional)"
             allow-custom-entity
-            .includeDomains=${["input_text", "text"]}
+            .includeDomains=${["input_text", "text", "timer"]}
             helper="Default entity for preset timers. Leave empty for local timers."
           ></ha-entity-picker>
         ` : ''}
