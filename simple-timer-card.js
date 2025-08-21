@@ -1,20 +1,21 @@
 /*
  * Simple Timer Card (Adapterized)
- * v1.3.3 — Editor and service call fixes
+ * v1.3.4 — JSON-based local timer storage
  *
  * - Alexa timers (read-only)
  * - device_class: timestamp sensors (completion times)
  * - sensors with a numeric "minutes to arrival" attribute (ETA)
  * - input_text helper (JSON store) for fully controllable shared timers
+ * - localStorage JSON storage for persistent local timers
  */
 import { LitElement, html, css } from "https://unpkg.com/lit-element@2.0.1/lit-element.js?module";
 
-const cardVersion = "1.3.3";
+const cardVersion = "1.3.4";
 console.info(`%c SIMPLE-TIMER-CARD %c v${cardVersion} `, "color: white; background: #4285f4; font-weight: 700;", "color: #4285f4; background: white; font-weight: 700;");
 
 class SimpleTimerCard extends LitElement {
   static get properties() {
-    return { hass: {}, _config: {}, _timers: { state: true }, _isAdding: { state: true }, _localTimers: { state: true }, _presetTarget: { state: true } };
+    return { hass: {}, _config: {}, _timers: { state: true }, _isAdding: { state: true }, _presetTarget: { state: true } };
   }
 
   constructor() {
@@ -23,7 +24,6 @@ class SimpleTimerCard extends LitElement {
     this._timerInterval = null;
     this._isAdding = false;
     this._dismissed = new Set(); // local UI dismissal for read-only sources (e.g., Alexa)
-    this._localTimers = []; // local timers when no entity is specified
     this._presetTarget = null;
   }
 
@@ -50,6 +50,58 @@ class SimpleTimerCard extends LitElement {
     };
     
     this._presetTarget = this._config.default_timer_entity || null;
+  }
+
+  // JSON Timer Storage Methods
+  _getStorageKey() {
+    // Use a unique key per card instance to avoid conflicts
+    return `simple-timer-card-timers-${this._config?.title || 'default'}`;
+  }
+
+  _loadTimersFromStorage() {
+    try {
+      const stored = localStorage.getItem(this._getStorageKey());
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        return Array.isArray(parsed.timers) ? parsed.timers : [];
+      }
+    } catch (e) {
+      console.warn('Failed to load timers from storage:', e);
+    }
+    return [];
+  }
+
+  _saveTimersToStorage(timers) {
+    try {
+      const data = {
+        timers: timers || [],
+        version: 1,
+        lastUpdated: Date.now()
+      };
+      localStorage.setItem(this._getStorageKey(), JSON.stringify(data));
+    } catch (e) {
+      console.warn('Failed to save timers to storage:', e);
+    }
+  }
+
+  _addTimerToStorage(timer) {
+    const timers = this._loadTimersFromStorage();
+    timers.push(timer);
+    this._saveTimersToStorage(timers);
+  }
+
+  _removeTimerFromStorage(timerId) {
+    const timers = this._loadTimersFromStorage().filter(t => t.id !== timerId);
+    this._saveTimersToStorage(timers);
+  }
+
+  _updateTimerInStorage(timerId, updates) {
+    const timers = this._loadTimersFromStorage();
+    const index = timers.findIndex(t => t.id === timerId);
+    if (index !== -1) {
+      timers[index] = { ...timers[index], ...updates };
+      this._saveTimersToStorage(timers);
+    }
   }
 
   static async getConfigElement() {
@@ -194,8 +246,8 @@ class SimpleTimerCard extends LitElement {
       }
     }
 
-    // Add local timers
-    collected.push(...this._localTimers);
+    // Add local timers from storage
+    collected.push(...this._loadTimersFromStorage());
 
     // Hide locally dismissed Alexa timers until the sensor list changes
     const filtered = collected.filter(
@@ -230,12 +282,12 @@ class SimpleTimerCard extends LitElement {
       } else if (timer.source === "local") {
         // Handle local timer expiration
         if (this._config.expire_action === "dismiss" || this._config.expire_action === "remove") {
-          this._localTimers = this._localTimers.filter(t => t.id !== timer.id);
+          this._removeTimerFromStorage(timer.id);
         } else if (this._config.expire_action === "keep") {
           timer.expiredAt ??= now;
           const keepMs = (this._config.expire_keep_for || 0) * 1000;
           if (keepMs > 0 && now - timer.expiredAt > keepMs) {
-            this._localTimers = this._localTimers.filter(t => t.id !== timer.id);
+            this._removeTimerFromStorage(timer.id);
           }
         }
       }
@@ -329,9 +381,9 @@ class SimpleTimerCard extends LitElement {
         data.timers.push(newTimer);
       });
     } else {
-      // Store locally
+      // Store in JSON storage
       newTimer.source_entity = "local"; // For consistency in timer handling
-      this._localTimers.push(newTimer);
+      this._addTimerToStorage(newTimer);
       this.requestUpdate();
     }
 
@@ -356,7 +408,7 @@ class SimpleTimerCard extends LitElement {
         data.timers = data.timers.filter((t) => t.id !== timer.id);
       });
     } else if (timer.source === "local") {
-      this._localTimers = this._localTimers.filter((t) => t.id !== timer.id);
+      this._removeTimerFromStorage(timer.id);
       this.requestUpdate();
     } else {
       this._toast?.("This timer can't be cancelled from here.");
@@ -369,7 +421,7 @@ class SimpleTimerCard extends LitElement {
         data.timers = data.timers.filter((t) => t.id !== timer.id);
       });
     } else if (timer.source === "local") {
-      this._localTimers = this._localTimers.filter((t) => t.id !== timer.id);
+      this._removeTimerFromStorage(timer.id);
       this.requestUpdate();
     } else {
       this._dismissed.add(`${timer.source_entity}:${timer.id}`);
@@ -394,12 +446,11 @@ class SimpleTimerCard extends LitElement {
       const newDurationMs = snoozeMinutes * 60000;
       const newEndTime = Date.now() + newDurationMs;
 
-      const idx = this._localTimers.findIndex((t) => t.id === timer.id);
-      if (idx !== -1) {
-        this._localTimers[idx].end = newEndTime;
-        this._localTimers[idx].duration = newDurationMs;
-        this.requestUpdate();
-      }
+      this._updateTimerInStorage(timer.id, {
+        end: newEndTime,
+        duration: newDurationMs
+      });
+      this.requestUpdate();
     } else {
       this._toast?.("Only helper and local timers can be snoozed here.");
     }
