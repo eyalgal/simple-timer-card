@@ -83,7 +83,7 @@ class SimpleTimerCard extends LitElement {
 
   // --------- Adapters ----------
   _detectMode(entityId, entityState, entityConf) {
-    if (entityId.startsWith("input_text.")) return "helper";
+    if (entityId.startsWith("input_text.") || entityId.startsWith("text.")) return "helper";
     if (entityId.startsWith("sensor.") && entityState?.attributes?.sorted_active) return "alexa";
     if (entityState?.attributes?.device_class === "timestamp") return "timestamp";
     const guessAttr = entityConf?.minutes_attr || "Minutes to arrival";
@@ -266,7 +266,12 @@ class SimpleTimerCard extends LitElement {
     try { data = JSON.parse(state); } catch { data = { timers: [] }; }
     if (!Array.isArray(data.timers)) data.timers = [];
     mutator(data);
-    this.hass.callService("input_text", "set_value", {
+    
+    // Determine the correct service based on entity domain
+    const domain = entityId.split('.')[0];
+    const service = domain === 'text' ? 'text' : 'input_text';
+    
+    this.hass.callService(service, "set_value", {
       target: { entity_id: entityId },
       value: JSON.stringify({ ...data, version: 1 }),
     });
@@ -416,7 +421,7 @@ class SimpleTimerCard extends LitElement {
 
     const helperEntities = (this._config.entities || [])
       .map((e) => (typeof e === "string" ? e : e.entity))
-      .filter((id) => id && id.startsWith("input_text."));
+      .filter((id) => id && (id.startsWith("input_text.") || id.startsWith("text.")));
 
     const showAddButton = this._config.show_add_timer && (helperEntities.length > 0 || this._config.show_timer_presets);
     const showPresets = this._config.show_timer_presets !== false && this._config.timer_presets && this._config.timer_presets.length > 0;
@@ -960,7 +965,7 @@ class SimpleTimerCardEditor extends LitElement {
           @value-changed=${this._valueChanged}
           label="Default timer entity (optional)"
           allow-custom-entity
-          .includeDomains=${["input_text"]}
+          .includeDomains=${["input_text", "text"]}
           helper="Default entity for preset timers. Leave empty for local timers."
         ></ha-entity-picker>
 
@@ -992,7 +997,7 @@ class SimpleTimerCardEditor extends LitElement {
                       @selected=${(e) => { e.stopPropagation(); this._entityValueChanged(e, index); }} @closed=${(e) => { e.stopPropagation(); this._entityValueChanged(e, index); }}>
                       <mwc-list-item value="auto">Auto</mwc-list-item>
                       <mwc-list-item value="alexa">Alexa</mwc-list-item>
-                      <mwc-list-item value="helper">Helper (input_text)</mwc-list-item>
+                      <mwc-list-item value="helper">Helper (input_text/text)</mwc-list-item>
                       <mwc-list-item value="timestamp">Timestamp sensor</mwc-list-item>
                       <mwc-list-item value="minutes_attr">Minutes attribute</mwc-list-item>
                     </ha-select>
