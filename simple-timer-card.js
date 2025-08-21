@@ -1,6 +1,6 @@
 /*
  * Simple Timer Card (Adapterized)
- * v1.3.5 — Added timer entity support
+ * v1.3.6 — Added MQTT-backed cross-device timer storage
  *
  * - Alexa timers (read-only)
  * - Home Assistant timer entities (timer.*) with full control
@@ -8,10 +8,11 @@
  * - sensors with a numeric "minutes to arrival" attribute (ETA)
  * - input_text helper (JSON store) for fully controllable shared timers
  * - localStorage JSON storage for persistent local timers
+ * - MQTT retained storage for cross-device sync
  */
 import { LitElement, html, css } from "https://unpkg.com/lit-element@2.0.1/lit-element.js?module";
 
-const cardVersion = "1.3.5";
+const cardVersion = "1.3.6";
 console.info(`%c SIMPLE-TIMER-CARD %c v${cardVersion} `, "color: white; background: #4285f4; font-weight: 700;", "color: #4285f4; background: white; font-weight: 700;");
 
 class SimpleTimerCard extends LitElement {

@@ -11,6 +11,7 @@ A Home Assistant custom card for displaying and managing timers from various sou
   - sensors with numeric "minutes to arrival" attribute (ETA)
   - input_text helper entities (JSON store) for shared timers
   - localStorage JSON storage for persistent local timers
+  - **NEW:** MQTT retained storage for cross-device sync
 
 - **Timer Management:**
   - Create timers with custom durations and labels
@@ -57,11 +58,71 @@ The card now supports persistent local timer storage using JSON format in localS
 
 Each card instance uses a unique localStorage key: `simple-timer-card-timers-{title}`
 
+## Cross-device storage via MQTT (retained)
+
+The card supports MQTT-backed timer storage for sharing timers across multiple devices and browsers. This provides:
+
+- **Cross-device sync:** Timers appear on all devices instantly
+- **Persistence:** Timers survive server restarts (retained messages)
+- **Real-time updates:** Changes sync within 1-2 seconds
+- **No local storage:** Data stored on MQTT broker
+
+### Home Assistant Configuration
+
+Add this to your `configuration.yaml` (or packages):
+
+```yaml
+mqtt:
+  # Assume broker already configured
+
+sensor:
+  - platform: mqtt
+    name: Simple Timer Store
+    unique_id: simple_timer_store
+    state_topic: simple_timer_card/timers/state
+    value_template: "{{ value_json.version | default(1) }}"
+    json_attributes_topic: simple_timer_card/timers
+```
+
+### Card Configuration
+
+```yaml
+type: custom:simple-timer-card
+title: Kitchen Timers
+storage: mqtt                        # Enable MQTT storage
+mqtt:
+  topic: simple_timer_card/timers          # Retained payload topic (JSON)
+  state_topic: simple_timer_card/timers/state  # Tiny numeric state (optional)
+  sensor_entity: sensor.simple_timer_store     # HA MQTT sensor exposing attributes
+show_timer_presets: true
+timer_presets: [15, 30, 60, 120]
+```
+
+### How it works
+
+- The card publishes timer data as JSON to `simple_timer_card/timers` with `retain: true`
+- Home Assistant MQTT sensor exposes this data via its `attributes.timers`
+- Multiple cards/devices read from the same sensor for instant sync
+- Optional state topic publishes version info to keep sensor state evolving
+
+### Clearing MQTT timers
+
+To clear all timers, publish an empty payload:
+
+```yaml
+service: mqtt.publish
+data:
+  topic: simple_timer_card/timers
+  payload: '{"timers":[],"version":1}'
+  retain: true
+```
+
 ## Configuration
 
 ```yaml
 type: custom:simple-timer-card
 title: My Timers
+storage: local                # local | helper | mqtt
 entities:
   - timer.kitchen          # Home Assistant timer entity
   - timer.workout          # Another timer entity  
@@ -88,6 +149,7 @@ The card automatically detects and supports Home Assistant timer entities (`time
 
 ## Version History
 
+- **v1.3.6:** Added MQTT-backed cross-device timer storage
 - **v1.3.5:** Added support for Home Assistant timer entities (timer.*) with full control integration
 - **v1.3.4:** Added JSON-based localStorage timer storage for persistent local timers
 - **v1.3.3:** Editor and service call fixes
