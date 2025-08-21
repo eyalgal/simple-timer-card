@@ -1,7 +1,6 @@
-
 /*
  * Simple Timer Card (Adapterized)
- * v1.3.2 — visual editor fixes
+ * v1.3.3 — Editor and service call fixes
  *
  * - Alexa timers (read-only)
  * - device_class: timestamp sensors (completion times)
@@ -10,12 +9,12 @@
  */
 import { LitElement, html, css } from "https://unpkg.com/lit-element@2.0.1/lit-element.js?module";
 
-const cardVersion = "1.3.2";
+const cardVersion = "1.3.3";
 console.info(`%c SIMPLE-TIMER-CARD %c v${cardVersion} `, "color: white; background: #4285f4; font-weight: 700;", "color: #4285f4; background: white; font-weight: 700;");
 
 class SimpleTimerCard extends LitElement {
   static get properties() {
-    return { hass: {}, _config: {}, _timers: { state: true }, _isAdding: { state: true }, _localTimers: { state: true } };
+    return { hass: {}, _config: {}, _timers: { state: true }, _isAdding: { state: true }, _localTimers: { state: true }, _presetTarget: { state: true } };
   }
 
   constructor() {
@@ -25,6 +24,7 @@ class SimpleTimerCard extends LitElement {
     this._isAdding = false;
     this._dismissed = new Set(); // local UI dismissal for read-only sources (e.g., Alexa)
     this._localTimers = []; // local timers when no entity is specified
+    this._presetTarget = null;
   }
 
   setConfig(config) {
@@ -34,20 +34,22 @@ class SimpleTimerCard extends LitElement {
     }
     
     this._config = {
-      layout: "vertical",                  // 'vertical' | 'horizontal'
-      style: "bar",                        // 'bar' | 'circle' | 'chip'
-      snooze_duration: 5,                  // minutes
+      layout: "vertical",               // 'vertical' | 'horizontal'
+      style: "bar",                     // 'bar' | 'circle' | 'chip'
+      snooze_duration: 5,               // minutes
       show_add_timer: false,
-      timer_presets: [15, 30, 60, 120],    // preset durations in minutes
-      show_timer_presets: true,            // show preset buttons
-      default_timer_entity: null,          // default entity for timer storage
-      expire_action: "keep",               // 'keep' | 'dismiss' | 'remove'
-      expire_keep_for: 120,                // seconds to keep a rung timer visible
-      auto_dismiss_writable: false,        // auto-dismiss helper timers when 0
-      show_progress_when_unknown: false,   // show an empty track if duration unknown
+      timer_presets: [15, 30, 60, 120],   // preset durations in minutes
+      show_timer_presets: true,         // show preset buttons
+      default_timer_entity: null,       // default entity for timer storage
+      expire_action: "keep",            // 'keep' | 'dismiss' | 'remove'
+      expire_keep_for: 120,             // seconds to keep a rung timer visible
+      auto_dismiss_writable: false,     // auto-dismiss helper timers when 0
+      show_progress_when_unknown: false,  // show an empty track if duration unknown
       ...config,
-      entities: config.entities || [],     // ensure entities is always an array
+      entities: config.entities || [],    // ensure entities is always an array
     };
+    
+    this._presetTarget = this._config.default_timer_entity || null;
   }
 
   static async getConfigElement() {
@@ -267,12 +269,11 @@ class SimpleTimerCard extends LitElement {
     if (!Array.isArray(data.timers)) data.timers = [];
     mutator(data);
     
-    // Determine the correct service based on entity domain
     const domain = entityId.split('.')[0];
-    const service = domain === 'text' ? 'text' : 'input_text';
     
-    this.hass.callService(service, "set_value", {
-      target: { entity_id: entityId },
+    // **FIX**: Use the simpler and more reliable `entity_id` format for the service call.
+    this.hass.callService(domain, "set_value", {
+      entity_id: entityId,
       value: JSON.stringify({ ...data, version: 1 }),
     });
   }
@@ -473,14 +474,40 @@ class SimpleTimerCard extends LitElement {
   _renderTimerPresets(helperEntities) {
     if (!this.hass || !this._config.timer_presets) return html``;
     
-    const targetEntity = this._config.default_timer_entity || 
-                        (helperEntities.length === 1 ? helperEntities[0] : null);
-    
+    const targetEntity = this._presetTarget
+      || this._config.default_timer_entity
+      || (helperEntities.length === 1 ? helperEntities[0] : null);
+
     return html`
       <div class="timer-presets">
         <div class="presets-header">
           <span>Quick Timer</span>
         </div>
+        ${helperEntities.length > 1 ? html`
+          <div class="preset-target">
+            <ha-select
+              label="Store preset timers in…"
+              .value=${this._presetTarget || ""}
+              @selected=${(e) => {
+                e.stopPropagation();
+                const v = e.detail?.value ?? e.target?.value ?? "";
+                this._presetTarget = v || null; // runtime-only; does not mutate saved config
+              }}
+              @closed=${(e) => {
+                e.stopPropagation();
+                const v = e.detail?.value ?? e.target?.value ?? "";
+                this._presetTarget = v || null;
+              }}
+            >
+              <mwc-list-item value="">(Store locally)</mwc-list-item>
+              ${helperEntities.map(id => html`
+                <mwc-list-item value=${id}>
+                  ${this.hass.states[id]?.attributes?.friendly_name || id}
+                </mwc-list-item>
+              `)}
+            </ha-select>
+          </div>
+        ` : ""}
         <div class="preset-buttons">
           ${this._config.timer_presets.map(minutes => html`
             <button 
@@ -492,11 +519,14 @@ class SimpleTimerCard extends LitElement {
             </button>
           `)}
         </div>
-        ${helperEntities.length > 1 ? html`
-          <div class="entity-note">
-            <small>Timers will be stored ${targetEntity ? 'in ' + (this.hass.states[targetEntity]?.attributes?.friendly_name || targetEntity) : 'locally'}</small>
-          </div>
-        ` : ''}
+        <div class="entity-note">
+          <small>
+            Timers will be stored
+            ${targetEntity
+              ? 'in ' + (this.hass.states[targetEntity]?.attributes?.friendly_name || targetEntity)
+              : 'locally'}
+          </small>
+        </div>
       </div>
     `;
   }
@@ -648,7 +678,7 @@ class SimpleTimerCard extends LitElement {
         text-align: center; 
         opacity: 0.7; 
       }
-
+      .preset-target { margin-bottom: 8px; }
       .timers-container { padding: 8px 16px 16px 16px; display: flex; flex-direction: column; gap: 12px; }
       .timers-container.horizontal { flex-direction: row; flex-wrap: wrap; gap: 12px; }
 
@@ -745,6 +775,15 @@ class SimpleTimerCardEditor extends LitElement {
 
     // Use a more defensive approach to config updates
     this._updateConfig({ [key]: value });
+  }
+
+  // **FIX**: Add a dedicated handler for components that use event.detail.value
+  _detailValueChanged(ev) {
+    if (!this._config || !this.hass) return;
+    const target = ev.target;
+    const key = target.configValue;
+    if (!key) return;
+    this._updateConfig({ [key]: ev.detail.value });
   }
 
   // Dedicated handler for ha-select to avoid crashes
@@ -963,7 +1002,7 @@ class SimpleTimerCardEditor extends LitElement {
             .hass=${this.hass}
             .value=${this._config.default_timer_entity || ""}
             .configValue=${"default_timer_entity"}
-            @value-changed=${this._valueChanged}
+            @value-changed=${this._detailValueChanged}
             label="Default timer entity (optional)"
             allow-custom-entity
             .includeDomains=${["input_text", "text"]}
