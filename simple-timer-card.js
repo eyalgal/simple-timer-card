@@ -44,19 +44,15 @@ class SimpleTimerCard extends LitElement {
     // Auto-select storage backend if not explicitly set
     let autoStorage = config.storage || "local";
     if (!config.storage) {
-      // If no entities configured → default to local
-      if (!config.entities || config.entities.length === 0) {
-        autoStorage = "local";
-      } else if (config.default_timer_entity) {
-        // If default timer entity is MQTT sensor → use mqtt
-        if (config.default_timer_entity.startsWith("sensor.")) {
-          autoStorage = "mqtt";
-        }
-        // If default timer entity is helper → use helper  
-        else if (config.default_timer_entity.startsWith("input_text.") || config.default_timer_entity.startsWith("text.")) {
-          autoStorage = "helper";
-        }
+      // If default timer entity is MQTT sensor → use mqtt
+      if (config.default_timer_entity?.startsWith("sensor.")) {
+        autoStorage = "mqtt";
       }
+      // If default timer entity is helper → use helper  
+      else if (config.default_timer_entity?.startsWith("input_text.") || config.default_timer_entity?.startsWith("text.")) {
+        autoStorage = "helper";
+      }
+      // If no entities configured → default to local (already set above)
     }
     
     this._config = {
