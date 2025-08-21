@@ -1,7 +1,7 @@
 
 /*
  * Simple Timer Card (Adapterized)
- * v1.3.1 — editor stability fixes
+ * v1.3.2 — visual editor fixes
  *
  * - Alexa timers (read-only)
  * - device_class: timestamp sensors (completion times)
@@ -10,7 +10,7 @@
  */
 import { LitElement, html, css } from "https://unpkg.com/lit-element@2.0.1/lit-element.js?module";
 
-const cardVersion = "1.3.1";
+const cardVersion = "1.3.2";
 console.info(`%c SIMPLE-TIMER-CARD %c v${cardVersion} `, "color: white; background: #4285f4; font-weight: 700;", "color: #4285f4; background: white; font-weight: 700;");
 
 class SimpleTimerCard extends LitElement {
@@ -582,17 +582,23 @@ class SimpleTimerCardEditor extends LitElement {
     const key = target.configValue;
     if (!key) return;
 
+    // Stop event propagation to prevent issues
+    ev.stopPropagation();
+
     // ha-select emits several events while opening/closing.
     // Only commit when we actually have a valid string value.
-    const value = target.value;
+    const value = ev.detail?.value !== undefined ? ev.detail.value : target.value;
     if (typeof value !== 'string' || value === '') return;
 
-    // Debounce rapid fire events to prevent crashes
-    this._debouncedUpdate({ [key]: value });
+    // Use the unified update method with immediate processing
+    this._updateConfig({ [key]: value }, true);
   }
 
   _entityValueChanged(e, index) {
     if (!this._config || !this.hass) return;
+    
+    // Stop event propagation to prevent issues
+    if (e.stopPropagation) e.stopPropagation();
     
     // Validate index bounds
     if (index < 0 || index >= (this._config.entities || []).length) return;
@@ -601,8 +607,15 @@ class SimpleTimerCardEditor extends LitElement {
     const key = target.configValue;
     if (!key) return;
 
-    // Get value from different event types
-    const value = e.detail?.value !== undefined ? e.detail.value : target.value;
+    // Get value from different event types, being more robust
+    let value;
+    if (e.detail && e.detail.value !== undefined) {
+      value = e.detail.value;
+    } else if (target.value !== undefined) {
+      value = target.value;
+    } else {
+      return; // No valid value found
+    }
 
     // Create a safe copy of the config
     const newConfig = { ...this._config };
@@ -722,13 +735,13 @@ class SimpleTimerCardEditor extends LitElement {
 
         <div class="side-by-side">
           <ha-select label="Layout" .value=${this._config.layout || "vertical"} .configValue=${"layout"}
-            @selected=${this._selectChanged} @closed=${this._selectChanged}>
+            @selected=${this._selectChanged} @closed=${(e) => { e.stopPropagation(); this._selectChanged(e); }}>
             <mwc-list-item value="vertical">Vertical</mwc-list-item>
             <mwc-list-item value="horizontal">Horizontal</mwc-list-item>
           </ha-select>
 
           <ha-select label="Style" .value=${this._config.style || "bar"} .configValue=${"style"}
-            @selected=${this._selectChanged} @closed=${this._selectChanged}>
+            @selected=${this._selectChanged} @closed=${(e) => { e.stopPropagation(); this._selectChanged(e); }}>
             <mwc-list-item value="bar">Bar</mwc-list-item>
             <mwc-list-item value="circle">Circle</mwc-list-item>
             <mwc-list-item value="chip">Chip</mwc-list-item>
@@ -740,7 +753,7 @@ class SimpleTimerCardEditor extends LitElement {
             .configValue=${"snooze_duration"} @input=${this._valueChanged}></ha-textfield>
 
           <ha-select label="When timer reaches 0" .value=${this._config.expire_action || "keep"} .configValue=${"expire_action"}
-            @selected=${this._selectChanged} @closed=${this._selectChanged}>
+            @selected=${this._selectChanged} @closed=${(e) => { e.stopPropagation(); this._selectChanged(e); }}>
             <mwc-list-item value="keep">Keep visible</mwc-list-item>
             <mwc-list-item value="dismiss">Dismiss</mwc-list-item>
             <mwc-list-item value="remove">Remove</mwc-list-item>
@@ -784,7 +797,7 @@ class SimpleTimerCardEditor extends LitElement {
                 <div class="entity-options">
                   <div class="side-by-side">
                     <ha-select label="Mode" .value=${conf.mode || "auto"} .configValue=${"mode"}
-                      @selected=${(e) => this._entityValueChanged(e, index)} @closed=${(e) => this._entityValueChanged(e, index)}>
+                      @selected=${(e) => { e.stopPropagation(); this._entityValueChanged(e, index); }} @closed=${(e) => { e.stopPropagation(); this._entityValueChanged(e, index); }}>
                       <mwc-list-item value="auto">Auto</mwc-list-item>
                       <mwc-list-item value="alexa">Alexa</mwc-list-item>
                       <mwc-list-item value="helper">Helper (input_text)</mwc-list-item>
