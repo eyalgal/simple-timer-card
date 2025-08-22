@@ -73,7 +73,7 @@ class SimpleTimerCard extends LitElement {
     
     this._config = {
       layout: "vertical",               // 'vertical' | 'horizontal'
-      style: "bar",                     // 'bar' | 'circle' | 'chip'
+      style: "bar",                     // 'bar' | 'circle' (redesigned with only 2 styles)
       snooze_duration: 5,               // minutes
       show_time_selector: false,        // show time selector for custom timers
       timer_presets: [15, 30, 60, 120],   // preset durations in minutes
@@ -616,6 +616,75 @@ class SimpleTimerCard extends LitElement {
     });
   }
 
+  _handleQuickTimerStart() {
+    const minutesInput = this.shadowRoot?.querySelector('#timer-minutes');
+    const labelInput = this.shadowRoot?.querySelector('#timer-label');
+    
+    if (!minutesInput) return;
+    
+    const minutes = parseInt(minutesInput.value);
+    const label = labelInput?.value?.trim() || '';
+    
+    if (!minutes || minutes < 1) {
+      this._toast?.("Please enter a valid number of minutes (1-999)");
+      return;
+    }
+    
+    // Use automatic target entity selection
+    const helperEntities = (this._config.entities || [])
+      .map((e) => (typeof e === "string" ? e : e.entity))
+      .filter((id) => id && (id.startsWith("input_text.") || id.startsWith("text.")));
+    
+    const targetEntity = this._config.default_timer_entity 
+      || (helperEntities.length === 1 ? helperEntities[0] : null);
+
+    const durationMs = minutes * 60000;
+    const endTime = Date.now() + durationMs;
+
+    const newTimer = {
+      id: `quick-${Date.now()}`,
+      label: label || `${minutes}m Timer`,
+      icon: "mdi:timer-outline",
+      color: "var(--primary-color)",
+      end: endTime,
+      duration: durationMs,
+    };
+
+    // Determine source by target entity type
+    if (targetEntity) {
+      if (targetEntity.startsWith("input_text.") || targetEntity.startsWith("text.")) {
+        // Helper entity - use helper storage
+        newTimer.source = "helper";
+        newTimer.source_entity = targetEntity;
+        this._mutateHelper(targetEntity, (data) => {
+          data.timers.push(newTimer);
+        });
+      } else if (targetEntity === this._config.mqtt?.sensor_entity) {
+        // Configured MQTT sensor entity - use MQTT storage
+        newTimer.source = "mqtt";
+        newTimer.source_entity = targetEntity;
+        this._addTimerToStorage(newTimer);
+        this.requestUpdate();
+      } else {
+        // Other entity types - fallback to auto-selected storage
+        newTimer.source = this._config.storage;
+        newTimer.source_entity = this._config.storage === 'mqtt' ? this._config.mqtt.sensor_entity : "local";
+        this._addTimerToStorage(newTimer);
+        this.requestUpdate();
+      }
+    } else {
+      // No specific entity target - fall back to auto-selected storage
+      newTimer.source = this._config.storage;
+      newTimer.source_entity = this._config.storage === 'mqtt' ? this._config.mqtt.sensor_entity : "local";
+      this._addTimerToStorage(newTimer);
+      this.requestUpdate();
+    }
+
+    // Clear the inputs
+    if (minutesInput) minutesInput.value = '';
+    if (labelInput) labelInput.value = '';
+  }
+
   _handleCreateCustomTimer(e) {
     const form = e.target;
     const q = (sel) => form.querySelector(sel);
@@ -897,44 +966,36 @@ class SimpleTimerCard extends LitElement {
 
     return html`
       <div class="time-selector">
-        <div class="selector-header">
-          <span>Custom Timer</span>
-        </div>
-        <form class="time-selector-form" @submit=${(e) => { e.preventDefault(); this._handleCreateCustomTimer(e); }}>
-          <div class="time-input-row">
-            <ha-textfield 
-              name="duration" 
-              label="Duration (e.g., 15m, 1h, 45s)" 
-              required
-              style="flex: 1;"
-            ></ha-textfield>
-            <ha-textfield 
-              name="label" 
-              label="Label (Optional)"
-              style="flex: 1;"
-            ></ha-textfield>
+        <div class="selector-container">
+          <div class="quick-inputs">
+            <input 
+              type="number" 
+              class="time-input" 
+              placeholder="Minutes" 
+              min="1" 
+              max="999"
+              id="timer-minutes"
+            />
+            <input 
+              type="text" 
+              class="label-input" 
+              placeholder="Timer name (optional)"
+              id="timer-label"
+            />
             <mwc-button 
-              type="button" 
-              style="margin-left: 8px;"
-              @click=${(ev) => {
-                const form = ev.currentTarget.closest('form');
-                if (form) {
-                  ev.preventDefault();
-                  this._handleCreateCustomTimer({ target: form });
-                }
-              }}
-            >Start</mwc-button>
+              class="start-btn"
+              @click=${() => this._handleQuickTimerStart()}
+            >Start Timer</mwc-button>
           </div>
           
-          <div class="entity-note">
+          <div class="storage-info">
             <small>
-              Timer will be stored
               ${targetEntity
-                ? 'in ' + (this.hass.states[targetEntity]?.attributes?.friendly_name || targetEntity)
-                : 'locally'}
+                ? `Saved in ${this.hass.states[targetEntity]?.attributes?.friendly_name || targetEntity}`
+                : 'Saved locally'}
             </small>
           </div>
-        </form>
+        </div>
       </div>
     `;
   }
@@ -1007,10 +1068,10 @@ class SimpleTimerCard extends LitElement {
       </div>
     `;
 
+    // Redesigned: Only two designs - "bar" and "circle" (removed "chip")
     let viz = html``;
-    if (this._config.style === "bar") viz = this._renderBar(timer);
-    else if (this._config.style === "circle") viz = this._renderCircle(timer);
-    else viz = this._renderChip(timer);
+    if (this._config.style === "circle") viz = this._renderCircle(timer);
+    else viz = this._renderBar(timer); // default to bar
 
     const actions = html`
       <div class="timer-actions">
@@ -1025,7 +1086,7 @@ class SimpleTimerCard extends LitElement {
       </div>
     `;
 
-    return html`<div class="${containerClass}">${this._config.style === "chip" ? viz : html`${mainLine}${viz}${actions}`}</div>`;
+    return html`<div class="${containerClass}">${mainLine}${viz}${actions}</div>`;
   }
 
   _renderBar(timer) {
@@ -1065,20 +1126,7 @@ class SimpleTimerCard extends LitElement {
     `;
   }
 
-  _renderChip(timer) {
-    const hasProgress = typeof timer.percent === "number";
-    const pct = Math.max(0, Math.min(100, hasProgress ? timer.percent : 0));
-    return html`
-      <div class="chip" title=${timer.label} style="--chip-color:${timer.color}">
-        <ha-icon .icon=${timer.icon}></ha-icon>
-        <span class="chip-label">${timer.label}</span>
-        <span class="chip-remaining">${this._formatTime(timer.remaining)}</span>
-        ${hasProgress || this._config.show_progress_when_unknown
-          ? html`<div class="chip-track"><div class="chip-fill" style="width:${pct}%"></div></div>`
-          : ""}
-      </div>
-    `;
-  }
+
 
   _toast(msg) {
     const ev = new Event("hass-notification", { bubbles: true, composed: true });
@@ -1095,10 +1143,44 @@ class SimpleTimerCard extends LitElement {
       .add-timer-actions { display: flex; justify-content: flex-end; margin-top: 8px; }
 
       .time-selector { padding: 0 16px 16px; }
-      .selector-header { font-weight: 500; font-size: 14px; color: var(--primary-text-color); margin-bottom: 8px; }
-      .time-selector-form { display: flex; flex-direction: column; gap: 8px; }
-      .time-input-row { display: flex; gap: 8px; align-items: flex-end; }
-      .target-selector { margin-top: 8px; }
+      .selector-container { 
+        background: var(--card-background-color); 
+        border: 1px solid var(--divider-color); 
+        border-radius: 12px; 
+        padding: 16px; 
+      }
+      .quick-inputs { 
+        display: flex; 
+        gap: 12px; 
+        align-items: stretch; 
+        margin-bottom: 8px; 
+      }
+      .time-input { 
+        flex: 0 0 100px; 
+        padding: 8px 12px; 
+        border: 1px solid var(--divider-color); 
+        border-radius: 8px; 
+        background: var(--card-background-color); 
+        color: var(--primary-text-color); 
+        font-size: 14px; 
+      }
+      .label-input { 
+        flex: 1; 
+        padding: 8px 12px; 
+        border: 1px solid var(--divider-color); 
+        border-radius: 8px; 
+        background: var(--card-background-color); 
+        color: var(--primary-text-color); 
+        font-size: 14px; 
+      }
+      .start-btn { 
+        flex: 0 0 auto; 
+        --mdc-theme-primary: var(--primary-color); 
+      }
+      .storage-info { 
+        text-align: center; 
+        opacity: 0.7; 
+      }
 
       .timer-presets { padding: 0 16px 16px; }
       .presets-header { font-weight: 500; font-size: 14px; color: var(--primary-text-color); margin-bottom: 8px; }
@@ -1152,11 +1234,7 @@ class SimpleTimerCard extends LitElement {
       .progress-ring-bg { stroke: var(--ha-card-border-color, var(--divider-color)); opacity: 0.6; }
       .progress-ring-circle { transition: stroke-dashoffset 0.2s; }
 
-      .chip { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 999px; background: var(--card-background-color); border: 1px solid var(--ha-card-border-color, var(--divider-color)); box-sizing: border-box; width: 100%; }
-      .chip-label { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-weight: 500; }
-      .chip-remaining { font-variant-numeric: tabular-nums; font-weight: 600; }
-      .chip-track { position: relative; height: 4px; width: 100%; border-radius: 999px; background: var(--ha-card-border-color, var(--divider-color)); overflow: hidden; }
-      .chip-fill { position: absolute; inset: 0 0 0 0; width: 0%; background: var(--chip-color, var(--primary-color)); border-radius: 999px; transition: width 0.2s; }
+
 
       .ringing { animation: pulse 1.8s ease-in-out infinite; }
       @keyframes pulse {
@@ -1486,7 +1564,6 @@ class SimpleTimerCardEditor extends LitElement {
             @selected=${this._selectChanged} @closed=${(e) => { e.stopPropagation(); this._selectChanged(e); }}>
             <mwc-list-item value="bar">Bar</mwc-list-item>
             <mwc-list-item value="circle">Circle</mwc-list-item>
-            <mwc-list-item value="chip">Chip</mwc-list-item>
           </ha-select>
         </div>
 
