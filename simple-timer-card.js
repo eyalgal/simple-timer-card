@@ -41,6 +41,20 @@ class SimpleTimerCard extends LitElement {
       sensor_entity: 'sensor.simple_timer_store',
     };
     
+    // Auto-select storage backend if not explicitly set
+    let autoStorage = config.storage || "local";
+    if (!config.storage) {
+      // If default timer entity is MQTT sensor → use mqtt
+      if (config.default_timer_entity?.startsWith("sensor.")) {
+        autoStorage = "mqtt";
+      }
+      // If default timer entity is helper → use helper  
+      else if (config.default_timer_entity?.startsWith("input_text.") || config.default_timer_entity?.startsWith("text.")) {
+        autoStorage = "helper";
+      }
+      // If no entities configured → default to local (already set above)
+    }
+    
     this._config = {
       layout: "vertical",               // 'vertical' | 'horizontal'
       style: "bar",                     // 'bar' | 'circle' | 'chip'
@@ -53,13 +67,14 @@ class SimpleTimerCard extends LitElement {
       expire_keep_for: 120,             // seconds to keep a rung timer visible
       auto_dismiss_writable: false,     // auto-dismiss helper timers when 0
       show_progress_when_unknown: false,  // show an empty track if duration unknown
-      storage: "local",                 // 'local' | 'helper' | 'mqtt'
+      storage: autoStorage,             // 'local' | 'helper' | 'mqtt' (auto-selected)
       mqtt: mqttDefaults,               // MQTT configuration
       audio_enabled: false,             // enable audio notifications
       audio_file_url: "",               // URL or path to audio file
       audio_repeat_count: 1,            // number of times to play audio
       ...config,
       entities: config.entities || [],    // ensure entities is always an array
+      storage: autoStorage,             // ensure auto-selected storage takes precedence
       mqtt: { ...mqttDefaults, ...(config.mqtt || {}) }, // merge MQTT config properly
     };
     
@@ -167,8 +182,8 @@ class SimpleTimerCard extends LitElement {
   }
 
   // Storage Dispatcher Methods
-  _loadTimersFromStorage() {
-    const storage = this._config.storage;
+  _loadTimersFromStorage(sourceHint = null) {
+    const storage = sourceHint || this._config.storage;
     if (storage === 'mqtt') {
       return this._loadTimersFromStorage_mqtt();
     } else if (storage === 'local') {
@@ -177,8 +192,8 @@ class SimpleTimerCard extends LitElement {
     return []; // helper timers are loaded via _parseHelper, not here
   }
 
-  _saveTimersToStorage(timers) {
-    const storage = this._config.storage;
+  _saveTimersToStorage(timers, sourceHint = null) {
+    const storage = sourceHint || this._config.storage;
     if (storage === 'mqtt') {
       return this._saveTimersToStorage_mqtt(timers);
     } else if (storage === 'local') {
@@ -186,8 +201,8 @@ class SimpleTimerCard extends LitElement {
     }
   }
 
-  _updateTimerInStorage(timerId, updates) {
-    const storage = this._config.storage;
+  _updateTimerInStorage(timerId, updates, sourceHint = null) {
+    const storage = sourceHint || this._config.storage;
     if (storage === 'mqtt') {
       return this._updateTimerInStorage_mqtt(timerId, updates);
     } else if (storage === 'local') {
@@ -195,8 +210,8 @@ class SimpleTimerCard extends LitElement {
     }
   }
 
-  _removeTimerFromStorage(timerId) {
-    const storage = this._config.storage;
+  _removeTimerFromStorage(timerId, sourceHint = null) {
+    const storage = sourceHint || this._config.storage;
     if (storage === 'mqtt') {
       return this._removeTimerFromStorage_mqtt(timerId);
     } else if (storage === 'local') {
@@ -205,9 +220,10 @@ class SimpleTimerCard extends LitElement {
   }
 
   _addTimerToStorage(timer) {
-    const timers = this._loadTimersFromStorage();
+    const storage = timer.source || this._config.storage;
+    const timers = this._loadTimersFromStorage(storage);
     timers.push(timer);
-    this._saveTimersToStorage(timers);
+    this._saveTimersToStorage(timers, storage);
   }
 
   static async getConfigElement() {
@@ -452,7 +468,7 @@ class SimpleTimerCard extends LitElement {
       }
     }
 
-    // Expiration policy for helper and local timers
+    // Expiration policy for helper, local, and MQTT timers
     for (const timer of [...this._timers]) {
       if (timer.remaining > 0) continue;
 
@@ -471,12 +487,23 @@ class SimpleTimerCard extends LitElement {
       } else if (timer.source === "local") {
         // Handle local timer expiration
         if (this._config.expire_action === "dismiss" || this._config.expire_action === "remove") {
-          this._removeTimerFromStorage(timer.id);
+          this._removeTimerFromStorage(timer.id, timer.source);
         } else if (this._config.expire_action === "keep") {
           timer.expiredAt ??= now;
           const keepMs = (this._config.expire_keep_for || 0) * 1000;
           if (keepMs > 0 && now - timer.expiredAt > keepMs) {
-            this._removeTimerFromStorage(timer.id);
+            this._removeTimerFromStorage(timer.id, timer.source);
+          }
+        }
+      } else if (timer.source === "mqtt") {
+        // Handle MQTT timer expiration (same as local)
+        if (this._config.expire_action === "dismiss" || this._config.expire_action === "remove") {
+          this._removeTimerFromStorage(timer.id, timer.source);
+        } else if (this._config.expire_action === "keep") {
+          timer.expiredAt ??= now;
+          const keepMs = (this._config.expire_keep_for || 0) * 1000;
+          if (keepMs > 0 && now - timer.expiredAt > keepMs) {
+            this._removeTimerFromStorage(timer.id, timer.source);
           }
         }
       }
@@ -595,19 +622,34 @@ class SimpleTimerCard extends LitElement {
       color: "var(--primary-color)",
       end: endTime,
       duration: durationMs,
-      source: targetEntity ? "helper" : "local",
     };
 
+    // Determine source by target entity type
     if (targetEntity) {
-      // Store in helper entity
-      newTimer.source_entity = targetEntity;
-      this._mutateHelper(targetEntity, (data) => {
-        data.timers.push(newTimer);
-      });
+      if (targetEntity.startsWith("sensor.")) {
+        // MQTT sensor entity
+        newTimer.source = "mqtt";
+        newTimer.source_entity = targetEntity;
+        this._addTimerToStorage(newTimer);
+        this.requestUpdate();
+      } else if (targetEntity.startsWith("input_text.") || targetEntity.startsWith("text.")) {
+        // Helper entity - use helper storage
+        newTimer.source = "helper";
+        newTimer.source_entity = targetEntity;
+        this._mutateHelper(targetEntity, (data) => {
+          data.timers.push(newTimer);
+        });
+      } else {
+        // Other entity types - fallback to auto-selected storage
+        newTimer.source = this._config.storage;
+        newTimer.source_entity = this._config.storage === 'mqtt' ? this._config.mqtt.sensor_entity : "local";
+        this._addTimerToStorage(newTimer);
+        this.requestUpdate();
+      }
     } else {
-      // Store locally using the configured storage method
+      // No specific entity target - fall back to auto-selected storage
+      newTimer.source = this._config.storage;
       newTimer.source_entity = this._config.storage === 'mqtt' ? this._config.mqtt.sensor_entity : "local";
-      newTimer.source = this._config.storage === 'mqtt' ? 'mqtt' : 'local';
       this._addTimerToStorage(newTimer);
       this.requestUpdate();
     }
@@ -630,23 +672,32 @@ class SimpleTimerCard extends LitElement {
       duration: durationMs,
     };
 
-    if (entity && entity.startsWith("sensor.")) {
-      // MQTT sensor entity - store using MQTT storage
-      newTimer.source = "mqtt";
-      newTimer.source_entity = entity;
-      this._addTimerToStorage(newTimer);
-      this.requestUpdate();
-    } else if (entity && (entity.startsWith("input_text.") || entity.startsWith("text."))) {
-      // Helper entity - use helper storage
-      newTimer.source = "helper";
-      newTimer.source_entity = entity;
-      this._mutateHelper(entity, (data) => {
-        data.timers.push(newTimer);
-      });
+    // Determine source by target entity type (same logic as custom timer)
+    if (entity) {
+      if (entity.startsWith("sensor.")) {
+        // MQTT sensor entity
+        newTimer.source = "mqtt";
+        newTimer.source_entity = entity;
+        this._addTimerToStorage(newTimer);
+        this.requestUpdate();
+      } else if (entity.startsWith("input_text.") || entity.startsWith("text.")) {
+        // Helper entity - use helper storage
+        newTimer.source = "helper";
+        newTimer.source_entity = entity;
+        this._mutateHelper(entity, (data) => {
+          data.timers.push(newTimer);
+        });
+      } else {
+        // Other entity types - fallback to auto-selected storage
+        newTimer.source = this._config.storage;
+        newTimer.source_entity = this._config.storage === 'mqtt' ? this._config.mqtt.sensor_entity : "local";
+        this._addTimerToStorage(newTimer);
+        this.requestUpdate();
+      }
     } else {
-      // Store using the configured storage method (local/mqtt)
+      // No specific entity target - fall back to auto-selected storage
+      newTimer.source = this._config.storage;
       newTimer.source_entity = this._config.storage === 'mqtt' ? this._config.mqtt.sensor_entity : "local";
-      newTimer.source = this._config.storage === 'mqtt' ? 'mqtt' : 'local';
       this._addTimerToStorage(newTimer);
       this.requestUpdate();
     }
@@ -673,7 +724,7 @@ class SimpleTimerCard extends LitElement {
         data.timers = data.timers.filter((t) => t.id !== timer.id);
       });
     } else if (timer.source === "local" || timer.source === "mqtt") {
-      this._removeTimerFromStorage(timer.id);
+      this._removeTimerFromStorage(timer.id, timer.source);
       this.requestUpdate();
     } else if (timer.source === "timer") {
       this.hass.callService("timer", "cancel", {
@@ -693,7 +744,7 @@ class SimpleTimerCard extends LitElement {
         data.timers = data.timers.filter((t) => t.id !== timer.id);
       });
     } else if (timer.source === "local" || timer.source === "mqtt") {
-      this._removeTimerFromStorage(timer.id);
+      this._removeTimerFromStorage(timer.id, timer.source);
       this.requestUpdate();
     } else if (timer.source === "timer") {
       this.hass.callService("timer", "finish", {
@@ -728,7 +779,7 @@ class SimpleTimerCard extends LitElement {
       this._updateTimerInStorage(timer.id, {
         end: newEndTime,
         duration: newDurationMs
-      });
+      }, timer.source);
       this.requestUpdate();
     } else if (timer.source === "timer") {
       const snoozeMinutes = this._config.snooze_duration;
