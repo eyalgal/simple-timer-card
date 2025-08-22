@@ -1198,6 +1198,8 @@ class SimpleTimerCardEditor extends LitElement {
       ...config, 
       entities: Array.isArray(config.entities) ? [...config.entities] : []
     };
+    // Force a re-render to ensure entity pickers are properly updated
+    this.requestUpdate();
   }
 
   // Generic handler for text/switch
