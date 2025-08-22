@@ -26,8 +26,8 @@ A Home Assistant custom card for displaying and managing timers from various sou
   - Automatic state tracking to prevent duplicate notifications
 
 - **Display Options:**
-  - Multiple layout styles: vertical, horizontal
-  - Progress indicators: bar, circle, chip
+  - Two layout styles: vertical, horizontal
+  - Two progress indicators: bar, circle (redesigned for simplicity)
   - Customizable colors and icons
 
 ## JSON Timer Storage
