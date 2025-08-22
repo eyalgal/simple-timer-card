@@ -1,6 +1,6 @@
 /*
  * Simple Timer Card (Adapterized)
- * v1.3.6 — Added MQTT-backed cross-device timer storage
+ * v1.4.1 — Fixed custom timer creation and automatic storage selection
  *
  * - Alexa timers (read-only)
  * - Home Assistant timer entities (timer.*) with full control
@@ -12,7 +12,7 @@
  */
 import { LitElement, html, css } from "https://unpkg.com/lit-element@2.0.1/lit-element.js?module";
 
-const cardVersion = "1.3.6";
+const cardVersion = "1.4.1";
 console.info(`%c SIMPLE-TIMER-CARD %c v${cardVersion} `, "color: white; background: #4285f4; font-weight: 700;", "color: #4285f4; background: white; font-weight: 700;");
 
 class SimpleTimerCard extends LitElement {
@@ -44,15 +44,32 @@ class SimpleTimerCard extends LitElement {
     // Auto-select storage backend if not explicitly set
     let autoStorage = config.storage || "local";
     if (!config.storage) {
-      // If default timer entity is MQTT sensor → use mqtt
-      if (config.default_timer_entity?.startsWith("sensor.")) {
+      // Analyze entities to determine best storage type
+      const entities = config.entities || [];
+      const defaultEntity = config.default_timer_entity;
+      
+      // Check if MQTT sensor is configured and being used
+      const mqttSensorEntity = config.mqtt?.sensor_entity || mqttDefaults.sensor_entity;
+      const hasConfiguredMqttSensor = defaultEntity === mqttSensorEntity || 
+                                      entities.some(e => {
+                                        const entityId = typeof e === "string" ? e : e.entity;
+                                        return entityId === mqttSensorEntity;
+                                      });
+      
+      // Check for helper entities
+      const hasHelperEntities = defaultEntity && (defaultEntity.startsWith("input_text.") || defaultEntity.startsWith("text.")) ||
+                                entities.some(e => {
+                                  const entityId = typeof e === "string" ? e : e.entity;
+                                  return entityId && (entityId.startsWith("input_text.") || entityId.startsWith("text."));
+                                });
+      
+      // Determine storage preference
+      if (hasConfiguredMqttSensor) {
         autoStorage = "mqtt";
-      }
-      // If default timer entity is helper → use helper  
-      else if (config.default_timer_entity?.startsWith("input_text.") || config.default_timer_entity?.startsWith("text.")) {
+      } else if (hasHelperEntities) {
         autoStorage = "helper";
       }
-      // If no entities configured → default to local (already set above)
+      // Otherwise, use local (already set above)
     }
     
     this._config = {
@@ -626,21 +643,21 @@ class SimpleTimerCard extends LitElement {
 
     // Determine source by target entity type
     if (targetEntity) {
-      if (targetEntity.startsWith("sensor.")) {
-        // MQTT sensor entity
-        newTimer.source = "mqtt";
-        newTimer.source_entity = targetEntity;
-        this._addTimerToStorage(newTimer);
-        this.requestUpdate();
-      } else if (targetEntity.startsWith("input_text.") || targetEntity.startsWith("text.")) {
+      if (targetEntity.startsWith("input_text.") || targetEntity.startsWith("text.")) {
         // Helper entity - use helper storage
         newTimer.source = "helper";
         newTimer.source_entity = targetEntity;
         this._mutateHelper(targetEntity, (data) => {
           data.timers.push(newTimer);
         });
+      } else if (targetEntity === this._config.mqtt?.sensor_entity) {
+        // Configured MQTT sensor entity - use MQTT storage
+        newTimer.source = "mqtt";
+        newTimer.source_entity = targetEntity;
+        this._addTimerToStorage(newTimer);
+        this.requestUpdate();
       } else {
-        // Other entity types - fallback to auto-selected storage
+        // Other entity types (including individual sensors) - fallback to auto-selected storage
         newTimer.source = this._config.storage;
         newTimer.source_entity = this._config.storage === 'mqtt' ? this._config.mqtt.sensor_entity : "local";
         this._addTimerToStorage(newTimer);
@@ -674,21 +691,21 @@ class SimpleTimerCard extends LitElement {
 
     // Determine source by target entity type (same logic as custom timer)
     if (entity) {
-      if (entity.startsWith("sensor.")) {
-        // MQTT sensor entity
-        newTimer.source = "mqtt";
-        newTimer.source_entity = entity;
-        this._addTimerToStorage(newTimer);
-        this.requestUpdate();
-      } else if (entity.startsWith("input_text.") || entity.startsWith("text.")) {
+      if (entity.startsWith("input_text.") || entity.startsWith("text.")) {
         // Helper entity - use helper storage
         newTimer.source = "helper";
         newTimer.source_entity = entity;
         this._mutateHelper(entity, (data) => {
           data.timers.push(newTimer);
         });
+      } else if (entity === this._config.mqtt?.sensor_entity) {
+        // Configured MQTT sensor entity - use MQTT storage
+        newTimer.source = "mqtt";
+        newTimer.source_entity = entity;
+        this._addTimerToStorage(newTimer);
+        this.requestUpdate();
       } else {
-        // Other entity types - fallback to auto-selected storage
+        // Other entity types (including individual sensors) - fallback to auto-selected storage
         newTimer.source = this._config.storage;
         newTimer.source_entity = this._config.storage === 'mqtt' ? this._config.mqtt.sensor_entity : "local";
         this._addTimerToStorage(newTimer);
@@ -1439,6 +1456,24 @@ class SimpleTimerCardEditor extends LitElement {
     this._updateConfig({ mqtt: newMqttConfig });
   }
 
+  _getStorageDisplayName(storage) {
+    switch (storage) {
+      case 'local': return 'Local Browser Storage';
+      case 'helper': return 'Helper Entities';
+      case 'mqtt': return 'MQTT';
+      default: return 'Unknown';
+    }
+  }
+
+  _getStorageDescription(storage) {
+    switch (storage) {
+      case 'local': return 'Timers are stored locally in your browser and persist across sessions';
+      case 'helper': return 'Timers are stored in Home Assistant helper entities (input_text/text)';
+      case 'mqtt': return 'Timers are stored in MQTT for cross-device synchronization';
+      default: return '';
+    }
+  }
+
   render() {
     if (!this.hass || !this._config) return html``;
 
@@ -1446,12 +1481,10 @@ class SimpleTimerCardEditor extends LitElement {
       <div class="card-config">
         <ha-textfield label="Title (Optional)" .value=${this._config.title || ""} .configValue=${"title"} @input=${this._valueChanged}></ha-textfield>
 
-        <ha-select label="Storage backend" .value=${this._config.storage || "local"} .configValue=${"storage"}
-          @selected=${this._selectChanged} @closed=${(e) => { e.stopPropagation(); this._selectChanged(e); }}>
-          <mwc-list-item value="local">Local</mwc-list-item>
-          <mwc-list-item value="helper">Helper</mwc-list-item>
-          <mwc-list-item value="mqtt">MQTT</mwc-list-item>
-        </ha-select>
+        <div class="storage-info">
+          <span class="storage-label">Storage type: <strong>${this._getStorageDisplayName(this._config.storage)}</strong></span>
+          <small class="storage-description">${this._getStorageDescription(this._config.storage)}</small>
+        </div>
 
         ${this._config.storage === 'mqtt' ? html`
           <div class="mqtt-config">
@@ -1642,6 +1675,24 @@ class SimpleTimerCardEditor extends LitElement {
       .card-config { display: flex; flex-direction: column; gap: 12px; }
       .side-by-side { display: flex; gap: 12px; }
       .side-by-side > * { flex: 1; min-width: 0; }
+      .storage-info {
+        padding: 12px;
+        background: var(--card-background-color);
+        border: 1px solid var(--divider-color);
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .storage-label {
+        font-size: 0.9rem;
+        color: var(--primary-text-color);
+      }
+      .storage-description {
+        color: var(--secondary-text-color);
+        font-size: 0.8rem;
+        line-height: 1.2;
+      }
       .mqtt-config { 
         display: flex; 
         flex-direction: column; 

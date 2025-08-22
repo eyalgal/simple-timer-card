@@ -128,17 +128,52 @@ data:
 ```yaml
 type: custom:simple-timer-card
 title: My Timers
-storage: local                # local | helper | mqtt
+# storage is now automatic - no need to configure manually
 entities:
   - timer.kitchen          # Home Assistant timer entity
   - timer.workout          # Another timer entity  
-  - input_text.timer_helper  # Optional: for shared timers
+  - input_text.timer_helper  # Optional: for shared timers (enables helper storage)
 show_timer_presets: true
 timer_presets: [15, 30, 60, 120]  # minutes
 expire_action: keep  # keep | dismiss | remove
 audio_enabled: true  # Enable audio notifications
 audio_file_url: /local/timer-sound.mp3  # Path to audio file
 audio_repeat_count: 3  # Number of times to play audio (1-10)
+```
+
+### Automatic Storage Selection
+
+The card automatically determines the best storage backend based on your configuration:
+
+- **Local Storage**: Used when no special entities are configured
+  - Timers persist in browser localStorage
+  - No external dependencies required
+
+- **Helper Storage**: Used when `input_text` or `text` entities are configured
+  - Timers stored in Home Assistant helper entities
+  - Enables sharing timers across multiple card instances
+
+- **MQTT Storage**: Used when the configured MQTT sensor entity is referenced
+  - Timers stored in MQTT for cross-device synchronization  
+  - Requires MQTT broker and sensor configuration
+
+**Examples:**
+```yaml
+# Automatic local storage (no entities)
+type: custom:simple-timer-card
+show_timer_presets: true
+
+# Automatic helper storage (helper entities configured)
+type: custom:simple-timer-card
+entities:
+  - input_text.kitchen_timers
+
+# Automatic MQTT storage (MQTT sensor configured)
+type: custom:simple-timer-card
+entities:
+  - sensor.simple_timer_store
+mqtt:
+  sensor_entity: sensor.simple_timer_store
 ```
 
 ### Audio Configuration
@@ -174,6 +209,11 @@ The card automatically detects and supports Home Assistant timer entities (`time
 
 ## Version History
 
+- **v1.4.1:** Fixed custom timer creation and implemented automatic storage selection
+  - Fixed bug where custom timers for sensor entities failed to save properly
+  - Removed manual storage selector from editor - storage is now automatically determined
+  - Improved storage selection logic to analyze all configured entities
+  - Added informational storage type display in editor
 - **v1.3.6:** Added MQTT-backed cross-device timer storage
 - **v1.4.0:** Added audio notification support for timer expiration with configurable repeat count
 - **v1.3.5:** Added support for Home Assistant timer entities (timer.*) with full control integration
