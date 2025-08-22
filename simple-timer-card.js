@@ -893,7 +893,7 @@ class SimpleTimerCard extends LitElement {
       .section { padding: 12px 16px 0; }
       .section h2 { margin: 0 0 8px 0; font-size: 20px; font-weight: 600; }
 
-      .grid { display: grid; grid-template-columns: 1fr; gap: 12px; padding: 0 16px 16px; }
+      .grid { display: grid; grid-template-columns: 1fr; gap: 12px; padding: 0; }
 
       .card {
         background: var(--ha-card-background, var(--card-background-color));
@@ -949,7 +949,7 @@ class SimpleTimerCard extends LitElement {
       .actions .btn { flex: 1; }
 
       .text-input {
-        margin-top: 10px; width: 100%; max-width: 200px; text-align: center; padding: 8px 12px; font-size: 14px;
+        margin-top: 10px; width: 100%; text-align: center; padding: 8px 12px; font-size: 14px;
         border-radius: var(--stc-chip-radius);
         color: var(--primary-text-color); background: var(--card-background-color); border: 1px solid var(--divider-color);
         outline: none;
@@ -962,7 +962,7 @@ class SimpleTimerCard extends LitElement {
 
       .list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 
-      .item { position: relative; border-radius: 16px; padding: 8px; min-height: 40px; background: var(--ha-card-background, var(--card-background-color)); }
+      .item { position: relative; border-radius: 16px; padding: 8px; height: 56px; background: var(--ha-card-background, var(--card-background-color)); }
       .item .icon-wrap { background: var(--tcolor, var(--divider-color)); opacity: 0.45; }
       .item .info { display: flex; flex-direction: column; justify-content: center; height: 36px; flex: 1; overflow: hidden; }
       .item .title { font-size: 14px; font-weight: 500; line-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
