@@ -271,7 +271,7 @@ class SimpleTimerCard extends LitElement {
       source_entity: entityId,
       label: t.timerLabel || entityConf?.name || entityState.attributes.friendly_name || "Alexa Timer",
       icon: entityConf?.icon || "mdi:amazon-alexa",
-      color: entityConf?.color || "var(--primary-color)",
+      color: entityConf?.color || "#31C4F3",
       end: Number(t.triggerTime),
       duration: Number(t.originalDurationInMillis) || null,
     }));
@@ -678,7 +678,7 @@ class SimpleTimerCard extends LitElement {
             <div class="title">${t.label}</div>
             <div class="status">${this._formatTime(t.remaining)}</div>
           </div>
-          <button class="x" title="Cancel" @click=${() => this._handleCancel(t)}><ha-icon icon="mdi:close"></ha-icon></button>
+          ${t.source !== "alexa" ? html`<button class="x" title="Cancel" @click=${() => this._handleCancel(t)}><ha-icon icon="mdi:close"></ha-icon></button>` : ""}
         </div>
       </li>
     `;
@@ -718,7 +718,7 @@ class SimpleTimerCard extends LitElement {
             </div>
             <div class="track"><div class="fill" style="width:${pctLeft}%"></div></div>
           </div>
-          <button class="x" title="Cancel" @click=${() => this._handleCancel(t)}><ha-icon icon="mdi:close"></ha-icon></button>
+          ${t.source !== "alexa" ? html`<button class="x" title="Cancel" @click=${() => this._handleCancel(t)}><ha-icon icon="mdi:close"></ha-icon></button>` : ""}
         </div>
       </li>
     `;
@@ -875,11 +875,11 @@ class SimpleTimerCard extends LitElement {
       <ha-card>
         ${this._config.title ? html`<div class="card-header"><span>${this._config.title}</span></div>` : ""}
 
-        <div class="section"><h2>No Timer</h2></div>
-        <div class="grid"><div>${noTimerCard}</div></div>
-
-        <div class="section"><h2>Active Timers</h2></div>
-        <div class="grid"><div>${activeCard}</div></div>
+        ${timers.length === 0 ? html`
+          <div class="grid"><div>${noTimerCard}</div></div>
+        ` : html`
+          <div class="grid"><div>${activeCard}</div></div>
+        `}
       </ha-card>
     `;
   }
@@ -900,7 +900,6 @@ class SimpleTimerCard extends LitElement {
         border-radius: var(--stc-radius);
         position: relative; overflow: hidden;
         padding: 12px;
-        border: 1px solid var(--divider-color);
         box-sizing: border-box;
       }
       .mushroom-card-content { position: relative; z-index: 1; display: flex; align-items: center; gap: 12px; }
@@ -963,7 +962,7 @@ class SimpleTimerCard extends LitElement {
 
       .list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 
-      .item { position: relative; border-radius: 16px; padding: 10px; min-height: 56px; background: var(--ha-card-background, var(--card-background-color)); border: 1px solid var(--divider-color); }
+      .item { position: relative; border-radius: 16px; padding: 10px; min-height: 56px; background: var(--ha-card-background, var(--card-background-color)); }
       .item .icon-wrap { background: var(--tcolor, var(--divider-color)); opacity: 0.45; }
       .item .info { display: flex; flex-direction: column; justify-content: center; height: 36px; flex: 1; overflow: hidden; }
       .item .title { font-size: 14px; font-weight: 500; line-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -973,8 +972,8 @@ class SimpleTimerCard extends LitElement {
       .item .x:hover { color: var(--primary-text-color); }
 
       .bar .row { display: flex; align-items: center; gap: 12px; }
-      .bar .top { display: flex; align-items: center; justify-content: space-between; height: 20px; }
-      .track { width: 100%; height: 12px; border-radius: var(--stc-chip-radius); background: color-mix(in srgb, var(--tcolor, var(--primary-color)) 10%, transparent); margin-top: 4px; overflow: hidden; }
+      .bar .top { display: flex; align-items: center; justify-content: space-between; height: 18px; }
+      .track { width: 100%; height: 8px; border-radius: var(--stc-chip-radius); background: color-mix(in srgb, var(--tcolor, var(--primary-color)) 10%, transparent); margin-top: 2px; overflow: hidden; }
       .fill { height: 100%; width: 0%; border-radius: var(--stc-chip-radius); background: var(--tcolor, var(--primary-color)); transition: width 1s linear; }
 
       .chips { display: flex; gap: 6px; }
@@ -1142,10 +1141,12 @@ class SimpleTimerCardEditor extends LitElement {
           </ha-select>
         </div>
 
-        <div class="storage-info">
-          <span class="storage-label">Storage type: <strong>${this._getStorageDisplayName(this._config.storage)}</strong></span>
-          <small class="storage-description">${this._getStorageDescription(this._config.storage)}</small>
-        </div>
+        ${this._config.storage && this._config.storage !== "unknown" ? html`
+          <div class="storage-info">
+            <span class="storage-label">Storage type: <strong>${this._getStorageDisplayName(this._config.storage)}</strong></span>
+            <small class="storage-description">${this._getStorageDescription(this._config.storage)}</small>
+          </div>
+        ` : ""}
 
         ${this._config.storage === "mqtt" ? html`
           <div class="mqtt-config">
