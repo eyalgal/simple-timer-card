@@ -652,9 +652,9 @@ class SimpleTimerCard extends LitElement {
 
     if (ring) {
       return html`
-        <li class="mushroom-card item finished" style="--tcolor:${color}">
-          <div class="mushroom-progress-fill" style="width:100%"></div>
-          <div class="mushroom-card-content">
+        <li class="card item finished" style="--tcolor:${color}">
+          <div class="progress-fill" style="width:100%"></div>
+          <div class="card-content">
             <div class="icon-wrap"><ha-icon .icon=${t.icon || "mdi:timer-outline"}></ha-icon></div>
             <div class="info">
               <div class="title">${t.label}</div>
@@ -670,9 +670,9 @@ class SimpleTimerCard extends LitElement {
     }
 
     return html`
-      <li class="mushroom-card item" style="--tcolor:${color}">
-        <div class="mushroom-progress-fill" style="width:${pct}%"></div>
-        <div class="mushroom-card-content">
+      <li class="card item" style="--tcolor:${color}">
+        <div class="progress-fill" style="width:${pct}%"></div>
+        <div class="card-content">
           <div class="icon-wrap"><ha-icon .icon=${t.icon || "mdi:timer-outline"}></ha-icon></div>
           <div class="info">
             <div class="title">${t.label}</div>
@@ -737,9 +737,9 @@ class SimpleTimerCard extends LitElement {
     const style = this._config.style;   // 'fill' | 'bar'
 
     const noTimerCard = layout === "horizontal" ? html`
-      <div class="mushroom-card nt-h ${this._ui.noTimerHorizontalOpen ? "expanded" : ""}">
+      <div class="card nt-h ${this._ui.noTimerHorizontalOpen ? "expanded" : ""}">
         <div class="row">
-          <div class="mushroom-card-content">
+          <div class="card-content">
             <div class="icon-wrap"><ha-icon icon="mdi:timer-off"></ha-icon></div>
             <div>
               <p class="nt-title">No Timers</p>
@@ -774,9 +774,9 @@ class SimpleTimerCard extends LitElement {
         </div>
       </div>
     ` : html`
-      <div class="mushroom-card nt-v ${this._ui.noTimerVerticalOpen ? "expanded" : ""}">
+      <div class="card nt-v ${this._ui.noTimerVerticalOpen ? "expanded" : ""}">
         <div class="col">
-          <div class="mushroom-card-content" style="flex-direction:column;justify-content:center;gap:8px;flex:1;">
+          <div class="card-content" style="flex-direction:column;justify-content:center;gap:8px;flex:1;">
             <div class="icon-wrap"><ha-icon icon="mdi:timer-off"></ha-icon></div>
             <p class="nt-title">No Active Timers</p>
           </div>
@@ -810,7 +810,7 @@ class SimpleTimerCard extends LitElement {
     `;
 
     const activeCard = style === "fill" ? html`
-      <div class="mushroom-card ${this._ui.activeFillOpen ? "card-show" : ""}">
+      <div class="card ${this._ui.activeFillOpen ? "card-show" : ""}">
         <div class="active-head">
           <h4>Active Timers</h4>
           <button class="btn btn-add" @click=${() => this._toggleActivePicker("fill")}><ha-icon icon="mdi:plus" style="--mdc-icon-size:16px;"></ha-icon> Add</button>
@@ -840,7 +840,7 @@ class SimpleTimerCard extends LitElement {
         </ul>
       </div>
     ` : html`
-      <div class="mushroom-card ${this._ui.activeBarOpen ? "card-show" : ""}">
+      <div class="card ${this._ui.activeBarOpen ? "card-show" : ""}">
         <div class="active-head">
           <h4>Active Timers</h4>
           <button class="btn btn-add" @click=${() => this._toggleActivePicker("bar")}><ha-icon icon="mdi:plus" style="--mdc-icon-size:16px;"></ha-icon> Add</button>
@@ -895,20 +895,20 @@ class SimpleTimerCard extends LitElement {
 
       .grid { display: grid; grid-template-columns: 1fr; gap: 12px; padding: 0 16px 16px; }
 
-      .mushroom-card {
+      .card {
         background: var(--ha-card-background, var(--card-background-color));
         border-radius: var(--stc-radius);
         position: relative; overflow: hidden;
-        padding: 12px;
+        padding: 8px;
         box-sizing: border-box;
       }
-      .mushroom-card-content { position: relative; z-index: 1; display: flex; align-items: center; gap: 12px; }
-      .mushroom-progress-fill {
+      .card-content { position: relative; z-index: 1; display: flex; align-items: center; gap: 12px; }
+      .progress-fill {
         position: absolute; top: 0; left: 0; height: 100%;
         width: 0%; border-radius: var(--stc-radius); z-index: 0; transition: width 1s linear;
         background: var(--tcolor, var(--primary-color)); opacity: 0.28;
       }
-      .mushroom-card.finished .mushroom-progress-fill { width: 100% !important; }
+      .card.finished .progress-fill { width: 100% !important; }
 
       .nt-h { padding: 0 8px; height: 56px; transition: height .3s ease; }
       .nt-h.expanded { height: auto; }
@@ -919,7 +919,7 @@ class SimpleTimerCard extends LitElement {
       .nt-v .col { display: flex; flex-direction: column; align-items: center; justify-content: space-between; height: 120px; width: 100%; }
 
       .picker { max-height: 0; opacity: 0; overflow: hidden; transition: max-height .5s ease, opacity .3s ease, padding-top .5s ease; padding-top: 0; }
-      .mushroom-card.expanded .picker { max-height: 320px; opacity: 1; padding: 12px 8px 8px; }
+      .card.expanded .picker { max-height: 320px; opacity: 1; padding: 12px 8px 8px; }
       .card-show .active-picker { max-height: 320px; opacity: 1; margin-bottom: 8px; }
       .active-picker { max-height: 0; opacity: 0; overflow: hidden; transition: max-height .5s ease, opacity .3s ease, margin-bottom .3s ease; margin-bottom: 0; }
 
@@ -949,7 +949,7 @@ class SimpleTimerCard extends LitElement {
       .actions .btn { flex: 1; }
 
       .text-input {
-        margin-top: 10px; width: 100%; text-align: center; padding: 8px 12px; font-size: 14px;
+        margin-top: 10px; width: 100%; max-width: 200px; text-align: center; padding: 8px 12px; font-size: 14px;
         border-radius: var(--stc-chip-radius);
         color: var(--primary-text-color); background: var(--card-background-color); border: 1px solid var(--divider-color);
         outline: none;
@@ -962,7 +962,7 @@ class SimpleTimerCard extends LitElement {
 
       .list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 
-      .item { position: relative; border-radius: 16px; padding: 10px; min-height: 56px; background: var(--ha-card-background, var(--card-background-color)); }
+      .item { position: relative; border-radius: 16px; padding: 8px; min-height: 40px; background: var(--ha-card-background, var(--card-background-color)); }
       .item .icon-wrap { background: var(--tcolor, var(--divider-color)); opacity: 0.45; }
       .item .info { display: flex; flex-direction: column; justify-content: center; height: 36px; flex: 1; overflow: hidden; }
       .item .title { font-size: 14px; font-weight: 500; line-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
