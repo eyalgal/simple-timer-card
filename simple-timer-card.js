@@ -17,7 +17,7 @@ console.info(`%c SIMPLE-TIMER-CARD %c v${cardVersion} `, "color: white; backgrou
 
 class SimpleTimerCard extends LitElement {
   static get properties() {
-    return { hass: {}, _config: {}, _timers: { state: true }, _presetTarget: { state: true } };
+    return { hass: {}, _config: {}, _timers: { state: true } };
   }
 
   constructor() {
@@ -25,7 +25,6 @@ class SimpleTimerCard extends LitElement {
     this._timers = [];
     this._timerInterval = null;
     this._dismissed = new Set(); // local UI dismissal for read-only sources (e.g., Alexa)
-    this._presetTarget = null;
     this._ringingTimers = new Set(); // track which timers are currently ringing for audio
   }
 
@@ -95,7 +94,7 @@ class SimpleTimerCard extends LitElement {
       mqtt: { ...mqttDefaults, ...(config.mqtt || {}) }, // merge MQTT config properly
     };
     
-    this._presetTarget = this._config.default_timer_entity || null;
+    // No longer need to set _presetTarget since storage selection is automatic
   }
 
   // JSON Timer Storage Methods
@@ -622,10 +621,14 @@ class SimpleTimerCard extends LitElement {
     const q = (sel) => form.querySelector(sel);
     const durationStr = q('ha-textfield[name="duration"]')?.value?.trim() ?? "";
     const label = q('ha-textfield[name="label"]')?.value?.trim() ?? "";
-    const targetEntity = this._presetTarget 
-      || this._config.default_timer_entity 
-      || q('ha-select[name="target_entity"]')?.value 
-      || null;
+    
+    // Use automatic target entity selection
+    const helperEntities = (this._config.entities || [])
+      .map((e) => (typeof e === "string" ? e : e.entity))
+      .filter((id) => id && (id.startsWith("input_text.") || id.startsWith("text.")));
+    
+    const targetEntity = this._config.default_timer_entity 
+      || (helperEntities.length === 1 ? helperEntities[0] : null);
 
     const durationMs = this._parseDuration(durationStr);
     if (durationMs <= 0) {
@@ -867,19 +870,17 @@ class SimpleTimerCard extends LitElement {
 
   _renderAddTimerForm(helperEntities) {
     if (!this.hass) return html``;
+    
+    // Use automatic target entity selection
+    const targetEntity = this._config.default_timer_entity 
+      || (helperEntities.length === 1 ? helperEntities[0] : null);
+    
     return html`
       <form class="add-timer-form" @submit=${(e) => { e.preventDefault(); this._handleCreateTimer(e); }}>
         <ha-textfield name="duration" label="Duration (e.g., 15m, 1h, 45s)" required></ha-textfield>
         <ha-textfield name="label" label="Label (Optional)"></ha-textfield>
 
-        ${helperEntities.length > 1
-          ? html`<ha-select name="target_entity" label="Add to..." required @selected=${(e) => (e.target.reportValidity?.(), 0)} @closed=${(e) => (e.target.reportValidity?.(), 0)}>
-              ${helperEntities.map(
-                (id) =>
-                  html`<mwc-list-item value=${id}>${this.hass.states[id]?.attributes?.friendly_name || id}</mwc-list-item>`
-              )}
-            </ha-select>`
-          : html`<input type="hidden" name="target_entity" value=${helperEntities[0]} />`}
+        <input type="hidden" name="target_entity" value=${targetEntity || ""} />
 
         <div class="add-timer-actions">
           <mwc-button type="submit">Start</mwc-button>
@@ -891,8 +892,7 @@ class SimpleTimerCard extends LitElement {
   _renderTimeSelector(helperEntities) {
     if (!this.hass) return html``;
     
-    const targetEntity = this._presetTarget
-      || this._config.default_timer_entity
+    const targetEntity = this._config.default_timer_entity
       || (helperEntities.length === 1 ? helperEntities[0] : null);
 
     return html`
@@ -926,33 +926,6 @@ class SimpleTimerCard extends LitElement {
             >Start</mwc-button>
           </div>
           
-          ${helperEntities.length > 1 ? html`
-            <div class="target-selector">
-              <ha-select
-                name="target_entity"
-                label="Store timer in…"
-                .value=${this._presetTarget || ""}
-                @selected=${(e) => {
-                  e.stopPropagation();
-                  const v = e.detail?.value ?? e.target?.value ?? "";
-                  this._presetTarget = v || null;
-                }}
-                @closed=${(e) => {
-                  e.stopPropagation();
-                  const v = e.detail?.value ?? e.target?.value ?? "";
-                  this._presetTarget = v || null;
-                }}
-              >
-                <mwc-list-item value="">(Store locally)</mwc-list-item>
-                ${helperEntities.map(id => html`
-                  <mwc-list-item value=${id}>
-                    ${this.hass.states[id]?.attributes?.friendly_name || id}
-                  </mwc-list-item>
-                `)}
-              </ha-select>
-            </div>
-          ` : ""}
-          
           <div class="entity-note">
             <small>
               Timer will be stored
@@ -969,8 +942,7 @@ class SimpleTimerCard extends LitElement {
   _renderTimerPresets(helperEntities) {
     if (!this.hass || !this._config.timer_presets) return html``;
     
-    const targetEntity = this._presetTarget
-      || this._config.default_timer_entity
+    const targetEntity = this._config.default_timer_entity
       || (helperEntities.length === 1 ? helperEntities[0] : null);
 
     return html`
@@ -978,31 +950,6 @@ class SimpleTimerCard extends LitElement {
         <div class="presets-header">
           <span>Quick Timer</span>
         </div>
-        ${helperEntities.length > 1 ? html`
-          <div class="preset-target">
-            <ha-select
-              label="Store preset timers in…"
-              .value=${this._presetTarget || ""}
-              @selected=${(e) => {
-                e.stopPropagation();
-                const v = e.detail?.value ?? e.target?.value ?? "";
-                this._presetTarget = v || null; // runtime-only; does not mutate saved config
-              }}
-              @closed=${(e) => {
-                e.stopPropagation();
-                const v = e.detail?.value ?? e.target?.value ?? "";
-                this._presetTarget = v || null;
-              }}
-            >
-              <mwc-list-item value="">(Store locally)</mwc-list-item>
-              ${helperEntities.map(id => html`
-                <mwc-list-item value=${id}>
-                  ${this.hass.states[id]?.attributes?.friendly_name || id}
-                </mwc-list-item>
-              `)}
-            </ha-select>
-          </div>
-        ` : ""}
         <div class="preset-buttons">
           ${this._config.timer_presets.map(minutes => html`
             <button 
