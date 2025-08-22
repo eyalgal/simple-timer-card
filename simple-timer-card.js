@@ -270,8 +270,8 @@ class SimpleTimerCard extends LitElement {
       source: "alexa",
       source_entity: entityId,
       label: t.timerLabel || entityConf?.name || entityState.attributes.friendly_name || "Alexa Timer",
-      icon: entityConf?.icon || "mdi:amazon-alexa",
-      color: entityConf?.color || "#31C4F3",
+      icon: entityConf?.icon || "mdi:timer-outline",
+      color: entityConf?.color || "var(--primary-color)",
       end: Number(t.triggerTime),
       duration: Number(t.originalDurationInMillis) || null,
     }));
@@ -949,10 +949,10 @@ class SimpleTimerCard extends LitElement {
       .actions .btn { flex: 1; }
 
       .text-input {
-        margin-top: 10px; width: 100%; text-align: center; padding: 8px 12px; font-size: 14px;
+        margin-top: 10px; width: 90%; text-align: center; padding: 8px 12px; font-size: 14px;
         border-radius: var(--stc-chip-radius);
         color: var(--primary-text-color); background: var(--card-background-color); border: 1px solid var(--divider-color);
-        outline: none;
+        outline: none; margin-left: auto; margin-right: auto; display: block;
       }
       .text-input::placeholder { color: var(--secondary-text-color); }
       .text-input:focus { box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color) 40%, transparent); }
@@ -963,6 +963,7 @@ class SimpleTimerCard extends LitElement {
       .list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 
       .item { position: relative; border-radius: 16px; padding: 8px; height: 56px; background: var(--ha-card-background, var(--card-background-color)); }
+      .item.bar { height: 56px; }
       .item .icon-wrap { background: var(--tcolor, var(--divider-color)); opacity: 0.45; }
       .item .info { display: flex; flex-direction: column; justify-content: center; height: 36px; flex: 1; overflow: hidden; }
       .item .title { font-size: 14px; font-weight: 500; line-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
