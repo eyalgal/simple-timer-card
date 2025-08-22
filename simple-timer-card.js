@@ -592,9 +592,9 @@ class SimpleTimerCard extends LitElement {
 
   _handleCreateTimer(e) {
     const form = e.target;
-    const durationStr = form.elements.duration.value;
-    const label = form.elements.label.value;
-    const targetEntity = form.elements.target_entity.value;
+    const durationStr = form.querySelector('ha-textfield[name="duration"]')?.value?.trim() ?? "";
+    const label = form.querySelector('ha-textfield[name="label"]')?.value?.trim() ?? "";
+    const targetEntity = form.querySelector('[name="target_entity"]')?.value ?? "";
 
     const durationMs = this._parseDuration(durationStr);
     if (durationMs <= 0) {
@@ -619,11 +619,13 @@ class SimpleTimerCard extends LitElement {
 
   _handleCreateCustomTimer(e) {
     const form = e.target;
-    const durationStr = form.elements.duration.value;
-    const label = form.elements.label.value;
+    const q = (sel) => form.querySelector(sel);
+    const durationStr = q('ha-textfield[name="duration"]')?.value?.trim() ?? "";
+    const label = q('ha-textfield[name="label"]')?.value?.trim() ?? "";
     const targetEntity = this._presetTarget 
       || this._config.default_timer_entity 
-      || (form.elements.target_entity ? form.elements.target_entity.value : null);
+      || q('ha-select[name="target_entity"]')?.value 
+      || null;
 
     const durationMs = this._parseDuration(durationStr);
     if (durationMs <= 0) {
@@ -911,7 +913,17 @@ class SimpleTimerCard extends LitElement {
               label="Label (Optional)"
               style="flex: 1;"
             ></ha-textfield>
-            <mwc-button type="submit" style="margin-left: 8px;">Start</mwc-button>
+            <mwc-button 
+              type="button" 
+              style="margin-left: 8px;"
+              @click=${(ev) => {
+                const form = ev.currentTarget.closest('form');
+                if (form) {
+                  ev.preventDefault();
+                  this._handleCreateCustomTimer({ target: form });
+                }
+              }}
+            >Start</mwc-button>
           </div>
           
           ${helperEntities.length > 1 ? html`
@@ -1058,9 +1070,6 @@ class SimpleTimerCard extends LitElement {
         ${!isRinging
           ? html`
               ${canCancel ? html`<mwc-button outlined @click=${() => this._handleCancel(timer)}>Cancel</mwc-button>` : ""}
-              ${isAlexa && !canCancel
-                ? html`<mwc-button disabled title="Alexa timers are read-only">Cancel</mwc-button>`
-                : ""}
             `
           : html`
               ${canSnooze ? html`<mwc-button @click=${() => this._handleSnooze(timer)}>Snooze</mwc-button>` : ""}
