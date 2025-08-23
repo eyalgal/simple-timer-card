@@ -881,10 +881,13 @@ class SimpleTimerCard extends LitElement {
       .nt-v.expanded { height: auto; }
       .nt-v .col { display: flex; flex-direction: column; align-items: center; justify-content: space-between; height: 120px; width: 100%; }
 
-      .picker { max-height: 0; opacity: 0; overflow: hidden; transition: max-height .5s ease, opacity .3s ease, padding-top .5s ease; padding-top: 0; }
+      .picker, .active-picker { 
+        max-height: 0; opacity: 0; overflow: hidden; 
+        transition: max-height .5s ease, opacity .3s ease, padding-top .5s ease, margin-bottom .3s ease; 
+        padding-top: 0; margin-bottom: 0; 
+      }
       .card.expanded .picker { max-height: 320px; opacity: 1; padding: 12px 8px 8px; }
       .card-show .active-picker { max-height: 320px; opacity: 1; margin-bottom: 8px; }
-      .active-picker { max-height: 0; opacity: 0; overflow: hidden; transition: max-height .5s ease, opacity .3s ease, margin-bottom .3s ease; margin-bottom: 0; }
 
       .icon-wrap {
         width: 36px; height: 36px; border-radius: 50%;
@@ -898,13 +901,13 @@ class SimpleTimerCard extends LitElement {
 
       .btn { font-weight: 600; border-radius: var(--stc-chip-radius); padding: 6px 10px; font-size: 12px; border: none; cursor: pointer; }
       .btn-preset { background: var(--secondary-background-color, rgba(0,0,0,.08)); color: var(--primary-text-color); }
-      .btn-preset:hover { filter: brightness(1.1); }
+      .btn-preset:hover, .btn-add:hover { filter: brightness(1.1); }
       .btn-ghost { background: var(--card-background-color); border: 1px solid var(--divider-color); color: var(--primary-text-color); }
       .btn-ghost:hover { background: var(--secondary-background-color); }
       .btn-primary { background: var(--primary-color); color: var(--text-primary-color, #fff); }
       .btn-primary:hover { filter: brightness(0.95); }
       .btn-add { display: flex; align-items: center; gap: 8px; background: var(--secondary-background-color, rgba(0,0,0,.08)); color: var(--secondary-text-color); }
-      .btn-add:hover { color: var(--primary-text-color); filter: brightness(1.05); }
+      .btn-add:hover { color: var(--primary-text-color); }
 
       .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; max-width: 220px; margin: 0 auto; }
       .display { text-align: center; font-size: 36px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; margin: 8px 0; }
@@ -926,7 +929,6 @@ class SimpleTimerCard extends LitElement {
       .list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 
       .item { box-sizing: border-box; position: relative; border-radius: 16px; padding: 8px; height: 56px; background: var(--ha-card-background, var(--card-background-color)); }
-      .item.bar { height: 56px; }
       .item .icon-wrap { background: var(--tcolor, var(--divider-color)); opacity: 0.45; }
       .item .info { display: flex; flex-direction: column; justify-content: center; height: 36px; flex: 1; overflow: hidden; }
       .item .title { font-size: 14px; font-weight: 500; line-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
