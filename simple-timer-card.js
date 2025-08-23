@@ -268,12 +268,16 @@ class SimpleTimerCard extends LitElement {
   _parseAlexa(entityId, entityState, entityConf) {
     let active = entityState.attributes.sorted_active;
     let paused = entityState.attributes.sorted_paused;
+    let all = entityState.attributes.sorted_all;
     
     if (typeof active === "string") { try { active = JSON.parse(active); } catch { active = []; } }
     if (!Array.isArray(active)) active = [];
     
     if (typeof paused === "string") { try { paused = JSON.parse(paused); } catch { paused = []; } }
     if (!Array.isArray(paused)) paused = [];
+    
+    if (typeof all === "string") { try { all = JSON.parse(all); } catch { all = []; } }
+    if (!Array.isArray(all)) all = [];
     
     const activeTimers = active.map(([id, t]) => ({
       id,
@@ -287,7 +291,7 @@ class SimpleTimerCard extends LitElement {
       paused: false,
     }));
     
-    const pausedTimers = paused.map(([id, t]) => ({
+    let pausedTimers = paused.map(([id, t]) => ({
       id,
       source: "alexa",
       source_entity: entityId,
@@ -298,6 +302,24 @@ class SimpleTimerCard extends LitElement {
       duration: Number(t.originalDurationInMillis) || null,
       paused: true,
     }));
+    
+    // Also check sorted_all for paused timers if sorted_paused is empty
+    if (pausedTimers.length === 0 && all.length > 0) {
+      const pausedFromAll = all
+        .filter(([id, t]) => t && t.status === 'PAUSED' && typeof t.remainingTime === 'number' && t.remainingTime > 0)
+        .map(([id, t]) => ({
+          id,
+          source: "alexa",
+          source_entity: entityId,
+          label: t.timerLabel || entityConf?.name || entityState.attributes.friendly_name || "Alexa Timer (Paused)",
+          icon: entityConf?.icon || "mdi:timer-pause",
+          color: entityConf?.color || "var(--warning-color)",
+          end: Number(t.remainingTime), // For paused timers, use remainingTime directly
+          duration: Number(t.originalDurationInMillis) || null,
+          paused: true,
+        }));
+      pausedTimers = pausedFromAll;
+    }
     
     return [...activeTimers, ...pausedTimers];
   }
@@ -386,18 +408,20 @@ class SimpleTimerCard extends LitElement {
       .map((t) => {
         let remaining;
         if (t.paused) {
-          // For paused timers, the triggerTime might represent remaining milliseconds
-          // rather than an absolute timestamp. Try to interpret it as remaining time first.
+          // For paused timers, the end value might represent remaining milliseconds directly
+          // rather than an absolute timestamp. Check if it's a reasonable remaining time value.
           if (t.end > 0 && t.end < 86400000) { // If end is less than 24 hours in ms, likely remaining time
             remaining = t.end;
+          } else if (t.end > 0 && t.end > now && t.end < (now + 86400000)) {
+            // If end looks like a timestamp in the near future, calculate remaining
+            remaining = Math.max(0, t.end - now);
           } else if (t.duration && t.duration > 0) {
-            // If triggerTime seems like a timestamp, calculate remaining from duration
-            // For paused timers, assume some reasonable remaining time (e.g., 50% of original)
-            remaining = t.duration * 0.5; // Default to half the original duration
+            // If we have duration info but unclear end time, assume reasonable remaining time
+            // For paused timers, remaining could be anywhere from 1 second to full duration
+            remaining = Math.min(t.duration, t.end > 0 ? t.end : t.duration * 0.5);
           } else {
-            // Fallback: use triggerTime as-is but ensure it's reasonable
-            const calculated = Math.max(0, t.end - now);
-            remaining = calculated > 0 && calculated < t.duration ? calculated : Math.min(t.duration || 300000, 300000);
+            // Fallback: use a small positive value to keep the timer visible
+            remaining = t.end > 0 ? t.end : 60000; // Default to 1 minute if unclear
           }
         } else {
           remaining = Math.max(0, t.end - now);
@@ -419,7 +443,8 @@ class SimpleTimerCard extends LitElement {
     // expiration policy
     const now2 = Date.now();
     for (const timer of [...this._timers]) {
-      if (timer.remaining > 0) continue;
+      // Skip paused timers from expiration policy - they should remain visible until resumed or manually dismissed
+      if (timer.remaining > 0 || timer.paused) continue;
       if (timer.source === "helper") {
         if (this._config.auto_dismiss_writable || this._config.expire_action === "dismiss") {
           this._handleDismiss(timer);
