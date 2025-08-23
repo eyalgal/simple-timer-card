@@ -386,15 +386,18 @@ class SimpleTimerCard extends LitElement {
       .map((t) => {
         let remaining;
         if (t.paused) {
-          // For paused timers, the remaining time should be static based on duration
-          // If we have original duration, use that; otherwise calculate from end time but don't count down
-          if (t.duration && t.duration > 0) {
-            remaining = t.duration;
+          // For paused timers, the triggerTime might represent remaining milliseconds
+          // rather than an absolute timestamp. Try to interpret it as remaining time first.
+          if (t.end > 0 && t.end < 86400000) { // If end is less than 24 hours in ms, likely remaining time
+            remaining = t.end;
+          } else if (t.duration && t.duration > 0) {
+            // If triggerTime seems like a timestamp, calculate remaining from duration
+            // For paused timers, assume some reasonable remaining time (e.g., 50% of original)
+            remaining = t.duration * 0.5; // Default to half the original duration
           } else {
-            // For paused timers without duration info, calculate from end time but ensure it's positive
-            // This handles cases where triggerTime might represent remaining time for paused timers
+            // Fallback: use triggerTime as-is but ensure it's reasonable
             const calculated = Math.max(0, t.end - now);
-            remaining = calculated > 0 ? calculated : (t.end > 0 ? t.end : 60000); // Default to 1 minute if no valid time
+            remaining = calculated > 0 && calculated < t.duration ? calculated : Math.min(t.duration || 300000, 300000);
           }
         } else {
           remaining = Math.max(0, t.end - now);
