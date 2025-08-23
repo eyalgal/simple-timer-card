@@ -90,16 +90,13 @@ class SimpleTimerCard extends LitElement {
       style,           // 'fill' | 'bar'
       snooze_duration: 5,
       show_time_selector: false,
-      timer_presets: [5, 15, 30],
+      timer_presets: [15, 30, 60, 120],
       show_timer_presets: true,
       default_timer_entity: null,
       expire_action: "keep",
       expire_keep_for: 120,
       auto_dismiss_writable: false,
       show_progress_when_unknown: false,
-      show_active_header: true,
-      timer_icon: "mdi:timer-outline",
-      timer_color: "var(--primary-color)",
       storage: autoStorage,
       mqtt: mqttDefaults,
       audio_enabled: false,
@@ -121,7 +118,7 @@ class SimpleTimerCard extends LitElement {
     return {
       entities: [],
       show_timer_presets: true,
-      timer_presets: [5, 15, 30],
+      timer_presets: [15, 30, 60, 120],
       layout: "horizontal",
       style: "fill",
     };
@@ -453,8 +450,8 @@ class SimpleTimerCard extends LitElement {
       const newTimer = {
         id: `custom-${Date.now()}`,
         label: label || "Timer",
-        icon: this._config.timer_icon || "mdi:timer-outline",
-        color: this._config.timer_color || "var(--primary-color)",
+        icon: "mdi:timer-outline",
+        color: "var(--primary-color)",
         end: endTime,
         duration: durationMs,
         source: "helper",
@@ -469,7 +466,7 @@ class SimpleTimerCard extends LitElement {
     
     if (entity) {
       // Legacy method for specific entity parameter - maintain existing behavior
-      const newTimer = { id: `preset-${Date.now()}`, label, icon: this._config.timer_icon || "mdi:timer-outline", color: this._config.timer_color || "var(--primary-color)", end: Date.now() + durationMs, duration: durationMs };
+      const newTimer = { id: `preset-${Date.now()}`, label, icon: "mdi:timer-outline", color: "var(--primary-color)", end: Date.now() + durationMs, duration: durationMs };
 
       if (entity.startsWith("input_text.") || entity.startsWith("text.")) {
         newTimer.source = "helper"; newTimer.source_entity = entity;
@@ -584,8 +581,8 @@ class SimpleTimerCard extends LitElement {
       (this._config.default_timer_entity || (helperEntities.length === 1 ? helperEntities[0] : null)) : null;
 
     const newTimer = {
-      id: `custom-${Date.now()}`, label: label || "Timer", icon: this._config.timer_icon || "mdi:timer-outline",
-      color: this._config.timer_color || "var(--primary-color)", end: Date.now() + secs * 1000, duration: secs * 1000,
+      id: `custom-${Date.now()}`, label: label || "Timer", icon: "mdi:timer-outline",
+      color: "var(--primary-color)", end: Date.now() + secs * 1000, duration: secs * 1000,
     };
 
     if (targetEntity) {
@@ -641,7 +638,7 @@ class SimpleTimerCard extends LitElement {
     if (ring) {
       return html`
         <li class="${finishedClasses}" style="--tcolor:${color}">
-          ${isFillStyle ? html`<div class="progress-fill" style="transform:scaleX(1)"></div>` : ""}
+          ${isFillStyle ? html`<div class="progress-fill" style="width:100%"></div>` : ""}
           <div class="${isFillStyle ? "card-content" : "row"}">
             <div class="icon-wrap"><ha-icon .icon=${t.icon || "mdi:timer-outline"}></ha-icon></div>
             <div class="info">
@@ -660,7 +657,7 @@ class SimpleTimerCard extends LitElement {
     if (isFillStyle) {
       return html`
         <li class="${baseClasses}" style="--tcolor:${color}">
-          <div class="progress-fill" style="transform:scaleX(${pct / 100})"></div>
+          <div class="progress-fill" style="width:${pct}%"></div>
           <div class="card-content">
             <div class="icon-wrap"><ha-icon .icon=${t.icon || "mdi:timer-outline"}></ha-icon></div>
             <div class="info">
@@ -696,7 +693,7 @@ class SimpleTimerCard extends LitElement {
 
     const presets = this._config.show_timer_presets === false
       ? []
-      : (this._config.timer_presets && this._config.timer_presets.length ? this._config.timer_presets : [5, 15]);
+      : (this._config.timer_presets && this._config.timer_presets.length ? this._config.timer_presets : [15, 30]);
 
     const timers = this._timers;
     const layout = this._config.layout; // 'horizontal' | 'vertical'
@@ -778,10 +775,8 @@ class SimpleTimerCard extends LitElement {
     const activeCard = style === "fill" ? html`
       <div class="card ${this._ui.activeFillOpen ? "card-show" : ""}">
         <div class="active-head">
-          ${this._config.show_active_header !== false ? html`
-            <h4>Active Timers</h4>
-            <button class="btn btn-add" @click=${() => this._toggleActivePicker("fill")}><ha-icon icon="mdi:plus" style="--mdc-icon-size:16px;"></ha-icon> Add</button>
-          ` : ""}
+          <h4>Active Timers</h4>
+          <button class="btn btn-add" @click=${() => this._toggleActivePicker("fill")}><ha-icon icon="mdi:plus" style="--mdc-icon-size:16px;"></ha-icon> Add</button>
         </div>
 
         <div class="active-picker">
@@ -810,10 +805,8 @@ class SimpleTimerCard extends LitElement {
     ` : html`
       <div class="card ${this._ui.activeBarOpen ? "card-show" : ""}">
         <div class="active-head">
-          ${this._config.show_active_header !== false ? html`
-            <h4>Active Timers</h4>
-            <button class="btn btn-add" @click=${() => this._toggleActivePicker("bar")}><ha-icon icon="mdi:plus" style="--mdc-icon-size:16px;"></ha-icon> Add</button>
-          ` : ""}
+          <h4>Active Timers</h4>
+          <button class="btn btn-add" @click=${() => this._toggleActivePicker("bar")}><ha-icon icon="mdi:plus" style="--mdc-icon-size:16px;"></ha-icon> Add</button>
         </div>
 
         <div class="active-picker">
@@ -874,13 +867,11 @@ class SimpleTimerCard extends LitElement {
       }
       .card-content { position: relative; z-index: 1; display: flex; align-items: center; gap: 12px; }
       .progress-fill {
-        position: absolute; top: 8px; left: 8px; height: calc(100% - 16px);
-        width: calc(100% - 16px); border-radius: calc(var(--stc-radius) - 8px); z-index: 0; transition: transform 1s linear;
+        position: absolute; top: 0; left: 0; height: 100%;
+        width: 0%; border-radius: var(--stc-radius); z-index: 0; transition: width 1s linear;
         background: var(--tcolor, var(--primary-color)); opacity: 0.28;
-        transform-origin: left center;
-        transform: scaleX(0);
       }
-      .card.finished .progress-fill { transform: scaleX(1) !important; }
+      .card.finished .progress-fill { width: 100% !important; }
 
       .nt-h { padding: 0 8px; height: 56px; transition: height .3s ease; }
       .nt-h.expanded { height: auto; }
@@ -996,7 +987,7 @@ class SimpleTimerCardEditor extends LitElement {
 
     if (key === "timer_presets" && typeof value === "string") {
       value = value.split(",").map((v) => parseInt(v.trim())).filter((v) => !isNaN(v) && v > 0);
-      if (value.length === 0) value = [5, 15, 30];
+      if (value.length === 0) value = [15, 30, 60, 120];
     }
     if (value === undefined || value === null) return;
     this._updateConfig({ [key]: value });
@@ -1154,7 +1145,7 @@ class SimpleTimerCardEditor extends LitElement {
         </ha-formfield>
 
         ${this._config.show_timer_presets !== false ? html`
-          <ha-textfield label="Timer presets (minutes, comma-separated)" .value=${(this._config.timer_presets || [5, 15, 30]).join(", ")} .configValue=${"timer_presets"} @input=${this._valueChanged}></ha-textfield>
+          <ha-textfield label="Timer presets (minutes, comma-separated)" .value=${(this._config.timer_presets || [15, 30, 60, 120]).join(", ")} .configValue=${"timer_presets"} @input=${this._valueChanged}></ha-textfield>
           <ha-entity-picker .hass=${this.hass} .value=${this._config.default_timer_entity || ""} .configValue=${"default_timer_entity"} @value-changed=${this._detailValueChanged} label="Default timer entity (optional)" allow-custom-entity .includeDomains=${["input_text", "text", "timer", "sensor"]}></ha-entity-picker>
         ` : ""}
 
@@ -1166,13 +1157,6 @@ class SimpleTimerCardEditor extends LitElement {
           <ha-textfield label="Audio file URL or path" .value=${this._config.audio_file_url || ""} .configValue=${"audio_file_url"} @input=${this._valueChanged}></ha-textfield>
           <ha-textfield label="Number of times to play" type="number" min="1" max="10" .value=${this._config.audio_repeat_count ?? 1} .configValue=${"audio_repeat_count"} @input=${this._valueChanged}></ha-textfield>
         ` : ""}
-
-        <ha-formfield label="Show active timers header">
-          <ha-switch .checked=${this._config.show_active_header !== false} .configValue=${"show_active_header"} @change=${this._valueChanged}></ha-switch>
-        </ha-formfield>
-
-        <ha-textfield label="Timer icon" .value=${this._config.timer_icon || "mdi:timer-outline"} .configValue=${"timer_icon"} @input=${this._valueChanged}></ha-textfield>
-        <ha-textfield label="Timer color" .value=${this._config.timer_color || "var(--primary-color)"} .configValue=${"timer_color"} @input=${this._valueChanged}></ha-textfield>
 
         <div class="entities-header">
           <h3>Timer Entities</h3>
