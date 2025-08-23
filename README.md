@@ -5,7 +5,7 @@ A Home Assistant custom card for displaying and managing timers from various sou
 ## Features
 
 - **Multiple Timer Sources:**
-  - Alexa timers (read-only)
+  - Alexa timers (read-only) - supports both active and paused timers
   - **NEW:** Home Assistant timer entities (timer.*)
   - device_class: timestamp sensors (completion times)
   - sensors with numeric "minutes to arrival" attribute (ETA)
