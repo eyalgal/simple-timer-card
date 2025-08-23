@@ -1,12 +1,14 @@
 /*
- * Simple Timer Card (Adapterized) — HA-native UI
- * v2.1.0 — Choose ONE layout (horizontal|vertical) and ONE style (bar|fill)
- * - No external libs beyond lit-element; uses HA theme tokens & built-ins
- * - Works with helpers/localStorage/MQTT + Alexa/timestamp/ETA/timer entities
- */
-import { LitElement, html, css } from "https://unpkg.com/lit-element@2.0.1/lit-element.js?module";
+ * Simple Timer Card
+ *
+ * Author: eyalgal
+ * License: MIT
+ * Version: 1.0.0
+ * For more information, visit: https://github.com/eyalgal/simple-timer-card								   
+ */	
+import { LitElement, html, css } from "https://unpkg.com/lit@2.8.0/index.js?module";
 
-const cardVersion = "2.1.0";
+const cardVersion = "1.0.0";
 console.info(
   `%c SIMPLE-TIMER-CARD %c v${cardVersion} `,
   "color: white; background: #4285f4; font-weight: 700;",
@@ -113,62 +115,6 @@ class SimpleTimerCard extends LitElement {
     };
   }
 
-  static async getConfigElement() {
-    const registerEditor = () => {
-      const isEditorReady = !!(
-        customElements.get("ha-entity-picker") || 
-        customElements.get("hui-entity-editor") ||
-        customElements.get("hui-card-element-editor") ||
-        window.customElements.get("ha-form")
-      );
-      
-      if (isEditorReady && !customElements.get("simple-timer-card-editor")) {
-        customElements.define("simple-timer-card-editor", SimpleTimerCardEditor);
-      } else if (!isEditorReady) {
-        setTimeout(registerEditor, 100);
-      }
-    };
-
-    registerEditor(); 
-    
-    if (customElements.get("simple-timer-card-editor")) {
-      return document.createElement("simple-timer-card-editor");
-    } else {
-      const placeholder = document.createElement("div");
-      placeholder.innerHTML = "Loading editor...";
-      
-      const checkInterval = setInterval(() => {
-        if (customElements.get("simple-timer-card-editor")) {
-          clearInterval(checkInterval);
-          const editor = document.createElement("simple-timer-card-editor");
-          placeholder.replaceWith(editor);
-          if (placeholder._config) {
-            editor.setConfig(placeholder._config);
-          }
-          if (placeholder._hass) {
-            editor.hass = placeholder._hass;
-          }
-        }
-      }, 100);
-      
-      const originalSetConfig = placeholder.setConfig;
-      placeholder.setConfig = function(config) {
-        placeholder._config = config;
-        if (originalSetConfig) originalSetConfig.call(placeholder, config);
-      };
-      
-      Object.defineProperty(placeholder, 'hass', {
-        set: function(hass) {
-          placeholder._hass = hass;
-        },
-        get: function() {
-          return placeholder._hass;
-        }
-      });
-      
-      return placeholder;
-    }
-  }
   static getStubConfig() {
     return {
       entities: [],
@@ -343,12 +289,11 @@ class SimpleTimerCard extends LitElement {
       label: t.timerLabel || entityConf?.name || entityState.attributes.friendly_name || "Alexa Timer (Paused)",
       icon: entityConf?.icon || "mdi:timer-pause",
       color: entityConf?.color || "var(--warning-color)",
-      end: Number(t.remainingTime || t.triggerTime), // Use remainingTime for paused timers when available
+      end: Number(t.remainingTime || t.triggerTime),
       duration: Number(t.originalDurationInMillis) || null,
       paused: true,
     }));
     
-    // Also check sorted_all for paused timers if sorted_paused is empty
     if (pausedTimers.length === 0 && all.length > 0) {
       const pausedFromAll = all
         .filter(([id, t]) => t && t.status === 'PAUSED' && typeof t.remainingTime === 'number' && t.remainingTime > 0)
@@ -359,7 +304,7 @@ class SimpleTimerCard extends LitElement {
           label: t.timerLabel || entityConf?.name || entityState.attributes.friendly_name || "Alexa Timer (Paused)",
           icon: entityConf?.icon || "mdi:timer-pause",
           color: entityConf?.color || "var(--warning-color)",
-          end: Number(t.remainingTime), // For paused timers, use remainingTime directly
+          end: Number(t.remainingTime),
           duration: Number(t.originalDurationInMillis) || null,
           paused: true,
         }));
@@ -452,20 +397,14 @@ class SimpleTimerCard extends LitElement {
       .map((t) => {
         let remaining;
         if (t.paused) {
-          // For paused timers, the end value might represent remaining milliseconds directly
-          // rather than an absolute timestamp. Check if it's a reasonable remaining time value.
-          if (t.end > 0 && t.end < 86400000) { // If end is less than 24 hours in ms, likely remaining time
+          if (t.end > 0 && t.end < 86400000) {
             remaining = t.end;
           } else if (t.end > 0 && t.end > now && t.end < (now + 86400000)) {
-            // If end looks like a timestamp in the near future, calculate remaining
             remaining = Math.max(0, t.end - now);
           } else if (t.duration && t.duration > 0) {
-            // If we have duration info but unclear end time, assume reasonable remaining time
-            // For paused timers, remaining could be anywhere from 1 second to full duration
             remaining = Math.min(t.duration, t.end > 0 ? t.end : t.duration * 0.5);
           } else {
-            // Fallback: use a small positive value to keep the timer visible
-            remaining = t.end > 0 ? t.end : 60000; // Default to 1 minute if unclear
+            remaining = t.end > 0 ? t.end : 60000;
           }
         } else {
           remaining = Math.max(0, t.end - now);
@@ -484,10 +423,8 @@ class SimpleTimerCard extends LitElement {
     const ids = new Set(this._timers.map((t) => t.id));
     for (const r of this._ringingTimers) if (!ids.has(r)) this._ringingTimers.delete(r);
 
-    // expiration policy
     const now2 = Date.now();
     for (const timer of [...this._timers]) {
-      // Skip paused timers from expiration policy - they should remain visible until resumed or manually dismissed
       if (timer.remaining > 0 || timer.paused) continue;
       if (timer.source === "helper") {
         if (this._config.auto_dismiss_writable || this._config.expire_action === "dismiss") {
@@ -575,7 +512,6 @@ class SimpleTimerCard extends LitElement {
     const label = this._formatTimerLabel(minutes);
     
     if (entity) {
-      // Legacy method for specific entity parameter - maintain existing behavior
       const newTimer = { id: `preset-${Date.now()}`, label, icon: this._config.default_timer_icon || "mdi:timer-outline", color: this._config.default_timer_color || "var(--primary-color)", end: Date.now() + durationMs, duration: durationMs };
 
       if (entity.startsWith("input_text.") || entity.startsWith("text.")) {
@@ -663,7 +599,6 @@ class SimpleTimerCard extends LitElement {
     return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
   }
 
-  // UI helpers
   _formatSecs(secs) {
     if (secs <= 0) return "00:00";
     const h = Math.floor(secs / 3600);
@@ -680,7 +615,6 @@ class SimpleTimerCard extends LitElement {
     const delta = Math.max(0, (minutes | 0) * 60);
     this._customSecs = { ...this._customSecs, [which]: Math.max(0, this._customSecs[which] + sign * delta) };
   }
-  // Helper method to create and save timers
   _createAndSaveTimer(secs, label, useDefaultEntity = true) {
     if (secs <= 0) return;
 
@@ -738,7 +672,7 @@ class SimpleTimerCard extends LitElement {
     const color = t.color || "var(--primary-color)";
     const ring = t.remaining <= 0;
     const pct = typeof t.percent === "number" ? Math.max(0, Math.min(100, t.percent)) : 0;
-    const pctLeft = 100 - pct; // For progress bars (remaining portion)
+    const pctLeft = 100 - pct;
 
     const isFillStyle = style === "fill";
     const baseClasses = isFillStyle ? "card item" : "item bar";
@@ -808,8 +742,8 @@ class SimpleTimerCard extends LitElement {
     const minuteButtons = this._config.minute_buttons && this._config.minute_buttons.length ? this._config.minute_buttons : [1, 5, 10];
 
     const timers = this._timers;
-    const layout = this._config.layout; // 'horizontal' | 'vertical'
-    const style = this._config.style;   // 'fill' | 'bar'
+    const layout = this._config.layout;
+    const style = this._config.style;
 
     const noTimerCard = layout === "horizontal" ? html`
       <div class="card nt-h ${this._ui.noTimerHorizontalOpen ? "expanded" : ""}">
@@ -1233,6 +1167,19 @@ class SimpleTimerCardEditor extends LitElement {
     this._updateConfig({ mqtt: newMqttConfig });
   }
 
+  async firstUpdated() {
+    const tags = [
+      "ha-entity-picker",
+      "ha-select",
+      "ha-textfield",
+      "ha-icon-picker",
+      "ha-form",
+      "mwc-list-item"
+    ];
+    await Promise.all(tags.map(t => customElements.whenDefined(t).catch(() => {})));
+    this.requestUpdate();
+  }
+
   render() {
     if (!this.hass || !this._config) return html``;
 
@@ -1400,36 +1347,72 @@ class SimpleTimerCardEditor extends LitElement {
   }
 }
 
-/* ---- Register ---- */
-customElements.define("simple-timer-card", SimpleTimerCard);
+/* ---- Register the card ---- */
+if (!customElements.get("simple-timer-card")) {
+  customElements.define("simple-timer-card", SimpleTimerCard);
+}
 
-const registerEditor = () => {
-  const isEditorReady = !!(
-    customElements.get("ha-entity-picker") || 
-    customElements.get("hui-entity-editor") ||
-    customElements.get("hui-card-element-editor") ||
-    window.customElements.get("ha-form")
+/* ---- Hatch-style editor registration & placeholder swapping ---- */
+const stcRegisterEditor = () => {
+  const ready = !!(
+    customElements.get("ha-entity-picker") ||
+    customElements.get("ha-select") ||
+    customElements.get("ha-textfield") ||
+    customElements.get("ha-form")
   );
-  
-  if (isEditorReady && !customElements.get("simple-timer-card-editor")) {
+  if (ready && !customElements.get("simple-timer-card-editor")) {
     customElements.define("simple-timer-card-editor", SimpleTimerCardEditor);
-  } else if (!isEditorReady) {
-    setTimeout(registerEditor, 100);
+  } else if (!ready) {
+    setTimeout(stcRegisterEditor, 100);
   }
 };
 
-registerEditor();
+stcRegisterEditor();
 
-// More robust editor registration for caching issues
 window.addEventListener("location-changed", () => {
-  setTimeout(registerEditor, 100);
+  setTimeout(stcRegisterEditor, 100);
 });
 
-// Additional registration attempts to handle caching issues
-setTimeout(registerEditor, 500);
-setTimeout(registerEditor, 1000);
-setTimeout(registerEditor, 2000);
+/* Replace static getConfigElement with the placeholder-swapping version */
+SimpleTimerCard.getConfigElement = function () {
+  stcRegisterEditor(); 
+  
+  if (customElements.get("simple-timer-card-editor")) {
+    return document.createElement("simple-timer-card-editor");
+  } else {
+    const placeholder = document.createElement("div");
+    placeholder.innerHTML = "Loading editor...";
+    
+    const checkInterval = setInterval(() => {
+      if (customElements.get("simple-timer-card-editor")) {
+        clearInterval(checkInterval);
+        const editor = document.createElement("simple-timer-card-editor");
+        placeholder.replaceWith(editor);
+        if (placeholder._config) {
+          editor.setConfig(placeholder._config);
+        }
+        if (placeholder._hass) {
+          editor.hass = placeholder._hass;
+        }
+      }
+    }, 100);
+    
+    const originalSetConfig = placeholder.setConfig;
+    placeholder.setConfig = function (config) {
+      placeholder._config = config;
+      if (originalSetConfig) originalSetConfig.call(placeholder, config);
+    };
+    
+    Object.defineProperty(placeholder, 'hass', {
+      set: function(hass) { placeholder._hass = hass; },
+      get: function() { return placeholder._hass; }
+    });
+    
+    return placeholder;
+  }
+};
 
+/* ---- HA card registry entry ---- */
 setTimeout(() => {
   window.customCards = window.customCards || [];
   window.customCards.push({
