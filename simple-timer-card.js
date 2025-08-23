@@ -269,16 +269,18 @@ class SimpleTimerCard extends LitElement {
     }
 
     // Numeric string?
-    const n = Number(v);
-    if (!Number.isNaN(n)) return this._toMs(n);
+    if (typeof v === "string") {
+      const n = Number(v);
+      if (!Number.isNaN(n)) return this._toMs(n);
 
-    // ISO-8601 duration like PT1H2M3S
-    const m = /^P(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)$/i.exec(String(v).trim());
-    if (m) {
-      const h = parseInt(m[1] || "0", 10);
-      const min = parseInt(m[2] || "0", 10);
-      const s = parseInt(m[3] || "0", 10);
-      return ((h * 3600) + (min * 60) + s) * 1000;
+      // ISO-8601 duration like PT1H2M3S
+      const m = /^P(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)$/i.exec(v.trim());
+      if (m) {
+        const h = parseInt(m[1] || "0", 10);
+        const min = parseInt(m[2] || "0", 10);
+        const s = parseInt(m[3] || "0", 10);
+        return ((h * 3600) + (min * 60) + s) * 1000;
+      }
     }
 
     return null;
