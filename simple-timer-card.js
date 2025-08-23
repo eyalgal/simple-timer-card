@@ -271,7 +271,7 @@ class SimpleTimerCard extends LitElement {
       source_entity: entityId,
       label: t.timerLabel || entityConf?.name || entityState.attributes.friendly_name || "Alexa Timer",
       icon: entityConf?.icon || "mdi:timer-outline",
-      color: entityConf?.color || "var(--primary-color)",
+      color: entityConf?.color || "#31C4F3",
       end: Number(t.triggerTime),
       duration: Number(t.originalDurationInMillis) || null,
     }));
@@ -691,7 +691,7 @@ class SimpleTimerCard extends LitElement {
 
     if (ring) {
       return html`
-        <li class="item bar" style="--tcolor:${color}">
+        <li class="card item bar" style="--tcolor:${color}">
           <div class="row">
             <div class="icon-wrap"><ha-icon .icon=${t.icon || "mdi:timer-outline"}></ha-icon></div>
             <div class="info">
@@ -962,7 +962,7 @@ class SimpleTimerCard extends LitElement {
 
       .list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 
-      .item { position: relative; border-radius: 16px; padding: 8px; height: 56px; background: var(--ha-card-background, var(--card-background-color)); }
+      .item { box-sizing: border-box; position: relative; border-radius: 16px; padding: 8px; height: 56px; background: var(--ha-card-background, var(--card-background-color)); }
       .item.bar { height: 56px; }
       .item .icon-wrap { background: var(--tcolor, var(--divider-color)); opacity: 0.45; }
       .item .info { display: flex; flex-direction: column; justify-content: center; height: 36px; flex: 1; overflow: hidden; }
