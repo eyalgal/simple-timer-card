@@ -114,7 +114,60 @@ class SimpleTimerCard extends LitElement {
   }
 
   static async getConfigElement() {
-    return document.createElement("simple-timer-card-editor");
+    const registerEditor = () => {
+      const isEditorReady = !!(
+        customElements.get("ha-entity-picker") || 
+        customElements.get("hui-entity-editor") ||
+        customElements.get("hui-card-element-editor") ||
+        window.customElements.get("ha-form")
+      );
+      
+      if (isEditorReady && !customElements.get("simple-timer-card-editor")) {
+        customElements.define("simple-timer-card-editor", SimpleTimerCardEditor);
+      } else if (!isEditorReady) {
+        setTimeout(registerEditor, 100);
+      }
+    };
+
+    registerEditor(); 
+    
+    if (customElements.get("simple-timer-card-editor")) {
+      return document.createElement("simple-timer-card-editor");
+    } else {
+      const placeholder = document.createElement("div");
+      placeholder.innerHTML = "Loading editor...";
+      
+      const checkInterval = setInterval(() => {
+        if (customElements.get("simple-timer-card-editor")) {
+          clearInterval(checkInterval);
+          const editor = document.createElement("simple-timer-card-editor");
+          placeholder.replaceWith(editor);
+          if (placeholder._config) {
+            editor.setConfig(placeholder._config);
+          }
+          if (placeholder._hass) {
+            editor.hass = placeholder._hass;
+          }
+        }
+      }, 100);
+      
+      const originalSetConfig = placeholder.setConfig;
+      placeholder.setConfig = function(config) {
+        placeholder._config = config;
+        if (originalSetConfig) originalSetConfig.call(placeholder, config);
+      };
+      
+      Object.defineProperty(placeholder, 'hass', {
+        set: function(hass) {
+          placeholder._hass = hass;
+        },
+        get: function() {
+          return placeholder._hass;
+        }
+      });
+      
+      return placeholder;
+    }
   }
   static getStubConfig() {
     return {
@@ -1347,12 +1400,35 @@ class SimpleTimerCardEditor extends LitElement {
 
 /* ---- Register ---- */
 customElements.define("simple-timer-card", SimpleTimerCard);
-customElements.define("simple-timer-card-editor", SimpleTimerCardEditor);
 
-window.customCards = window.customCards || [];
-window.customCards.push({
-  type: "simple-timer-card",
-  name: "Simple Timer Card",
-  preview: true,
-  description: "Pick a layout (horizontal/vertical) and a style (progress bar/background fill). Uses HA theme & native elements.",
+const registerEditor = () => {
+  const isEditorReady = !!(
+    customElements.get("ha-entity-picker") || 
+    customElements.get("hui-entity-editor") ||
+    customElements.get("hui-card-element-editor") ||
+    window.customElements.get("ha-form")
+  );
+  
+  if (isEditorReady && !customElements.get("simple-timer-card-editor")) {
+    customElements.define("simple-timer-card-editor", SimpleTimerCardEditor);
+  } else if (!isEditorReady) {
+    setTimeout(registerEditor, 100);
+  }
+};
+
+registerEditor();
+
+window.addEventListener("location-changed", () => {
+  setTimeout(registerEditor, 100);
 });
+
+setTimeout(() => {
+  window.customCards = window.customCards || [];
+  window.customCards.push({
+    type: "simple-timer-card",
+    name: "Simple Timer Card",
+    preview: true,
+    description: "Pick a layout (horizontal/vertical) and a style (progress bar/background fill). Uses HA theme & native elements.",
+    editor: "simple-timer-card-editor",
+  });
+}, 0);
