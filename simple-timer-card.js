@@ -343,7 +343,7 @@ class SimpleTimerCard extends LitElement {
       label: t.timerLabel || entityConf?.name || entityState.attributes.friendly_name || "Alexa Timer (Paused)",
       icon: entityConf?.icon || "mdi:timer-pause",
       color: entityConf?.color || "var(--warning-color)",
-      end: Number(t.triggerTime),
+      end: Number(t.remainingTime || t.triggerTime), // Use remainingTime for paused timers when available
       duration: Number(t.originalDurationInMillis) || null,
       paused: true,
     }));
@@ -754,10 +754,12 @@ class SimpleTimerCard extends LitElement {
               <div class="title">${t.label}</div>
               <div class="status up">Time's up!</div>
             </div>
-            <div class="chips">
-              <button class="chip" @click=${() => this._handleSnooze(t)}>Snooze</button>
-              <button class="chip" @click=${() => this._handleDismiss(t)}>Dismiss</button>
-            </div>
+            ${t.source !== "alexa" ? html`
+              <div class="chips">
+                <button class="chip" @click=${() => this._handleSnooze(t)}>Snooze</button>
+                <button class="chip" @click=${() => this._handleDismiss(t)}>Dismiss</button>
+              </div>
+            ` : ""}
           </div>
         </li>
       `;
@@ -1418,9 +1420,15 @@ const registerEditor = () => {
 
 registerEditor();
 
+// More robust editor registration for caching issues
 window.addEventListener("location-changed", () => {
   setTimeout(registerEditor, 100);
 });
+
+// Additional registration attempts to handle caching issues
+setTimeout(registerEditor, 500);
+setTimeout(registerEditor, 1000);
+setTimeout(registerEditor, 2000);
 
 setTimeout(() => {
   window.customCards = window.customCards || [];
