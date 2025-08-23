@@ -435,7 +435,7 @@ class SimpleTimerCard extends LitElement {
         } else {
           remaining = Math.max(0, t.end - now);
         }
-        const percent = t.duration && !t.paused ? ((t.duration - remaining) / t.duration) * 100 : null;
+        const percent = t.duration ? ((t.duration - remaining) / t.duration) * 100 : null;
         return { ...t, remaining, percent };
       })
       .sort((a, b) => a.remaining - b.remaining);
@@ -953,7 +953,7 @@ class SimpleTimerCard extends LitElement {
         background: var(--tcolor, var(--divider-color)); opacity: 0.5;
         display: flex; align-items: center; justify-content: center; flex: 0 0 36px;
       }
-      .icon-wrap ha-icon { --mdc-icon-size: 22px; color: var(--primary-text-color); }
+      .icon-wrap ha-icon { --mdc-icon-size: 22px; color: var(--tcolor, var(--primary-text-color)); }
 
       .nt-title { margin: 0; font-size: 14px; font-weight: 500; line-height: 20px; }
       .nt-sub { margin: 0; font-size: 12px; color: var(--secondary-text-color); line-height: 16px; }
