@@ -42,7 +42,6 @@ class SimpleTimerCard extends LitElement {
     this._activeSecs = { fill: 10 * 60, bar: 10 * 60 };
   }
 
-  // ---------------- Config ----------------
   setConfig(config) {
     if (!config.entities && !config.show_timer_presets) {
       throw new Error("You need to define an array of entities or enable timer presets.");
@@ -75,19 +74,18 @@ class SimpleTimerCard extends LitElement {
       else if (hasHelperEntities) autoStorage = "helper";
     }
 
-    // Normalize layout/style to the two choices the user asked for
     const normLayout = (config.layout || "horizontal").toLowerCase();
     const layout = normLayout === "vertical" ? "vertical" : "horizontal";
 
-    const rawStyle = (config.style || "fill").toLowerCase();
+    const rawStyle = (config.style || "bar").toLowerCase();
     const style =
       rawStyle === "fill" || rawStyle === "background" || rawStyle === "background_fill"
         ? "fill"
-        : "bar"; // "bar" == Progress bar
+        : "bar";
 
     this._config = {
-      layout,          // 'horizontal' | 'vertical'
-      style,           // 'fill' | 'bar'
+      layout,
+      style,
       snooze_duration: 5,
       show_time_selector: false,
       timer_presets: [5, 15, 30],
@@ -121,10 +119,6 @@ class SimpleTimerCard extends LitElement {
   static getStubConfig() {
     return {
       entities: [],
-      show_timer_presets: true,
-      timer_presets: [5, 15, 30],
-      layout: "horizontal",
-      style: "fill",
     };
   }
 
@@ -148,7 +142,6 @@ class SimpleTimerCard extends LitElement {
     }
   }
 
-  // ---------------- Storage (local/mqtt) ----------------
   _getStorageKey() {
     return `simple-timer-card-timers-${this._config?.title || "default"}`;
   }
@@ -255,7 +248,6 @@ class SimpleTimerCard extends LitElement {
     this._saveTimersToStorage(timers, storage);
   }
 
-  // ---------------- Adapters ----------------
   _detectMode(entityId, entityState, entityConf) {
     if (entityId.startsWith("input_text.") || entityId.startsWith("text.")) return "helper";
     if (entityId.startsWith("timer.")) return "timer";
@@ -374,7 +366,6 @@ class SimpleTimerCard extends LitElement {
     return 0;
   }
 
-  // ---------------- Ticking / refresh ----------------
   _updateTimers() {
     if (!this.hass) return;
 
@@ -481,7 +472,6 @@ class SimpleTimerCard extends LitElement {
     } catch {}
   }
 
-  // ---------------- Creation helpers ----------------
   _parseDuration(durationStr) {
     if (!durationStr) return 0;
     let totalSeconds = 0;
@@ -691,7 +681,6 @@ class SimpleTimerCard extends LitElement {
     this._ui[openKey] = false;
   }
 
-  // ---------------- Item renderers ----------------
   _renderItem(t, style) {
     const color = t.color || "var(--primary-color)";
     const ring = t.remaining <= 0;
@@ -754,7 +743,6 @@ class SimpleTimerCard extends LitElement {
     }
   }
 
-  // ---------------- Render ----------------
   render() {
     if (!this._config) return html``;
 
@@ -904,7 +892,6 @@ class SimpleTimerCard extends LitElement {
     `;
   }
 
-  // ---------------- Styles ----------------
   static get styles() {
     return css`
       :host { --stc-radius: 24px; --stc-chip-radius: 9999px; }
@@ -1128,9 +1115,51 @@ class SimpleTimerCardEditor extends LitElement {
   _emitChange() {
     if (!this._config) return;
     try {
-      const event = new CustomEvent("config-changed", { detail: { config: this._config }, bubbles: true, composed: true });
+      const cleanedConfig = this._removeDefaultValues(this._config);
+      const event = new CustomEvent("config-changed", { detail: { config: cleanedConfig }, bubbles: true, composed: true });
       this.dispatchEvent(event);
     } catch (error) { console.error("Error emitting config change:", error); }
+  }
+
+  _removeDefaultValues(config) {
+    const defaults = {
+      layout: "horizontal",
+      style: "bar",
+      show_timer_presets: true,
+      timer_presets: [5, 15, 30],
+      expire_action: "keep",
+      snooze_duration: 5,
+      show_active_header: true,
+      minute_buttons: [1, 5, 10],
+      default_timer_icon: "mdi:timer-outline",
+      default_timer_color: "var(--primary-color)",
+      expire_keep_for: 120,
+      auto_dismiss_writable: false,
+      show_progress_when_unknown: false,
+      audio_enabled: false,
+      audio_file_url: "",
+      audio_repeat_count: 1,
+      show_time_selector: false,
+      default_timer_entity: null
+    };
+
+    const cleaned = { ...config };
+
+    for (const [key, defaultValue] of Object.entries(defaults)) {
+      if (key in cleaned) {
+        if (Array.isArray(defaultValue)) {
+          if (Array.isArray(cleaned[key]) && 
+              cleaned[key].length === defaultValue.length &&
+              cleaned[key].every((val, index) => val === defaultValue[index])) {
+            delete cleaned[key];
+          }
+        } else if (cleaned[key] === defaultValue) {
+          delete cleaned[key];
+        }
+      }
+    }
+
+    return cleaned;
   }
   _mqttValueChanged(ev) {
     if (!this._config || !this.hass) return;
@@ -1162,7 +1191,7 @@ class SimpleTimerCardEditor extends LitElement {
             <mwc-list-item value="vertical">Vertical</mwc-list-item>
           </ha-select>
 
-          <ha-select label="Style" .value=${this._config.style || "fill"} .configValue=${"style"} @selected=${this._selectChanged} @closed=${(e) => { e.stopPropagation(); this._selectChanged(e); }}>
+          <ha-select label="Style" .value=${this._config.style || "bar"} .configValue=${"style"} @selected=${this._selectChanged} @closed=${(e) => { e.stopPropagation(); this._selectChanged(e); }}>
             <mwc-list-item value="fill">Background fill</mwc-list-item>
             <mwc-list-item value="bar">Progress bar</mwc-list-item>
           </ha-select>
