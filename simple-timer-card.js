@@ -1,6 +1,6 @@
 /*
  * Simple Timer Card (Adapterized) — HA-native UI
- * v2.1.0 — Choose ONE layout (horizontal|vertical) and ONE style (fill|bar)
+ * v2.1.0 — Choose ONE layout (horizontal|vertical) and ONE style (bar|fill)
  * - No external libs beyond lit-element; uses HA theme tokens & built-ins
  * - Works with helpers/localStorage/MQTT + Alexa/timestamp/ETA/timer entities
  */
@@ -1354,5 +1354,5 @@ window.customCards.push({
   type: "simple-timer-card",
   name: "Simple Timer Card",
   preview: true,
-  description: "Pick a layout (horizontal/vertical) and a style (background fill/progress bar). Uses HA theme & native elements.",
+  description: "Pick a layout (horizontal/vertical) and a style (progress bar/background fill). Uses HA theme & native elements.",
 });
