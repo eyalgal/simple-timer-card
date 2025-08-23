@@ -388,7 +388,14 @@ class SimpleTimerCard extends LitElement {
         if (t.paused) {
           // For paused timers, the remaining time should be static based on duration
           // If we have original duration, use that; otherwise calculate from end time but don't count down
-          remaining = t.duration || Math.max(0, t.end - now);
+          if (t.duration && t.duration > 0) {
+            remaining = t.duration;
+          } else {
+            // For paused timers without duration info, calculate from end time but ensure it's positive
+            // This handles cases where triggerTime might represent remaining time for paused timers
+            const calculated = Math.max(0, t.end - now);
+            remaining = calculated > 0 ? calculated : (t.end > 0 ? t.end : 60000); // Default to 1 minute if no valid time
+          }
         } else {
           remaining = Math.max(0, t.end - now);
         }
@@ -805,11 +812,7 @@ class SimpleTimerCard extends LitElement {
             <h4>Active Timers</h4>
             <button class="btn btn-add" @click=${() => this._toggleActivePicker("fill")}><ha-icon icon="mdi:plus" style="--mdc-icon-size:16px;"></ha-icon> Add</button>
           </div>
-        ` : html`
-          <div class="active-head">
-            <button class="btn btn-add" @click=${() => this._toggleActivePicker("fill")}><ha-icon icon="mdi:plus" style="--mdc-icon-size:16px;"></ha-icon> Add</button>
-          </div>
-        `}
+        ` : ""}
 
         <div class="active-picker">
           <div class="grid-3">
@@ -837,11 +840,7 @@ class SimpleTimerCard extends LitElement {
             <h4>Active Timers</h4>
             <button class="btn btn-add" @click=${() => this._toggleActivePicker("bar")}><ha-icon icon="mdi:plus" style="--mdc-icon-size:16px;"></ha-icon> Add</button>
           </div>
-        ` : html`
-          <div class="active-head">
-            <button class="btn btn-add" @click=${() => this._toggleActivePicker("bar")}><ha-icon icon="mdi:plus" style="--mdc-icon-size:16px;"></ha-icon> Add</button>
-          </div>
-        `}
+        ` : ""}
 
         <div class="active-picker">
           <div class="grid-3">
