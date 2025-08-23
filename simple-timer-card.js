@@ -267,9 +267,15 @@ class SimpleTimerCard extends LitElement {
   }
   _parseAlexa(entityId, entityState, entityConf) {
     let active = entityState.attributes.sorted_active;
+    let paused = entityState.attributes.sorted_paused;
+    
     if (typeof active === "string") { try { active = JSON.parse(active); } catch { active = []; } }
-    if (!Array.isArray(active)) return [];
-    return active.map(([id, t]) => ({
+    if (!Array.isArray(active)) active = [];
+    
+    if (typeof paused === "string") { try { paused = JSON.parse(paused); } catch { paused = []; } }
+    if (!Array.isArray(paused)) paused = [];
+    
+    const activeTimers = active.map(([id, t]) => ({
       id,
       source: "alexa",
       source_entity: entityId,
@@ -278,7 +284,22 @@ class SimpleTimerCard extends LitElement {
       color: entityConf?.color || "#31C4F3",
       end: Number(t.triggerTime),
       duration: Number(t.originalDurationInMillis) || null,
+      paused: false,
     }));
+    
+    const pausedTimers = paused.map(([id, t]) => ({
+      id,
+      source: "alexa",
+      source_entity: entityId,
+      label: t.timerLabel || entityConf?.name || entityState.attributes.friendly_name || "Alexa Timer (Paused)",
+      icon: entityConf?.icon || "mdi:timer-pause",
+      color: entityConf?.color || "var(--warning-color)",
+      end: Number(t.triggerTime),
+      duration: Number(t.originalDurationInMillis) || null,
+      paused: true,
+    }));
+    
+    return [...activeTimers, ...pausedTimers];
   }
   _parseHelper(entityId, entityState, entityConf) {
     try {
@@ -363,14 +384,21 @@ class SimpleTimerCard extends LitElement {
     const now = Date.now();
     this._timers = filtered
       .map((t) => {
-        const remaining = Math.max(0, t.end - now);
-        const percent = t.duration ? ((t.duration - remaining) / t.duration) * 100 : null;
+        let remaining;
+        if (t.paused) {
+          // For paused timers, the remaining time should be static based on duration
+          // If we have original duration, use that; otherwise calculate from end time but don't count down
+          remaining = t.duration || Math.max(0, t.end - now);
+        } else {
+          remaining = Math.max(0, t.end - now);
+        }
+        const percent = t.duration && !t.paused ? ((t.duration - remaining) / t.duration) * 100 : null;
         return { ...t, remaining, percent };
       })
       .sort((a, b) => a.remaining - b.remaining);
 
     for (const timer of this._timers) {
-      const isNowRinging = timer.remaining <= 0;
+      const isNowRinging = timer.remaining <= 0 && !timer.paused;
       const wasRinging = this._ringingTimers.has(timer.id);
       if (isNowRinging && !wasRinging) { this._ringingTimers.add(timer.id); this._playAudioNotification(); }
       else if (!isNowRinging && wasRinging) { this._ringingTimers.delete(timer.id); }
@@ -666,7 +694,7 @@ class SimpleTimerCard extends LitElement {
             <div class="icon-wrap"><ha-icon .icon=${t.icon || "mdi:timer-outline"}></ha-icon></div>
             <div class="info">
               <div class="title">${t.label}</div>
-              <div class="status">${this._formatTime(t.remaining)}</div>
+              <div class="status">${t.paused ? `${this._formatTime(t.remaining)} (Paused)` : this._formatTime(t.remaining)}</div>
             </div>
             ${t.source !== "alexa" ? html`<button class="x" title="Cancel" @click=${() => this._handleCancel(t)}><ha-icon icon="mdi:close"></ha-icon></button>` : ""}
           </div>
@@ -680,7 +708,7 @@ class SimpleTimerCard extends LitElement {
             <div class="info">
               <div class="top">
                 <div class="title">${t.label}</div>
-                <div class="status">${this._formatTime(t.remaining)}</div>
+                <div class="status">${t.paused ? `${this._formatTime(t.remaining)} (Paused)` : this._formatTime(t.remaining)}</div>
               </div>
               <div class="track"><div class="fill" style="width:${pctLeft}%"></div></div>
             </div>

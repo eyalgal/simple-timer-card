@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Alexa Paused Timers</title>
+    <script type="module" src="./simple-timer-card.js"></script>
+</head>
+<body>
+    <div id="test-container">
+        <simple-timer-card id="test-card"></simple-timer-card>
+    </div>
+
+    <script>
+        // Mock Hass object for testing
+        const mockHass = {
+            states: {
+                'sensor.timer_kitchen_echo': {
+                    state: 'active',
+                    attributes: {
+                        friendly_name: 'Kitchen Echo Timers',
+                        sorted_active: JSON.stringify([
+                            ['active-1', {
+                                timerLabel: 'Pizza',
+                                triggerTime: Date.now() + 300000, // 5 minutes from now
+                                originalDurationInMillis: 900000 // 15 minutes original
+                            }]
+                        ]),
+                        sorted_paused: JSON.stringify([
+                            ['paused-1', {
+                                timerLabel: '1h timer',
+                                triggerTime: Date.now() + 3600000, // 1 hour from now (when it was paused)
+                                originalDurationInMillis: 3600000 // 1 hour original
+                            }]
+                        ])
+                    }
+                }
+            }
+        };
+
+        // Configure the card
+        const testCard = document.getElementById('test-card');
+        testCard.hass = mockHass;
+        testCard.setConfig({
+            title: 'Test Alexa Paused Timers',
+            entities: ['sensor.timer_kitchen_echo'],
+            layout: 'horizontal',
+            style: 'fill'
+        });
+    </script>
+</body>
+</html>
