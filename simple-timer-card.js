@@ -256,61 +256,85 @@ class SimpleTimerCard extends LitElement {
     if (entityState?.attributes && (entityState.attributes[guessAttr] ?? null) !== null) return "minutes_attr";
     return "timestamp";
   }
+  // Normalize a "duration-ish" value to milliseconds
+  _toMs(v) {
+    if (v == null) return null;
+
+    // Already a number?
+    if (typeof v === "number") {
+      // Heuristic: if it's tiny, assume seconds; if very large, assume epoch (we only need duration)
+      if (v < 1000) return v * 1000;            // seconds -> ms
+      if (v > 1e12) return Math.max(0, v - Date.now()); // epoch ms -> remaining ms
+      return v;                                  // looks like ms
+    }
+
+    // Numeric string?
+    const n = Number(v);
+    if (!Number.isNaN(n)) return this._toMs(n);
+
+    // ISO-8601 duration like PT1H2M3S
+    const m = /^P(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)$/i.exec(String(v).trim());
+    if (m) {
+      const h = parseInt(m[1] || "0", 10);
+      const min = parseInt(m[2] || "0", 10);
+      const s = parseInt(m[3] || "0", 10);
+      return ((h * 3600) + (min * 60) + s) * 1000;
+    }
+
+    return null;
+  }
   _parseAlexa(entityId, entityState, entityConf) {
     let active = entityState.attributes.sorted_active;
     let paused = entityState.attributes.sorted_paused;
-    let all = entityState.attributes.sorted_all;
-    
-    if (typeof active === "string") { try { active = JSON.parse(active); } catch { active = []; } }
-    if (!Array.isArray(active)) active = [];
-    
-    if (typeof paused === "string") { try { paused = JSON.parse(paused); } catch { paused = []; } }
-    if (!Array.isArray(paused)) paused = [];
-    
-    if (typeof all === "string") { try { all = JSON.parse(all); } catch { all = []; } }
-    if (!Array.isArray(all)) all = [];
-    
-    const activeTimers = active.map(([id, t]) => ({
-      id,
-      source: "alexa",
-      source_entity: entityId,
-      label: t.timerLabel || entityConf?.name || entityState.attributes.friendly_name || "Alexa Timer",
-      icon: entityConf?.icon || "mdi:timer-outline",
-      color: entityConf?.color || "#31C4F3",
-      end: Number(t.triggerTime),
-      duration: Number(t.originalDurationInMillis) || null,
-      paused: false,
-    }));
-    
-    let pausedTimers = paused.map(([id, t]) => ({
-      id,
-      source: "alexa",
-      source_entity: entityId,
-      label: t.timerLabel || entityConf?.name || entityState.attributes.friendly_name || "Alexa Timer (Paused)",
-      icon: entityConf?.icon || "mdi:timer-pause",
-      color: entityConf?.color || "var(--warning-color)",
-      end: Number(t.remainingTime || t.triggerTime),
-      duration: Number(t.originalDurationInMillis) || null,
-      paused: true,
-    }));
-    
+    let all    = entityState.attributes.sorted_all;
+
+    // Attributes may be JSON strings in some integrations
+    const safeParse = (x) => {
+      if (Array.isArray(x)) return x;
+      if (typeof x === "string") { try { return JSON.parse(x); } catch { return []; } }
+      return Array.isArray(x) ? x : [];
+    };
+    active = safeParse(active);
+    paused = safeParse(paused);
+    all    = safeParse(all);
+
+    // Normalize duration fields
+    const normDuration = (t) =>
+      (typeof t?.originalDurationInMillis === "number" && t.originalDurationInMillis) ||
+      (typeof t?.originalDurationInSeconds === "number" && t.originalDurationInSeconds * 1000) ||
+      this._toMs(t?.originalDuration) || null;
+
+    const mk = (id, t, pausedFlag) => {
+      // Active uses absolute trigger time; paused uses remainingTime (duration-ish)
+      const remainingMs = pausedFlag ? this._toMs(t?.remainingTime) : null;
+      const end = pausedFlag
+        ? (remainingMs ?? 0)               // store remaining directly for paused
+        : Number(t?.triggerTime || 0);     // epoch ms when running
+
+      return {
+        id,
+        source: "alexa",
+        source_entity: entityId,
+        label: t?.timerLabel || entityConf?.name || entityState.attributes.friendly_name || (pausedFlag ? "Alexa Timer (Paused)" : "Alexa Timer"),
+        icon: entityConf?.icon || (pausedFlag ? "mdi:timer-pause" : "mdi:timer-outline"),
+        color: entityConf?.color || (pausedFlag ? "var(--warning-color)" : "#31C4F3"),
+        end,
+        duration: normDuration(t),
+        paused: !!pausedFlag,
+      };
+    };
+
+    const activeTimers = active.map(([id, t]) => mk(id, t, false));
+
+    let pausedTimers = paused.map(([id, t]) => mk(id, t, true));
+
+    // Some installs only expose paused timers via sorted_all
     if (pausedTimers.length === 0 && all.length > 0) {
-      const pausedFromAll = all
-        .filter(([id, t]) => t && t.status === 'PAUSED' && typeof t.remainingTime === 'number' && t.remainingTime > 0)
-        .map(([id, t]) => ({
-          id,
-          source: "alexa",
-          source_entity: entityId,
-          label: t.timerLabel || entityConf?.name || entityState.attributes.friendly_name || "Alexa Timer (Paused)",
-          icon: entityConf?.icon || "mdi:timer-pause",
-          color: entityConf?.color || "var(--warning-color)",
-          end: Number(t.remainingTime),
-          duration: Number(t.originalDurationInMillis) || null,
-          paused: true,
-        }));
-      pausedTimers = pausedFromAll;
+      pausedTimers = all
+        .filter(([id, t]) => t && String(t.status).toUpperCase() === "PAUSED")
+        .map(([id, t]) => mk(id, t, true));
     }
-    
+
     return [...activeTimers, ...pausedTimers];
   }
   _parseHelper(entityId, entityState, entityConf) {
