@@ -462,11 +462,12 @@ class SimpleTimerCard extends LitElement {
 
   _createPresetTimer(minutes, entity = null) {
     const durationMs = minutes * 60000;
-    const endTime = Date.now() + durationMs;
     const label = this._formatTimerLabel(minutes);
-    const newTimer = { id: `preset-${Date.now()}`, label, icon: "mdi:timer-outline", color: "var(--primary-color)", end: endTime, duration: durationMs };
-
+    
     if (entity) {
+      // Legacy method for specific entity parameter - maintain existing behavior
+      const newTimer = { id: `preset-${Date.now()}`, label, icon: "mdi:timer-outline", color: "var(--primary-color)", end: Date.now() + durationMs, duration: durationMs };
+
       if (entity.startsWith("input_text.") || entity.startsWith("text.")) {
         newTimer.source = "helper"; newTimer.source_entity = entity;
         this._mutateHelper(entity, (data) => { data.timers.push(newTimer); });
@@ -477,8 +478,8 @@ class SimpleTimerCard extends LitElement {
         this._addTimerToStorage(newTimer); this.requestUpdate();
       }
     } else {
-      newTimer.source = this._config.storage; newTimer.source_entity = this._config.storage === "mqtt" ? this._config.mqtt.sensor_entity : "local";
-      this._addTimerToStorage(newTimer); this.requestUpdate();
+      this._createAndSaveTimer(durationMs / 1000, label);
+      this.requestUpdate();
     }
   }
 
@@ -562,21 +563,22 @@ class SimpleTimerCard extends LitElement {
     return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
   }
   _toggleCustom(which) {
-    if (which === "horizontal") this._ui.noTimerHorizontalOpen = !this._ui.noTimerHorizontalOpen;
-    if (which === "vertical") this._ui.noTimerVerticalOpen = !this._ui.noTimerVerticalOpen;
+    const openKey = `noTimer${which.charAt(0).toUpperCase() + which.slice(1)}Open`;
+    this._ui[openKey] = !this._ui[openKey];
   }
   _adjust(which, minutes, sign = +1) {
     const delta = Math.max(0, (minutes | 0) * 60);
     this._customSecs = { ...this._customSecs, [which]: Math.max(0, this._customSecs[which] + sign * delta) };
   }
-  _startFromCustom(which, label) {
-    const secs = this._customSecs[which];
+  // Helper method to create and save timers
+  _createAndSaveTimer(secs, label, useDefaultEntity = true) {
     if (secs <= 0) return;
 
-    const helperEntities = (this._config.entities || [])
+    const helperEntities = useDefaultEntity ? (this._config.entities || [])
       .map((e) => (typeof e === "string" ? e : e.entity))
-      .filter((id) => id && (id.startsWith("input_text.") || id.startsWith("text.")));
-    const targetEntity = this._config.default_timer_entity || (helperEntities.length === 1 ? helperEntities[0] : null);
+      .filter((id) => id && (id.startsWith("input_text.") || id.startsWith("text."))) : [];
+    const targetEntity = useDefaultEntity ? 
+      (this._config.default_timer_entity || (helperEntities.length === 1 ? helperEntities[0] : null)) : null;
 
     const newTimer = {
       id: `custom-${Date.now()}`, label: label || "Timer", icon: "mdi:timer-outline",
@@ -597,14 +599,18 @@ class SimpleTimerCard extends LitElement {
       newTimer.source = this._config.storage; newTimer.source_entity = this._config.storage === "mqtt" ? this._config.mqtt.sensor_entity : "local";
       this._addTimerToStorage(newTimer);
     }
+  }
 
+  _startFromCustom(which, label) {
+    const secs = this._customSecs[which];
+    this._createAndSaveTimer(secs, label);
     this._customSecs = { ...this._customSecs, [which]: 15 * 60 };
-    if (which === "horizontal") this._ui.noTimerHorizontalOpen = false;
-    if (which === "vertical") this._ui.noTimerVerticalOpen = false;
+    const openKey = `noTimer${which.charAt(0).toUpperCase() + which.slice(1)}Open`;
+    this._ui[openKey] = false;
   }
   _toggleActivePicker(which) {
-    if (which === "fill") this._ui.activeFillOpen = !this._ui.activeFillOpen;
-    if (which === "bar") this._ui.activeBarOpen = !this._ui.activeBarOpen;
+    const openKey = `active${which.charAt(0).toUpperCase() + which.slice(1)}Open`;
+    this._ui[openKey] = !this._ui[openKey];
   }
   _adjustActive(which, minutes, sign = +1) {
     const delta = Math.max(0, (minutes | 0) * 60);
@@ -612,116 +618,73 @@ class SimpleTimerCard extends LitElement {
   }
   _startActive(which, label) {
     const secs = this._activeSecs[which];
-    if (secs <= 0) return;
-
-    const helperEntities = (this._config.entities || [])
-      .map((e) => (typeof e === "string" ? e : e.entity))
-      .filter((id) => id && (id.startsWith("input_text.") || id.startsWith("text.")));
-    const targetEntity = this._config.default_timer_entity || (helperEntities.length === 1 ? helperEntities[0] : null);
-
-    const newTimer = {
-      id: `custom-${Date.now()}`, label: label || "Timer", icon: "mdi:timer-outline",
-      color: "var(--primary-color)", end: Date.now() + secs * 1000, duration: secs * 1000,
-    };
-
-    if (targetEntity) {
-      if (targetEntity.startsWith("input_text.") || targetEntity.startsWith("text.")) {
-        newTimer.source = "helper"; newTimer.source_entity = targetEntity;
-        this._mutateHelper(targetEntity, (data) => { data.timers.push(newTimer); });
-      } else if (targetEntity === this._config.mqtt?.sensor_entity) {
-        newTimer.source = "mqtt"; newTimer.source_entity = targetEntity; this._addTimerToStorage(newTimer);
-      } else {
-        newTimer.source = this._config.storage; newTimer.source_entity = this._config.storage === "mqtt" ? this._config.mqtt.sensor_entity : "local";
-        this._addTimerToStorage(newTimer);
-      }
-    } else {
-      newTimer.source = this._config.storage; newTimer.source_entity = this._config.storage === "mqtt" ? this._config.mqtt.sensor_entity : "local";
-      this._addTimerToStorage(newTimer);
-    }
-
+    this._createAndSaveTimer(secs, label);
     this._activeSecs = { ...this._activeSecs, [which]: 10 * 60 };
-    if (which === "fill") this._ui.activeFillOpen = false;
-    if (which === "bar") this._ui.activeBarOpen = false;
+    const openKey = `active${which.charAt(0).toUpperCase() + which.slice(1)}Open`;
+    this._ui[openKey] = false;
   }
 
   // ---------------- Item renderers ----------------
-  _renderFillItem(t) {
+  _renderItem(t, style) {
     const color = t.color || "var(--primary-color)";
     const ring = t.remaining <= 0;
     const pct = typeof t.percent === "number" ? Math.max(0, Math.min(100, t.percent)) : 0;
+    const pctLeft = 100 - pct; // For progress bars (remaining portion)
+
+    const isFillStyle = style === "fill";
+    const baseClasses = isFillStyle ? "card item" : "item bar";
+    const finishedClasses = isFillStyle ? "card item finished" : "card item bar";
 
     if (ring) {
       return html`
-        <li class="card item finished" style="--tcolor:${color}">
-          <div class="progress-fill" style="width:100%"></div>
+        <li class="${finishedClasses}" style="--tcolor:${color}">
+          ${isFillStyle ? html`<div class="progress-fill" style="width:100%"></div>` : ""}
+          <div class="${isFillStyle ? "card-content" : "row"}">
+            <div class="icon-wrap"><ha-icon .icon=${t.icon || "mdi:timer-outline"}></ha-icon></div>
+            <div class="info">
+              <div class="title">${t.label}</div>
+              <div class="status up">Time's up!</div>
+            </div>
+            <div class="chips">
+              <button class="chip" @click=${() => this._handleSnooze(t)}>Snooze</button>
+              <button class="chip" @click=${() => this._handleDismiss(t)}>Dismiss</button>
+            </div>
+          </div>
+        </li>
+      `;
+    }
+
+    if (isFillStyle) {
+      return html`
+        <li class="${baseClasses}" style="--tcolor:${color}">
+          <div class="progress-fill" style="width:${pct}%"></div>
           <div class="card-content">
             <div class="icon-wrap"><ha-icon .icon=${t.icon || "mdi:timer-outline"}></ha-icon></div>
             <div class="info">
               <div class="title">${t.label}</div>
-              <div class="status up">Time's up!</div>
+              <div class="status">${this._formatTime(t.remaining)}</div>
             </div>
-            <div class="chips">
-              <button class="chip" @click=${() => this._handleSnooze(t)}>Snooze</button>
-              <button class="chip" @click=${() => this._handleDismiss(t)}>Dismiss</button>
-            </div>
+            ${t.source !== "alexa" ? html`<button class="x" title="Cancel" @click=${() => this._handleCancel(t)}><ha-icon icon="mdi:close"></ha-icon></button>` : ""}
           </div>
         </li>
       `;
-    }
-
-    return html`
-      <li class="card item" style="--tcolor:${color}">
-        <div class="progress-fill" style="width:${pct}%"></div>
-        <div class="card-content">
-          <div class="icon-wrap"><ha-icon .icon=${t.icon || "mdi:timer-outline"}></ha-icon></div>
-          <div class="info">
-            <div class="title">${t.label}</div>
-            <div class="status">${this._formatTime(t.remaining)}</div>
-          </div>
-          ${t.source !== "alexa" ? html`<button class="x" title="Cancel" @click=${() => this._handleCancel(t)}><ha-icon icon="mdi:close"></ha-icon></button>` : ""}
-        </div>
-      </li>
-    `;
-  }
-
-  _renderBarItem(t) {
-    const color = t.color || "var(--primary-color)";
-    const ring = t.remaining <= 0;
-    const pctLeft = typeof t.percent === "number" ? 100 - Math.max(0, Math.min(100, t.percent)) : 0;
-
-    if (ring) {
+    } else {
       return html`
-        <li class="card item bar" style="--tcolor:${color}">
+        <li class="${baseClasses}" style="--tcolor:${color}">
           <div class="row">
             <div class="icon-wrap"><ha-icon .icon=${t.icon || "mdi:timer-outline"}></ha-icon></div>
             <div class="info">
-              <div class="title">${t.label}</div>
-              <div class="status up">Time's up!</div>
+              <div class="top">
+                <div class="title">${t.label}</div>
+                <div class="status">${this._formatTime(t.remaining)}</div>
+              </div>
+              <div class="track"><div class="fill" style="width:${pctLeft}%"></div></div>
             </div>
-            <div class="chips">
-              <button class="chip" @click=${() => this._handleSnooze(t)}>Snooze</button>
-              <button class="chip" @click=${() => this._handleDismiss(t)}>Dismiss</button>
-            </div>
+            ${t.source !== "alexa" ? html`<button class="x" title="Cancel" @click=${() => this._handleCancel(t)}><ha-icon icon="mdi:close"></ha-icon></button>` : ""}
           </div>
         </li>
       `;
     }
-
-    return html`
-      <li class="item bar" style="--tcolor:${color}">
-        <div class="row">
-          <div class="icon-wrap"><ha-icon .icon=${t.icon || "mdi:timer-outline"}></ha-icon></div>
-          <div class="info">
-            <div class="top">
-              <div class="title">${t.label}</div>
-              <div class="status">${this._formatTime(t.remaining)}</div>
-            </div>
-            <div class="track"><div class="fill" style="width:${pctLeft}%"></div></div>
-          </div>
-          ${t.source !== "alexa" ? html`<button class="x" title="Cancel" @click=${() => this._handleCancel(t)}><ha-icon icon="mdi:close"></ha-icon></button>` : ""}
-        </div>
-      </li>
-    `;
   }
 
   // ---------------- Render ----------------
@@ -836,7 +799,7 @@ class SimpleTimerCard extends LitElement {
         </div>
 
         <ul class="list">
-          ${timers.map((t) => this._renderFillItem(t))}
+          ${timers.map((t) => this._renderItem(t, style))}
         </ul>
       </div>
     ` : html`
@@ -866,7 +829,7 @@ class SimpleTimerCard extends LitElement {
         </div>
 
         <ul class="list">
-          ${timers.map((t) => this._renderBarItem(t))}
+          ${timers.map((t) => this._renderItem(t, style))}
         </ul>
       </div>
     `;
