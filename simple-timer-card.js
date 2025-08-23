@@ -90,8 +90,12 @@ class SimpleTimerCard extends LitElement {
       style,           // 'fill' | 'bar'
       snooze_duration: 5,
       show_time_selector: false,
-      timer_presets: [15, 30, 60, 120],
+      timer_presets: [5, 15, 30],
       show_timer_presets: true,
+      show_active_header: true,
+      minute_buttons: [1, 5, 10],
+      default_timer_icon: "mdi:timer-outline",
+      default_timer_color: "var(--primary-color)",
       default_timer_entity: null,
       expire_action: "keep",
       expire_keep_for: 120,
@@ -118,7 +122,7 @@ class SimpleTimerCard extends LitElement {
     return {
       entities: [],
       show_timer_presets: true,
-      timer_presets: [15, 30, 60, 120],
+      timer_presets: [5, 15, 30],
       layout: "horizontal",
       style: "fill",
     };
@@ -450,8 +454,8 @@ class SimpleTimerCard extends LitElement {
       const newTimer = {
         id: `custom-${Date.now()}`,
         label: label || "Timer",
-        icon: "mdi:timer-outline",
-        color: "var(--primary-color)",
+        icon: this._config.default_timer_icon || "mdi:timer-outline",
+        color: this._config.default_timer_color || "var(--primary-color)",
         end: endTime,
         duration: durationMs,
         source: "helper",
@@ -466,7 +470,7 @@ class SimpleTimerCard extends LitElement {
     
     if (entity) {
       // Legacy method for specific entity parameter - maintain existing behavior
-      const newTimer = { id: `preset-${Date.now()}`, label, icon: "mdi:timer-outline", color: "var(--primary-color)", end: Date.now() + durationMs, duration: durationMs };
+      const newTimer = { id: `preset-${Date.now()}`, label, icon: this._config.default_timer_icon || "mdi:timer-outline", color: this._config.default_timer_color || "var(--primary-color)", end: Date.now() + durationMs, duration: durationMs };
 
       if (entity.startsWith("input_text.") || entity.startsWith("text.")) {
         newTimer.source = "helper"; newTimer.source_entity = entity;
@@ -581,8 +585,8 @@ class SimpleTimerCard extends LitElement {
       (this._config.default_timer_entity || (helperEntities.length === 1 ? helperEntities[0] : null)) : null;
 
     const newTimer = {
-      id: `custom-${Date.now()}`, label: label || "Timer", icon: "mdi:timer-outline",
-      color: "var(--primary-color)", end: Date.now() + secs * 1000, duration: secs * 1000,
+      id: `custom-${Date.now()}`, label: label || "Timer", icon: this._config.default_timer_icon || "mdi:timer-outline",
+      color: this._config.default_timer_color || "var(--primary-color)", end: Date.now() + secs * 1000, duration: secs * 1000,
     };
 
     if (targetEntity) {
@@ -693,7 +697,9 @@ class SimpleTimerCard extends LitElement {
 
     const presets = this._config.show_timer_presets === false
       ? []
-      : (this._config.timer_presets && this._config.timer_presets.length ? this._config.timer_presets : [15, 30]);
+      : (this._config.timer_presets && this._config.timer_presets.length ? this._config.timer_presets : [5, 15, 30]);
+
+    const minuteButtons = this._config.minute_buttons && this._config.minute_buttons.length ? this._config.minute_buttons : [1, 5, 10];
 
     const timers = this._timers;
     const layout = this._config.layout; // 'horizontal' | 'vertical'
@@ -719,15 +725,11 @@ class SimpleTimerCard extends LitElement {
 
         <div class="picker">
           <div class="grid-3">
-            <button class="btn btn-ghost" @click=${() => this._adjust("horizontal", 10, +1)}>+10m</button>
-            <button class="btn btn-ghost" @click=${() => this._adjust("horizontal", 5, +1)}>+5m</button>
-            <button class="btn btn-ghost" @click=${() => this._adjust("horizontal", 1, +1)}>+1m</button>
+            ${minuteButtons.map(m => html`<button class="btn btn-ghost" @click=${() => this._adjust("horizontal", m, +1)}>+${m}m</button>`)}
           </div>
           <div class="display">${this._formatSecs(this._customSecs.horizontal)}</div>
           <div class="grid-3">
-            <button class="btn btn-ghost" @click=${() => this._adjust("horizontal", 10, -1)}>-10m</button>
-            <button class="btn btn-ghost" @click=${() => this._adjust("horizontal", 5, -1)}>-5m</button>
-            <button class="btn btn-ghost" @click=${() => this._adjust("horizontal", 1, -1)}>-1m</button>
+            ${minuteButtons.map(m => html`<button class="btn btn-ghost" @click=${() => this._adjust("horizontal", m, -1)}>-${m}m</button>`)}
           </div>
           <input id="nt-h-name" class="text-input" placeholder="Timer Name (Optional)" />
           <div class="actions">
@@ -753,15 +755,11 @@ class SimpleTimerCard extends LitElement {
 
         <div class="picker">
           <div class="grid-3">
-            <button class="btn btn-ghost" @click=${() => this._adjust("vertical", 10, +1)}>+10m</button>
-            <button class="btn btn-ghost" @click=${() => this._adjust("vertical", 5, +1)}>+5m</button>
-            <button class="btn btn-ghost" @click=${() => this._adjust("vertical", 1, +1)}>+1m</button>
+            ${minuteButtons.map(m => html`<button class="btn btn-ghost" @click=${() => this._adjust("vertical", m, +1)}>+${m}m</button>`)}
           </div>
           <div class="display">${this._formatSecs(this._customSecs.vertical)}</div>
           <div class="grid-3">
-            <button class="btn btn-ghost" @click=${() => this._adjust("vertical", 10, -1)}>-10m</button>
-            <button class="btn btn-ghost" @click=${() => this._adjust("vertical", 5, -1)}>-5m</button>
-            <button class="btn btn-ghost" @click=${() => this._adjust("vertical", 1, -1)}>-1m</button>
+            ${minuteButtons.map(m => html`<button class="btn btn-ghost" @click=${() => this._adjust("vertical", m, -1)}>-${m}m</button>`)}
           </div>
           <input id="nt-v-name" class="text-input" placeholder="Timer Name (Optional)" />
           <div class="actions">
@@ -774,22 +772,24 @@ class SimpleTimerCard extends LitElement {
 
     const activeCard = style === "fill" ? html`
       <div class="card ${this._ui.activeFillOpen ? "card-show" : ""}">
-        <div class="active-head">
-          <h4>Active Timers</h4>
-          <button class="btn btn-add" @click=${() => this._toggleActivePicker("fill")}><ha-icon icon="mdi:plus" style="--mdc-icon-size:16px;"></ha-icon> Add</button>
-        </div>
+        ${this._config.show_active_header !== false ? html`
+          <div class="active-head">
+            <h4>Active Timers</h4>
+            <button class="btn btn-add" @click=${() => this._toggleActivePicker("fill")}><ha-icon icon="mdi:plus" style="--mdc-icon-size:16px;"></ha-icon> Add</button>
+          </div>
+        ` : html`
+          <div class="active-head">
+            <button class="btn btn-add" @click=${() => this._toggleActivePicker("fill")}><ha-icon icon="mdi:plus" style="--mdc-icon-size:16px;"></ha-icon> Add</button>
+          </div>
+        `}
 
         <div class="active-picker">
           <div class="grid-3">
-            <button class="btn btn-ghost" @click=${() => this._adjustActive("fill", 10, +1)}>+10m</button>
-            <button class="btn btn-ghost" @click=${() => this._adjustActive("fill", 5, +1)}>+5m</button>
-            <button class="btn btn-ghost" @click=${() => this._adjustActive("fill", 1, +1)}>+1m</button>
+            ${minuteButtons.map(m => html`<button class="btn btn-ghost" @click=${() => this._adjustActive("fill", m, +1)}>+${m}m</button>`)}
           </div>
           <div class="display" style="font-size:30px;">${this._formatSecs(this._activeSecs.fill)}</div>
           <div class="grid-3">
-            <button class="btn btn-ghost" @click=${() => this._adjustActive("fill", 10, -1)}>-10m</button>
-            <button class="btn btn-ghost" @click=${() => this._adjustActive("fill", 5, -1)}>-5m</button>
-            <button class="btn btn-ghost" @click=${() => this._adjustActive("fill", 1, -1)}>-1m</button>
+            ${minuteButtons.map(m => html`<button class="btn btn-ghost" @click=${() => this._adjustActive("fill", m, -1)}>-${m}m</button>`)}
           </div>
           <input id="add-fill-name" class="text-input" placeholder="Timer Name (Optional)" />
           <div class="actions">
@@ -804,22 +804,24 @@ class SimpleTimerCard extends LitElement {
       </div>
     ` : html`
       <div class="card ${this._ui.activeBarOpen ? "card-show" : ""}">
-        <div class="active-head">
-          <h4>Active Timers</h4>
-          <button class="btn btn-add" @click=${() => this._toggleActivePicker("bar")}><ha-icon icon="mdi:plus" style="--mdc-icon-size:16px;"></ha-icon> Add</button>
-        </div>
+        ${this._config.show_active_header !== false ? html`
+          <div class="active-head">
+            <h4>Active Timers</h4>
+            <button class="btn btn-add" @click=${() => this._toggleActivePicker("bar")}><ha-icon icon="mdi:plus" style="--mdc-icon-size:16px;"></ha-icon> Add</button>
+          </div>
+        ` : html`
+          <div class="active-head">
+            <button class="btn btn-add" @click=${() => this._toggleActivePicker("bar")}><ha-icon icon="mdi:plus" style="--mdc-icon-size:16px;"></ha-icon> Add</button>
+          </div>
+        `}
 
         <div class="active-picker">
           <div class="grid-3">
-            <button class="btn btn-ghost" @click=${() => this._adjustActive("bar", 10, +1)}>+10m</button>
-            <button class="btn btn-ghost" @click=${() => this._adjustActive("bar", 5, +1)}>+5m</button>
-            <button class="btn btn-ghost" @click=${() => this._adjustActive("bar", 1, +1)}>+1m</button>
+            ${minuteButtons.map(m => html`<button class="btn btn-ghost" @click=${() => this._adjustActive("bar", m, +1)}>+${m}m</button>`)}
           </div>
           <div class="display" style="font-size:30px;">${this._formatSecs(this._activeSecs.bar)}</div>
           <div class="grid-3">
-            <button class="btn btn-ghost" @click=${() => this._adjustActive("bar", 10, -1)}>-10m</button>
-            <button class="btn btn-ghost" @click=${() => this._adjustActive("bar", 5, -1)}>-5m</button>
-            <button class="btn btn-ghost" @click=${() => this._adjustActive("bar", 1, -1)}>-1m</button>
+            ${minuteButtons.map(m => html`<button class="btn btn-ghost" @click=${() => this._adjustActive("bar", m, -1)}>-${m}m</button>`)}
           </div>
           <input id="add-bar-name" class="text-input" placeholder="Timer Name (Optional)" />
           <div class="actions">
@@ -987,7 +989,11 @@ class SimpleTimerCardEditor extends LitElement {
 
     if (key === "timer_presets" && typeof value === "string") {
       value = value.split(",").map((v) => parseInt(v.trim())).filter((v) => !isNaN(v) && v > 0);
-      if (value.length === 0) value = [15, 30, 60, 120];
+      if (value.length === 0) value = [5, 15, 30];
+    }
+    if (key === "minute_buttons" && typeof value === "string") {
+      value = value.split(",").map((v) => parseInt(v.trim())).filter((v) => !isNaN(v) && v > 0);
+      if (value.length === 0) value = [1, 5, 10];
     }
     if (value === undefined || value === null) return;
     this._updateConfig({ [key]: value });
@@ -1145,9 +1151,20 @@ class SimpleTimerCardEditor extends LitElement {
         </ha-formfield>
 
         ${this._config.show_timer_presets !== false ? html`
-          <ha-textfield label="Timer presets (minutes, comma-separated)" .value=${(this._config.timer_presets || [15, 30, 60, 120]).join(", ")} .configValue=${"timer_presets"} @input=${this._valueChanged}></ha-textfield>
+          <ha-textfield label="Timer presets (minutes, comma-separated)" .value=${(this._config.timer_presets || [5, 15, 30]).join(", ")} .configValue=${"timer_presets"} @input=${this._valueChanged}></ha-textfield>
           <ha-entity-picker .hass=${this.hass} .value=${this._config.default_timer_entity || ""} .configValue=${"default_timer_entity"} @value-changed=${this._detailValueChanged} label="Default timer entity (optional)" allow-custom-entity .includeDomains=${["input_text", "text", "timer", "sensor"]}></ha-entity-picker>
         ` : ""}
+
+        <ha-formfield label="Show 'Active Timers' header">
+          <ha-switch .checked=${this._config.show_active_header !== false} .configValue=${"show_active_header"} @change=${this._valueChanged}></ha-switch>
+        </ha-formfield>
+
+        <ha-textfield label="Minute adjustment buttons (comma-separated)" .value=${(this._config.minute_buttons || [1, 5, 10]).join(", ")} .configValue=${"minute_buttons"} @input=${this._valueChanged}></ha-textfield>
+
+        <div class="side-by-side">
+          <ha-icon-picker label="Default timer icon" .value=${this._config.default_timer_icon || "mdi:timer-outline"} .configValue=${"default_timer_icon"} @value-changed=${this._detailValueChanged}></ha-icon-picker>
+          <ha-textfield label="Default timer color" .value=${this._config.default_timer_color || "var(--primary-color)"} .configValue=${"default_timer_color"} @input=${this._valueChanged}></ha-textfield>
+        </div>
 
         <ha-formfield label="Enable audio notifications">
           <ha-switch .checked=${this._config.audio_enabled === true} .configValue=${"audio_enabled"} @change=${this._valueChanged}></ha-switch>
