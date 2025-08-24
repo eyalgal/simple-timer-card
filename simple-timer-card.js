@@ -919,7 +919,7 @@ class SimpleTimerCard extends LitElement {
 
       .card {
         background: var(--ha-card-background, var(--card-background-color));
-        border-radius: var(--stc-radius);
+        border-radius: var(--ha-card-border-radius, var(--stc-radius));
         position: relative; overflow: hidden;
         padding: 8px;
         box-sizing: border-box;
@@ -927,7 +927,7 @@ class SimpleTimerCard extends LitElement {
       .card-content { position: relative; z-index: 1; display: flex; align-items: center; gap: 12px; }
       .progress-fill {
         position: absolute; top: 0; left: 0; height: 100%;
-        width: 0%; border-radius: var(--stc-radius); z-index: 0; transition: width 1s linear;
+        width: 0%; border-radius: var(--ha-card-border-radius, var(--stc-radius)); z-index: 0; transition: width 1s linear;
         background: var(--tcolor, var(--primary-color)); opacity: 0.28;
       }
       .card.finished .progress-fill { width: 100% !important; }
