@@ -851,14 +851,14 @@ class SimpleTimerCard extends LitElement {
   }
 
   _renderItem(t, style) {
-    // Use different color for paused timers
-    const color = t.paused ? (t.color || "var(--warning-color)") : (t.color || "var(--primary-color)");
+    // Use the color and icon set by the parsing functions
+    const color = t.color || "var(--primary-color)";
     const ring = t.remaining <= 0;
     const pct = typeof t.percent === "number" ? Math.max(0, Math.min(100, t.percent)) : 0;
     const pctLeft = 100 - pct;
 
-    // Use pause icon for paused timers if no custom icon is set
-    const icon = t.icon || (t.paused ? "mdi:timer-pause" : "mdi:timer-outline");
+    // Use the icon set by the parsing functions, with fallback
+    const icon = t.icon || "mdi:timer-outline";
 
     const isFillStyle = style === "fill";
     const baseClasses = isFillStyle ? "card item" : "item bar";
@@ -1360,6 +1360,9 @@ class SimpleTimerCardEditor extends LitElement {
             delete cleaned[key];
           }
         } else if (cleaned[key] === defaultValue) {
+          delete cleaned[key];
+        } else if ((key === "default_timer_icon" || key === "default_timer_color") && cleaned[key] === "") {
+          // Treat empty strings as "use default" for icon and color fields
           delete cleaned[key];
         }
       }
