@@ -33,6 +33,7 @@ class SimpleTimerCard extends LitElement {
     this._timerInterval = null;
     this._dismissed = new Set();
     this._ringingTimers = new Set();
+    this._activeAudioInstances = new Map(); // Store audio instances for continuous play
 
     this._ui = {
       noTimerHorizontalOpen: false,
@@ -106,6 +107,7 @@ class SimpleTimerCard extends LitElement {
       audio_enabled: false,
       audio_file_url: "",
       audio_repeat_count: 1,
+      audio_play_until_dismissed: false,
       ...config,
       entities: config.entities || [],
       storage: autoStorage,
@@ -321,14 +323,11 @@ class SimpleTimerCard extends LitElement {
         const cleanedFriendlyName = this._cleanFriendlyName(entityState.attributes.friendly_name);
         const baseName = entityConf?.name || cleanedFriendlyName || (pausedFlag ? "Alexa Timer (Paused)" : "Alexa Timer");
         
-        // Calculate remaining time for display
+        // Calculate original time for display (not remaining time)
         let displayTime;
-        if (pausedFlag && remainingMs > 0) {
-          displayTime = this._formatDurationDisplay(remainingMs);
-        } else if (!pausedFlag && end > Date.now()) {
-          displayTime = this._formatDurationDisplay(end - Date.now());
-        } else if (normDuration(t) > 0) {
-          displayTime = this._formatDurationDisplay(normDuration(t));
+        const originalDuration = normDuration(t);
+        if (originalDuration > 0) {
+          displayTime = this._formatDurationDisplay(originalDuration);
         } else {
           displayTime = "0m";
         }
@@ -471,11 +470,22 @@ class SimpleTimerCard extends LitElement {
     for (const timer of this._timers) {
       const isNowRinging = timer.remaining <= 0 && !timer.paused;
       const wasRinging = this._ringingTimers.has(timer.id);
-      if (isNowRinging && !wasRinging) { this._ringingTimers.add(timer.id); this._playAudioNotification(); }
-      else if (!isNowRinging && wasRinging) { this._ringingTimers.delete(timer.id); }
+      if (isNowRinging && !wasRinging) { 
+        this._ringingTimers.add(timer.id); 
+        this._playAudioNotification(timer.id); 
+      }
+      else if (!isNowRinging && wasRinging) { 
+        this._ringingTimers.delete(timer.id); 
+        this._stopAudioForTimer(timer.id);
+      }
     }
     const ids = new Set(this._timers.map((t) => t.id));
-    for (const r of this._ringingTimers) if (!ids.has(r)) this._ringingTimers.delete(r);
+    for (const r of this._ringingTimers) {
+      if (!ids.has(r)) {
+        this._ringingTimers.delete(r);
+        this._stopAudioForTimer(r);
+      }
+    }
 
     const now2 = Date.now();
     for (const timer of [...this._timers]) {
@@ -502,18 +512,44 @@ class SimpleTimerCard extends LitElement {
     }
   }
 
-  _playAudioNotification() {
+  _playAudioNotification(timerId) {
     if (!this._config.audio_enabled || !this._config.audio_file_url) return;
+    
+    // Stop any existing audio for this timer
+    this._stopAudioForTimer(timerId);
+    
     try {
       const audio = new Audio(this._config.audio_file_url);
       let playCount = 0;
-      const maxPlays = Math.max(1, Math.min(10, this._config.audio_repeat_count || 1));
+      const maxPlays = this._config.audio_play_until_dismissed 
+        ? Infinity 
+        : Math.max(1, Math.min(10, this._config.audio_repeat_count || 1));
+      
       const playNext = () => {
-        if (playCount < maxPlays) { playCount++; audio.currentTime = 0; audio.play().catch(() => {}); }
+        // Check if timer is still ringing before playing again
+        if (this._ringingTimers.has(timerId) && playCount < maxPlays) { 
+          playCount++; 
+          audio.currentTime = 0; 
+          audio.play().catch(() => {}); 
+        }
       };
+      
       audio.addEventListener("ended", playNext);
+      
+      // Store the audio instance so we can stop it later
+      this._activeAudioInstances.set(timerId, audio);
+      
       playNext();
     } catch {}
+  }
+
+  _stopAudioForTimer(timerId) {
+    const audio = this._activeAudioInstances.get(timerId);
+    if (audio) {
+      audio.pause();
+      audio.currentTime = 0;
+      this._activeAudioInstances.delete(timerId);
+    }
   }
 
   _parseDuration(durationStr) {
@@ -664,6 +700,7 @@ class SimpleTimerCard extends LitElement {
   }
   _handleDismiss(timer) {
     this._ringingTimers.delete(timer.id);
+    this._stopAudioForTimer(timer.id); // Stop audio when dismissing
     if (timer.source === "helper") {
       this._mutateHelper(timer.source_entity, (data) => { data.timers = data.timers.filter((t) => t.id !== timer.id); });
     } else if (timer.source === "local" || timer.source === "mqtt") {
@@ -676,6 +713,7 @@ class SimpleTimerCard extends LitElement {
   }
   _handleSnooze(timer) {
     this._ringingTimers.delete(timer.id);
+    this._stopAudioForTimer(timer.id); // Stop audio when snoozing
     const snoozeMinutes = this._config.snooze_duration;
     const newDurationMs = snoozeMinutes * 60000;
     const newEndTime = Date.now() + newDurationMs;
@@ -786,10 +824,14 @@ class SimpleTimerCard extends LitElement {
   }
 
   _renderItem(t, style) {
-    const color = t.color || "var(--primary-color)";
+    // Use different color for paused timers
+    const color = t.paused ? (t.color || "var(--warning-color)") : (t.color || "var(--primary-color)");
     const ring = t.remaining <= 0;
     const pct = typeof t.percent === "number" ? Math.max(0, Math.min(100, t.percent)) : 0;
     const pctLeft = 100 - pct;
+
+    // Use pause icon for paused timers if no custom icon is set
+    const icon = t.icon || (t.paused ? "mdi:timer-pause" : "mdi:timer-outline");
 
     const isFillStyle = style === "fill";
     const baseClasses = isFillStyle ? "card item" : "item bar";
@@ -803,7 +845,7 @@ class SimpleTimerCard extends LitElement {
         <li class="${finishedClasses}" style="--tcolor:${color}">
           ${isFillStyle ? html`<div class="progress-fill" style="width:100%"></div>` : ""}
           <div class="${isFillStyle ? "card-content" : "row"}">
-            <div class="icon-wrap"><ha-icon .icon=${t.icon || "mdi:timer-outline"}></ha-icon></div>
+            <div class="icon-wrap"><ha-icon .icon=${icon}></ha-icon></div>
             <div class="info">
               <div class="title">${t.label}</div>
               <div class="status up">Time's up!</div>
@@ -824,7 +866,7 @@ class SimpleTimerCard extends LitElement {
         <li class="${baseClasses}" style="--tcolor:${color}">
           <div class="progress-fill" style="width:${pct}%"></div>
           <div class="card-content">
-            <div class="icon-wrap"><ha-icon .icon=${t.icon || "mdi:timer-outline"}></ha-icon></div>
+            <div class="icon-wrap"><ha-icon .icon=${icon}></ha-icon></div>
             <div class="info">
               <div class="title">${t.label}</div>
               <div class="status">${t.paused ? `${this._formatTime(t.remaining)} (Paused)` : this._formatTime(t.remaining)}</div>
@@ -844,7 +886,7 @@ class SimpleTimerCard extends LitElement {
       return html`
         <li class="${baseClasses}" style="--tcolor:${color}">
           <div class="row">
-            <div class="icon-wrap"><ha-icon .icon=${t.icon || "mdi:timer-outline"}></ha-icon></div>
+            <div class="icon-wrap"><ha-icon .icon=${icon}></ha-icon></div>
             <div class="info">
               <div class="top">
                 <div class="title">${t.label}</div>
@@ -1271,6 +1313,7 @@ class SimpleTimerCardEditor extends LitElement {
       audio_enabled: false,
       audio_file_url: "",
       audio_repeat_count: 1,
+      audio_play_until_dismissed: false,
       show_time_selector: false,
       default_timer_entity: null
     };
@@ -1402,6 +1445,9 @@ class SimpleTimerCardEditor extends LitElement {
         ${this._config.audio_enabled ? html`
           <ha-textfield label="Audio file URL or path" .value=${this._config.audio_file_url || ""} .configValue=${"audio_file_url"} @input=${this._valueChanged}></ha-textfield>
           <ha-textfield label="Number of times to play" type="number" min="1" max="10" .value=${this._config.audio_repeat_count ?? 1} .configValue=${"audio_repeat_count"} @input=${this._valueChanged}></ha-textfield>
+          <ha-formfield label="Play audio until timer is dismissed or snoozed">
+            <ha-switch .checked=${this._config.audio_play_until_dismissed === true} .configValue=${"audio_play_until_dismissed"} @change=${this._valueChanged}></ha-switch>
+          </ha-formfield>
         ` : ""}
 
         <div class="entities-header">
