@@ -528,6 +528,7 @@ class SimpleTimerCard extends LitElement {
         end: endTime,
         duration: durationMs,
         source: "helper",
+        paused: false,
       };
       data.timers.push(newTimer);
     });
@@ -538,7 +539,7 @@ class SimpleTimerCard extends LitElement {
     const label = this._formatTimerLabel(minutes);
     
     if (entity) {
-      const newTimer = { id: `preset-${Date.now()}`, label, icon: this._config.default_timer_icon || "mdi:timer-outline", color: this._config.default_timer_color || "var(--primary-color)", end: Date.now() + durationMs, duration: durationMs };
+      const newTimer = { id: `preset-${Date.now()}`, label, icon: this._config.default_timer_icon || "mdi:timer-outline", color: this._config.default_timer_color || "var(--primary-color)", end: Date.now() + durationMs, duration: durationMs, paused: false };
 
       if (entity.startsWith("input_text.") || entity.startsWith("text.")) {
         newTimer.source = "helper"; newTimer.source_entity = entity;
@@ -573,6 +574,47 @@ class SimpleTimerCard extends LitElement {
       this.hass.callService("timer", "cancel", { entity_id: timer.source_entity });
     } else {
       this._toast?.("This timer can't be cancelled from here.");
+    }
+  }
+  _handlePause(timer) {
+    if (timer.source === "helper") {
+      const remaining = timer.remaining;
+      this._mutateHelper(timer.source_entity, (data) => {
+        const idx = data.timers.findIndex((t) => t.id === timer.id);
+        if (idx !== -1) { 
+          data.timers[idx].paused = true; 
+          data.timers[idx].end = remaining; // Store remaining time
+        }
+      });
+    } else if (timer.source === "local" || timer.source === "mqtt") {
+      const remaining = timer.remaining;
+      this._updateTimerInStorage(timer.id, { paused: true, end: remaining }, timer.source);
+      this.requestUpdate();
+    } else if (timer.source === "timer") {
+      this.hass.callService("timer", "pause", { entity_id: timer.source_entity });
+    } else {
+      this._toast?.("This timer can't be paused from here.");
+    }
+  }
+  _handleResume(timer) {
+    if (timer.source === "helper") {
+      const newEndTime = Date.now() + timer.remaining;
+      this._mutateHelper(timer.source_entity, (data) => {
+        const idx = data.timers.findIndex((t) => t.id === timer.id);
+        if (idx !== -1) { 
+          data.timers[idx].paused = false; 
+          data.timers[idx].end = newEndTime;
+        }
+      });
+    } else if (timer.source === "local" || timer.source === "mqtt") {
+      const newEndTime = Date.now() + timer.remaining;
+      this._updateTimerInStorage(timer.id, { paused: false, end: newEndTime }, timer.source);
+      this.requestUpdate();
+    } else if (timer.source === "timer") {
+      const remainingFormatted = this._formatDurationForTimer(Math.ceil(timer.remaining / 1000));
+      this.hass.callService("timer", "start", { entity_id: timer.source_entity, duration: remainingFormatted });
+    } else {
+      this._toast?.("This timer can't be resumed from here.");
     }
   }
   _handleDismiss(timer) {
@@ -653,6 +695,7 @@ class SimpleTimerCard extends LitElement {
     const newTimer = {
       id: `custom-${Date.now()}`, label: label || "Timer", icon: this._config.default_timer_icon || "mdi:timer-outline",
       color: this._config.default_timer_color || "var(--primary-color)", end: Date.now() + secs * 1000, duration: secs * 1000,
+      paused: false,
     };
 
     if (targetEntity) {
@@ -704,6 +747,9 @@ class SimpleTimerCard extends LitElement {
     const baseClasses = isFillStyle ? "card item" : "item bar";
     const finishedClasses = isFillStyle ? "card item finished" : "card item bar";
 
+    // Check if timer supports pause/resume functionality
+    const supportsPause = t.source === "helper" || t.source === "local" || t.source === "mqtt" || t.source === "timer";
+
     if (ring) {
       return html`
         <li class="${finishedClasses}" style="--tcolor:${color}">
@@ -735,7 +781,14 @@ class SimpleTimerCard extends LitElement {
               <div class="title">${t.label}</div>
               <div class="status">${t.paused ? `${this._formatTime(t.remaining)} (Paused)` : this._formatTime(t.remaining)}</div>
             </div>
-            ${t.source !== "alexa" ? html`<button class="x" title="Cancel" @click=${() => this._handleCancel(t)}><ha-icon icon="mdi:close"></ha-icon></button>` : ""}
+            <div class="actions">
+              ${supportsPause && !ring ? html`
+                <button class="action-btn" title="${t.paused ? 'Resume' : 'Pause'}" @click=${() => t.paused ? this._handleResume(t) : this._handlePause(t)}>
+                  <ha-icon icon="${t.paused ? 'mdi:play' : 'mdi:pause'}"></ha-icon>
+                </button>
+              ` : ""}
+              ${t.source !== "alexa" ? html`<button class="action-btn" title="Cancel" @click=${() => this._handleCancel(t)}><ha-icon icon="mdi:close"></ha-icon></button>` : ""}
+            </div>
           </div>
         </li>
       `;
@@ -751,7 +804,14 @@ class SimpleTimerCard extends LitElement {
               </div>
               <div class="track"><div class="fill" style="width:${pctLeft}%"></div></div>
             </div>
-            ${t.source !== "alexa" ? html`<button class="x" title="Cancel" @click=${() => this._handleCancel(t)}><ha-icon icon="mdi:close"></ha-icon></button>` : ""}
+            <div class="actions">
+              ${supportsPause && !ring ? html`
+                <button class="action-btn" title="${t.paused ? 'Resume' : 'Pause'}" @click=${() => t.paused ? this._handleResume(t) : this._handlePause(t)}>
+                  <ha-icon icon="${t.paused ? 'mdi:play' : 'mdi:pause'}"></ha-icon>
+                </button>
+              ` : ""}
+              ${t.source !== "alexa" ? html`<button class="action-btn" title="Cancel" @click=${() => this._handleCancel(t)}><ha-icon icon="mdi:close"></ha-icon></button>` : ""}
+            </div>
           </div>
         </li>
       `;
@@ -919,7 +979,7 @@ class SimpleTimerCard extends LitElement {
 
       .card {
         background: var(--ha-card-background, var(--card-background-color));
-        border-radius: var(--stc-radius);
+        border-radius: var(--ha-card-border-radius, var(--stc-radius));
         position: relative; overflow: hidden;
         padding: 8px;
         box-sizing: border-box;
@@ -927,7 +987,7 @@ class SimpleTimerCard extends LitElement {
       .card-content { position: relative; z-index: 1; display: flex; align-items: center; gap: 12px; }
       .progress-fill {
         position: absolute; top: 0; left: 0; height: 100%;
-        width: 0%; border-radius: var(--stc-radius); z-index: 0; transition: width 1s linear;
+        width: 0%; border-radius: var(--ha-card-border-radius, var(--stc-radius)); z-index: 0; transition: width 1s linear;
         background: var(--tcolor, var(--primary-color)); opacity: 0.28;
       }
       .card.finished .progress-fill { width: 100% !important; }
@@ -995,6 +1055,9 @@ class SimpleTimerCard extends LitElement {
       .item .status.up { color: color-mix(in srgb, var(--tcolor, var(--primary-color)) 70%, white); }
       .item .x { color: var(--secondary-text-color); background: none; border: 0; padding: 4px; cursor: pointer; }
       .item .x:hover { color: var(--primary-text-color); }
+      .item .actions { display: flex; gap: 4px; align-items: center; }
+      .item .action-btn { color: var(--secondary-text-color); background: none; border: 0; padding: 4px; cursor: pointer; border-radius: 50%; transition: all 0.2s; }
+      .item .action-btn:hover { color: var(--primary-text-color); background: color-mix(in srgb, var(--primary-color) 10%, transparent); }
 
       .bar .row { display: flex; align-items: center; gap: 12px; }
       .bar .top { display: flex; align-items: center; justify-content: space-between; height: 18px; }
