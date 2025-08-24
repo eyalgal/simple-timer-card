@@ -108,6 +108,10 @@ class SimpleTimerCard extends LitElement {
       audio_file_url: "",
       audio_repeat_count: 1,
       audio_play_until_dismissed: false,
+      alexa_audio_enabled: false,
+      alexa_audio_file_url: "/local/amazon-alexa-system-alert.mp3",
+      alexa_audio_repeat_count: 1,
+      alexa_audio_play_until_dismissed: false,
       ...config,
       entities: config.entities || [],
       storage: autoStorage,
@@ -340,13 +344,17 @@ class SimpleTimerCard extends LitElement {
         }
       }
 
+      // Only use pause styling if user hasn't customized the icon/color
+      const hasCustomIcon = !!entityConf?.icon;
+      const hasCustomColor = !!entityConf?.color;
+      
       return {
         id,
         source: "alexa",
         source_entity: entityId,
         label,
-        icon: entityConf?.icon || (pausedFlag ? "mdi:timer-pause" : "mdi:timer-outline"),
-        color: entityConf?.color || (pausedFlag ? "var(--warning-color)" : "#31C4F3"),
+        icon: hasCustomIcon ? entityConf.icon : (pausedFlag ? "mdi:timer-pause" : "/local/amazon-alexa.svg"),
+        color: hasCustomColor ? entityConf.color : (pausedFlag ? "var(--warning-color)" : "#31C4F3"),
         end,
         duration: normDuration(t),
         paused: !!pausedFlag,
@@ -472,7 +480,7 @@ class SimpleTimerCard extends LitElement {
       const wasRinging = this._ringingTimers.has(timer.id);
       if (isNowRinging && !wasRinging) { 
         this._ringingTimers.add(timer.id); 
-        this._playAudioNotification(timer.id); 
+        this._playAudioNotification(timer.id, timer); 
       }
       else if (!isNowRinging && wasRinging) { 
         this._ringingTimers.delete(timer.id); 
@@ -512,18 +520,37 @@ class SimpleTimerCard extends LitElement {
     }
   }
 
-  _playAudioNotification(timerId) {
-    if (!this._config.audio_enabled || !this._config.audio_file_url) return;
+  _playAudioNotification(timerId, timer) {
+    // Determine which audio settings to use based on timer source
+    const isAlexaTimer = timer?.source === "alexa";
+    
+    let audioEnabled, audioFileUrl, audioRepeatCount, audioPlayUntilDismissed;
+    
+    if (isAlexaTimer && this._config.alexa_audio_enabled) {
+      // Use Alexa-specific audio settings
+      audioEnabled = this._config.alexa_audio_enabled;
+      audioFileUrl = this._config.alexa_audio_file_url;
+      audioRepeatCount = this._config.alexa_audio_repeat_count;
+      audioPlayUntilDismissed = this._config.alexa_audio_play_until_dismissed;
+    } else {
+      // Use general audio settings
+      audioEnabled = this._config.audio_enabled;
+      audioFileUrl = this._config.audio_file_url;
+      audioRepeatCount = this._config.audio_repeat_count;
+      audioPlayUntilDismissed = this._config.audio_play_until_dismissed;
+    }
+    
+    if (!audioEnabled || !audioFileUrl) return;
     
     // Stop any existing audio for this timer
     this._stopAudioForTimer(timerId);
     
     try {
-      const audio = new Audio(this._config.audio_file_url);
+      const audio = new Audio(audioFileUrl);
       let playCount = 0;
-      const maxPlays = this._config.audio_play_until_dismissed 
+      const maxPlays = audioPlayUntilDismissed 
         ? Infinity 
-        : Math.max(1, Math.min(10, this._config.audio_repeat_count || 1));
+        : Math.max(1, Math.min(10, audioRepeatCount || 1));
       
       const playNext = () => {
         // Check if timer is still ringing before playing again
@@ -1314,6 +1341,10 @@ class SimpleTimerCardEditor extends LitElement {
       audio_file_url: "",
       audio_repeat_count: 1,
       audio_play_until_dismissed: false,
+      alexa_audio_enabled: false,
+      alexa_audio_file_url: "/local/amazon-alexa-system-alert.mp3",
+      alexa_audio_repeat_count: 1,
+      alexa_audio_play_until_dismissed: false,
       show_time_selector: false,
       default_timer_entity: null
     };
@@ -1447,6 +1478,18 @@ class SimpleTimerCardEditor extends LitElement {
           <ha-textfield label="Number of times to play" type="number" min="1" max="10" .value=${this._config.audio_repeat_count ?? 1} .configValue=${"audio_repeat_count"} @input=${this._valueChanged}></ha-textfield>
           <ha-formfield label="Play audio until timer is dismissed or snoozed">
             <ha-switch .checked=${this._config.audio_play_until_dismissed === true} .configValue=${"audio_play_until_dismissed"} @change=${this._valueChanged}></ha-switch>
+          </ha-formfield>
+        ` : ""}
+
+        <ha-formfield label="Enable Alexa-specific audio notifications">
+          <ha-switch .checked=${this._config.alexa_audio_enabled === true} .configValue=${"alexa_audio_enabled"} @change=${this._valueChanged}></ha-switch>
+        </ha-formfield>
+
+        ${this._config.alexa_audio_enabled ? html`
+          <ha-textfield label="Alexa audio file URL or path" .value=${this._config.alexa_audio_file_url || "/local/amazon-alexa-system-alert.mp3"} .configValue=${"alexa_audio_file_url"} @input=${this._valueChanged}></ha-textfield>
+          <ha-textfield label="Number of times to play Alexa audio" type="number" min="1" max="10" .value=${this._config.alexa_audio_repeat_count ?? 1} .configValue=${"alexa_audio_repeat_count"} @input=${this._valueChanged}></ha-textfield>
+          <ha-formfield label="Play Alexa audio until timer is dismissed or snoozed">
+            <ha-switch .checked=${this._config.alexa_audio_play_until_dismissed === true} .configValue=${"alexa_audio_play_until_dismissed"} @change=${this._valueChanged}></ha-switch>
           </ha-formfield>
         ` : ""}
 
