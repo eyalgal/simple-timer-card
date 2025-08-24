@@ -139,6 +139,30 @@ expire_action: keep  # keep | dismiss | remove
 audio_enabled: true  # Enable audio notifications
 audio_file_url: /local/timer-sound.mp3  # Path to audio file
 audio_repeat_count: 3  # Number of times to play audio (1-10)
+# Alexa-specific audio settings (optional)
+alexa_audio_enabled: true  # Enable separate audio for Alexa timers
+alexa_audio_file_url: /local/amazon-alexa-system-alert.mp3  # Alexa audio file
+alexa_audio_repeat_count: 2  # Times to play Alexa audio (1-10)
+```
+
+### Alexa Timer Features
+
+The card includes special features for Alexa timers:
+
+- **Default Icon**: Uses `/local/amazon-alexa.svg` as the default icon for Alexa timers
+- **Separate Audio**: Configure different audio notifications specifically for Alexa timers
+- **Pause Behavior**: Custom icons/colors are preserved when timers are paused
+
+**Alexa Audio Configuration:**
+- Set `alexa_audio_enabled: true` to enable Alexa-specific audio
+- Use `alexa_audio_file_url` to specify a different sound file for Alexa timers
+- Default Alexa audio file: `/local/amazon-alexa-system-alert.mp3`
+- Configure `alexa_audio_repeat_count` and `alexa_audio_play_until_dismissed` independently
+
+**Required Assets:**
+To use the default Alexa features, copy these files to your `/config/www/` directory:
+- `amazon-alexa.svg` (for the default Alexa timer icon)
+- `amazon-alexa-system-alert.mp3` (for the default Alexa audio notification)
 ```
 
 ### Automatic Storage Selection
@@ -204,8 +228,9 @@ The card automatically detects and supports Home Assistant timer entities (`time
 ## Installation
 
 1. Copy `simple-timer-card.js` to your `www` folder
-2. Add the resource in your Lovelace configuration
-3. Add the card to your dashboard
+2. **Optional:** Copy `amazon-alexa.svg` and `amazon-alexa-system-alert.mp3` from the `assets` folder to your `www` folder for default Alexa timer features
+3. Add the resource in your Lovelace configuration
+4. Add the card to your dashboard
 
 ## Version History
 
