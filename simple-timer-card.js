@@ -988,7 +988,7 @@ class SimpleTimerCard extends LitElement {
       .list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 
       .item { box-sizing: border-box; position: relative; border-radius: 16px; padding: 8px; height: 56px; background: var(--ha-card-background, var(--card-background-color)); }
-      .item .icon-wrap { background: var(--tcolor, var(--divider-color)); opacity: 0.45; }
+      .item .icon-wrap { background: color-mix(in srgb, var(--tcolor, var(--divider-color)) 20%, transparent); }
       .item .info { display: flex; flex-direction: column; justify-content: center; height: 36px; flex: 1; overflow: hidden; }
       .item .title { font-size: 14px; font-weight: 500; line-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .item .status { font-size: 12px; color: var(--secondary-text-color); line-height: 16px; font-variant-numeric: tabular-nums; }
