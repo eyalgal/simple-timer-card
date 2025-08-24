@@ -313,11 +313,39 @@ class SimpleTimerCard extends LitElement {
         ? (remainingMs ?? 0)               // store remaining directly for paused
         : Number(t?.triggerTime || 0);     // epoch ms when running
 
+      // Generate label - when timerLabel is null, use format: <friendly name without "next timer"> - <time>
+      let label;
+      if (t?.timerLabel) {
+        label = t.timerLabel;
+      } else {
+        const cleanedFriendlyName = this._cleanFriendlyName(entityState.attributes.friendly_name);
+        const baseName = entityConf?.name || cleanedFriendlyName || (pausedFlag ? "Alexa Timer (Paused)" : "Alexa Timer");
+        
+        // Calculate remaining time for display
+        let displayTime;
+        if (pausedFlag && remainingMs > 0) {
+          displayTime = this._formatDurationDisplay(remainingMs);
+        } else if (!pausedFlag && end > Date.now()) {
+          displayTime = this._formatDurationDisplay(end - Date.now());
+        } else if (normDuration(t) > 0) {
+          displayTime = this._formatDurationDisplay(normDuration(t));
+        } else {
+          displayTime = "0m";
+        }
+        
+        // Only add time suffix if we have a clean friendly name and this isn't a default fallback
+        if (baseName && baseName !== "Alexa Timer" && baseName !== "Alexa Timer (Paused)") {
+          label = `${baseName} - ${displayTime}`;
+        } else {
+          label = baseName;
+        }
+      }
+
       return {
         id,
         source: "alexa",
         source_entity: entityId,
-        label: t?.timerLabel || entityConf?.name || entityState.attributes.friendly_name || (pausedFlag ? "Alexa Timer (Paused)" : "Alexa Timer"),
+        label,
         icon: entityConf?.icon || (pausedFlag ? "mdi:timer-pause" : "mdi:timer-outline"),
         color: entityConf?.color || (pausedFlag ? "var(--warning-color)" : "#31C4F3"),
         end,
@@ -563,6 +591,23 @@ class SimpleTimerCard extends LitElement {
     return `${Math.floor(minutes / 60)}h${minutes % 60}m Timer`;
   }
 
+  // Helper function to format duration for display (without "Timer" suffix)
+  _formatDurationDisplay(ms) {
+    if (ms <= 0) return "0m";
+    const totalMinutes = Math.ceil(ms / 60000);
+    if (totalMinutes < 60) return `${totalMinutes}m`;
+    if (totalMinutes === 60) return "1h";
+    if (totalMinutes % 60 === 0) return `${totalMinutes / 60}h`;
+    return `${Math.floor(totalMinutes / 60)}h${totalMinutes % 60}m`;
+  }
+
+  // Helper function to clean friendly name by removing "next timer" text
+  _cleanFriendlyName(friendlyName) {
+    if (!friendlyName) return friendlyName;
+    // Remove various forms of "next timer" text (case insensitive)
+    return friendlyName.replace(/\s*next\s+timer\s*/i, '').trim();
+  }
+
   _handleCancel(timer) {
     this._ringingTimers.delete(timer.id);
     if (timer.source === "helper") {
@@ -692,8 +737,11 @@ class SimpleTimerCard extends LitElement {
     const targetEntity = useDefaultEntity ? 
       (this._config.default_timer_entity || (helperEntities.length === 1 ? helperEntities[0] : null)) : null;
 
+    // Generate proper timer label if none provided
+    const finalLabel = label && label.trim() ? label.trim() : this._formatTimerLabel(Math.ceil(secs / 60));
+
     const newTimer = {
-      id: `custom-${Date.now()}`, label: label || "Timer", icon: this._config.default_timer_icon || "mdi:timer-outline",
+      id: `custom-${Date.now()}`, label: finalLabel, icon: this._config.default_timer_icon || "mdi:timer-outline",
       color: this._config.default_timer_color || "var(--primary-color)", end: Date.now() + secs * 1000, duration: secs * 1000,
       paused: false,
     };
