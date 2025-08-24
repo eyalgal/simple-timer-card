@@ -970,7 +970,7 @@ class SimpleTimerCard extends LitElement {
   static get styles() {
     return css`
       :host { --stc-radius: 24px; --stc-chip-radius: 9999px; }
-      ha-card { border-radius: 16px; }
+      ha-card { border-radius: var(--ha-card-border-radius, var(--stc-radius)); }
 
       .section { padding: 12px 16px 0; }
       .section h2 { margin: 0 0 8px 0; font-size: 20px; font-weight: 600; }
@@ -987,10 +987,16 @@ class SimpleTimerCard extends LitElement {
       .card-content { position: relative; z-index: 1; display: flex; align-items: center; gap: 12px; }
       .progress-fill {
         position: absolute; top: 0; left: 0; height: 100%;
-        width: 0%; border-radius: var(--ha-card-border-radius, var(--stc-radius)); z-index: 0; transition: width 1s linear;
+        width: 0%; 
+        border-top-right-radius: var(--ha-card-border-radius, var(--stc-radius));
+        border-bottom-right-radius: var(--ha-card-border-radius, var(--stc-radius));
+        z-index: 0; transition: width 1s linear;
         background: var(--tcolor, var(--primary-color)); opacity: 0.28;
       }
-      .card.finished .progress-fill { width: 100% !important; }
+      .card.finished .progress-fill { 
+        width: 100% !important; 
+        border-radius: var(--ha-card-border-radius, var(--stc-radius));
+      }
 
       .nt-h { padding: 0 8px; height: 56px; transition: height .3s ease; }
       .nt-h.expanded { height: auto; }
@@ -1047,7 +1053,7 @@ class SimpleTimerCard extends LitElement {
 
       .list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 
-      .item { box-sizing: border-box; position: relative; border-radius: 16px; padding: 8px; height: 56px; background: var(--ha-card-background, var(--card-background-color)); }
+      .item { box-sizing: border-box; position: relative; border-radius: var(--ha-card-border-radius, var(--stc-radius)); padding: 8px; height: 56px; background: var(--ha-card-background, var(--card-background-color)); }
       .item .icon-wrap { background: color-mix(in srgb, var(--tcolor, var(--divider-color)) 20%, transparent); }
       .item .info { display: flex; flex-direction: column; justify-content: center; height: 36px; flex: 1; overflow: hidden; }
       .item .title { font-size: 14px; font-weight: 500; line-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
