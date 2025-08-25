@@ -469,7 +469,11 @@ class SimpleTimerCard extends LitElement {
     }
 
     const filtered = collected.filter(
-      (t) => !(t.source === "alexa" && this._dismissed.has(`${t.source_entity}:${t.id}`))
+      (t) => !(
+        (t.source === "alexa" && this._dismissed.has(`${t.source_entity}:${t.id}`)) ||
+        (t.source === "timestamp" && this._dismissed.has(`${t.source_entity}:${t.id}`)) ||
+        (t.source === "minutes_attr" && this._dismissed.has(`${t.source_entity}:${t.id}`))
+      )
     );
 
     const now = Date.now();
@@ -534,6 +538,17 @@ class SimpleTimerCard extends LitElement {
           timer.expiredAt ??= now2;
           const keepMs = (this._config.expire_keep_for || 0) * 1000;
           if (keepMs > 0 && now2 - timer.expiredAt > keepMs) this._removeTimerFromStorage(timer.id, timer.source);
+        }
+      } else if (timer.source === "timestamp" || timer.source === "minutes_attr") {
+        // Handle timestamp and minutes_attr timer expiration
+        if (this._config.expire_action === "dismiss" || this._config.expire_action === "remove") {
+          this._dismissed.add(`${timer.source_entity}:${timer.id}`);
+        } else if (this._config.expire_action === "keep") {
+          timer.expiredAt ??= now2;
+          const keepMs = (this._config.expire_keep_for || 0) * 1000;
+          if (keepMs > 0 && now2 - timer.expiredAt > keepMs) {
+            this._dismissed.add(`${timer.source_entity}:${timer.id}`);
+          }
         }
       }
     }
@@ -908,8 +923,8 @@ _renderItem(t, style) {
     // Check if timer supports pause/resume functionality
     const supportsPause = t.source === "helper" || t.source === "local" || t.source === "mqtt" || t.source === "timer";
     
-    // Check if timer supports manual controls (exclude timer entities per requirement)
-    const supportsManualControls = t.source !== "timer" && t.source !== "alexa";
+    // Check if timer supports manual controls (exclude timer entities and entity-based timers per requirement)
+    const supportsManualControls = t.source === "local" || t.source === "mqtt";
 
     if (ring) {
       // Get entity configuration for per-entity expired message
@@ -999,7 +1014,7 @@ _renderItem(t, style) {
     const noTimerCard = layout === "horizontal" ? html`
       <div class="card nt-h ${this._ui.noTimerHorizontalOpen ? "expanded" : ""}">
         <div class="row">
-          <div class="card-content">
+          <div class="card-content" @click=${this._config.show_timer_presets === false ? () => this._toggleCustom("horizontal") : null}>
             <div class="icon-wrap"><ha-icon icon="mdi:timer-off"></ha-icon></div>
             <div>
               <p class="nt-title">No Timers</p>
@@ -1010,7 +1025,11 @@ _renderItem(t, style) {
             ${presets.map((m) => html`
               <button class="btn btn-preset" @click=${() => this._createPresetTimer(m, this._config.default_timer_entity)}>${m}m</button>
             `)}
-            <button class="btn btn-ghost" @click=${() => this._toggleCustom("horizontal")}>Custom</button>
+            ${this._config.show_timer_presets === false ? html`
+              <button class="btn btn-ghost" @click=${() => this._toggleCustom("horizontal")}><ha-icon icon="mdi:plus" style="--mdc-icon-size:16px;"></ha-icon> Add</button>
+            ` : html`
+              <button class="btn btn-ghost" @click=${() => this._toggleCustom("horizontal")}>Custom</button>
+            `}
           </div>
         </div>
 
@@ -1032,7 +1051,7 @@ _renderItem(t, style) {
     ` : html`
       <div class="card nt-v ${this._ui.noTimerVerticalOpen ? "expanded" : ""}">
         <div class="col">
-          <div class="card-content" style="flex-direction:column;justify-content:center;gap:8px;flex:1;">
+          <div class="card-content" style="flex-direction:column;justify-content:center;gap:8px;flex:1;" @click=${this._config.show_timer_presets === false ? () => this._toggleCustom("vertical") : null}>
             <div class="icon-wrap"><ha-icon icon="mdi:timer-off"></ha-icon></div>
             <p class="nt-title">No Active Timers</p>
           </div>
@@ -1040,7 +1059,11 @@ _renderItem(t, style) {
             ${presets.map((m) => html`
               <button class="btn btn-preset" @click=${() => this._createPresetTimer(m, this._config.default_timer_entity)}>${m}m</button>
             `)}
-            <button class="btn btn-ghost" @click=${() => this._toggleCustom("vertical")}>Custom</button>
+            ${this._config.show_timer_presets === false ? html`
+              <button class="btn btn-ghost" @click=${() => this._toggleCustom("vertical")}><ha-icon icon="mdi:plus" style="--mdc-icon-size:16px;"></ha-icon> Add</button>
+            ` : html`
+              <button class="btn btn-ghost" @click=${() => this._toggleCustom("vertical")}>Custom</button>
+            `}
           </div>
         </div>
 
@@ -1400,6 +1423,20 @@ class SimpleTimerCardEditor extends LitElement {
 
     const cleaned = { ...config };
 
+    // Remove audio-dependent fields when audio is disabled
+    if (!cleaned.audio_enabled) {
+      delete cleaned.audio_file_url;
+      delete cleaned.audio_repeat_count;
+      delete cleaned.audio_play_until_dismissed;
+    }
+
+    // Remove alexa audio-dependent fields when alexa audio is disabled
+    if (!cleaned.alexa_audio_enabled) {
+      delete cleaned.alexa_audio_file_url;
+      delete cleaned.alexa_audio_repeat_count;
+      delete cleaned.alexa_audio_play_until_dismissed;
+    }
+
     for (const [key, defaultValue] of Object.entries(defaults)) {
       if (key in cleaned) {
         if (Array.isArray(defaultValue)) {
@@ -1408,13 +1445,39 @@ class SimpleTimerCardEditor extends LitElement {
               cleaned[key].every((val, index) => val === defaultValue[index])) {
             delete cleaned[key];
           }
-        } else if (cleaned[key] === defaultValue) {
+        } else if (cleaned[key] === defaultValue || cleaned[key] === "") {
+          // Remove both exact default matches and empty strings
           delete cleaned[key];
         } else if ((key === "default_timer_icon" || key === "default_timer_color") && cleaned[key] === "") {
           // Treat empty strings as "use default" for icon and color fields
           delete cleaned[key];
         }
       }
+    }
+
+    // Clean up entity configurations
+    if (cleaned.entities && Array.isArray(cleaned.entities)) {
+      cleaned.entities = cleaned.entities.map(entityConf => {
+        if (typeof entityConf === "string") return entityConf;
+        
+        const cleanedEntity = { ...entityConf };
+        
+        // Remove audio-dependent fields when entity audio is disabled
+        if (!cleanedEntity.audio_enabled) {
+          delete cleanedEntity.audio_file_url;
+          delete cleanedEntity.audio_repeat_count;
+          delete cleanedEntity.audio_play_until_dismissed;
+        }
+        
+        // Remove empty strings and null values
+        Object.keys(cleanedEntity).forEach(key => {
+          if (cleanedEntity[key] === "" || cleanedEntity[key] === null) {
+            delete cleanedEntity[key];
+          }
+        });
+        
+        return cleanedEntity;
+      });
     }
 
     return cleaned;
