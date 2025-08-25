@@ -136,33 +136,39 @@ entities:
 show_timer_presets: true
 timer_presets: [15, 30, 60, 120]  # minutes
 expire_action: keep  # keep | dismiss | remove
+expired_subtitle: "Timer finished!"  # Message shown when timer expires
 audio_enabled: true  # Enable audio notifications
 audio_file_url: /local/timer-sound.mp3  # Path to audio file
 audio_repeat_count: 3  # Number of times to play audio (1-10)
 # Alexa-specific audio settings (optional)
 alexa_audio_enabled: true  # Enable separate audio for Alexa timers
-alexa_audio_file_url: /local/amazon-alexa-system-alert.mp3  # Alexa audio file
+alexa_audio_file_url: /local/alexa-sound.mp3  # Alexa audio file (configure as needed)
 alexa_audio_repeat_count: 2  # Times to play Alexa audio (1-10)
+# Entity-specific configurations (optional)
+entities:
+  - entity: timer.kitchen
+    name: "Kitchen Timer"
+    expired_subtitle: "Kitchen time!"
+    audio_enabled: true
+    audio_file_url: /local/kitchen-sound.mp3
+  - timer.workout
 ```
 
 ### Alexa Timer Features
 
 The card includes special features for Alexa timers:
 
-- **Default Icon**: Uses `/local/amazon-alexa.svg` as the default icon for Alexa timers
-- **Separate Audio**: Configure different audio notifications specifically for Alexa timers
+- **Default Icon**: Uses standard timer icons (`mdi:timer` for active, `mdi:timer-pause` for paused)
+- **Separate Audio**: Configure different audio notifications specifically for Alexa timers (optional)
 - **Pause Behavior**: Custom icons/colors are preserved when timers are paused
 
 **Alexa Audio Configuration:**
 - Set `alexa_audio_enabled: true` to enable Alexa-specific audio
 - Use `alexa_audio_file_url` to specify a different sound file for Alexa timers
-- Default Alexa audio file: `/local/amazon-alexa-system-alert.mp3`
+- No default audio file - configure as needed
 - Configure `alexa_audio_repeat_count` and `alexa_audio_play_until_dismissed` independently
 
-**Required Assets:**
-To use the default Alexa features, copy these files to your `/config/www/` directory:
-- `amazon-alexa.svg` (for the default Alexa timer icon)
-- `amazon-alexa-system-alert.mp3` (for the default Alexa audio notification)
+**Note:** Alexa timers now use standard timer icons and do not require special asset files.
 ```
 
 ### Automatic Storage Selection
@@ -221,9 +227,11 @@ To use audio notifications:
 The card automatically detects and supports Home Assistant timer entities (`timer.*`):
 
 - **States:** Displays `active` and `paused` timers
-- **Controls:** Cancel (timer.cancel), Dismiss (timer.finish), Snooze (timer.start)
+- **Controls:** Read-only display (pause/snooze/cancel buttons are hidden for timer entities)
 - **Attributes:** Uses `finishes_at`, `remaining`, and `duration` attributes
 - **Icons:** `mdi:timer` for active, `mdi:timer-pause` for paused timers
+
+Timer entities are managed through Home Assistant services and show as read-only in the card.
 
 ## Installation
 
