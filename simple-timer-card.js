@@ -109,9 +109,10 @@ class SimpleTimerCard extends LitElement {
       audio_repeat_count: 1,
       audio_play_until_dismissed: false,
       alexa_audio_enabled: false,
-      alexa_audio_file_url: "/local/amazon-alexa-system-alert.mp3",
+      alexa_audio_file_url: "",
       alexa_audio_repeat_count: 1,
       alexa_audio_play_until_dismissed: false,
+      expired_subtitle: "Time's up!",
       ...config,
       entities: config.entities || [],
       storage: autoStorage,
@@ -353,8 +354,8 @@ class SimpleTimerCard extends LitElement {
         source: "alexa",
         source_entity: entityId,
         label,
-        icon: hasCustomIcon ? entityConf.icon : (pausedFlag ? "mdi:timer-pause" : "/local/amazon-alexa.svg"),
-        color: hasCustomColor ? entityConf.color : (pausedFlag ? "var(--warning-color)" : "#31C4F3"),
+        icon: hasCustomIcon ? entityConf.icon : (pausedFlag ? "mdi:timer-pause" : "mdi:timer"),
+        color: hasCustomColor ? entityConf.color : (pausedFlag ? "var(--warning-color)" : "var(--primary-color)"),
         end,
         duration: normDuration(t),
         paused: !!pausedFlag,
@@ -542,9 +543,19 @@ class SimpleTimerCard extends LitElement {
     // Determine which audio settings to use based on timer source
     const isAlexaTimer = timer?.source === "alexa";
     
+    // Get entity configuration if available
+    const entityConf = this._getEntityConfig(timer?.source_entity);
+    
     let audioEnabled, audioFileUrl, audioRepeatCount, audioPlayUntilDismissed;
     
-    if (isAlexaTimer && this._config.alexa_audio_enabled) {
+    // Priority: entity-specific > Alexa-specific > general
+    if (entityConf?.audio_enabled) {
+      // Use entity-specific audio settings
+      audioEnabled = entityConf.audio_enabled;
+      audioFileUrl = entityConf.audio_file_url;
+      audioRepeatCount = entityConf.audio_repeat_count;
+      audioPlayUntilDismissed = entityConf.audio_play_until_dismissed;
+    } else if (isAlexaTimer && this._config.alexa_audio_enabled) {
       // Use Alexa-specific audio settings
       audioEnabled = this._config.alexa_audio_enabled;
       audioFileUrl = this._config.alexa_audio_file_url;
@@ -595,6 +606,18 @@ class SimpleTimerCard extends LitElement {
       audio.currentTime = 0;
       this._activeAudioInstances.delete(timerId);
     }
+  }
+
+  _getEntityConfig(entityId) {
+    if (!entityId || !this._config.entities) return null;
+    
+    for (const entityConf of this._config.entities) {
+      const confEntityId = typeof entityConf === "string" ? entityConf : entityConf?.entity;
+      if (confEntityId === entityId) {
+        return typeof entityConf === "string" ? {} : entityConf;
+      }
+    }
+    return null;
   }
 
   _parseDuration(durationStr) {
@@ -884,8 +907,15 @@ _renderItem(t, style) {
 
     // Check if timer supports pause/resume functionality
     const supportsPause = t.source === "helper" || t.source === "local" || t.source === "mqtt" || t.source === "timer";
+    
+    // Check if timer supports manual controls (exclude timer entities per requirement)
+    const supportsManualControls = t.source !== "timer" && t.source !== "alexa";
 
     if (ring) {
+      // Get entity configuration for per-entity expired message
+      const entityConf = this._getEntityConfig(t.source_entity);
+      const expiredMessage = entityConf?.expired_subtitle || this._config.expired_subtitle || "Time's up!";
+      
       return html`
         <li class="${finishedClasses}" style="--tcolor:${color}">
           ${isFillStyle ? html`<div class="progress-fill" style="width:100%"></div>` : ""}
@@ -893,9 +923,9 @@ _renderItem(t, style) {
             <div class="icon-wrap"><ha-icon .icon=${icon}></ha-icon></div>
             <div class="info">
               <div class="title">${t.label}</div>
-              <div class="status up">Time's up!</div>
+              <div class="status up">${expiredMessage}</div>
             </div>
-            ${t.source !== "alexa" ? html`
+            ${supportsManualControls ? html`
               <div class="chips">
                 <button class="chip" @click=${() => this._handleSnooze(t)}>Snooze</button>
                 <button class="chip" @click=${() => this._handleDismiss(t)}>Dismiss</button>
@@ -917,12 +947,12 @@ _renderItem(t, style) {
               <div class="status">${isPaused ? `${this._formatTime(t.end)} (Paused)` : this._formatTime(t.remaining)}</div>
             </div>
             <div class="actions">
-              ${supportsPause && !ring ? html`
+              ${supportsPause && !ring && supportsManualControls ? html`
                 <button class="action-btn" title="${t.paused ? 'Resume' : 'Pause'}" @click=${() => t.paused ? this._handleResume(t) : this._handlePause(t)}>
                   <ha-icon icon="${t.paused ? 'mdi:play' : 'mdi:pause'}"></ha-icon>
                 </button>
               ` : ""}
-              ${t.source !== "alexa" ? html`<button class="action-btn" title="Cancel" @click=${() => this._handleCancel(t)}><ha-icon icon="mdi:close"></ha-icon></button>` : ""}
+              ${supportsManualControls ? html`<button class="action-btn" title="Cancel" @click=${() => this._handleCancel(t)}><ha-icon icon="mdi:close"></ha-icon></button>` : ""}
             </div>
           </div>
         </li>
@@ -940,12 +970,12 @@ _renderItem(t, style) {
               <div class="track"><div class="fill" style="width:${pctLeft}%"></div></div>
             </div>
             <div class="actions">
-              ${supportsPause && !ring ? html`
+              ${supportsPause && !ring && supportsManualControls ? html`
                 <button class="action-btn" title="${t.paused ? 'Resume' : 'Pause'}" @click=${() => t.paused ? this._handleResume(t) : this._handlePause(t)}>
                   <ha-icon icon="${t.paused ? 'mdi:play' : 'mdi:pause'}"></ha-icon>
                 </button>
               ` : ""}
-              ${t.source !== "alexa" ? html`<button class="action-btn" title="Cancel" @click=${() => this._handleCancel(t)}><ha-icon icon="mdi:close"></ha-icon></button>` : ""}
+              ${supportsManualControls ? html`<button class="action-btn" title="Cancel" @click=${() => this._handleCancel(t)}><ha-icon icon="mdi:close"></ha-icon></button>` : ""}
             </div>
           </div>
         </li>
@@ -1360,9 +1390,10 @@ class SimpleTimerCardEditor extends LitElement {
       audio_repeat_count: 1,
       audio_play_until_dismissed: false,
       alexa_audio_enabled: false,
-      alexa_audio_file_url: "/local/amazon-alexa-system-alert.mp3",
+      alexa_audio_file_url: "",
       alexa_audio_repeat_count: 1,
       alexa_audio_play_until_dismissed: false,
+      expired_subtitle: "Time's up!",
       show_time_selector: false,
       default_timer_entity: null
     };
@@ -1490,6 +1521,8 @@ class SimpleTimerCardEditor extends LitElement {
           <ha-textfield label="Default timer color" .value=${this._config.default_timer_color || "var(--primary-color)"} .configValue=${"default_timer_color"} @input=${this._valueChanged}></ha-textfield>
         </div>
 
+        <ha-textfield label="Timer expired message" .value=${this._config.expired_subtitle || "Time's up!"} .configValue=${"expired_subtitle"} @input=${this._valueChanged}></ha-textfield>
+
         <ha-formfield label="Enable audio notifications">
           <ha-switch .checked=${this._config.audio_enabled === true} .configValue=${"audio_enabled"} @change=${this._valueChanged}></ha-switch>
         </ha-formfield>
@@ -1507,7 +1540,7 @@ class SimpleTimerCardEditor extends LitElement {
         </ha-formfield>
 
         ${this._config.alexa_audio_enabled ? html`
-          <ha-textfield label="Alexa audio file URL or path" .value=${this._config.alexa_audio_file_url || "/local/amazon-alexa-system-alert.mp3"} .configValue=${"alexa_audio_file_url"} @input=${this._valueChanged}></ha-textfield>
+          <ha-textfield label="Alexa audio file URL or path" .value=${this._config.alexa_audio_file_url || ""} .configValue=${"alexa_audio_file_url"} @input=${this._valueChanged}></ha-textfield>
           <ha-textfield label="Number of times to play Alexa audio" type="number" min="1" max="10" .value=${this._config.alexa_audio_repeat_count ?? 1} .configValue=${"alexa_audio_repeat_count"} @input=${this._valueChanged}></ha-textfield>
           <ha-formfield label="Play Alexa audio until timer is dismissed or snoozed">
             <ha-switch .checked=${this._config.alexa_audio_play_until_dismissed === true} .configValue=${"alexa_audio_play_until_dismissed"} @change=${this._valueChanged}></ha-switch>
@@ -1548,6 +1581,21 @@ class SimpleTimerCardEditor extends LitElement {
                       <ha-icon-picker label="Icon Override" .value=${conf.icon || ""} .configValue=${"icon"} @value-changed=${(e) => this._entityValueChanged(e, index)}></ha-icon-picker>
                       <ha-textfield label="Color Override" .value=${conf.color || ""} .configValue=${"color"} @input=${(e) => this._entityValueChanged(e, index)}></ha-textfield>
                     </div>
+
+                    <div class="side-by-side">
+                      <ha-textfield label="Expired message override" .value=${conf.expired_subtitle || ""} .configValue=${"expired_subtitle"} @input=${(e) => this._entityValueChanged(e, index)}></ha-textfield>
+                    </div>
+
+                    <ha-formfield label="Enable entity-specific audio">
+                      <ha-switch .checked=${conf.audio_enabled === true} .configValue=${"audio_enabled"} @change=${(e) => this._entityValueChanged(e, index)}></ha-switch>
+                    </ha-formfield>
+
+                    ${conf.audio_enabled ? html`
+                      <div class="side-by-side">
+                        <ha-textfield label="Audio file URL" .value=${conf.audio_file_url || ""} .configValue=${"audio_file_url"} @input=${(e) => this._entityValueChanged(e, index)}></ha-textfield>
+                        <ha-textfield label="Audio repeat count" type="number" min="1" max="10" .value=${conf.audio_repeat_count ?? 1} .configValue=${"audio_repeat_count"} @input=${(e) => this._entityValueChanged(e, index)}></ha-textfield>
+                      </div>
+                    ` : ""}
                   </div>
 
                   <button class="remove-entity" @click=${() => this._removeEntity(index)} title="Remove entity"><ha-icon icon="mdi:delete"></ha-icon></button>
