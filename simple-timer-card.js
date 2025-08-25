@@ -376,17 +376,35 @@ class SimpleTimerCard extends LitElement {
   }
   _parseHelper(entityId, entityState, entityConf) {
     try {
-      const data = JSON.parse(entityState.state || '{"timers":[]}');
-      if (!data?.timers?.map) return [];
-      return data.timers.map((timer) => ({
-        ...timer,
-        source: "helper",
-        source_entity: entityId,
-        label: timer.label || entityConf?.name || "Timer",
-        icon: timer.icon || entityConf?.icon || "mdi:timer-outline",
-        color: timer.color || entityConf?.color || "var(--primary-color)",
-      }));
-    } catch { return []; }
+      const data = JSON.parse(entityState.state || '{}');
+      if (data?.timers?.map) {
+        return data.timers.map((timer) => ({
+          ...timer,
+          source: "helper",
+          source_entity: entityId,
+          label: timer.label || entityConf?.name || "Timer",
+          icon: timer.icon || entityConf?.icon || "mdi:timer-outline",
+          color: timer.color || entityConf?.color || "var(--primary-color)",
+        }));
+      }
+      if (data?.timer && typeof data.timer === 'object') {
+        const singleTimer = data.timer;
+        return [{
+          end: singleTimer.e,
+          duration: singleTimer.d,
+          id: `single-timer-${entityId}`,
+          label: entityConf?.name || entityState?.attributes?.friendly_name || "Timer",
+          paused: false,
+          source: "helper",
+          source_entity: entityId,
+          icon: entityConf?.icon || "mdi:timer-outline",
+          color: entityConf?.color || "var(--primary-color)",
+        }];
+      }
+      return [];
+    } catch {
+      return [];
+    }
   }
   _parseTimestamp(entityId, entityState, entityConf) {
     const s = entityState.state; if (!s || s === "unknown" || s === "unavailable") return [];
@@ -850,15 +868,15 @@ class SimpleTimerCard extends LitElement {
     this._ui[openKey] = false;
   }
 
-  _renderItem(t, style) {
+_renderItem(t, style) {
     // Use the color and icon set by the parsing functions
-    const color = t.color || "var(--primary-color)";
+    const isPaused = t.paused;
+    // Apply a dynamic icon and color for paused state, otherwise use the timer's config
+    const color = isPaused ? "var(--warning-color)" : (t.color || "var(--primary-color)");
+    const icon = isPaused ? "mdi:timer-pause" : (t.icon || "mdi:timer-outline");
     const ring = t.remaining <= 0;
     const pct = typeof t.percent === "number" ? Math.max(0, Math.min(100, t.percent)) : 0;
     const pctLeft = 100 - pct;
-
-    // Use the icon set by the parsing functions, with fallback
-    const icon = t.icon || "mdi:timer-outline";
 
     const isFillStyle = style === "fill";
     const baseClasses = isFillStyle ? "card item" : "item bar";
@@ -896,7 +914,7 @@ class SimpleTimerCard extends LitElement {
             <div class="icon-wrap"><ha-icon .icon=${icon}></ha-icon></div>
             <div class="info">
               <div class="title">${t.label}</div>
-              <div class="status">${t.paused ? `${this._formatTime(t.remaining)} (Paused)` : this._formatTime(t.remaining)}</div>
+              <div class="status">${isPaused ? `${this._formatTime(t.end)} (Paused)` : this._formatTime(t.remaining)}</div>
             </div>
             <div class="actions">
               ${supportsPause && !ring ? html`
@@ -917,7 +935,7 @@ class SimpleTimerCard extends LitElement {
             <div class="info">
               <div class="top">
                 <div class="title">${t.label}</div>
-                <div class="status">${t.paused ? `${this._formatTime(t.remaining)} (Paused)` : this._formatTime(t.remaining)}</div>
+                <div class="status">${isPaused ? `${this._formatTime(t.end)} (Paused)` : this._formatTime(t.remaining)}</div>
               </div>
               <div class="track"><div class="fill" style="width:${pctLeft}%"></div></div>
             </div>
@@ -934,7 +952,7 @@ class SimpleTimerCard extends LitElement {
       `;
     }
   }
-
+  
   render() {
     if (!this._config) return html``;
 
