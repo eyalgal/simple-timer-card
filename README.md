@@ -42,7 +42,7 @@ A versatile and highly customizable timer card for Home Assistant Lovelace, offe
 ## **✅ Requirements**
 
 * **Home Assistant:** Version 2023.4 or newer
-* **Optional:** MQTT sensor for persistent timer storage
+* **Optional:** [MQTT sensor](https://github.com/eyalgal/simple-timer-card?tab=readme-ov-file#-mqtt-setup-for-persistent-timers) for persistent timer storage
 
 ## **🚀 Installation**
 
