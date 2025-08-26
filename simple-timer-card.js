@@ -1192,7 +1192,7 @@ class SimpleTimerCard extends LitElement {
       .item .status.up { color: color-mix(in srgb, var(--tcolor, var(--primary-color)) 70%, white); }
       .item .x { color: var(--secondary-text-color); background: none; border: 0; padding: 4px; cursor: pointer; }
       .item .x:hover { color: var(--primary-text-color); }
-      .item .actions { display: flex; gap: 4px; align-items: center; }
+      .item .actions { display: flex; gap: 4px; align-items: center; height: 36px; }
       .item .action-btn { color: var(--secondary-text-color); background: none; border: 0; padding: 4px; cursor: pointer; border-radius: 50%; transition: all 0.2s; }
       .item .action-btn:hover { color: var(--primary-text-color); background: color-mix(in srgb, var(--primary-color) 10%, transparent); }
 
