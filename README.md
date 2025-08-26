@@ -28,13 +28,13 @@ A versatile and highly customizable timer card for Home Assistant Lovelace, offe
 * **Multiple Display Styles:** Choose between horizontal or vertical layouts with progress bar or background fill styles.
 * **Timer Presets:** Quick-access buttons for commonly used timer durations (customizable).
 * **Custom Timers:** Set custom timer durations using minute buttons or manual input.
-* **Persistent Storage:** Support for local browser storage or MQTT integration for timers that survive reloads.
+* **Persistent Storage:** Support for local browser storage or MQTT integration for timers that survive reloads and sync across devices.
 * **Audio Notifications:** Play custom audio files when timers expire, with support for repeat counts.
 * **Alexa Integration:** Separate audio settings specifically for Alexa devices.
 * **Timer Actions:** Configurable actions when timers expire (keep, dismiss, or auto-dismiss).
 * **Snooze Functionality:** Easily snooze expired timers for additional time.
 * **Active Timer Management:** View and manage multiple active timers simultaneously.
-* **Entity Integration:** Connect to Home Assistant input_text helpers or MQTT sensors for data persistence.
+* **Entity Integration:** Connect to Home Assistant MQTT sensors for data persistence.
 * **Customizable Appearance:** Adjust colors, icons, and styling to match your Home Assistant theme.
 * **Native Theme Integration:** Automatically uses Home Assistant theme colors and native UI elements.
 * **Visual Progress Indicators:** Clear visual feedback showing timer progress and status.
@@ -42,7 +42,7 @@ A versatile and highly customizable timer card for Home Assistant Lovelace, offe
 ## **✅ Requirements**
 
 * **Home Assistant:** Version 2023.4 or newer
-* **Optional:** input_text helper or MQTT sensor for persistent timer storage
+* **Optional:** MQTT sensor for persistent timer storage
 
 ## **🚀 Installation**
 
@@ -97,7 +97,7 @@ resources:
 
 | Name                    | Type      | Default | Description                                                                                        |
 | :---------------------- | :-------- | :------ | :------------------------------------------------------------------------------------------------- |
-| `default_timer_entity`  | `string`  | `null`  | Entity ID for timer storage (input_text helper or MQTT sensor)                                    |
+| `default_timer_entity`  | `string`  | `null`  | Entity ID for timer storage (MQTT sensor)                                                         |
 
 ### **Expiry & Actions**
 
@@ -158,7 +158,7 @@ Timer that survives browser reloads and plays audio when expired:
 ```yaml
 type: custom:simple-timer-card
 title: Study Timer
-default_timer_entity: input_text.study_timer
+default_timer_entity: sensor.timer_storage_mqtt
 audio_enabled: true
 audio_file_url: /local/sounds/timer_bell.mp3
 audio_repeat_count: 3
@@ -199,20 +199,9 @@ default_timer_color: '#ff6b35'
 default_timer_icon: 'mdi:chef-hat'
 ```
 
-## **🔧 Helper Entity Setup**
+## **🔧 MQTT Setup for Persistent Timers**
 
-For persistent timers, create an input_text helper:
-
-```yaml
-# configuration.yaml
-input_text:
-  timer_storage:
-    name: Timer Storage
-    max: 5000
-    initial: ""
-```
-
-Or use an MQTT sensor:
+For persistent timers that survive browser reloads and sync across devices, configure an MQTT sensor:
 
 ```yaml
 # configuration.yaml
@@ -222,6 +211,8 @@ mqtt:
       state_topic: "simple_timer_card/timers/state"
       unique_id: timer_storage_mqtt
 ```
+
+> **⚠️ Important:** The `state_topic` must be exactly `"simple_timer_card/timers/state"` for the timer persistence feature to work. While you can change the sensor `name` and `unique_id`, changing the `state_topic` will break the functionality. The card publishes timer data to `simple_timer_card/timers` and state updates to `simple_timer_card/timers/state`.
 
 ## **🎨 Styling**
 
@@ -240,7 +231,8 @@ card_mod:
 ## **🐛 Troubleshooting**
 
 **Timers not persisting after browser reload:**
-- Ensure you have configured a `default_timer_entity` pointing to a valid input_text helper or MQTT sensor
+- Ensure you have configured a `default_timer_entity` pointing to a valid MQTT sensor
+- Verify your MQTT sensor is using the exact state topic: `simple_timer_card/timers/state`
 
 **Audio not playing:**
 - Check that the audio file URL is accessible
