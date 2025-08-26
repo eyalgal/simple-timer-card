@@ -13,12 +13,7 @@
 
 A versatile and highly customizable timer card for Home Assistant Lovelace, offering multiple display styles and support for various timer sources.
 
-<!-- Screenshot will be added here -->
-
-[![Add to HACS][hacs_badge]][hacs_link]
-
-[hacs_badge]: https://img.shields.io/badge/HACS-Default-orange.svg
-[hacs_link]: #
+<img width="800" alt="Simple Timer Card Design" src="https://github.com/user-attachments/assets/2514ec44-ed83-482f-bfe8-4322a800e03a" />
 
 > **Note**
 > This card provides a clean and intuitive interface for managing timers in Home Assistant. It supports both local storage and MQTT integration for persistent timers that survive browser reloads and stay synchronized across devices.
@@ -30,7 +25,7 @@ A versatile and highly customizable timer card for Home Assistant Lovelace, offe
 * **Custom Timers:** Set custom timer durations using minute buttons or manual input.
 * **Persistent Storage:** Support for local browser storage or MQTT integration for timers that survive reloads and sync across devices.
 * **Audio Notifications:** Play custom audio files when timers expire, with support for repeat counts.
-* **Alexa Integration:** Separate audio settings specifically for Alexa devices.
+* **Alexa Integration:** based on [alexa_media_player](https://github.com/alandtse/alexa_media_player).
 * **Timer Actions:** Configurable actions when timers expire (keep, dismiss, or auto-dismiss).
 * **Snooze Functionality:** Easily snooze expired timers for additional time.
 * **Active Timer Management:** View and manage multiple active timers simultaneously.
@@ -46,17 +41,15 @@ A versatile and highly customizable timer card for Home Assistant Lovelace, offe
 
 ## **🚀 Installation**
 
-### **HACS**
+<!-- ### **HACS**
 
 Simple Timer Card is available in [HACS](https://hacs.xyz/) (Home Assistant Community Store).
-
-<!-- HACS link will be added when available -->
 
 1. Install HACS if you don't have it already
 2. Open HACS in Home Assistant
 3. Search for "Simple Timer Card"
 4. Click the download button ⬇️
-
+-->
 ### **Manual Installation**
 
 1. Download the `simple-timer-card.js` file from the [latest release](https://github.com/eyalgal/simple-timer-card/releases)
@@ -207,12 +200,14 @@ For persistent timers that survive browser reloads and sync across devices, conf
 # configuration.yaml
 mqtt:
   sensor:
-    - name: "Timer Storage"
-      state_topic: "simple_timer_card/timers/state"
-      unique_id: timer_storage_mqtt
+    - name: Simple Timer Store
+      unique_id: simple_timer_store
+      state_topic: simple_timer_card/timers/state
+      value_template: "{{ value_json.version | default(1) }}"
+      json_attributes_topic: simple_timer_card/timers
 ```
 
-> **⚠️ Important:** The `state_topic` must be exactly `"simple_timer_card/timers/state"` for the timer persistence feature to work. While you can change the sensor `name` and `unique_id`, changing the `state_topic` will break the functionality. The card publishes timer data to `simple_timer_card/timers` and state updates to `simple_timer_card/timers/state`.
+> **⚠️ Important:** The `state_topic` and `json_attributes_topic` Important: The state_topic and json_attributes_topic must be exactly as shown above. It is also strongly recommend to keep the `value_template` as is.
 
 ## **🎨 Styling**
 
