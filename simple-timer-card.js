@@ -63,15 +63,25 @@ class SimpleTimerCard extends LitElement {
       sensor_entity: mqttSensorEntity,
     };
 
-    const normLayout = (config.layout || "horizontal").toLowerCase();
-    const layout = normLayout === "vertical" ? "vertical" : "horizontal";
+	const normLayout = (config.layout || "horizontal").toLowerCase();
+	const layout = normLayout === "vertical" ? "vertical" : "horizontal";
 
-    const rawStyle = (config.style || "bar").toLowerCase();
-    const style =
-      rawStyle === "fill" || rawStyle === "background" || rawStyle === "background_fill"
-        ? "fill"
-        : "bar";
+	const rawStyle = (config.style || "bar").toLowerCase();
+	let style =
+	  rawStyle === "fill" || rawStyle === "background" || rawStyle === "background_fill"
+		? "fill"
+		: (rawStyle === "circle" ? "circle" : "bar");
 
+	// Optional: force vertical to only use bar if desired
+	if (layout === "vertical" && config.vertical_fill_enabled === false) {
+	  style = "bar";
+	}
+
+	// Enforce "circle" only on vertical
+	if (layout !== "vertical" && style === "circle") {
+	  style = "bar";
+	}
+	
     this._config = {
       layout,
       style,
@@ -736,6 +746,12 @@ class SimpleTimerCard extends LitElement {
       this._toast?.("This timer can't be resumed from here.");
     }
   }
+  _togglePause(t, e) {
+    e?.stopPropagation?.();
+    const supportsPause = t.source === "helper" || t.source === "local" || t.source === "mqtt" || t.source === "timer";
+    if (!supportsPause) return;
+    t.paused ? this._handleResume(t) : this._handlePause(t);
+  }
   _handleDismiss(timer) {
     this._ringingTimers.delete(timer.id);
     this._stopAudioForTimer(timer.id);
@@ -941,6 +957,171 @@ class SimpleTimerCard extends LitElement {
     }
   }
 
+  _circVals(radius = 28) {
+    const C = 2 * Math.PI * radius;
+    return { radius, C };
+  }  
+
+  _renderItemVertical(t, style) {
+    const isPaused = t.paused;
+    const color = isPaused ? "var(--warning-color)" : (t.color || "var(--primary-color)");
+    const icon = isPaused ? "mdi:timer-pause" : (t.icon || "mdi:timer-outline");
+    const ring = t.remaining <= 0;
+
+    const pct = typeof t.percent === "number" ? Math.max(0, Math.min(100, t.percent)) : 0;
+    const pctLeft = 100 - pct;
+
+    const supportsPause = t.source === "helper" || t.source === "local" || t.source === "mqtt" || t.source === "timer";
+    const supportsManualControls = t.source === "local" || t.source === "mqtt";
+
+    const timeStr = isPaused ? `${this._formatTime(t.end)} (Paused)` : this._formatTime(t.remaining);
+	const radius = 28;
+	const C = 2 * Math.PI * radius;
+	const progress = typeof t.percent === "number"
+	  ? Math.min(1, Math.max(0, t.percent / 100))
+	  : 0;
+
+	const dashArray = `${C}`;
+	const dashOffset = `${progress * C}`;
+    // expired tile
+	if (ring) {
+	  const entityConf = this._getEntityConfig(t.source_entity);
+	  const expiredMessage = entityConf?.expired_subtitle || this._config.expired_subtitle || "Time's up!";
+
+	  if (style === "circle") {
+		return html`
+		  <li class="item vtile" style="--tcolor:${color}">
+			<div class="vcol">
+			  <div class="vcircle-wrap">
+				<svg class="vcircle" width="64" height="64" viewBox="0 0 72 72" aria-hidden="true">
+				  <circle class="vc-track" cx="36" cy="36" r="${radius}"></circle>
+				  <circle class="vc-prog done" cx="36" cy="36" r="${radius}"
+						  style="stroke-dasharray:${dashArray}px; stroke-dashoffset:${C}px"></circle>
+				</svg>
+				<div class="icon-wrap xl"><ha-icon .icon=${icon}></ha-icon></div>
+			  </div>
+			  <div class="vtitle">${t.label}</div>
+			  <div class="vstatus up">${expiredMessage}</div>
+
+			  <div class="vactions">
+				${supportsManualControls ? html`
+				  <button class="chip" @click=${() => this._handleSnooze(t)}>Snooze</button>
+				  <button class="chip" @click=${() => this._handleDismiss(t)}>Dismiss</button>
+				` : ""}
+			  </div>
+			</div>
+		  </li>
+		`;
+	  }
+
+	  // fall back to existing 'bar' / 'fill' expired rendering…
+	  return html`
+		<li class="item vtile ${style === 'fill' ? 'card' : ''}" style="--tcolor:${color}">
+		  ${style === 'fill' ? html`<div class="progress-fill" style="width:100%"></div>` : ""}
+		  <div class="vcol">
+			<div class="icon-wrap large"><ha-icon .icon=${icon}></ha-icon></div>
+			<div class="vtitle">${t.label}</div>
+			<div class="vstatus up">${expiredMessage}</div>
+			${style === 'bar'
+			  ? html`<div class="vactions-center">
+				  ${supportsManualControls ? html`
+					<button class="chip" @click=${() => this._handleSnooze(t)}>Snooze</button>
+					<button class="chip" @click=${() => this._handleDismiss(t)}>Dismiss</button>
+				  ` : ""}
+				</div>`
+			  : html`${supportsManualControls ? html`
+				  <div class="vactions">
+					<button class="chip" @click=${() => this._handleSnooze(t)}>Snooze</button>
+					<button class="chip" @click=${() => this._handleDismiss(t)}>Dismiss</button>
+				  </div>` : ""}`}
+		  </div>
+		</li>
+	  `;
+	}
+
+
+	// active tile
+	if (style === "circle") {
+	  return html`
+		<li class="item vtile" style="--tcolor:${color}">
+		  ${supportsManualControls ? html`
+			<button class="vtile-close" title="Cancel"
+			  @click=${(e)=>{ e.stopPropagation(); this._handleCancel(t); }}>
+			  <ha-icon icon="mdi:close"></ha-icon>
+			</button>
+		  ` : ""}
+
+		  <div class="vcol">
+			<div class="vcircle-wrap"
+				 title="${t.paused ? 'Resume' : 'Pause'}"
+				 @click=${(e)=>this._togglePause(t, e)}>
+			  <svg class="vcircle ccw" width="64" height="64" viewBox="0 0 72 72" aria-hidden="true">
+				<circle class="vc-track" cx="36" cy="36" r="${radius}"></circle>
+				<circle class="vc-prog"  cx="36" cy="36" r="${radius}"
+						style="stroke-dasharray:${dashArray}px; stroke-dashoffset:${dashOffset}px"></circle>
+			  </svg>
+			  <div class="icon-wrap xl"><ha-icon .icon=${icon}></ha-icon></div>
+			</div>
+
+			<div class="vtitle">${t.label}</div>
+			<div class="vstatus">${timeStr}</div>
+		  </div>
+		</li>
+	  `;
+	}
+
+
+	return html`
+	  <li class="item vtile ${style === 'fill' ? 'card' : ''}" style="--tcolor:${color}">
+		${style === 'fill' ? html`<div class="progress-fill" style="width:${pct}%"></div>` : ""}
+		<div class="vcol">
+		  <div class="icon-wrap large"><ha-icon .icon=${icon}></ha-icon></div>
+		  <div class="vtitle">${t.label}</div>
+		  <div class="vstatus">${timeStr}</div>
+
+		  ${style === 'bar' ? html`
+			<div class="vprogressbar">
+			  ${supportsPause && supportsManualControls ? html`
+				<button class="action-btn"
+				  title="${t.paused ? 'Resume' : 'Pause'}"
+				  @click=${() => t.paused ? this._handleResume(t) : this._handlePause(t)}>
+				  <ha-icon icon="${t.paused ? 'mdi:play' : 'mdi:pause'}"></ha-icon>
+				</button>
+			  ` : ""}
+
+			  <div class="vtrack small">
+				<div class="vfill" style="width:${pctLeft}%"></div>
+			  </div>
+
+			  ${supportsManualControls ? html`
+				<button class="action-btn" title="Cancel" @click=${() => this._handleCancel(t)}>
+				  <ha-icon icon="mdi:close"></ha-icon>
+				</button>
+			  ` : ""}
+			</div>
+		  ` : html`
+			<div class="vactions">
+			  ${supportsPause && supportsManualControls ? html`
+				<button class="action-btn"
+				  title="${t.paused ? 'Resume' : 'Pause'}"
+				  @click=${() => t.paused ? this._handleResume(t) : this._handlePause(t)}>
+				  <ha-icon icon="${t.paused ? 'mdi:play' : 'mdi:pause'}"></ha-icon>
+				</button>
+			  ` : ""}
+			  ${supportsManualControls ? html`
+				<button class="action-btn" title="Cancel" @click=${() => this._handleCancel(t)}>
+				  <ha-icon icon="mdi:close"></ha-icon>
+				</button>
+			  ` : ""}
+			</div>
+		  `}
+		</div>
+	  </li>
+	`;
+
+  }
+
+
   render() {
     if (!this._config) return html``;
 
@@ -1026,6 +1207,12 @@ class SimpleTimerCard extends LitElement {
         </div>
       </div>
     `;
+	
+    const renderFn = this._config.layout === "vertical"
+      ? this._renderItemVertical.bind(this)
+      : this._renderItem.bind(this);
+
+    const cols = this._config.layout === "vertical" && timers.length > 1 ? 2 : 1;
 
     const activeCard = style === "fill" ? html`
       <div class="card ${this._ui.activeFillOpen ? "card-show" : ""}">
@@ -1051,8 +1238,8 @@ class SimpleTimerCard extends LitElement {
           </div>
         </div>
 
-        <ul class="list">
-          ${timers.map((t) => this._renderItem(t, style))}
+        <ul class="${this._config.layout === 'vertical' ? `list vgrid cols-${cols}` : 'list'}">
+          ${timers.map((t) => renderFn(t, style))}
         </ul>
       </div>
     ` : html`
@@ -1079,9 +1266,9 @@ class SimpleTimerCard extends LitElement {
           </div>
         </div>
 
-        <ul class="list">
-          ${timers.map((t) => this._renderItem(t, style))}
-        </ul>
+		<ul class="${this._config.layout === 'vertical' ? `list vgrid cols-${cols}` : 'list'}">
+		  ${timers.map((t) => renderFn(t, style))}
+		</ul>
       </div>
     `;
 
@@ -1204,6 +1391,171 @@ class SimpleTimerCard extends LitElement {
       .chips { display: flex; gap: 6px; }
       .chip { font-weight: 600; color: color-mix(in srgb, var(--tcolor, var(--primary-color)) 70%, white); border-radius: var(--stc-chip-radius); padding: 4px 8px; font-size: 12px; background: none; border: 0; cursor: pointer; }
       .chip:hover { background: color-mix(in srgb, var(--tcolor, var(--primary-color)) 18%, transparent); }
+      /* Vertical grid: 1 full width if one item, else 2 per row */
+      .vgrid { display: grid; gap: 8px; }
+      .vgrid.cols-1 { grid-template-columns: 1fr; }
+      .vgrid.cols-2 { grid-template-columns: 1fr 1fr; }
+
+      /* Vertical tile */
+      .vtile {
+        position: relative;
+        height: auto;
+        padding: 8px;
+        display: flex;
+        align-items: stretch;
+        justify-content: center;
+      }
+      .vtile .vcol {
+        z-index: 1;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        text-align: center;
+      }
+
+      .icon-wrap.large {
+        width: 36px; height: 36px; flex: 0 0 36px; border-radius: 50%;
+        background: color-mix(in srgb, var(--tcolor, var(--divider-color)) 22%, transparent);
+      }
+      .icon-wrap.large ha-icon { --mdc-icon-size: 22px; color: var(--tcolor, var(--primary-text-color)); }
+
+      .vtitle { font-size: 14px; font-weight: 600; line-height: 16px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0; }
+      .vstatus { font-size: 12px; color: var(--secondary-text-color); line-height: 14px; font-variant-numeric: tabular-nums; margin: 0; margin-bottom: 2px; }
+      .vstatus.up { color: color-mix(in srgb, var(--tcolor, var(--primary-color)) 70%, white); }
+
+      .vtrack {
+        width: 100%;
+        height: 6px;
+        border-radius: var(--stc-chip-radius);
+        background: color-mix(in srgb, var(--tcolor, var(--primary-color)) 10%, transparent);
+        overflow: hidden;
+      }
+      .vfill {
+        height: 100%;
+        background: var(--tcolor, var(--primary-color));
+        transition: width 1s linear;
+        border-radius: var(--stc-chip-radius);
+      }
+
+      .vtile.finished .vfill { width: 100% !important; }
+      .vtile .vactions {
+        display: flex; gap: 6px; align-items: center; justify-content: center; margin-top: 2px;
+      }
+
+      /* Keep existing progress-fill overlay for "fill" style tiles */
+      .vtile.card .progress-fill {
+        border-radius: var(--ha-card-border-radius, var(--stc-radius));
+        opacity: 0.22;
+      }
+
+      /* Make tiles look good in tight columns */
+      @media (max-width: 480px) {
+        .vgrid.cols-2 { grid-template-columns: 1fr 1fr; }
+      }
+      /* Vertical grid remains the same (1 or 2 cols) */
+
+      /* Bar row: compact progress + actions on right */
+      .vtrack.small {
+        flex: 0 0 60%;        /* 60% of tile width for the bar */
+        height: 6px;
+        border-radius: var(--stc-chip-radius);
+        background: color-mix(in srgb, var(--tcolor, var(--primary-color)) 10%, transparent);
+        overflow: hidden;
+      }
+	  .vprogressbar{
+	    width:100%;
+	    display:flex;
+	    align-items:center;
+	    justify-content:center;
+	    gap:0px;
+	    margin-top: -4px;
+		margin-bottom: -4px;
+	  }
+
+	  .vprogressbar .vtrack.small{
+	    flex:0 1 60%;
+	    height:8px;
+	    border-radius:var(--stc-chip-radius);
+	    background: color-mix(in srgb, var(--tcolor, var(--primary-color)) 10%, transparent);
+	    overflow:hidden;
+	  }
+
+	/* When ringing, replace bar with centered chips */
+	  .vactions-center{
+	    width:100%;
+	    display:flex;
+	    justify-content:center;
+	    align-items:center;
+	    gap:2px;
+	    margin-top:-2px;
+	  }
+
+      /* Keep previous vtile visuals */
+      .vtile .vactions { display:flex; gap:6px; align-items:center; justify-content:center; margin-top:2px; }
+	  /* === Circle style (vertical only) ======================================= */
+	  .vcircle-wrap{ position:relative; width:64px; height:64px; display:grid; place-items:center; }
+
+	  .vcircle{ position:absolute; inset:0; transform: rotate(-90deg) scale(-1,1); }
+	  .vc-track,
+	  .vc-prog {
+	    fill: none;
+	    stroke-width: 4.5px;
+	    vector-effect: non-scaling-stroke;
+	  }
+	  .vc-track {
+	    stroke: color-mix(in srgb, var(--tcolor, var(--primary-color)) 18%, transparent);
+	  }
+	  .vc-prog {
+	    stroke: var(--tcolor, var(--primary-color));
+	    transition: stroke-dashoffset 1s linear;
+	  }
+	  .vc-prog.done { stroke-dashoffset: 0 !important; }
+
+	  .icon-wrap.xl {
+	    width: 56px; height: 56px; flex: 0 0 56px; border-radius: 50%;
+	    background: color-mix(in srgb, var(--tcolor, var(--divider-color)) 22%, transparent);
+	    display: flex; align-items: center; justify-content: center;
+	  }
+	  .icon-wrap.xl ha-icon { --mdc-icon-size: 28px; color: var(--tcolor, var(--primary-text-color)); }
+
+	  /* Top-right cancel (circle tiles) */
+	  .vtile { position: relative; }
+	  .vtile-close{
+	    position:absolute; top:4px; right:4px;
+	    border:0; background:none; padding:4px; border-radius:50%;
+	    color: var(--secondary-text-color); cursor:pointer; z-index: 2;
+	  }
+	  .vtile-close:hover{
+	    background: color-mix(in srgb, var(--primary-color) 10%, transparent);
+	  }
+	  .vtile-close ha-icon { --mdc-icon-size: 18px; }
+
+	  /* Center icon & circle perfectly + clickable */
+	  .vcircle-wrap{
+	    position: relative;
+	    width: 64px; height: 64px;
+	    display:grid; place-items:center;
+	    cursor: pointer;
+	  }
+
+	  /* Make progress run counter-clockwise */
+	  .vcircle.ccw { position: absolute; inset: 0; transform-origin: center; transform: rotate(-90deg) scale(-1, 1); }
+
+	  /* Keep these from before (or ensure they exist) */
+	  .vc-track, .vc-prog{ fill:none; stroke-width:4.5px; vector-effect:non-scaling-stroke; }
+	  .vc-track{ stroke: color-mix(in srgb, var(--tcolor, var(--primary-color)) 18%, transparent); }
+	  .vc-prog{  transition: stroke-dashoffset 1s linear; }
+
+	  .icon-wrap.xl{
+	    width:56px; height:56px; border-radius:50%;
+	    background: color-mix(in srgb, var(--tcolor, var(--divider-color)) 22%, transparent);
+	    display:flex; align-items:center; justify-content:center;
+	  }
+	  .icon-wrap.xl ha-icon{ --mdc-icon-size:28px; color: var(--tcolor, var(--primary-text-color)); }
+
+
     `;
   }
 
@@ -1474,6 +1826,7 @@ class SimpleTimerCardEditor extends LitElement {
           <ha-select label="Style" .value=${this._config.style || "bar"} .configValue=${"style"} @selected=${this._selectChanged} @closed=${(e) => { e.stopPropagation(); this._selectChanged(e); }}>
             <mwc-list-item value="fill">Background fill</mwc-list-item>
             <mwc-list-item value="bar">Progress bar</mwc-list-item>
+			<mwc-list-item value="circle" ?disabled=${(this._config.layout || "horizontal") !== "vertical"}>Circle (vertical only)</mwc-list-item>
           </ha-select>
         </div>
 
