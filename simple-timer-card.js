@@ -5,13 +5,13 @@
  *
  * Author: eyalgal
  * License: MIT
- * Version: 1.0.0
+ * Version: 1.1.0
  * For more information, visit: https://github.com/eyalgal/simple-timer-card								   
  */		 
 
 import { LitElement, html, css } from "https://unpkg.com/lit@2.8.0/index.js?module";
 
-const cardVersion = "1.0.0";
+const cardVersion = "1.1.0";
 console.info(
   `%c SIMPLE-TIMER-CARD %c v${cardVersion} `,
   "color: white; background: #4285f4; font-weight: 700;",
@@ -1497,7 +1497,7 @@ class SimpleTimerCard extends LitElement {
 	  /* === Circle style (vertical only) ======================================= */
 	  .vcircle-wrap{ position:relative; width:64px; height:64px; display:grid; place-items:center; }
 
-	  .vcircle{ position:absolute; inset:0; transform: rotate(-90deg) scale(-1,1); }
+	  .vcircle{ position:absolute; inset:0; transform: rotate(-90deg); }
 	  .vc-track,
 	  .vc-prog {
 	    fill: none;
@@ -1509,7 +1509,7 @@ class SimpleTimerCard extends LitElement {
 	  }
 	  .vc-prog {
 	    stroke: var(--tcolor, var(--primary-color));
-	    transition: stroke-dashoffset 1s linear;
+	    transition: stroke-dashoffset 0.1s linear;
 	  }
 	  .vc-prog.done { stroke-dashoffset: 0 !important; }
 
@@ -1541,12 +1541,12 @@ class SimpleTimerCard extends LitElement {
 	  }
 
 	  /* Make progress run counter-clockwise */
-	  .vcircle.ccw { position: absolute; inset: 0; transform-origin: center; transform: rotate(-90deg) scale(-1, 1); }
+	  .vcircle.ccw { position: absolute; inset: 0; transform-origin: center; transform: rotate(-90deg); }
 
 	  /* Keep these from before (or ensure they exist) */
 	  .vc-track, .vc-prog{ fill:none; stroke-width:4.5px; vector-effect:non-scaling-stroke; }
 	  .vc-track{ stroke: color-mix(in srgb, var(--tcolor, var(--primary-color)) 18%, transparent); }
-	  .vc-prog{  transition: stroke-dashoffset 1s linear; }
+	  .vc-prog{  transition: stroke-dashoffset 0.1s linear; }
 
 	  .icon-wrap.xl{
 	    width:56px; height:56px; border-radius:50%;
