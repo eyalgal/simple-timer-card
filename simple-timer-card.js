@@ -64,12 +64,11 @@ class SimpleTimerCard extends LitElement {
     };
 
 	const normLayout = (config.layout || "horizontal").toLowerCase();
-	const layout = normLayout === "vertical" ? "vertical" : "horizontal";
+	let layout = normLayout === "vertical" ? "vertical" : "horizontal";
 
 	const rawStyle = (config.style || "bar").toLowerCase();
 	let style, layoutOverride;
 
-	// Parse new combined style+layout options
 	if (rawStyle === "fill_vertical" || rawStyle === "fill_horizontal") {
 	  style = "fill";
 	  layoutOverride = rawStyle === "fill_vertical" ? "vertical" : "horizontal";
@@ -78,22 +77,17 @@ class SimpleTimerCard extends LitElement {
 	  layoutOverride = rawStyle === "bar_vertical" ? "vertical" : "horizontal";
 	} else if (rawStyle === "circle") {
 	  style = "circle";
-	  layoutOverride = null; // use existing layout
+	  layoutOverride = null;
 	} else {
-	  // Backward compatibility with old values
 	  style = rawStyle === "fill" || rawStyle === "background" || rawStyle === "background_fill"
 		? "fill"
 		: (rawStyle === "circle" ? "circle" : "bar");
 	  layoutOverride = null;
 	}
 
-	// Override layout if style specifies it
 	if (layoutOverride) {
 	  layout = layoutOverride;
 	}
-
-	// Allow circle style in both layouts now
-	// (no restrictions)
 	
     this._config = {
       layout,
@@ -900,12 +894,11 @@ class SimpleTimerCard extends LitElement {
     const supportsPause = t.source === "helper" || t.source === "local" || t.source === "mqtt" || t.source === "timer";
     const supportsManualControls = t.source === "local" || t.source === "mqtt";
 
-    // Circle style calculations
     const radius = 28;
     const C = 2 * Math.PI * radius;
     const progress = typeof t.percent === "number"
-      ? Math.min(1, Math.max(0, t.percent / 100))
-      : 0;
+      ? Math.min(1, Math.max(0, pctLeft / 100))
+      : 1;
     const dashArray = `${C}`;
     const dashOffset = `${progress * C}`;
     const timeStr = isPaused ? `${this._formatTime(t.end)} (Paused)` : this._formatTime(t.remaining);
@@ -1055,12 +1048,11 @@ class SimpleTimerCard extends LitElement {
 	const radius = 28;
 	const C = 2 * Math.PI * radius;
 	const progress = typeof t.percent === "number"
-	  ? Math.min(1, Math.max(0, t.percent / 100))
-	  : 0;
+	  ? Math.min(1, Math.max(0, pctLeft / 100))
+	  : 1;
 
 	const dashArray = `${C}`;
 	const dashOffset = `${progress * C}`;
-    // expired tile
 	if (ring) {
 	  const entityConf = this._getEntityConfig(t.source_entity);
 	  const expiredMessage = entityConf?.expired_subtitle || this._config.expired_subtitle || "Time's up!";
@@ -1091,7 +1083,6 @@ class SimpleTimerCard extends LitElement {
 		`;
 	  }
 
-	  // fall back to existing 'bar' / 'fill' expired rendering…
 	  return html`
 		<li class="item vtile ${style === 'fill' ? 'card' : ''}" style="--tcolor:${color}">
 		  ${style === 'fill' ? html`<div class="progress-fill" style="width:100%"></div>` : ""}
@@ -1117,7 +1108,6 @@ class SimpleTimerCard extends LitElement {
 	}
 
 
-	// active tile
 	if (style === "circle") {
 	  return html`
 		<li class="item vtile" style="--tcolor:${color}">
@@ -1468,12 +1458,10 @@ class SimpleTimerCard extends LitElement {
       .chips { display: flex; gap: 6px; }
       .chip { font-weight: 600; color: color-mix(in srgb, var(--tcolor, var(--primary-color)) 70%, white); border-radius: var(--stc-chip-radius); padding: 4px 8px; font-size: 12px; background: none; border: 0; cursor: pointer; }
       .chip:hover { background: color-mix(in srgb, var(--tcolor, var(--primary-color)) 18%, transparent); }
-      /* Vertical grid: 1 full width if one item, else 2 per row */
       .vgrid { display: grid; gap: 8px; }
       .vgrid.cols-1 { grid-template-columns: 1fr; }
       .vgrid.cols-2 { grid-template-columns: 1fr 1fr; }
 
-      /* Vertical tile */
       .vtile {
         position: relative;
         height: auto;
@@ -1521,21 +1509,17 @@ class SimpleTimerCard extends LitElement {
         display: flex; gap: 6px; align-items: center; justify-content: center; margin-top: 2px;
       }
 
-      /* Keep existing progress-fill overlay for "fill" style tiles */
       .vtile.card .progress-fill {
         border-radius: var(--ha-card-border-radius, var(--stc-radius));
         opacity: 0.22;
       }
 
-      /* Make tiles look good in tight columns */
       @media (max-width: 480px) {
         .vgrid.cols-2 { grid-template-columns: 1fr 1fr; }
       }
-      /* Vertical grid remains the same (1 or 2 cols) */
 
-      /* Bar row: compact progress + actions on right */
       .vtrack.small {
-        flex: 0 0 60%;        /* 60% of tile width for the bar */
+        flex: 0 0 60%;
         height: 6px;
         border-radius: var(--stc-chip-radius);
         background: color-mix(in srgb, var(--tcolor, var(--primary-color)) 10%, transparent);
@@ -1559,7 +1543,6 @@ class SimpleTimerCard extends LitElement {
 	    overflow:hidden;
 	  }
 
-	/* When ringing, replace bar with centered chips */
 	  .vactions-center{
 	    width:100%;
 	    display:flex;
@@ -1569,9 +1552,7 @@ class SimpleTimerCard extends LitElement {
 	    margin-top:-2px;
 	  }
 
-      /* Keep previous vtile visuals */
       .vtile .vactions { display:flex; gap:6px; align-items:center; justify-content:center; margin-top:2px; }
-	  /* === Circle style (vertical only) ======================================= */
 	  .vcircle-wrap{ position:relative; width:64px; height:64px; display:grid; place-items:center; }
 
 	  .vcircle{ position:absolute; inset:0; transform: rotate(-90deg); }
@@ -1597,7 +1578,6 @@ class SimpleTimerCard extends LitElement {
 	  }
 	  .icon-wrap.xl ha-icon { --mdc-icon-size: 28px; color: var(--tcolor, var(--primary-text-color)); }
 
-	  /* Top-right cancel (circle tiles) */
 	  .vtile { position: relative; }
 	  .vtile-close{
 	    position:absolute; top:4px; right:4px;
@@ -1609,7 +1589,6 @@ class SimpleTimerCard extends LitElement {
 	  }
 	  .vtile-close ha-icon { --mdc-icon-size: 18px; }
 
-	  /* Center icon & circle perfectly + clickable */
 	  .vcircle-wrap{
 	    position: relative;
 	    width: 64px; height: 64px;
@@ -1617,10 +1596,8 @@ class SimpleTimerCard extends LitElement {
 	    cursor: pointer;
 	  }
 
-	  /* Make progress run counter-clockwise */
 	  .vcircle.ccw { position: absolute; inset: 0; transform-origin: center; transform: rotate(-90deg); }
 
-	  /* Keep these from before (or ensure they exist) */
 	  .vc-track, .vc-prog{ fill:none; stroke-width:4.5px; vector-effect:non-scaling-stroke; }
 	  .vc-track{ stroke: color-mix(in srgb, var(--tcolor, var(--primary-color)) 18%, transparent); }
 	  .vc-prog{  transition: stroke-dashoffset 0.1s linear; }
@@ -1885,7 +1862,6 @@ class SimpleTimerCardEditor extends LitElement {
     const style = this._config.style || "bar";
     const layout = this._config.layout || "horizontal";
     
-    // Map old style values to new UI values based on current layout
     if (style === "fill") {
       return layout === "vertical" ? "fill_vertical" : "fill_horizontal";
     } else if (style === "bar") {
@@ -1894,7 +1870,6 @@ class SimpleTimerCardEditor extends LitElement {
       return "circle";
     }
     
-    // Return the value as-is if it's already a new-style value
     return style;
   }
 
