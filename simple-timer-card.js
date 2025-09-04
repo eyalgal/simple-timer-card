@@ -67,20 +67,33 @@ class SimpleTimerCard extends LitElement {
 	const layout = normLayout === "vertical" ? "vertical" : "horizontal";
 
 	const rawStyle = (config.style || "bar").toLowerCase();
-	let style =
-	  rawStyle === "fill" || rawStyle === "background" || rawStyle === "background_fill"
+	let style, layoutOverride;
+
+	// Parse new combined style+layout options
+	if (rawStyle === "fill_vertical" || rawStyle === "fill_horizontal") {
+	  style = "fill";
+	  layoutOverride = rawStyle === "fill_vertical" ? "vertical" : "horizontal";
+	} else if (rawStyle === "bar_vertical" || rawStyle === "bar_horizontal") {
+	  style = "bar"; 
+	  layoutOverride = rawStyle === "bar_vertical" ? "vertical" : "horizontal";
+	} else if (rawStyle === "circle") {
+	  style = "circle";
+	  layoutOverride = null; // use existing layout
+	} else {
+	  // Backward compatibility with old values
+	  style = rawStyle === "fill" || rawStyle === "background" || rawStyle === "background_fill"
 		? "fill"
 		: (rawStyle === "circle" ? "circle" : "bar");
-
-	// Optional: force vertical to only use bar if desired
-	if (layout === "vertical" && config.vertical_fill_enabled === false) {
-	  style = "bar";
+	  layoutOverride = null;
 	}
 
-	// Enforce "circle" only on vertical
-	if (layout !== "vertical" && style === "circle") {
-	  style = "bar";
+	// Override layout if style specifies it
+	if (layoutOverride) {
+	  layout = layoutOverride;
 	}
+
+	// Allow circle style in both layouts now
+	// (no restrictions)
 	
     this._config = {
       layout,
@@ -880,15 +893,52 @@ class SimpleTimerCard extends LitElement {
     const pctLeft = 100 - pct;
 
     const isFillStyle = style === "fill";
-    const baseClasses = isFillStyle ? "card item" : "item bar";
-    const finishedClasses = isFillStyle ? "card item finished" : "card item bar";
+    const isCircleStyle = style === "circle";
+    const baseClasses = isFillStyle ? "card item" : (isCircleStyle ? "item vtile" : "item bar");
+    const finishedClasses = isFillStyle ? "card item finished" : (isCircleStyle ? "item vtile" : "card item bar");
 
     const supportsPause = t.source === "helper" || t.source === "local" || t.source === "mqtt" || t.source === "timer";
     const supportsManualControls = t.source === "local" || t.source === "mqtt";
 
+    // Circle style calculations
+    const radius = 28;
+    const C = 2 * Math.PI * radius;
+    const progress = typeof t.percent === "number"
+      ? Math.min(1, Math.max(0, t.percent / 100))
+      : 0;
+    const dashArray = `${C}`;
+    const dashOffset = `${progress * C}`;
+    const timeStr = isPaused ? `${this._formatTime(t.end)} (Paused)` : this._formatTime(t.remaining);
+
     if (ring) {
       const entityConf = this._getEntityConfig(t.source_entity);
       const expiredMessage = entityConf?.expired_subtitle || this._config.expired_subtitle || "Time's up!";
+
+      if (isCircleStyle) {
+        return html`
+          <li class="${finishedClasses}" style="--tcolor:${color}">
+            <div class="vcol">
+              <div class="vcircle-wrap">
+                <svg class="vcircle" width="64" height="64" viewBox="0 0 72 72" aria-hidden="true">
+                  <circle class="vc-track" cx="36" cy="36" r="${radius}"></circle>
+                  <circle class="vc-prog done" cx="36" cy="36" r="${radius}"
+                          style="stroke-dasharray:${dashArray}px; stroke-dashoffset:${C}px"></circle>
+                </svg>
+                <div class="icon-wrap xl"><ha-icon .icon=${icon}></ha-icon></div>
+              </div>
+              <div class="vtitle">${t.label}</div>
+              <div class="vstatus up">${expiredMessage}</div>
+
+              <div class="vactions">
+                ${supportsManualControls ? html`
+                  <button class="chip" @click=${() => this._handleSnooze(t)}>Snooze</button>
+                  <button class="chip" @click=${() => this._handleDismiss(t)}>Dismiss</button>
+                ` : ""}
+              </div>
+            </div>
+          </li>
+        `;
+      }
 
       return html`
         <li class="${finishedClasses}" style="--tcolor:${color}">
@@ -928,6 +978,33 @@ class SimpleTimerCard extends LitElement {
               ` : ""}
               ${supportsManualControls ? html`<button class="action-btn" title="Cancel" @click=${() => this._handleCancel(t)}><ha-icon icon="mdi:close"></ha-icon></button>` : ""}
             </div>
+          </div>
+        </li>
+      `;
+    } else if (isCircleStyle) {
+      return html`
+        <li class="${baseClasses}" style="--tcolor:${color}">
+          ${supportsManualControls ? html`
+            <button class="vtile-close" title="Cancel"
+              @click=${(e)=>{ e.stopPropagation(); this._handleCancel(t); }}>
+              <ha-icon icon="mdi:close"></ha-icon>
+            </button>
+          ` : ""}
+
+          <div class="vcol">
+            <div class="vcircle-wrap"
+                 title="${t.paused ? 'Resume' : 'Pause'}"
+                 @click=${(e)=>this._togglePause(t, e)}>
+              <svg class="vcircle ccw" width="64" height="64" viewBox="0 0 72 72" aria-hidden="true">
+                <circle class="vc-track" cx="36" cy="36" r="${radius}"></circle>
+                <circle class="vc-prog"  cx="36" cy="36" r="${radius}"
+                        style="stroke-dasharray:${dashArray}px; stroke-dashoffset:${dashOffset}px"></circle>
+              </svg>
+              <div class="icon-wrap xl"><ha-icon .icon=${icon}></ha-icon></div>
+            </div>
+
+            <div class="vtitle">${t.label}</div>
+            <div class="vstatus">${timeStr}</div>
           </div>
         </li>
       `;
@@ -1804,6 +1881,23 @@ class SimpleTimerCardEditor extends LitElement {
     }
   }
 
+  _getDisplayStyleValue() {
+    const style = this._config.style || "bar";
+    const layout = this._config.layout || "horizontal";
+    
+    // Map old style values to new UI values based on current layout
+    if (style === "fill") {
+      return layout === "vertical" ? "fill_vertical" : "fill_horizontal";
+    } else if (style === "bar") {
+      return layout === "vertical" ? "bar_vertical" : "bar_horizontal";
+    } else if (style === "circle") {
+      return "circle";
+    }
+    
+    // Return the value as-is if it's already a new-style value
+    return style;
+  }
+
   render() {
     if (!this.hass || !this._config) return html``;
 
@@ -1823,10 +1917,12 @@ class SimpleTimerCardEditor extends LitElement {
             <mwc-list-item value="vertical">Vertical</mwc-list-item>
           </ha-select>
 
-          <ha-select label="Style" .value=${this._config.style || "bar"} .configValue=${"style"} @selected=${this._selectChanged} @closed=${(e) => { e.stopPropagation(); this._selectChanged(e); }}>
-            <mwc-list-item value="fill">Background fill</mwc-list-item>
-            <mwc-list-item value="bar">Progress bar</mwc-list-item>
-			<mwc-list-item value="circle" ?disabled=${(this._config.layout || "horizontal") !== "vertical"}>Circle (vertical only)</mwc-list-item>
+          <ha-select label="Style" .value=${this._getDisplayStyleValue()} .configValue=${"style"} @selected=${this._selectChanged} @closed=${(e) => { e.stopPropagation(); this._selectChanged(e); }}>
+            <mwc-list-item value="fill_vertical">Background fill (vertical)</mwc-list-item>
+            <mwc-list-item value="fill_horizontal">Background fill (horizontal)</mwc-list-item>
+            <mwc-list-item value="bar_vertical">Progress bar (vertical)</mwc-list-item>
+            <mwc-list-item value="bar_horizontal">Progress bar (horizontal)</mwc-list-item>
+            <mwc-list-item value="circle">Circle</mwc-list-item>
           </ha-select>
         </div>
 
