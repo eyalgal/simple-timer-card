@@ -140,7 +140,7 @@ class SimpleTimerCard extends LitElement {
   _startTimerUpdates() {
     this._stopTimerUpdates();
     this._updateTimers();
-    this._timerInterval = setInterval(() => this._updateTimers(), 1000);
+    this._timerInterval = setInterval(() => this._updateTimers(), 250);
   }
   _stopTimerUpdates() {
     if (this._timerInterval) {
@@ -879,11 +879,13 @@ class SimpleTimerCard extends LitElement {
   }
 
   _renderItem(t, style) {
+    const { radius } = this._circVals();
     const isPaused = t.paused;
     const color = isPaused ? "var(--warning-color)" : (t.color || "var(--primary-color)");
     const icon = isPaused ? "mdi:timer-pause" : (t.icon || "mdi:timer-outline");
     const ring = t.remaining <= 0;
     const pct = typeof t.percent === "number" ? Math.max(0, Math.min(100, t.percent)) : 0;
+    const pctRemain = t.remaining > 0 ? Math.max(0.001, 100 - pct) : 0;
     const pctLeft = 100 - pct;
 
     const isFillStyle = style === "fill";
@@ -894,13 +896,6 @@ class SimpleTimerCard extends LitElement {
     const supportsPause = t.source === "helper" || t.source === "local" || t.source === "mqtt" || t.source === "timer";
     const supportsManualControls = t.source === "local" || t.source === "mqtt";
 
-    const radius = 28;
-    const C = 2 * Math.PI * radius;
-    const progress = typeof t.percent === "number"
-      ? Math.min(1, Math.max(0, pct / 100))
-      : 0;
-    const dashArray = `${C}`;
-    const dashOffset = `${progress * C}`;
     const timeStr = isPaused ? `${this._formatTime(t.end)} (Paused)` : this._formatTime(t.remaining);
 
     if (ring) {
@@ -913,15 +908,14 @@ class SimpleTimerCard extends LitElement {
             <div class="vcol">
               <div class="vcircle-wrap">
                 <svg class="vcircle" width="64" height="64" viewBox="0 0 72 72" aria-hidden="true">
-                  <circle class="vc-track" cx="36" cy="36" r="${radius}"></circle>
-                  <circle class="vc-prog done" cx="36" cy="36" r="${radius}"
-                          style="stroke-dasharray:${dashArray}px; stroke-dashoffset:${C}px"></circle>
+                  <circle class="vc-track" cx="36" cy="36" r="${radius}" pathLength="100"></circle>
+                  <circle class="vc-prog done" cx="36" cy="36" r="${radius}" pathLength="100"
+                    style="stroke-dasharray:0 100; stroke-dashoffset:0"></circle>
                 </svg>
                 <div class="icon-wrap xl"><ha-icon .icon=${icon}></ha-icon></div>
               </div>
               <div class="vtitle">${t.label}</div>
               <div class="vstatus up">${expiredMessage}</div>
-
               <div class="vactions">
                 ${supportsManualControls ? html`
                   <button class="chip" @click=${() => this._handleSnooze(t)}>Snooze</button>
@@ -961,7 +955,7 @@ class SimpleTimerCard extends LitElement {
             <div class="icon-wrap"><ha-icon .icon=${icon}></ha-icon></div>
             <div class="info">
               <div class="title">${t.label}</div>
-              <div class="status">${isPaused ? `${this._formatTime(t.end)} (Paused)` : this._formatTime(t.remaining)}</div>
+              <div class="status">${timeStr}</div>
             </div>
             <div class="actions">
               ${supportsPause && !ring && supportsManualControls ? html`
@@ -983,19 +977,17 @@ class SimpleTimerCard extends LitElement {
               <ha-icon icon="mdi:close"></ha-icon>
             </button>
           ` : ""}
-
           <div class="vcol">
             <div class="vcircle-wrap"
                  title="${t.paused ? 'Resume' : 'Pause'}"
                  @click=${(e)=>this._togglePause(t, e)}>
-              <svg class="vcircle ccw" width="64" height="64" viewBox="0 0 72 72" aria-hidden="true">
-                <circle class="vc-track" cx="36" cy="36" r="${radius}"></circle>
-                <circle class="vc-prog"  cx="36" cy="36" r="${radius}"
-                        style="stroke-dasharray:${dashArray}px; stroke-dashoffset:${dashOffset}px"></circle>
+              <svg class="vcircle" width="64" height="64" viewBox="0 0 72 72" aria-hidden="true">
+                <circle class="vc-track" cx="36" cy="36" r="${radius}" pathLength="100"></circle>
+                <circle class="vc-prog" cx="36" cy="36" r="${radius}" pathLength="100"
+                  style="stroke-dasharray:${pctRemain.toFixed(3)} 100; stroke-dashoffset:0;"></circle>
               </svg>
               <div class="icon-wrap xl"><ha-icon .icon=${icon}></ha-icon></div>
             </div>
-
             <div class="vtitle">${t.label}</div>
             <div class="vstatus">${timeStr}</div>
           </div>
@@ -1009,7 +1001,7 @@ class SimpleTimerCard extends LitElement {
             <div class="info">
               <div class="top">
                 <div class="title">${t.label}</div>
-                <div class="status">${isPaused ? `${this._formatTime(t.end)} (Paused)` : this._formatTime(t.remaining)}</div>
+                <div class="status">${timeStr}</div>
               </div>
               <div class="track"><div class="fill" style="width:${pctLeft}%"></div></div>
             </div>
@@ -1027,165 +1019,155 @@ class SimpleTimerCard extends LitElement {
     }
   }
 
+
   _circVals(radius = 28) {
     const C = 2 * Math.PI * radius;
     return { radius, C };
   }  
 
   _renderItemVertical(t, style) {
+    const { radius } = this._circVals();
     const isPaused = t.paused;
     const color = isPaused ? "var(--warning-color)" : (t.color || "var(--primary-color)");
     const icon = isPaused ? "mdi:timer-pause" : (t.icon || "mdi:timer-outline");
     const ring = t.remaining <= 0;
-
     const pct = typeof t.percent === "number" ? Math.max(0, Math.min(100, t.percent)) : 0;
+    const pctRemain = t.remaining > 0 ? Math.max(0.001, 100 - pct) : 0;
     const pctLeft = 100 - pct;
 
     const supportsPause = t.source === "helper" || t.source === "local" || t.source === "mqtt" || t.source === "timer";
     const supportsManualControls = t.source === "local" || t.source === "mqtt";
 
     const timeStr = isPaused ? `${this._formatTime(t.end)} (Paused)` : this._formatTime(t.remaining);
-	const radius = 28;
-	const C = 2 * Math.PI * radius;
-	const progress = typeof t.percent === "number"
-	  ? Math.min(1, Math.max(0, pct / 100))
-	  : 0;
 
-	const dashArray = `${C}`;
-	const dashOffset = `${progress * C}`;
-	if (ring) {
-	  const entityConf = this._getEntityConfig(t.source_entity);
-	  const expiredMessage = entityConf?.expired_subtitle || this._config.expired_subtitle || "Time's up!";
+    if (ring) {
+      const entityConf = this._getEntityConfig(t.source_entity);
+      const expiredMessage = entityConf?.expired_subtitle || this._config.expired_subtitle || "Time's up!";
 
-	  if (style === "circle") {
-		return html`
-		  <li class="item vtile" style="--tcolor:${color}">
-			<div class="vcol">
-			  <div class="vcircle-wrap">
-				<svg class="vcircle" width="64" height="64" viewBox="0 0 72 72" aria-hidden="true">
-				  <circle class="vc-track" cx="36" cy="36" r="${radius}"></circle>
-				  <circle class="vc-prog done" cx="36" cy="36" r="${radius}"
-						  style="stroke-dasharray:${dashArray}px; stroke-dashoffset:${C}px"></circle>
-				</svg>
-				<div class="icon-wrap xl"><ha-icon .icon=${icon}></ha-icon></div>
-			  </div>
-			  <div class="vtitle">${t.label}</div>
-			  <div class="vstatus up">${expiredMessage}</div>
+      if (style === "circle") {
+        return html`
+          <li class="item vtile" style="--tcolor:${color}">
+            <div class="vcol">
+              <div class="vcircle-wrap">
+                <svg class="vcircle" width="64" height="64" viewBox="0 0 72 72" aria-hidden="true">
+                  <circle class="vc-track" cx="36" cy="36" r="${radius}" pathLength="100"></circle>
+                  <circle class="vc-prog"
+                    cx="36" cy="36" r="${radius}" pathLength="100"
+                    style="stroke-dasharray:0 100; stroke-dashoffset:0;">
+                  </circle>
+                </svg>
+                <div class="icon-wrap xl"><ha-icon .icon=${icon}></ha-icon></div>
+              </div>
+              <div class="vtitle">${t.label}</div>
+              <div class="vstatus up">${expiredMessage}</div>
+              <div class="vactions">
+                ${supportsManualControls ? html`
+                  <button class="chip" @click=${() => this._handleSnooze(t)}>Snooze</button>
+                  <button class="chip" @click=${() => this._handleDismiss(t)}>Dismiss</button>
+                ` : ""}
+              </div>
+            </div>
+          </li>
+        `;
+      }
 
-			  <div class="vactions">
-				${supportsManualControls ? html`
-				  <button class="chip" @click=${() => this._handleSnooze(t)}>Snooze</button>
-				  <button class="chip" @click=${() => this._handleDismiss(t)}>Dismiss</button>
-				` : ""}
-			  </div>
-			</div>
-		  </li>
-		`;
-	  }
+      return html`
+        <li class="item vtile ${style === 'fill' ? 'card' : ''}" style="--tcolor:${color}">
+          ${style === 'fill' ? html`<div class="progress-fill" style="width:100%"></div>` : ""}
+          <div class="vcol">
+            <div class="icon-wrap large"><ha-icon .icon=${icon}></ha-icon></div>
+            <div class="vtitle">${t.label}</div>
+            <div class="vstatus up">${expiredMessage}</div>
+            ${style === 'bar'
+              ? html`<div class="vactions-center">
+                  ${supportsManualControls ? html`
+                    <button class="chip" @click=${() => this._handleSnooze(t)}>Snooze</button>
+                    <button class="chip" @click=${() => this._handleDismiss(t)}>Dismiss</button>
+                  ` : ""}
+                </div>`
+              : html`${supportsManualControls ? html`
+                  <div class="vactions">
+                    <button class="chip" @click=${() => this._handleSnooze(t)}>Snooze</button>
+                    <button class="chip" @click=${() => this._handleDismiss(t)}>Dismiss</button>
+                  </div>` : ""}`}
+          </div>
+        </li>
+      `;
+    }
 
-	  return html`
-		<li class="item vtile ${style === 'fill' ? 'card' : ''}" style="--tcolor:${color}">
-		  ${style === 'fill' ? html`<div class="progress-fill" style="width:100%"></div>` : ""}
-		  <div class="vcol">
-			<div class="icon-wrap large"><ha-icon .icon=${icon}></ha-icon></div>
-			<div class="vtitle">${t.label}</div>
-			<div class="vstatus up">${expiredMessage}</div>
-			${style === 'bar'
-			  ? html`<div class="vactions-center">
-				  ${supportsManualControls ? html`
-					<button class="chip" @click=${() => this._handleSnooze(t)}>Snooze</button>
-					<button class="chip" @click=${() => this._handleDismiss(t)}>Dismiss</button>
-				  ` : ""}
-				</div>`
-			  : html`${supportsManualControls ? html`
-				  <div class="vactions">
-					<button class="chip" @click=${() => this._handleSnooze(t)}>Snooze</button>
-					<button class="chip" @click=${() => this._handleDismiss(t)}>Dismiss</button>
-				  </div>` : ""}`}
-		  </div>
-		</li>
-	  `;
-	}
+    if (style === "circle") {
+      return html`
+        <li class="item vtile" style="--tcolor:${color}">
+          ${supportsManualControls ? html`
+            <button class="vtile-close" title="Cancel"
+              @click=${(e)=>{ e.stopPropagation(); this._handleCancel(t); }}>
+              <ha-icon icon="mdi:close"></ha-icon>
+            </button>
+          ` : ""}
+          <div class="vcol">
+            <div class="vcircle-wrap"
+                 title="${t.paused ? 'Resume' : 'Pause'}"
+                 @click=${(e)=>this._togglePause(t, e)}>
+              <svg class="vcircle" width="64" height="64" viewBox="0 0 72 72" aria-hidden="true">
+                <circle class="vc-track" cx="36" cy="36" r="${radius}" pathLength="100"></circle>
+                <circle class="vc-prog"
+                  cx="36" cy="36" r="${radius}" pathLength="100"
+                  style="stroke-dasharray:${pctRemain.toFixed(3)} 100; stroke-dashoffset:0;">
+                </circle>
+              </svg>
+              <div class="icon-wrap xl"><ha-icon .icon=${icon}></ha-icon></div>
+            </div>
+            <div class="vtitle">${t.label}</div>
+            <div class="vstatus">${timeStr}</div>
+          </div>
+        </li>
+      `;
+    }
 
-
-	if (style === "circle") {
-	  return html`
-		<li class="item vtile" style="--tcolor:${color}">
-		  ${supportsManualControls ? html`
-			<button class="vtile-close" title="Cancel"
-			  @click=${(e)=>{ e.stopPropagation(); this._handleCancel(t); }}>
-			  <ha-icon icon="mdi:close"></ha-icon>
-			</button>
-		  ` : ""}
-
-		  <div class="vcol">
-			<div class="vcircle-wrap"
-				 title="${t.paused ? 'Resume' : 'Pause'}"
-				 @click=${(e)=>this._togglePause(t, e)}>
-			  <svg class="vcircle ccw" width="64" height="64" viewBox="0 0 72 72" aria-hidden="true">
-				<circle class="vc-track" cx="36" cy="36" r="${radius}"></circle>
-				<circle class="vc-prog"  cx="36" cy="36" r="${radius}"
-						style="stroke-dasharray:${dashArray}px; stroke-dashoffset:${dashOffset}px"></circle>
-			  </svg>
-			  <div class="icon-wrap xl"><ha-icon .icon=${icon}></ha-icon></div>
-			</div>
-
-			<div class="vtitle">${t.label}</div>
-			<div class="vstatus">${timeStr}</div>
-		  </div>
-		</li>
-	  `;
-	}
-
-
-	return html`
-	  <li class="item vtile ${style === 'fill' ? 'card' : ''}" style="--tcolor:${color}">
-		${style === 'fill' ? html`<div class="progress-fill" style="width:${pct}%"></div>` : ""}
-		<div class="vcol">
-		  <div class="icon-wrap large"><ha-icon .icon=${icon}></ha-icon></div>
-		  <div class="vtitle">${t.label}</div>
-		  <div class="vstatus">${timeStr}</div>
-
-		  ${style === 'bar' ? html`
-			<div class="vprogressbar">
-			  ${supportsPause && supportsManualControls ? html`
-				<button class="action-btn"
-				  title="${t.paused ? 'Resume' : 'Pause'}"
-				  @click=${() => t.paused ? this._handleResume(t) : this._handlePause(t)}>
-				  <ha-icon icon="${t.paused ? 'mdi:play' : 'mdi:pause'}"></ha-icon>
-				</button>
-			  ` : ""}
-
-			  <div class="vtrack small">
-				<div class="vfill" style="width:${pctLeft}%"></div>
-			  </div>
-
-			  ${supportsManualControls ? html`
-				<button class="action-btn" title="Cancel" @click=${() => this._handleCancel(t)}>
-				  <ha-icon icon="mdi:close"></ha-icon>
-				</button>
-			  ` : ""}
-			</div>
-		  ` : html`
-			<div class="vactions">
-			  ${supportsPause && supportsManualControls ? html`
-				<button class="action-btn"
-				  title="${t.paused ? 'Resume' : 'Pause'}"
-				  @click=${() => t.paused ? this._handleResume(t) : this._handlePause(t)}>
-				  <ha-icon icon="${t.paused ? 'mdi:play' : 'mdi:pause'}"></ha-icon>
-				</button>
-			  ` : ""}
-			  ${supportsManualControls ? html`
-				<button class="action-btn" title="Cancel" @click=${() => this._handleCancel(t)}>
-				  <ha-icon icon="mdi:close"></ha-icon>
-				</button>
-			  ` : ""}
-			</div>
-		  `}
-		</div>
-	  </li>
-	`;
-
+    return html`
+      <li class="item vtile ${style === 'fill' ? 'card' : ''}" style="--tcolor:${color}">
+        ${style === 'fill' ? html`<div class="progress-fill" style="width:${pct}%"></div>` : ""}
+        <div class="vcol">
+          <div class="icon-wrap large"><ha-icon .icon=${icon}></ha-icon></div>
+          <div class="vtitle">${t.label}</div>
+          <div class="vstatus">${timeStr}</div>
+          ${style === 'bar' ? html`
+            <div class="vprogressbar">
+              ${supportsPause && supportsManualControls ? html`
+                <button class="action-btn"
+                  title="${t.paused ? 'Resume' : 'Pause'}"
+                  @click=${() => t.paused ? this._handleResume(t) : this._handlePause(t)}>
+                  <ha-icon icon="${t.paused ? 'mdi:play' : 'mdi:pause'}"></ha-icon>
+                </button>
+              ` : ""}
+              <div class="vtrack small">
+                <div class="vfill" style="width:${pctLeft}%"></div>
+              </div>
+              ${supportsManualControls ? html`
+                <button class="action-btn" title="Cancel" @click=${() => this._handleCancel(t)}>
+                  <ha-icon icon="mdi:close"></ha-icon>
+                </button>
+              ` : ""}
+            </div>
+          ` : html`
+            <div class="vactions">
+              ${supportsPause && supportsManualControls ? html`
+                <button class="action-btn"
+                  title="${t.paused ? 'Resume' : 'Pause'}"
+                  @click=${() => t.paused ? this._handleResume(t) : this._handlePause(t)}>
+                  <ha-icon icon="${t.paused ? 'mdi:play' : 'mdi:pause'}"></ha-icon>
+                </button>
+              ` : ""}
+              ${supportsManualControls ? html`
+                <button class="action-btn" title="Cancel" @click=${() => this._handleCancel(t)}>
+                  <ha-icon icon="mdi:close"></ha-icon>
+                </button>
+              ` : ""}
+            </div>
+          `}
+        </div>
+      </li>
+    `;
   }
 
 
@@ -1279,7 +1261,9 @@ class SimpleTimerCard extends LitElement {
       ? this._renderItemVertical.bind(this)
       : this._renderItem.bind(this);
 
-    const cols = this._config.layout === "vertical" && timers.length > 1 ? 2 : 1;
+    const useGrid = (layout === "vertical") || (style === "circle");
+	const cols = (useGrid && timers.length > 1) ? 2 : 1;
+	const listClass = useGrid ? `list vgrid cols-${cols}` : 'list';
 
     const activeCard = style === "fill" ? html`
       <div class="card ${this._ui.activeFillOpen ? "card-show" : ""}">
@@ -1305,9 +1289,9 @@ class SimpleTimerCard extends LitElement {
           </div>
         </div>
 
-        <ul class="${this._config.layout === 'vertical' ? `list vgrid cols-${cols}` : 'list'}">
-          ${timers.map((t) => renderFn(t, style))}
-        </ul>
+		  <ul class="${listClass}">
+		    ${timers.map((t) => renderFn(t, style))}
+		  </ul>
       </div>
     ` : html`
       <div class="card ${this._ui.activeBarOpen ? "card-show" : ""}">
@@ -1333,9 +1317,9 @@ class SimpleTimerCard extends LitElement {
           </div>
         </div>
 
-		<ul class="${this._config.layout === 'vertical' ? `list vgrid cols-${cols}` : 'list'}">
-		  ${timers.map((t) => renderFn(t, style))}
-		</ul>
+		  <ul class="${listClass}">
+		    ${timers.map((t) => renderFn(t, style))}
+		  </ul>
       </div>
     `;
 
@@ -1555,19 +1539,9 @@ class SimpleTimerCard extends LitElement {
       .vtile .vactions { display:flex; gap:6px; align-items:center; justify-content:center; margin-top:2px; }
 	  .vcircle-wrap{ position:relative; width:64px; height:64px; display:grid; place-items:center; }
 
-	  .vcircle{ position:absolute; inset:0; transform: rotate(-90deg) scaleX(-1); }
-	  .vc-track,
-	  .vc-prog {
-	    fill: none;
-	    stroke-width: 4.5px;
-	    vector-effect: non-scaling-stroke;
-	  }
-	  .vc-track {
-	    stroke: color-mix(in srgb, var(--tcolor, var(--primary-color)) 18%, transparent);
-	  }
 	  .vc-prog {
 	    stroke: var(--tcolor, var(--primary-color));
-	    transition: stroke-dashoffset 1s linear;
+	    transition: stroke-dashoffset 300ms linear;
 	  }
 	  .vc-prog.done { stroke-dashoffset: 0 !important; }
 
@@ -1589,18 +1563,11 @@ class SimpleTimerCard extends LitElement {
 	  }
 	  .vtile-close ha-icon { --mdc-icon-size: 18px; }
 
-	  .vcircle-wrap{
-	    position: relative;
-	    width: 64px; height: 64px;
-	    display:grid; place-items:center;
-	    cursor: pointer;
-	  }
+	  .vcircle { position:absolute; inset:0; transform: rotate(-90deg); }
 
-	  .vcircle.ccw { position: absolute; inset: 0; transform-origin: center; transform: rotate(-90deg) scaleX(-1); }
 
 	  .vc-track, .vc-prog{ fill:none; stroke-width:4.5px; vector-effect:non-scaling-stroke; }
 	  .vc-track{ stroke: color-mix(in srgb, var(--tcolor, var(--primary-color)) 18%, transparent); }
-	  .vc-prog{  transition: stroke-dashoffset 1s linear; }
 
 	  .icon-wrap.xl{
 	    width:56px; height:56px; border-radius:50%;
