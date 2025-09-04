@@ -897,8 +897,8 @@ class SimpleTimerCard extends LitElement {
     const radius = 28;
     const C = 2 * Math.PI * radius;
     const progress = typeof t.percent === "number"
-      ? Math.min(1, Math.max(0, pctLeft / 100))
-      : 1;
+      ? Math.min(1, Math.max(0, pct / 100))
+      : 0;
     const dashArray = `${C}`;
     const dashOffset = `${progress * C}`;
     const timeStr = isPaused ? `${this._formatTime(t.end)} (Paused)` : this._formatTime(t.remaining);
@@ -1048,8 +1048,8 @@ class SimpleTimerCard extends LitElement {
 	const radius = 28;
 	const C = 2 * Math.PI * radius;
 	const progress = typeof t.percent === "number"
-	  ? Math.min(1, Math.max(0, pctLeft / 100))
-	  : 1;
+	  ? Math.min(1, Math.max(0, pct / 100))
+	  : 0;
 
 	const dashArray = `${C}`;
 	const dashOffset = `${progress * C}`;
@@ -1555,7 +1555,7 @@ class SimpleTimerCard extends LitElement {
       .vtile .vactions { display:flex; gap:6px; align-items:center; justify-content:center; margin-top:2px; }
 	  .vcircle-wrap{ position:relative; width:64px; height:64px; display:grid; place-items:center; }
 
-	  .vcircle{ position:absolute; inset:0; transform: rotate(-90deg); }
+	  .vcircle{ position:absolute; inset:0; transform: rotate(-90deg) scaleX(-1); }
 	  .vc-track,
 	  .vc-prog {
 	    fill: none;
@@ -1567,7 +1567,7 @@ class SimpleTimerCard extends LitElement {
 	  }
 	  .vc-prog {
 	    stroke: var(--tcolor, var(--primary-color));
-	    transition: stroke-dashoffset 0.1s linear;
+	    transition: stroke-dashoffset 1s linear;
 	  }
 	  .vc-prog.done { stroke-dashoffset: 0 !important; }
 
@@ -1596,11 +1596,11 @@ class SimpleTimerCard extends LitElement {
 	    cursor: pointer;
 	  }
 
-	  .vcircle.ccw { position: absolute; inset: 0; transform-origin: center; transform: rotate(-90deg); }
+	  .vcircle.ccw { position: absolute; inset: 0; transform-origin: center; transform: rotate(-90deg) scaleX(-1); }
 
 	  .vc-track, .vc-prog{ fill:none; stroke-width:4.5px; vector-effect:non-scaling-stroke; }
 	  .vc-track{ stroke: color-mix(in srgb, var(--tcolor, var(--primary-color)) 18%, transparent); }
-	  .vc-prog{  transition: stroke-dashoffset 0.1s linear; }
+	  .vc-prog{  transition: stroke-dashoffset 1s linear; }
 
 	  .icon-wrap.xl{
 	    width:56px; height:56px; border-radius:50%;
