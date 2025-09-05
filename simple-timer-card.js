@@ -1566,7 +1566,7 @@ class SimpleTimerCard extends LitElement {
       .vc-prog.done { stroke-dashoffset: 0 !important; }
 
       .icon-wrap.xl {
-        width: 52px; height: 52px; flex: 0 0 52px; border-radius: 50%;
+        width: 48px; height: 48px; flex: 0 0 48px; border-radius: 50%;
         background: color-mix(in srgb, var(--tcolor, var(--divider-color)) 22%, transparent);
         display: flex; align-items: center; justify-content: center;
       }
