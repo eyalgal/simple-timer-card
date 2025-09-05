@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Timer Card Fix Test</title>
+    <style>
+        body { 
+            background: #1c1c1c; 
+            color: white; 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            margin: 0;
+        }
+        .test-container {
+            max-width: 400px;
+            margin: 20px auto;
+            background: #2c2c2c;
+            border-radius: 12px;
+            padding: 20px;
+            border: 2px solid #444;
+        }
+        .test-container h2 { 
+            margin-top: 0; 
+            color: #4285f4;
+            font-size: 18px;
+        }
+        .config-display {
+            background: #333;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .expected {
+            background: #1e4d1e;
+            padding: 8px;
+            border-radius: 4px;
+            margin: 8px 0;
+            font-size: 14px;
+        }
+        /* Home Assistant theme variables */
+        :root {
+            --ha-card-background: #2c2c2c;
+            --card-background-color: #2c2c2c;
+            --primary-color: #4285f4;
+            --primary-text-color: white;
+            --secondary-text-color: #b0b0b0;
+            --ha-card-border-radius: 12px;
+            --divider-color: #555;
+        }
+    </style>
+</head>
+<body>
+    <h1>Simple Timer Card Fix Test</h1>
+    <p>Testing vertical style availability and fill horizontal padding fixes.</p>
+    
+    <!-- Test Case 1: Horizontal layout with vertical fill style -->
+    <div class="test-container">
+        <h2>Test 1: Horizontal layout + Vertical fill style</h2>
+        <div class="config-display">
+        layout: "horizontal"<br>
+        style: "fill_vertical"
+        </div>
+        <div class="expected">
+        Expected: Vertical fill style should be available and working
+        </div>
+        <simple-timer-card id="test1"></simple-timer-card>
+    </div>
+    
+    <!-- Test Case 2: Test fill horizontal padding alignment -->
+    <div class="test-container">
+        <h2>Test 2: Fill horizontal alignment</h2>
+        <div class="config-display">
+        layout: "horizontal"<br>
+        style: "fill_horizontal"
+        </div>
+        <div class="expected">
+        Expected: Content centered with progress fill, proper action button alignment
+        </div>
+        <simple-timer-card id="test2"></simple-timer-card>
+    </div>
+
+    <script type="module">
+        // Import the card from local file
+        import './simple-timer-card.js';
+        
+        // Mock hass object with some CSS variables
+        const mockHass = {
+            states: {},
+            callService: () => Promise.resolve(),
+            config: {
+                theme: {}
+            }
+        };
+        
+        // Test configurations
+        const configs = [
+            {
+                layout: "horizontal",
+                style: "fill_vertical",
+                show_timer_presets: true,
+                timer_presets: [1, 5, 15],
+                title: "Vertical Fill Test"
+            },
+            {
+                layout: "horizontal", 
+                style: "fill_horizontal",
+                show_timer_presets: true,
+                timer_presets: [1, 5, 15],
+                title: "Horizontal Fill Test"
+            }
+        ];
+        
+        // Set up test cards
+        setTimeout(() => {
+            configs.forEach((config, index) => {
+                const card = document.getElementById(`test${index + 1}`);
+                if (card) {
+                    try {
+                        card.hass = mockHass;
+                        card.setConfig(config);
+                        console.log(`Test ${index + 1} configured:`, config);
+                        console.log(`Raw style: ${card._config._rawStyle}, Parsed style: ${card._config.style}`);
+                    } catch (error) {
+                        console.error(`Error configuring test ${index + 1}:`, error);
+                    }
+                }
+            });
+        }, 100);
+    </script>
+</body>
+</html>

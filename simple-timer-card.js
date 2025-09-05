@@ -85,6 +85,7 @@ class SimpleTimerCard extends LitElement {
     this._config = {
       layout,
       style,
+      _rawStyle: rawStyle, // Preserve original style for layout determination
       snooze_duration: 5,
       timer_presets: [5, 15, 30],
       show_timer_presets: true,
@@ -1201,7 +1202,7 @@ class SimpleTimerCard extends LitElement {
       }
     };
 
-    const activeTimersLayout = getActiveTimersLayout(this._config.style);
+    const activeTimersLayout = getActiveTimersLayout(this._config._rawStyle || this._config.style);
 
     const noTimerCard = layout === "horizontal" ? html`
       <div class="card nt-h ${this._ui.noTimerHorizontalOpen ? "expanded" : ""}">
@@ -1372,7 +1373,7 @@ class SimpleTimerCard extends LitElement {
         padding: 8px;
         box-sizing: border-box;
       }
-      .card-content { position: relative; z-index: 1; display: flex; align-items: center; gap: 12px; }
+      .card-content { position: relative; z-index: 1; display: flex; align-items: center; gap: 12px; padding: 0 4px; }
       .progress-fill {
         position: absolute; top: 0; left: 0; height: 100%;
         width: 0%;
@@ -1449,7 +1450,7 @@ class SimpleTimerCard extends LitElement {
       .item .status.up { color: color-mix(in srgb, var(--tcolor, var(--primary-color)) 70%, white); }
       .item .x { color: var(--secondary-text-color); background: none; border: 0; padding: 4px; cursor: pointer; }
       .item .x:hover { color: var(--primary-text-color); }
-      .item .actions { display: flex; gap: 4px; align-items: center; height: 36px; }
+      .item .actions { display: flex; gap: 4px; align-items: center; height: 36px; margin-top: -2px; }
       .item .action-btn { color: var(--secondary-text-color); background: none; border: 0; padding: 4px; cursor: pointer; border-radius: 50%; transition: all 0.2s; }
       .item .action-btn:hover { color: var(--primary-text-color); background: color-mix(in srgb, var(--primary-color) 10%, transparent); }
 
@@ -1652,7 +1653,26 @@ class SimpleTimerCardEditor extends LitElement {
     
     // Handle style selections specially to preserve layout separation
     if (key === "style") {
-      this._updateConfig({ [key]: value }, true);
+      const rawStyle = value.toLowerCase();
+      let parsedStyle;
+      
+      // Parse the combined style values
+      if (rawStyle === "fill_vertical" || rawStyle === "fill_horizontal") {
+        parsedStyle = "fill";
+      } else if (rawStyle === "bar_vertical" || rawStyle === "bar_horizontal") {
+        parsedStyle = "bar"; 
+      } else if (rawStyle === "circle") {
+        parsedStyle = "circle";
+      } else {
+        parsedStyle = rawStyle === "fill" || rawStyle === "background" || rawStyle === "background_fill"
+          ? "fill"
+          : (rawStyle === "circle" ? "circle" : "bar");
+      }
+      
+      this._updateConfig({ 
+        style: parsedStyle,
+        _rawStyle: rawStyle
+      }, true);
     } else {
       this._updateConfig({ [key]: value }, true);
     }
@@ -1841,18 +1861,24 @@ class SimpleTimerCardEditor extends LitElement {
   }
 
   _getDisplayStyleValue() {
-    const style = this._config.style || "bar";
+    const rawStyle = this._config._rawStyle || this._config.style || "bar";
     const layout = this._config.layout || "horizontal";
     
-    if (style === "fill") {
+    // If we have a preserved raw style, use it
+    if (this._config._rawStyle) {
+      return this._config._rawStyle;
+    }
+    
+    // Otherwise, construct from current style and layout
+    if (this._config.style === "fill") {
       return layout === "vertical" ? "fill_vertical" : "fill_horizontal";
-    } else if (style === "bar") {
+    } else if (this._config.style === "bar") {
       return layout === "vertical" ? "bar_vertical" : "bar_horizontal";
-    } else if (style === "circle") {
+    } else if (this._config.style === "circle") {
       return "circle";
     }
     
-    return style;
+    return this._config.style || "bar";
   }
 
   render() {
