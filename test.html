@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Timer Card Test</title>
+    <style>
+        body { 
+            background: #1c1c1c; 
+            color: white; 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+        }
+        .test-container {
+            max-width: 400px;
+            margin: 20px 0;
+            background: #2c2c2c;
+            border-radius: 12px;
+            padding: 20px;
+            border: 2px solid #444;
+        }
+        h2 { margin-top: 0; color: #4285f4; }
+        .config-display {
+            background: #333;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .expected {
+            background: #1e4d1e;
+            padding: 8px;
+            border-radius: 4px;
+            margin: 8px 0;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Simple Timer Card Layout/Style Separation Test</h1>
+    <p>This test verifies that layout only affects no-timer state, while style affects active timers.</p>
+    
+    <!-- Test Case 1: Horizontal layout with vertical fill style -->
+    <div class="test-container">
+        <h2>Test 1: Horizontal layout + Vertical fill style</h2>
+        <div class="config-display">
+        layout: "horizontal"<br>
+        style: "fill_vertical"
+        </div>
+        <div class="expected">
+        Expected:<br>
+        • No timer state: HORIZONTAL<br>
+        • Active timers: VERTICAL fill style
+        </div>
+        <simple-timer-card id="test1"></simple-timer-card>
+    </div>
+    
+    <!-- Test Case 2: Vertical layout with horizontal bar style -->
+    <div class="test-container">
+        <h2>Test 2: Vertical layout + Horizontal bar style</h2>
+        <div class="config-display">
+        layout: "vertical"<br>
+        style: "bar_horizontal"
+        </div>
+        <div class="expected">
+        Expected:<br>
+        • No timer state: VERTICAL<br>
+        • Active timers: HORIZONTAL bar style
+        </div>
+        <simple-timer-card id="test2"></simple-timer-card>
+    </div>
+    
+    <!-- Test Case 3: Circle style should respect layout for no-timer state -->
+    <div class="test-container">
+        <h2>Test 3: Horizontal layout + Circle style</h2>
+        <div class="config-display">
+        layout: "horizontal"<br>
+        style: "circle"
+        </div>
+        <div class="expected">
+        Expected:<br>
+        • No timer state: HORIZONTAL<br>
+        • Active timers: CIRCLE (automatically vertical)
+        </div>
+        <simple-timer-card id="test3"></simple-timer-card>
+    </div>
+    
+    <!-- Test Case 4: Test plain styles -->
+    <div class="test-container">
+        <h2>Test 4: Vertical layout + Plain bar style</h2>
+        <div class="config-display">
+        layout: "vertical"<br>
+        style: "bar"
+        </div>
+        <div class="expected">
+        Expected:<br>
+        • No timer state: VERTICAL<br>
+        • Active timers: HORIZONTAL bar (default for plain bar)
+        </div>
+        <simple-timer-card id="test4"></simple-timer-card>
+    </div>
+
+    <script type="module">
+        // Import the card
+        import './simple-timer-card.js';
+        
+        // Mock hass object
+        const mockHass = {
+            states: {},
+            callService: () => Promise.resolve()
+        };
+        
+        // Test configurations
+        const configs = [
+            {
+                layout: "horizontal",
+                style: "fill_vertical",
+                show_timer_presets: true,
+                timer_presets: [5, 15, 30],
+                title: "Test 1 Card"
+            },
+            {
+                layout: "vertical", 
+                style: "bar_horizontal",
+                show_timer_presets: true,
+                timer_presets: [10, 20, 45],
+                title: "Test 2 Card"
+            },
+            {
+                layout: "horizontal",
+                style: "circle",
+                show_timer_presets: true,
+                timer_presets: [1, 5, 10],
+                title: "Test 3 Card"
+            },
+            {
+                layout: "vertical",
+                style: "bar",
+                show_timer_presets: true,
+                timer_presets: [2, 7, 12],
+                title: "Test 4 Card"
+            }
+        ];
+        
+        // Set up test cards
+        setTimeout(() => {
+            configs.forEach((config, index) => {
+                const card = document.getElementById(`test${index + 1}`);
+                if (card) {
+                    try {
+                        card.hass = mockHass;
+                        card.setConfig(config);
+                        console.log(`Test ${index + 1} configured:`, config);
+                    } catch (error) {
+                        console.error(`Error configuring test ${index + 1}:`, error);
+                    }
+                }
+            });
+        }, 100);
+    </script>
+</body>
+</html>
