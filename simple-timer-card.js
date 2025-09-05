@@ -887,8 +887,9 @@ class SimpleTimerCard extends LitElement {
     let radius, circleOffset;
     if (isCircleStyle) {
       radius = this._circVals().radius;
-      // Fix circle timing: use proper dashoffset calculation for smooth transitions
-      circleOffset = ring ? 0 : (100 - pct);
+      // Fix circle timing: use proper dashoffset calculation for countdown behavior
+      // pct = elapsed percentage, so circleOffset = pct makes circle shrink as timer counts down
+      circleOffset = ring ? 0 : pct;
     }
     
     const pctLeft = 100 - pct;
@@ -1038,8 +1039,9 @@ class SimpleTimerCard extends LitElement {
     let radius, circleOffset;
     if (style === "circle") {
       radius = this._circVals().radius;
-      // Fix circle timing: use proper dashoffset calculation for smooth transitions
-      circleOffset = ring ? 0 : (100 - pct);
+      // Fix circle timing: use proper dashoffset calculation for countdown behavior
+      // pct = elapsed percentage, so circleOffset = pct makes circle shrink as timer counts down
+      circleOffset = ring ? 0 : pct;
     }
     
     const pctLeft = 100 - pct;
