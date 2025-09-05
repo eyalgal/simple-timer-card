@@ -63,37 +63,36 @@ class SimpleTimerCard extends LitElement {
       sensor_entity: mqttSensorEntity,
     };
 
-	const normLayout = (config.layout || "horizontal").toLowerCase();
-	let layout = normLayout === "vertical" ? "vertical" : "horizontal";
+  const normLayout = (config.layout || "horizontal").toLowerCase();
+  let layout = normLayout === "vertical" ? "vertical" : "horizontal";
 
-	const rawStyle = (config.style || "bar").toLowerCase();
-	let style, layoutOverride;
+  const rawStyle = (config.style || "bar").toLowerCase();
+  let style, layoutOverride;
 
-	if (rawStyle === "fill_vertical" || rawStyle === "fill_horizontal") {
-	  style = "fill";
-	  layoutOverride = rawStyle === "fill_vertical" ? "vertical" : "horizontal";
-	} else if (rawStyle === "bar_vertical" || rawStyle === "bar_horizontal") {
-	  style = "bar"; 
-	  layoutOverride = rawStyle === "bar_vertical" ? "vertical" : "horizontal";
-	} else if (rawStyle === "circle") {
-	  style = "circle";
-	  layoutOverride = null;
-	} else {
-	  style = rawStyle === "fill" || rawStyle === "background" || rawStyle === "background_fill"
-		? "fill"
-		: (rawStyle === "circle" ? "circle" : "bar");
-	  layoutOverride = null;
-	}
+  if (rawStyle === "fill_vertical" || rawStyle === "fill_horizontal") {
+    style = "fill";
+    layoutOverride = rawStyle === "fill_vertical" ? "vertical" : "horizontal";
+  } else if (rawStyle === "bar_vertical" || rawStyle === "bar_horizontal") {
+    style = "bar"; 
+    layoutOverride = rawStyle === "bar_vertical" ? "vertical" : "horizontal";
+  } else if (rawStyle === "circle") {
+    style = "circle";
+    layoutOverride = null;
+  } else {
+    style = rawStyle === "fill" || rawStyle === "background" || rawStyle === "background_fill"
+      ? "fill"
+      : (rawStyle === "circle" ? "circle" : "bar");
+    layoutOverride = null;
+  }
 
-	if (layoutOverride) {
-	  layout = layoutOverride;
-	}
+  if (layoutOverride) {
+    layout = layoutOverride;
+  }
 	
     this._config = {
       layout,
       style,
       snooze_duration: 5,
-      show_time_selector: false,
       timer_presets: [5, 15, 30],
       show_timer_presets: true,
       show_active_header: true,
@@ -104,7 +103,6 @@ class SimpleTimerCard extends LitElement {
       expire_action: "keep",
       expire_keep_for: 120,
       auto_dismiss_writable: false,
-      show_progress_when_unknown: false,
       audio_enabled: false,
       audio_file_url: "",
       audio_repeat_count: 1,
@@ -879,17 +877,23 @@ class SimpleTimerCard extends LitElement {
   }
 
   _renderItem(t, style) {
-    const { radius } = this._circVals();
     const isPaused = t.paused;
     const color = isPaused ? "var(--warning-color)" : (t.color || "var(--primary-color)");
     const icon = isPaused ? "mdi:timer-pause" : (t.icon || "mdi:timer-outline");
     const ring = t.remaining <= 0;
     const pct = typeof t.percent === "number" ? Math.max(0, Math.min(100, t.percent)) : 0;
-    const pctRemain = t.remaining > 0 ? Math.max(0.001, 100 - pct) : 0;
+    
+    const isCircleStyle = style === "circle";
+    let radius, circleOffset;
+    if (isCircleStyle) {
+      radius = this._circVals().radius;
+      // Fix circle timing: use proper dashoffset calculation for smooth transitions
+      circleOffset = ring ? 0 : (100 - pct);
+    }
+    
     const pctLeft = 100 - pct;
 
     const isFillStyle = style === "fill";
-    const isCircleStyle = style === "circle";
     const baseClasses = isFillStyle ? "card item" : (isCircleStyle ? "item vtile" : "item bar");
     const finishedClasses = isFillStyle ? "card item finished" : (isCircleStyle ? "item vtile" : "card item bar");
 
@@ -910,7 +914,7 @@ class SimpleTimerCard extends LitElement {
                 <svg class="vcircle" width="64" height="64" viewBox="0 0 72 72" aria-hidden="true">
                   <circle class="vc-track" cx="36" cy="36" r="${radius}" pathLength="100"></circle>
                   <circle class="vc-prog done" cx="36" cy="36" r="${radius}" pathLength="100"
-                    style="stroke-dasharray:0 100; stroke-dashoffset:0"></circle>
+                    style="stroke-dasharray:100 100; stroke-dashoffset:0"></circle>
                 </svg>
                 <div class="icon-wrap xl"><ha-icon .icon=${icon}></ha-icon></div>
               </div>
@@ -984,7 +988,7 @@ class SimpleTimerCard extends LitElement {
               <svg class="vcircle" width="64" height="64" viewBox="0 0 72 72" aria-hidden="true">
                 <circle class="vc-track" cx="36" cy="36" r="${radius}" pathLength="100"></circle>
                 <circle class="vc-prog" cx="36" cy="36" r="${radius}" pathLength="100"
-                  style="stroke-dasharray:${pctRemain.toFixed(3)} 100; stroke-dashoffset:0;"></circle>
+                  style="stroke-dasharray:100 100; stroke-dashoffset:${circleOffset}"></circle>
               </svg>
               <div class="icon-wrap xl"><ha-icon .icon=${icon}></ha-icon></div>
             </div>
@@ -1021,18 +1025,23 @@ class SimpleTimerCard extends LitElement {
 
 
   _circVals(radius = 28) {
-    const C = 2 * Math.PI * radius;
-    return { radius, C };
+    return { radius };
   }  
 
   _renderItemVertical(t, style) {
-    const { radius } = this._circVals();
     const isPaused = t.paused;
     const color = isPaused ? "var(--warning-color)" : (t.color || "var(--primary-color)");
     const icon = isPaused ? "mdi:timer-pause" : (t.icon || "mdi:timer-outline");
     const ring = t.remaining <= 0;
     const pct = typeof t.percent === "number" ? Math.max(0, Math.min(100, t.percent)) : 0;
-    const pctRemain = t.remaining > 0 ? Math.max(0.001, 100 - pct) : 0;
+    
+    let radius, circleOffset;
+    if (style === "circle") {
+      radius = this._circVals().radius;
+      // Fix circle timing: use proper dashoffset calculation for smooth transitions
+      circleOffset = ring ? 0 : (100 - pct);
+    }
+    
     const pctLeft = 100 - pct;
 
     const supportsPause = t.source === "helper" || t.source === "local" || t.source === "mqtt" || t.source === "timer";
@@ -1053,7 +1062,7 @@ class SimpleTimerCard extends LitElement {
                   <circle class="vc-track" cx="36" cy="36" r="${radius}" pathLength="100"></circle>
                   <circle class="vc-prog"
                     cx="36" cy="36" r="${radius}" pathLength="100"
-                    style="stroke-dasharray:0 100; stroke-dashoffset:0;">
+                    style="stroke-dasharray:100 100; stroke-dashoffset:0;">
                   </circle>
                 </svg>
                 <div class="icon-wrap xl"><ha-icon .icon=${icon}></ha-icon></div>
@@ -1112,7 +1121,7 @@ class SimpleTimerCard extends LitElement {
                 <circle class="vc-track" cx="36" cy="36" r="${radius}" pathLength="100"></circle>
                 <circle class="vc-prog"
                   cx="36" cy="36" r="${radius}" pathLength="100"
-                  style="stroke-dasharray:${pctRemain.toFixed(3)} 100; stroke-dashoffset:0;">
+                  style="stroke-dasharray:100 100; stroke-dashoffset:${circleOffset};">
                 </circle>
               </svg>
               <div class="icon-wrap xl"><ha-icon .icon=${icon}></ha-icon></div>
@@ -1262,8 +1271,8 @@ class SimpleTimerCard extends LitElement {
       : this._renderItem.bind(this);
 
     const useGrid = (layout === "vertical") || (style === "circle");
-	const cols = (useGrid && timers.length > 1) ? 2 : 1;
-	const listClass = useGrid ? `list vgrid cols-${cols}` : 'list';
+    const cols = (useGrid && timers.length > 1) ? 2 : 1;
+    const listClass = useGrid ? `list vgrid cols-${cols}` : 'list';
 
     const activeCard = style === "fill" ? html`
       <div class="card ${this._ui.activeFillOpen ? "card-show" : ""}">
@@ -1289,9 +1298,9 @@ class SimpleTimerCard extends LitElement {
           </div>
         </div>
 
-		  <ul class="${listClass}">
-		    ${timers.map((t) => renderFn(t, style))}
-		  </ul>
+        <ul class="${listClass}">
+          ${timers.map((t) => renderFn(t, style))}
+        </ul>
       </div>
     ` : html`
       <div class="card ${this._ui.activeBarOpen ? "card-show" : ""}">
@@ -1317,9 +1326,9 @@ class SimpleTimerCard extends LitElement {
           </div>
         </div>
 
-		  <ul class="${listClass}">
-		    ${timers.map((t) => renderFn(t, style))}
-		  </ul>
+        <ul class="${listClass}">
+          ${timers.map((t) => renderFn(t, style))}
+        </ul>
       </div>
     `;
 
@@ -1509,72 +1518,64 @@ class SimpleTimerCard extends LitElement {
         background: color-mix(in srgb, var(--tcolor, var(--primary-color)) 10%, transparent);
         overflow: hidden;
       }
-	  .vprogressbar{
-	    width:100%;
-	    display:flex;
-	    align-items:center;
-	    justify-content:center;
-	    gap:0px;
-	    margin-top: -4px;
-		margin-bottom: -4px;
-	  }
+      .vprogressbar {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0px;
+        margin-top: -4px;
+        margin-bottom: -4px;
+      }
 
-	  .vprogressbar .vtrack.small{
-	    flex:0 1 60%;
-	    height:8px;
-	    border-radius:var(--stc-chip-radius);
-	    background: color-mix(in srgb, var(--tcolor, var(--primary-color)) 10%, transparent);
-	    overflow:hidden;
-	  }
+      .vprogressbar .vtrack.small {
+        flex: 0 1 60%;
+        height: 8px;
+        border-radius: var(--stc-chip-radius);
+        background: color-mix(in srgb, var(--tcolor, var(--primary-color)) 10%, transparent);
+        overflow: hidden;
+      }
 
-	  .vactions-center{
-	    width:100%;
-	    display:flex;
-	    justify-content:center;
-	    align-items:center;
-	    gap:2px;
-	    margin-top:-2px;
-	  }
+      .vactions-center {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 2px;
+        margin-top: -2px;
+      }
 
-      .vtile .vactions { display:flex; gap:6px; align-items:center; justify-content:center; margin-top:2px; }
-	  .vcircle-wrap{ position:relative; width:64px; height:64px; display:grid; place-items:center; }
+      .vtile .vactions { display: flex; gap: 6px; align-items: center; justify-content: center; margin-top: 2px; }
+      .vcircle-wrap { position: relative; width: 64px; height: 64px; display: grid; place-items: center; }
 
-	  .vc-prog {
-	    stroke: var(--tcolor, var(--primary-color));
-	    transition: stroke-dashoffset 300ms linear;
-	  }
-	  .vc-prog.done { stroke-dashoffset: 0 !important; }
+      .vc-prog {
+        stroke: var(--tcolor, var(--primary-color));
+        transition: stroke-dashoffset 1s linear;
+      }
+      .vc-prog.done { stroke-dashoffset: 0 !important; }
 
-	  .icon-wrap.xl {
-	    width: 56px; height: 56px; flex: 0 0 56px; border-radius: 50%;
-	    background: color-mix(in srgb, var(--tcolor, var(--divider-color)) 22%, transparent);
-	    display: flex; align-items: center; justify-content: center;
-	  }
-	  .icon-wrap.xl ha-icon { --mdc-icon-size: 28px; color: var(--tcolor, var(--primary-text-color)); }
+      .icon-wrap.xl {
+        width: 56px; height: 56px; flex: 0 0 56px; border-radius: 50%;
+        background: color-mix(in srgb, var(--tcolor, var(--divider-color)) 22%, transparent);
+        display: flex; align-items: center; justify-content: center;
+      }
+      .icon-wrap.xl ha-icon { --mdc-icon-size: 28px; color: var(--tcolor, var(--primary-text-color)); }
 
-	  .vtile { position: relative; }
-	  .vtile-close{
-	    position:absolute; top:4px; right:4px;
-	    border:0; background:none; padding:4px; border-radius:50%;
-	    color: var(--secondary-text-color); cursor:pointer; z-index: 2;
-	  }
-	  .vtile-close:hover{
-	    background: color-mix(in srgb, var(--primary-color) 10%, transparent);
-	  }
-	  .vtile-close ha-icon { --mdc-icon-size: 18px; }
+      .vtile { position: relative; }
+      .vtile-close {
+        position: absolute; top: 4px; right: 4px;
+        border: 0; background: none; padding: 4px; border-radius: 50%;
+        color: var(--secondary-text-color); cursor: pointer; z-index: 2;
+      }
+      .vtile-close:hover {
+        background: color-mix(in srgb, var(--primary-color) 10%, transparent);
+      }
+      .vtile-close ha-icon { --mdc-icon-size: 18px; }
 
-	  .vcircle { position:absolute; inset:0; transform: rotate(-90deg); }
+      .vcircle { position: absolute; inset: 0; transform: rotate(-90deg); }
 
-
-	  .vc-track, .vc-prog{ fill:none; stroke-width:4.5px; vector-effect:non-scaling-stroke; }
-	  .vc-track{ stroke: color-mix(in srgb, var(--tcolor, var(--primary-color)) 18%, transparent); }
-
-	  .icon-wrap.xl{
-	    width:56px; height:56px; border-radius:50%;
-	    background: color-mix(in srgb, var(--tcolor, var(--divider-color)) 22%, transparent);
-	    display:flex; align-items:center; justify-content:center;
-	  }
-	  .icon-wrap.xl ha-icon{ --mdc-icon-size:28px; color: var(--tcolor, var(--primary-text-color)); }
+      .vc-track, .vc-prog { fill: none; stroke-width: 4.5px; vector-effect: non-scaling-stroke; }
+      .vc-track { stroke: color-mix(in srgb, var(--tcolor, var(--primary-color)) 18%, transparent); }
 
 
     `;
@@ -1722,7 +1723,6 @@ class SimpleTimerCardEditor extends LitElement {
       default_timer_color: "var(--primary-color)",
       expire_keep_for: 120,
       auto_dismiss_writable: false,
-      show_progress_when_unknown: false,
       audio_enabled: false,
       audio_file_url: "",
       audio_repeat_count: 1,
@@ -1732,7 +1732,6 @@ class SimpleTimerCardEditor extends LitElement {
       alexa_audio_repeat_count: 1,
       alexa_audio_play_until_dismissed: false,
       expired_subtitle: "Time's up!",
-      show_time_selector: false,
       default_timer_entity: null
     };
 
