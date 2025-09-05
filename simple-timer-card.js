@@ -1649,7 +1649,13 @@ class SimpleTimerCardEditor extends LitElement {
     ev.stopPropagation();
     const value = ev.detail?.value !== undefined ? ev.detail.value : target.value;
     if (typeof value !== "string" || value === "") return;
-    this._updateConfig({ [key]: value }, true);
+    
+    // Handle style selections specially to preserve layout separation
+    if (key === "style") {
+      this._updateConfig({ [key]: value }, true);
+    } else {
+      this._updateConfig({ [key]: value }, true);
+    }
   }
   _entityValueChanged(e, index) {
     if (!this._config || !this.hass) return;
