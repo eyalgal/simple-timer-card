@@ -884,12 +884,10 @@ class SimpleTimerCard extends LitElement {
     const pct = typeof t.percent === "number" ? Math.max(0, Math.min(100, t.percent)) : 0;
     
     const isCircleStyle = style === "circle";
-    let radius, circleOffset;
+    let circleValues;
     if (isCircleStyle) {
-      radius = this._circVals().radius;
       // Fix circle timing: use proper dashoffset calculation for countdown behavior
-      // pct = elapsed percentage, so circleOffset = pct makes circle shrink as timer counts down
-      circleOffset = ring ? 0 : pct;
+      circleValues = this._calculateCircleValues(28, pct);
     }
     
     const pctLeft = 100 - pct;
@@ -912,10 +910,11 @@ class SimpleTimerCard extends LitElement {
           <li class="${finishedClasses}" style="--tcolor:${color}">
             <div class="vcol">
               <div class="vcircle-wrap">
-                <svg class="vcircle" width="64" height="64" viewBox="0 0 72 72" aria-hidden="true">
-                  <circle class="vc-track" cx="36" cy="36" r="${radius}" pathLength="100"></circle>
-                  <circle class="vc-prog done" cx="36" cy="36" r="${radius}" pathLength="100"
-                    style="stroke-dasharray:100 100; stroke-dashoffset:0"></circle>
+                <svg class="vcircle" width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
+                  <circle class="vc-track" cx="32" cy="32" r="${circleValues.radius}"></circle>
+                  <circle class="vc-prog done" cx="32" cy="32" r="${circleValues.radius}"
+                    stroke-dasharray="${circleValues.circumference} ${circleValues.circumference}"
+                    style="stroke-dashoffset: 0; transition: stroke-dashoffset 0.25s;"></circle>
                 </svg>
                 <div class="icon-wrap xl"><ha-icon .icon=${icon}></ha-icon></div>
               </div>
@@ -986,10 +985,11 @@ class SimpleTimerCard extends LitElement {
             <div class="vcircle-wrap"
                  title="${t.paused ? 'Resume' : 'Pause'}"
                  @click=${(e)=>this._togglePause(t, e)}>
-              <svg class="vcircle" width="64" height="64" viewBox="0 0 72 72" aria-hidden="true">
-                <circle class="vc-track" cx="36" cy="36" r="${radius}" pathLength="100"></circle>
-                <circle class="vc-prog" cx="36" cy="36" r="${radius}" pathLength="100"
-                  style="stroke-dasharray:100 100; stroke-dashoffset:${circleOffset}"></circle>
+              <svg class="vcircle" width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
+                <circle class="vc-track" cx="32" cy="32" r="${circleValues.radius}"></circle>
+                <circle class="vc-prog" cx="32" cy="32" r="${circleValues.radius}"
+                  stroke-dasharray="${circleValues.circumference} ${circleValues.circumference}"
+                  style="stroke-dashoffset: ${circleValues.strokeDashoffset}; transition: stroke-dashoffset 0.25s;"></circle>
               </svg>
               <div class="icon-wrap xl"><ha-icon .icon=${icon}></ha-icon></div>
             </div>
@@ -1025,8 +1025,10 @@ class SimpleTimerCard extends LitElement {
   }
 
 
-  _circVals(radius = 28) {
-    return { radius };
+  _calculateCircleValues(radius = 28, pct = 0) {
+    const circumference = radius * 2 * Math.PI;
+    const strokeDashoffset = circumference - (pct / 100) * circumference;
+    return { radius, circumference, strokeDashoffset };
   }  
 
   _renderItemVertical(t, style) {
@@ -1036,12 +1038,10 @@ class SimpleTimerCard extends LitElement {
     const ring = t.remaining <= 0;
     const pct = typeof t.percent === "number" ? Math.max(0, Math.min(100, t.percent)) : 0;
     
-    let radius, circleOffset;
+    let circleValues;
     if (style === "circle") {
-      radius = this._circVals().radius;
       // Fix circle timing: use proper dashoffset calculation for countdown behavior
-      // pct = elapsed percentage, so circleOffset = pct makes circle shrink as timer counts down
-      circleOffset = ring ? 0 : pct;
+      circleValues = this._calculateCircleValues(28, pct);
     }
     
     const pctLeft = 100 - pct;
@@ -1060,12 +1060,11 @@ class SimpleTimerCard extends LitElement {
           <li class="item vtile" style="--tcolor:${color}">
             <div class="vcol">
               <div class="vcircle-wrap">
-                <svg class="vcircle" width="64" height="64" viewBox="0 0 72 72" aria-hidden="true">
-                  <circle class="vc-track" cx="36" cy="36" r="${radius}" pathLength="100"></circle>
-                  <circle class="vc-prog"
-                    cx="36" cy="36" r="${radius}" pathLength="100"
-                    style="stroke-dasharray:100 100; stroke-dashoffset:0;">
-                  </circle>
+                <svg class="vcircle" width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
+                  <circle class="vc-track" cx="32" cy="32" r="${circleValues.radius}"></circle>
+                  <circle class="vc-prog" cx="32" cy="32" r="${circleValues.radius}"
+                    stroke-dasharray="${circleValues.circumference} ${circleValues.circumference}"
+                    style="stroke-dashoffset: 0; transition: stroke-dashoffset 0.25s;"></circle>
                 </svg>
                 <div class="icon-wrap xl"><ha-icon .icon=${icon}></ha-icon></div>
               </div>
@@ -1119,12 +1118,11 @@ class SimpleTimerCard extends LitElement {
             <div class="vcircle-wrap"
                  title="${t.paused ? 'Resume' : 'Pause'}"
                  @click=${(e)=>this._togglePause(t, e)}>
-              <svg class="vcircle" width="64" height="64" viewBox="0 0 72 72" aria-hidden="true">
-                <circle class="vc-track" cx="36" cy="36" r="${radius}" pathLength="100"></circle>
-                <circle class="vc-prog"
-                  cx="36" cy="36" r="${radius}" pathLength="100"
-                  style="stroke-dasharray:100 100; stroke-dashoffset:${circleOffset};">
-                </circle>
+              <svg class="vcircle" width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
+                <circle class="vc-track" cx="32" cy="32" r="${circleValues.radius}"></circle>
+                <circle class="vc-prog" cx="32" cy="32" r="${circleValues.radius}"
+                  stroke-dasharray="${circleValues.circumference} ${circleValues.circumference}"
+                  style="stroke-dashoffset: ${circleValues.strokeDashoffset}; transition: stroke-dashoffset 0.25s;"></circle>
               </svg>
               <div class="icon-wrap xl"><ha-icon .icon=${icon}></ha-icon></div>
             </div>
