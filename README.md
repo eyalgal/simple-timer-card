@@ -13,7 +13,7 @@
 
 A versatile and highly customizable timer card for Home Assistant Lovelace, offering multiple display styles and support for various timer sources.
 
-<img width="800" alt="Simple Timer Card Design" src="https://github.com/user-attachments/assets/2514ec44-ed83-482f-bfe8-4322a800e03a" />
+<img width="1000" alt="Simple Timer Card Design" src="https://github.com/user-attachments/assets/d1c562d4-c3e4-4069-b22f-2f3aab58e40b" />
 
 > **Note**
 > This card provides a clean and intuitive interface for managing timers in Home Assistant. It supports both local storage and MQTT integration for persistent timers that survive browser reloads and stay synchronized across devices.
