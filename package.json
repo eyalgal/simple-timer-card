@@ -1,0 +1,15 @@
+{
+  "name": "simple-timer-card",
+  "version": "1.0.0",
+  "description": "[![GitHub Release][release_badge]][release] [![Community Forum][forum_badge]][forum] [![Buy Me A Coffee][bmac_badge]][bmac]",
+  "main": "simple-timer-card.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "lit": "^2.8.0"
+  }
+}

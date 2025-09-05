@@ -13,14 +13,14 @@
 
 A versatile and highly customizable timer card for Home Assistant Lovelace, offering multiple display styles and support for various timer sources.
 
-<img width="800" alt="Simple Timer Card Design" src="https://github.com/user-attachments/assets/2514ec44-ed83-482f-bfe8-4322a800e03a" />
+<img width="1000" alt="Simple Timer Card Design" src="https://github.com/user-attachments/assets/d1c562d4-c3e4-4069-b22f-2f3aab58e40b" />
 
 > **Note**
 > This card provides a clean and intuitive interface for managing timers in Home Assistant. It supports both local storage and MQTT integration for persistent timers that survive browser reloads and stay synchronized across devices.
 
 ## **✨ Features**
 
-* **Multiple Display Styles:** Choose between horizontal or vertical layouts with progress bar or background fill styles.
+* **Multiple Display Styles:** Choose between horizontal or vertical layouts with progress bar, background fill, or circular progress styles.
 * **Timer Presets:** Quick-access buttons for commonly used timer durations (customizable).
 * **Custom Timers:** Set custom timer durations using minute buttons or manual input.
 * **Persistent Storage:** Support for local browser storage or MQTT integration for timers that survive reloads and sync across devices.
@@ -70,9 +70,11 @@ resources:
 | :----------------------- | :-------- | :---------------------- | :------------------------------------------------------------------------------------------------- |
 | `type`                   | `string`  | **Required**            | `custom:simple-timer-card`                                                                        |
 | `layout`                 | `string`  | `horizontal`            | Card layout. Can be `horizontal` or `vertical`                                                    |
-| `style`                  | `string`  | `bar`                   | Timer display style. Can be `bar` (progress bar) or `fill` (background fill)                     |
+| `style`                  | `string`  | `bar`                   | Timer display style. Can be `bar` (progress bar), `fill` (background fill), or `circle` (circular progress)  |
 | `title`                  | `string`  | `null`                  | Optional title for the card                                                                        |
 | `entities`               | `array`   | `[]`                    | Array of timer entities to display                                                                |
+
+> **💡 Style Options:** The `style` parameter supports three distinct visual presentations. Each style works with both horizontal and vertical layouts, giving you complete flexibility in how timers are displayed.
 
 ### **Timer Configuration**
 
@@ -144,6 +146,19 @@ timer_presets: [10, 20, 45]
 style: fill
 ```
 
+### **Circle Style Timer**
+
+Modern circular progress display with custom colors:
+
+```yaml
+type: custom:simple-timer-card
+title: Focus Timer
+style: circle
+timer_presets: [15, 25, 45]
+default_timer_color: '#2196f3'
+default_timer_icon: 'mdi:brain'
+```
+
 ### **Persistent Timer with Audio**
 
 Timer that survives browser reloads and plays audio when expired:
@@ -179,11 +194,12 @@ snooze_duration: 10
 
 ### **Family Cooking Timer**
 
-Multiple preset timers for different cooking tasks:
+Multiple preset timers for different cooking tasks with modern circle display:
 
 ```yaml
 type: custom:simple-timer-card
 title: Cooking Timer
+style: circle
 timer_presets: [3, 5, 8, 12, 15, 20, 25, 30]
 show_active_header: true
 audio_enabled: true
@@ -210,6 +226,12 @@ mqtt:
 > **⚠️ Important:** The `state_topic` and `json_attributes_topic` Important: The state_topic and json_attributes_topic must be exactly as shown above. It is also strongly recommend to keep the `value_template` as is.
 
 ## **🎨 Styling**
+
+The card offers flexible styling options with three distinct display styles:
+
+- **Progress Bar** (`bar`): Traditional horizontal progress bar with timer information
+- **Background Fill** (`fill`): Full background color fill that progresses as timer counts down  
+- **Circle** (`circle`): Modern circular progress ring with centered timer display
 
 The card uses CSS custom properties that can be overridden:
 
