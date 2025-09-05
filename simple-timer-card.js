@@ -64,29 +64,22 @@ class SimpleTimerCard extends LitElement {
     };
 
   const normLayout = (config.layout || "horizontal").toLowerCase();
-  let layout = normLayout === "vertical" ? "vertical" : "horizontal";
+  const layout = normLayout === "vertical" ? "vertical" : "horizontal";
 
   const rawStyle = (config.style || "bar").toLowerCase();
-  let style, layoutOverride;
+  let style;
 
+  // Parse combined style values but don't override user's layout setting
   if (rawStyle === "fill_vertical" || rawStyle === "fill_horizontal") {
     style = "fill";
-    layoutOverride = rawStyle === "fill_vertical" ? "vertical" : "horizontal";
   } else if (rawStyle === "bar_vertical" || rawStyle === "bar_horizontal") {
     style = "bar"; 
-    layoutOverride = rawStyle === "bar_vertical" ? "vertical" : "horizontal";
   } else if (rawStyle === "circle") {
     style = "circle";
-    layoutOverride = null;
   } else {
     style = rawStyle === "fill" || rawStyle === "background" || rawStyle === "background_fill"
       ? "fill"
       : (rawStyle === "circle" ? "circle" : "bar");
-    layoutOverride = null;
-  }
-
-  if (layoutOverride) {
-    layout = layoutOverride;
   }
 	
     this._config = {
@@ -1190,8 +1183,25 @@ class SimpleTimerCard extends LitElement {
     const minuteButtons = this._config.minute_buttons && this._config.minute_buttons.length ? this._config.minute_buttons : [1, 5, 10];
 
     const timers = this._timers;
-    const layout = this._config.layout;
+    const layout = this._config.layout;  // Only for no-timers state
     const style = this._config.style;
+
+    // For active timers, derive the display layout from the style
+    const getActiveTimersLayout = (rawConfigStyle) => {
+      const rawStyle = (rawConfigStyle || "bar").toLowerCase();
+      if (rawStyle === "fill_vertical" || rawStyle === "bar_vertical") {
+        return "vertical";
+      } else if (rawStyle === "fill_horizontal" || rawStyle === "bar_horizontal") {
+        return "horizontal";
+      } else if (rawStyle === "circle") {
+        return "vertical"; // circles work better in vertical layout
+      } else {
+        // For plain "fill" and "bar", use horizontal by default
+        return "horizontal";
+      }
+    };
+
+    const activeTimersLayout = getActiveTimersLayout(this._config.style);
 
     const noTimerCard = layout === "horizontal" ? html`
       <div class="card nt-h ${this._ui.noTimerHorizontalOpen ? "expanded" : ""}">
@@ -1266,11 +1276,11 @@ class SimpleTimerCard extends LitElement {
       </div>
     `;
 	
-    const renderFn = this._config.layout === "vertical"
+    const renderFn = activeTimersLayout === "vertical"
       ? this._renderItemVertical.bind(this)
       : this._renderItem.bind(this);
 
-    const useGrid = (layout === "vertical") || (style === "circle");
+    const useGrid = (activeTimersLayout === "vertical") || (style === "circle");
     const cols = (useGrid && timers.length > 1) ? 2 : 1;
     const listClass = useGrid ? `list vgrid cols-${cols}` : 'list';
 

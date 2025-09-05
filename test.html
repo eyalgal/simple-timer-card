@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Timer Card Test</title>
+    <style>
+        body { 
+            background: #1c1c1c; 
+            color: white; 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+        }
+        .test-container {
+            max-width: 400px;
+            margin: 20px 0;
+            background: #2c2c2c;
+            border-radius: 12px;
+            padding: 20px;
+        }
+        h2 { margin-top: 0; }
+    </style>
+</head>
+<body>
+    <h1>Simple Timer Card Layout Test</h1>
+    
+    <!-- Test Case 1: Horizontal layout with vertical fill style -->
+    <div class="test-container">
+        <h2>Test 1: layout="horizontal" + style="fill_vertical"</h2>
+        <p>Expected: No timer state should be horizontal, but active timers should be vertical</p>
+        <simple-timer-card id="test1"></simple-timer-card>
+    </div>
+    
+    <!-- Test Case 2: Vertical layout with horizontal bar style -->
+    <div class="test-container">
+        <h2>Test 2: layout="vertical" + style="bar_horizontal"</h2>
+        <p>Expected: No timer state should be vertical, but active timers should be horizontal</p>
+        <simple-timer-card id="test2"></simple-timer-card>
+    </div>
+    
+    <!-- Test Case 3: Circle style should respect layout for no-timer state -->
+    <div class="test-container">
+        <h2>Test 3: layout="horizontal" + style="circle"</h2>
+        <p>Expected: No timer state should be horizontal, active timers should be circle (vertical)</p>
+        <simple-timer-card id="test3"></simple-timer-card>
+    </div>
+
+    <script type="module">
+        // Import the card
+        import './simple-timer-card.js';
+        
+        // Mock hass object
+        const mockHass = {
+            states: {},
+            callService: () => Promise.resolve()
+        };
+        
+        // Test configurations
+        const configs = [
+            {
+                layout: "horizontal",
+                style: "fill_vertical",
+                show_timer_presets: true,
+                timer_presets: [5, 15, 30]
+            },
+            {
+                layout: "vertical", 
+                style: "bar_horizontal",
+                show_timer_presets: true,
+                timer_presets: [10, 20, 45]
+            },
+            {
+                layout: "horizontal",
+                style: "circle",
+                show_timer_presets: true,
+                timer_presets: [1, 5, 10]
+            }
+        ];
+        
+        // Set up test cards
+        setTimeout(() => {
+            configs.forEach((config, index) => {
+                const card = document.getElementById(`test${index + 1}`);
+                if (card) {
+                    card.hass = mockHass;
+                    card.setConfig(config);
+                }
+            });
+        }, 100);
+    </script>
+</body>
+</html>
