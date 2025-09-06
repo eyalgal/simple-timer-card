@@ -41,15 +41,17 @@ A versatile and highly customizable timer card for Home Assistant Lovelace, offe
 
 ## **🚀 Installation**
 
-<!-- ### **HACS**
+**HACS**
 
 Simple Timer Card is available in [HACS](https://hacs.xyz/) (Home Assistant Community Store).
 
-1. Install HACS if you don't have it already
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=eyalgal&repository=simple-timer-card&category=plugin)
+
+<!--- 1. Install HACS if you don't have it already
 2. Open HACS in Home Assistant
 3. Search for "Simple Timer Card"
 4. Click the download button ⬇️
--->
+--->
 ### **Manual Installation**
 
 1. Download the `simple-timer-card.js` file from the [latest release](https://github.com/eyalgal/simple-timer-card/releases)
