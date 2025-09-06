@@ -1222,9 +1222,10 @@ class SimpleTimerCard extends LitElement {
   render() {
     if (!this._config) return html``;
 
-    const presets = this._config.show_timer_presets === false
-      ? []
-      : (this._config.timer_presets && this._config.timer_presets.length ? this._config.timer_presets : [5, 15, 30]);
+    const showPresets = this._config.show_timer_presets !== false;
+    const presets = showPresets
+      ? (this._config.timer_presets && this._config.timer_presets.length ? this._config.timer_presets : [5, 15, 30])
+      : [];
 
     const minuteButtons = this._config.minute_buttons && this._config.minute_buttons.length ? this._config.minute_buttons : [1, 5, 10];
 
@@ -1252,7 +1253,7 @@ class SimpleTimerCard extends LitElement {
     const noTimerCard = layout === "horizontal" ? html`
       <div class="card nt-h ${this._ui.noTimerHorizontalOpen ? "expanded" : ""}">
         <div class="row">
-          <div class="card-content" @click=${this._config.show_timer_presets === false ? () => this._toggleCustom("horizontal") : null}>
+          <div class="card-content" @click=${!showPresets ? () => this._toggleCustom("horizontal") : null}>
             <div class="icon-wrap"><ha-icon icon="mdi:timer-off"></ha-icon></div>
             <div>
               <p class="nt-title">No Timers</p>
@@ -1263,7 +1264,7 @@ class SimpleTimerCard extends LitElement {
             ${presets.map((m) => html`
               <button class="btn btn-preset" @click=${() => this._createPresetTimer(m)}>${m}m</button>
             `)}
-            ${this._config.show_timer_presets === false ? html`
+            ${!showPresets ? html`
               <button class="btn btn-ghost" @click=${() => this._toggleCustom("horizontal")}><ha-icon icon="mdi:plus" style="--mdc-icon-size:16px;"></ha-icon> Add</button>
             ` : html`
               <button class="btn btn-ghost" @click=${() => this._toggleCustom("horizontal")}>Custom</button>
@@ -1289,7 +1290,7 @@ class SimpleTimerCard extends LitElement {
     ` : html`
       <div class="card nt-v ${this._ui.noTimerVerticalOpen ? "expanded" : ""}">
         <div class="col">
-          <div class="card-content" style="flex-direction:column;justify-content:center;gap:8px;flex:1;" @click=${this._config.show_timer_presets === false ? () => this._toggleCustom("vertical") : null}>
+          <div class="card-content" style="flex-direction:column;justify-content:center;gap:8px;flex:1;" @click=${!showPresets ? () => this._toggleCustom("vertical") : null}>
             <div class="icon-wrap"><ha-icon icon="mdi:timer-off"></ha-icon></div>
             <p class="nt-title">No Active Timers</p>
           </div>
@@ -1297,7 +1298,7 @@ class SimpleTimerCard extends LitElement {
             ${presets.map((m) => html`
               <button class="btn btn-preset" @click=${() => this._createPresetTimer(m)}>${m}m</button>
             `)}
-            ${this._config.show_timer_presets === false ? html`
+            ${!showPresets ? html`
               <button class="btn btn-ghost" @click=${() => this._toggleCustom("vertical")}><ha-icon icon="mdi:plus" style="--mdc-icon-size:16px;"></ha-icon> Add</button>
             ` : html`
               <button class="btn btn-ghost" @click=${() => this._toggleCustom("vertical")}>Custom</button>
@@ -1322,11 +1323,12 @@ class SimpleTimerCard extends LitElement {
       </div>
     `;
 	
-    const renderFn = activeTimersLayout === "vertical"
+    const isVerticalLayout = activeTimersLayout === "vertical";
+    const renderFn = isVerticalLayout
       ? this._renderItemVertical.bind(this)
       : this._renderItem.bind(this);
 
-    const useGrid = (activeTimersLayout === "vertical") || (style === "circle");
+    const useGrid = isVerticalLayout || (style === "circle");
     const cols = (useGrid && timers.length > 1) ? 2 : 1;
     const listClass = useGrid ? `list vgrid cols-${cols}` : 'list';
 
@@ -1951,18 +1953,13 @@ class SimpleTimerCardEditor extends LitElement {
     const layout = this._config.layout || "horizontal";
     
     // If style already includes direction, use it directly
-    if (style.includes("_vertical") || style.includes("_horizontal") || style === "circle") {
+    if (style.includes("_") || style === "circle") {
       return style;
     }
     
     // Otherwise, construct from current style and layout
-    if (style === "fill") {
-      return layout === "vertical" ? "fill_vertical" : "fill_horizontal";
-    } else if (style === "bar") {
-      return layout === "vertical" ? "bar_vertical" : "bar_horizontal";
-    }
-    
-    return style;
+    const suffix = layout === "vertical" ? "_vertical" : "_horizontal";
+    return (style === "fill" || style === "bar") ? `${style}${suffix}` : style;
   }
 
   render() {
