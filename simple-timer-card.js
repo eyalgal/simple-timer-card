@@ -37,6 +37,7 @@ class SimpleTimerCard extends LitElement {
     this._dismissed = new Set();
     this._ringingTimers = new Set();
     this._activeAudioInstances = new Map();
+    this._notified = new Set(); // timer.id values already pushed
 
     this._ui = {
       noTimerHorizontalOpen: false,
@@ -106,6 +107,10 @@ class SimpleTimerCard extends LitElement {
       alexa_audio_repeat_count: 1,
       alexa_audio_play_until_dismissed: false,
       expired_subtitle: "Time's up!",
+      notify_on_expire: false,
+      notify_title: "⏱ Timer done",
+      notify_message: "{label} is up.",
+      notify_device_ids: [],
       ...config,
       entities: config.entities || [],
       storage: autoStorage,
@@ -477,6 +482,7 @@ class SimpleTimerCard extends LitElement {
       if (isNowRinging && !wasRinging) {
         this._ringingTimers.add(timer.id);
         this._playAudioNotification(timer.id, timer);
+        this._sendPushNotification(timer);
       }
       else if (!isNowRinging && wasRinging) {
         this._ringingTimers.delete(timer.id);
@@ -582,6 +588,37 @@ class SimpleTimerCard extends LitElement {
       audio.pause();
       audio.currentTime = 0;
       this._activeAudioInstances.delete(timerId);
+    }
+  }
+
+  _sendPushNotification(timer) {
+    // Guardrails
+    if (!this._config?.notify_on_expire) return;
+    const targets = Array.isArray(this._config.notify_device_ids) ? this._config.notify_device_ids.filter(Boolean) : [];
+    if (!targets.length) return;
+    if (this._notified.has(timer.id)) return;
+
+    // Build message (simple template support)
+    const tpl = (s, t) => (s || "").replace("{label}", t?.label || "Timer");
+    const title = tpl(this._config.notify_title, timer);
+    const message = tpl(this._config.notify_message, timer);
+
+    try {
+      this.hass.callService("notify", "mobile_app", {
+        target: targets,                       // list of device_ids (mobile_app)
+        title,
+        message,
+        data: {
+          tag: `timer_${timer.id}`,
+          channel: "Timers",
+          sticky: "true",
+          notification_icon: "mdi:timer-outline",
+        },
+      });
+      this._notified.add(timer.id);
+    } catch (e) {
+      // fail silently in UI
+      console.warn("Push notify failed:", e);
     }
   }
 
@@ -693,6 +730,7 @@ class SimpleTimerCard extends LitElement {
 
   _handleCancel(timer) {
     this._ringingTimers.delete(timer.id);
+    this._notified.delete(timer.id);
     if (timer.source === "helper") {
       this._mutateHelper(timer.source_entity, (data) => { data.timers = data.timers.filter((t) => t.id !== timer.id); });
     } else if (timer.source === "local" || timer.source === "mqtt") {
@@ -754,6 +792,7 @@ class SimpleTimerCard extends LitElement {
   _handleDismiss(timer) {
     this._ringingTimers.delete(timer.id);
     this._stopAudioForTimer(timer.id);
+    this._notified.delete(timer.id);
     if (timer.source === "helper") {
       this._mutateHelper(timer.source_entity, (data) => { data.timers = data.timers.filter((t) => t.id !== timer.id); });
     } else if (timer.source === "local" || timer.source === "mqtt") {
@@ -1768,7 +1807,11 @@ class SimpleTimerCardEditor extends LitElement {
       alexa_audio_repeat_count: 1,
       alexa_audio_play_until_dismissed: false,
       expired_subtitle: "Time's up!",
-      default_timer_entity: null
+      default_timer_entity: null,
+      notify_on_expire: false,
+      notify_title: "⏱ Timer done",
+      notify_message: "{label} is up.",
+      notify_device_ids: []
     };
 
     const cleaned = { ...config };
@@ -1783,6 +1826,12 @@ class SimpleTimerCardEditor extends LitElement {
       delete cleaned.alexa_audio_file_url;
       delete cleaned.alexa_audio_repeat_count;
       delete cleaned.alexa_audio_play_until_dismissed;
+    }
+
+    if (!cleaned.notify_on_expire) {
+      delete cleaned.notify_title;
+      delete cleaned.notify_message;
+      delete cleaned.notify_device_ids;
     }
 
     for (const [key, defaultValue] of Object.entries(defaults)) {
@@ -1834,6 +1883,7 @@ class SimpleTimerCardEditor extends LitElement {
       "ha-icon-picker",
       "ha-form",
       "mwc-list-item",
+      "ha-device-picker",
     ];
 
     tags.forEach((t) => {
@@ -1986,6 +2036,27 @@ class SimpleTimerCardEditor extends LitElement {
           <ha-formfield label="Play Alexa audio until timer is dismissed or snoozed">
             <ha-switch .checked=${this._config.alexa_audio_play_until_dismissed === true} .configValue=${"alexa_audio_play_until_dismissed"} @change=${this._valueChanged}></ha-switch>
           </ha-formfield>
+        ` : ""}
+
+        <ha-formfield label="Send push notification when a timer ends">
+          <ha-switch .checked=${this._config.notify_on_expire === true} .configValue=${"notify_on_expire"} @change=${this._valueChanged}></ha-switch>
+        </ha-formfield>
+
+        ${this._config.notify_on_expire ? html`
+          <ha-textfield label="Notification title" .value=${this._config.notify_title ?? "⏱ Timer done"} .configValue=${"notify_title"} @input=${this._valueChanged}></ha-textfield>
+
+          <ha-textfield label="Notification message (use {label})" .value=${this._config.notify_message ?? "{label} is up."} .configValue=${"notify_message"} @input=${this._valueChanged}></ha-textfield>
+
+          <ha-device-picker
+            .hass=${this.hass}
+            .value=${this._config.notify_device_ids || []}
+            .label=${"Mobile devices to notify"}
+            .configValue=${"notify_device_ids"}
+            .includeDomains=${[]}
+            .deviceFilter=${(d) => d.integration === "mobile_app"}
+            .multiple=${true}
+            @value-changed=${this._detailValueChanged}>
+          </ha-device-picker>
         ` : ""}
 
         <div class="entities-header">
