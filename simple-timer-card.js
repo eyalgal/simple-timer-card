@@ -2052,6 +2052,7 @@ class SimpleTimerCardEditor extends LitElement {
             .value=${this._config.notify_device_ids || []}
             .label=${"Mobile devices to notify"}
             .configValue=${"notify_device_ids"}
+            help-text="Select one or more mobile devices (phones, tablets) to receive push notifications when timers expire."
             .includeDomains=${[]}
             .deviceFilter=${(d) => d.integration === "mobile_app"}
             .multiple=${true}
