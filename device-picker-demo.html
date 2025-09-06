@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Timer Card - Device Picker Demo</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            margin-top: 0;
+        }
+        h2 {
+            color: #34495e;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 8px;
+        }
+        .feature-box {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 16px 0;
+        }
+        .feature-box h3 {
+            margin-top: 0;
+            color: #495057;
+        }
+        .highlight {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 12px;
+            margin: 16px 0;
+        }
+        .code {
+            background: #f4f4f4;
+            padding: 12px;
+            border-radius: 6px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+        }
+        .step {
+            margin: 16px 0;
+            padding: 12px;
+            border-radius: 6px;
+            border-left: 4px solid #4caf50;
+            background: #f1f8e9;
+        }
+        .step-number {
+            font-weight: bold;
+            color: #2e7d32;
+        }
+        .screenshot-placeholder {
+            background: #e8f5e8;
+            border: 2px dashed #4caf50;
+            padding: 40px;
+            text-align: center;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏠 Simple Timer Card - Device Selection for Push Notifications</h1>
+        
+        <div class="highlight">
+            <strong>✅ Feature Status:</strong> The device picker functionality is <strong>already implemented and working!</strong> You can select mobile devices directly from the visual editor.
+        </div>
+
+        <h2>📱 How to Use Device Selection</h2>
+
+        <div class="step">
+            <span class="step-number">Step 1:</span> Open your Dashboard, add or edit a Simple Timer Card
+        </div>
+
+        <div class="step">
+            <span class="step-number">Step 2:</span> In the visual editor, find the "Send push notification when a timer ends" toggle and enable it
+        </div>
+
+        <div class="step">
+            <span class="step-number">Step 3:</span> Once enabled, you'll see a "Mobile devices to notify" picker that automatically shows only mobile devices (phones, tablets)
+        </div>
+
+        <div class="step">
+            <span class="step-number">Step 4:</span> Select one or more devices and save your configuration
+        </div>
+
+        <div class="screenshot-placeholder">
+            📸 Device picker will appear here when notifications are enabled<br>
+            <small>Filters automatically to show only mobile_app integration devices</small>
+        </div>
+
+        <h2>🛠️ Technical Implementation</h2>
+
+        <div class="feature-box">
+            <h3>Device Filtering</h3>
+            <p>The device picker automatically filters to show only mobile devices by using:</p>
+            <div class="code">deviceFilter: (d) => d.integration === "mobile_app"</div>
+        </div>
+
+        <div class="feature-box">
+            <h3>Multiple Selection</h3>
+            <p>You can select multiple devices at once using the multiple selection feature:</p>
+            <div class="code">.multiple=${true}</div>
+        </div>
+
+        <div class="feature-box">
+            <h3>Help Text Enhancement</h3>
+            <p>Added helpful guidance text to make the feature more discoverable:</p>
+            <div class="code">help-text="Select one or more mobile devices (phones, tablets) to receive push notifications when timers expire."</div>
+        </div>
+
+        <h2>📝 Example Configuration</h2>
+
+        <p>Here's what the YAML configuration looks like after selecting devices:</p>
+
+        <div class="code">
+type: custom:simple-timer-card
+title: Study Timer
+timer_presets: [25, 45, 60]
+notify_on_expire: true
+notify_title: "📚 Study Timer Complete"
+notify_message: "{label} session is finished!"
+notify_device_ids:
+  - abc123_iphone_13
+  - def456_pixel_6
+audio_enabled: true
+audio_file_url: /local/sounds/study_bell.mp3
+        </div>
+
+        <div class="highlight">
+            <strong>💡 Pro Tip:</strong> The device IDs are automatically populated when you select devices in the visual editor - no need to find them manually!
+        </div>
+
+        <h2>🎯 Key Benefits</h2>
+
+        <div class="feature-box">
+            <h3>✨ User-Friendly</h3>
+            <p>No need to manually look up device IDs - just select from a list of your mobile devices</p>
+        </div>
+
+        <div class="feature-box">
+            <h3>🔍 Smart Filtering</h3>
+            <p>Only shows relevant devices (mobile apps) that can receive push notifications</p>
+        </div>
+
+        <div class="feature-box">
+            <h3>📱 Multi-Device Support</h3>
+            <p>Select multiple devices at once to send notifications to all your mobile devices</p>
+        </div>
+
+        <div class="feature-box">
+            <h3>📖 Clear Guidance</h3>
+            <p>Enhanced with helpful text to guide users through the selection process</p>
+        </div>
+    </div>
+</body>
+</html>
