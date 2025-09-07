@@ -43,7 +43,6 @@ class SimpleTimerCard extends LitElement {
     this._dismissed = new Set();
     this._ringingTimers = new Set();
     this._activeAudioInstances = new Map();
-    this._notified = new Set();
 
     this._ui = {
       noTimerHorizontalOpen: false,
@@ -114,10 +113,6 @@ class SimpleTimerCard extends LitElement {
       alexa_audio_repeat_count: 1,
       alexa_audio_play_until_dismissed: false,
       expired_subtitle: "Time's up!",
-      notify_on_expire: false,
-      notify_title: "⏱ Timer done",
-      notify_message: "{label} is up.",
-      notify_services: [],
       ...config,
       entities: config.entities || [],
       storage: autoStorage,
@@ -489,7 +484,7 @@ class SimpleTimerCard extends LitElement {
       if (isNowRinging && !wasRinging) {
         this._ringingTimers.add(timer.id);
         this._playAudioNotification(timer.id, timer);
-        this._sendPushNotification(timer);
+        this._publishTimerEvent('expired', timer);
       }
       else if (!isNowRinging && wasRinging) {
         this._ringingTimers.delete(timer.id);
@@ -598,48 +593,21 @@ class SimpleTimerCard extends LitElement {
     }
   }
 
-  _sendPushNotification(timer) {
-    if (!this._config?.notify_on_expire) return;
-    const svcNames = Array.isArray(this._config.notify_services) ? this._config.notify_services.filter(Boolean) : [];
-    const devIds = Array.isArray(this._config.notify_device_ids) ? this._config.notify_device_ids.filter(Boolean) : [];
-    if (!svcNames.length && !devIds.length) return;
-    if (this._notified.has(timer.id)) return;
-
-    const tpl = (s, t) => (s || "").replace("{label}", t?.label || "Timer");
-    const title = tpl(this._config.notify_title, timer);
-    const message = tpl(this._config.notify_message, timer);
-    const data = {
-      tag: `timer_${timer.id}`,
-      channel: "Timers",
-      sticky: "true",
-      notification_icon: "mdi:timer-outline",
-    };
-
-    try {
-      if (svcNames.length) {
-        for (const svc of svcNames) {
-          const serviceName = svc.startsWith('notify.') ? svc.substring(7) : svc;
-          if (this.hass?.services?.notify?.[serviceName]) {
-            this.hass.callService("notify", serviceName, { title, message, data });
-          }
-        }
-        this._notified.add(timer.id);
-        return;
-      }
-      if (this.hass?.services?.notify?.mobile_app) {
-        this.hass.callService("notify", "mobile_app", { target: devIds, title, message, data });
-        this._notified.add(timer.id);
-        return;
-      }
-      if (this.hass?.services?.mobile_app?.send_notification) {
-        for (const id of devIds) {
-          this.hass.callService("mobile_app", "send_notification", { device_id: id, title, message, data });
-        }
-        this._notified.add(timer.id);
-        return;
-      }
-    } catch (e) {
-      console.warn("Push notify failed:", e);
+  // Add this method for MQTT event publishing
+  _publishTimerEvent(event, timer) {
+    if (this._config.storage === 'mqtt') {
+      this.hass.callService("mqtt", "publish", {
+        topic: `simple_timer_card/events/${event}`,
+        payload: JSON.stringify({
+          id: timer.id,
+          label: timer.label,
+          source: timer.source,
+          source_entity: timer.source_entity,
+          timestamp: Date.now(),
+          event: event
+        }),
+        retain: false
+      });
     }
   }
 
@@ -751,7 +719,6 @@ class SimpleTimerCard extends LitElement {
 
   _handleCancel(timer) {
     this._ringingTimers.delete(timer.id);
-    this._notified.delete(timer.id);
     if (timer.source === "helper") {
       this._mutateHelper(timer.source_entity, (data) => { data.timers = data.timers.filter((t) => t.id !== timer.id); });
     } else if (timer.source === "local" || timer.source === "mqtt") {
@@ -813,7 +780,6 @@ class SimpleTimerCard extends LitElement {
   _handleDismiss(timer) {
     this._ringingTimers.delete(timer.id);
     this._stopAudioForTimer(timer.id);
-    this._notified.delete(timer.id);
     if (timer.source === "helper") {
       this._mutateHelper(timer.source_entity, (data) => { data.timers = data.timers.filter((t) => t.id !== timer.id); });
     } else if (timer.source === "local" || timer.source === "mqtt") {
@@ -1785,37 +1751,6 @@ class SimpleTimerCardEditor extends LitElement {
     newConfig.entities = entities;
     this._updateConfig(newConfig, true);
   }
-  _getMobileAppNotifyServices() {
-    if (!this.hass?.services?.notify) return [];
-    return Object.keys(this.hass.services.notify)
-      .filter(service => service.startsWith('mobile_app_'))
-      .map(service => {
-        const deviceName = service.replace('mobile_app_', '')
-          .replace(/_/g, ' ')
-          .replace(/\b\w/g, l => l.toUpperCase());
-        return {
-          value: `notify.${service}`,
-          label: deviceName
-        };
-      })
-      .sort((a, b) => a.label.localeCompare(b.label));
-  }
-
-  _getOtherNotifyServices() {
-    if (!this.hass?.services?.notify) return [];
-    return Object.keys(this.hass.services.notify)
-      .filter(service => !service.startsWith('mobile_app_'))
-      .map(service => {
-        const friendlyName = service
-          .replace(/_/g, ' ')
-          .replace(/\b\w/g, l => l.toUpperCase()); 
-        return {
-          value: `notify.${service}`,
-          label: friendlyName
-        };
-      })
-      .sort((a, b) => a.label.localeCompare(b.label));
-  }
   _debouncedUpdate(changes) {
     if (this._debounceTimeout) clearTimeout(this._debounceTimeout);
     this._debounceTimeout = setTimeout(() => { this._updateConfig(changes); this._debounceTimeout = null; }, 100);
@@ -1865,10 +1800,6 @@ class SimpleTimerCardEditor extends LitElement {
       alexa_audio_play_until_dismissed: false,
       expired_subtitle: "Time's up!",
       default_timer_entity: null,
-      notify_on_expire: false,
-      notify_title: "⏱ Timer done",
-      notify_message: "{label} is up.",
-      notify_services: [],
     };
 
     const cleaned = { ...config };
@@ -1883,12 +1814,6 @@ class SimpleTimerCardEditor extends LitElement {
       delete cleaned.alexa_audio_file_url;
       delete cleaned.alexa_audio_repeat_count;
       delete cleaned.alexa_audio_play_until_dismissed;
-    }
-
-    if (!cleaned.notify_on_expire) {
-      delete cleaned.notify_title;
-      delete cleaned.notify_message;
-      delete cleaned.notify_device_ids;
     }
 
     for (const [key, defaultValue] of Object.entries(defaults)) {
@@ -1947,7 +1872,6 @@ class SimpleTimerCardEditor extends LitElement {
     });
 
     this._ensureEntityPickerLoaded();
-    this._ensureServiceSelectorLoaded();
     this.requestUpdate();
   }
 
@@ -1964,18 +1888,6 @@ class SimpleTimerCardEditor extends LitElement {
       setTimeout(() => loader.remove(), 0);
     } catch (_) {
     }
-  }
-
-  _ensureServiceSelectorLoaded() {
-    try {
-      const loader = document.createElement("ha-form");
-      loader.style.display = "none";
-      loader.schema = [{ name: "x", selector: { service: { domain: "notify", multiple: true } } }];
-      loader.data = {};
-      loader.hass = this.hass;
-      this.shadowRoot?.appendChild(loader);
-      setTimeout(() => loader.remove(), 0);
-    } catch (_) {}
   }
 
   _getDisplayStyleValue() {
@@ -2089,72 +2001,6 @@ class SimpleTimerCardEditor extends LitElement {
           </ha-formfield>
         ` : ""}
 
-        <ha-formfield label="Send push notification when a timer ends">
-          <ha-switch .checked=${this._config.notify_on_expire === true} .configValue=${"notify_on_expire"} @change=${this._valueChanged}></ha-switch>
-        </ha-formfield>
-
-		${this._config.notify_on_expire ? html`
-		  <ha-textfield label="Notification title" .value=${this._config.notify_title ?? "⏱ Timer done"} .configValue=${"notify_title"} @input=${this._valueChanged}></ha-textfield>
-
-		  <ha-textfield label="Notification message (use {label})" .value=${this._config.notify_message ?? "{label} is up."} .configValue=${"notify_message"} @input=${this._valueChanged}></ha-textfield>
-
-		  <div class="notification-section">
-			<label>Select mobile devices</label>
-			<div class="checkbox-list">
-			  ${this._getMobileAppNotifyServices().map(service => html`
-				<ha-formfield .label=${service.label}>
-				  <ha-checkbox
-					.checked=${(Array.isArray(this._config.notify_services) ? this._config.notify_services : []).includes(service.value)}
-					@change=${(e) => {
-					  const currentServices = Array.isArray(this._config.notify_services) ? [...this._config.notify_services] : [];
-					  if (e.target.checked) {
-						if (!currentServices.includes(service.value)) {
-						  currentServices.push(service.value);
-						}
-					  } else {
-						const index = currentServices.indexOf(service.value);
-						if (index > -1) currentServices.splice(index, 1);
-					  }
-					  this._updateConfig({ notify_services: currentServices }, true);
-					}}
-				  ></ha-checkbox>
-				</ha-formfield>
-			  `)}
-			  ${this._getMobileAppNotifyServices().length === 0 ? html`
-				<div class="no-services">No mobile devices found</div>
-			  ` : ''}
-			</div>
-		  </div>
-
-		  <div class="notification-section">
-			<label>Other Notification Services</label>
-			<div class="checkbox-list">
-			  ${this._getOtherNotifyServices().map(service => html`
-				<ha-formfield .label=${service.label}>
-				  <ha-checkbox
-					.checked=${(Array.isArray(this._config.notify_services) ? this._config.notify_services : []).includes(service.value)}
-					@change=${(e) => {
-					  const currentServices = Array.isArray(this._config.notify_services) ? [...this._config.notify_services] : [];
-					  if (e.target.checked) {
-						if (!currentServices.includes(service.value)) {
-						  currentServices.push(service.value);
-						}
-					  } else {
-						const index = currentServices.indexOf(service.value);
-						if (index > -1) currentServices.splice(index, 1);
-					  }
-					  this._updateConfig({ notify_services: currentServices }, true);
-					}}
-				  ></ha-checkbox>
-				</ha-formfield>
-			  `)}
-			  ${this._getOtherNotifyServices().length === 0 ? html`
-				<div class="no-services">No other notification services found</div>
-			  ` : ''}
-			</div>
-		  </div>
-		` : ""}
-
         <div class="entities-header">
           <h3>Timer Entities</h3>
           <button class="add-entity-button" @click=${this._addEntity} title="Add timer entity"><ha-icon icon="mdi:plus"></ha-icon></button>
@@ -2265,23 +2111,6 @@ class SimpleTimerCardEditor extends LitElement {
       .remove-entity { position: absolute; top: 4px; right: 4px; background: var(--error-color, #f44336); border: none; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; transition: filter .2s; }
       .remove-entity:hover { filter: brightness(.9); }
       .remove-entity ha-icon { --mdc-icon-size: 20px; }
-	  .notification-section { margin-top: 12px; }
-	  .notification-section label { display: block; margin-bottom: 8px; font-weight: 500; }
-	  .checkbox-list { 
-	    max-height: 200px; 
-	    overflow-y: auto; 
-	    border: 1px solid var(--divider-color); 
-	    border-radius: 4px; 
-	    padding: 8px;
-	    background: var(--card-background-color);
-	  }
-	  .checkbox-list ha-formfield { display: block; margin: 4px 0; }
-	  .no-services { 
-	    color: var(--secondary-text-color); 
-	    font-style: italic; 
-	    padding: 8px;
-	    text-align: center;
-	  }
     `;
   }
 }

@@ -1,0 +1,18 @@
+# Example: Send mobile notification when MQTT timer expires
+alias: "MQTT Timer Expired Notification"
+description: "Sends push notification when any MQTT-based timer expires"
+trigger:
+  - platform: mqtt
+    topic: "simple_timer_card/events/expired"
+variables:
+  timer: "{{ trigger.payload_json }}"
+action:
+  - service: notify.mobile_app_YOUR_DEVICE_HERE
+    data:
+      title: "⏱️ Timer Expired"
+      message: "{{ timer.label }} is done!"
+      data:
+        tag: "timer_{{ timer.id }}"
+        channel: "Timers"
+        importance: "high"
+        notification_icon: "mdi:timer-outline"
