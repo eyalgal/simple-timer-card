@@ -20,17 +20,19 @@ A versatile and highly customizable timer card for Home Assistant Lovelace, offe
 
 ## **✨ Features**
 
-* **Multiple Display Styles:** Choose between horizontal or vertical layouts with progress bar, background fill, or circular progress styles.
+* **Flexible Display Styles:** Choose from five distinct timer display styles: `fill_horizontal`, `fill_vertical`, `bar_horizontal`, `bar_vertical`, or `circle`.
+* **Dual Layout Control:** Separate `layout` (for no-timers state) and `style` (for active timers) options allow any combination.
 * **Timer Presets:** Quick-access buttons for commonly used timer durations (customizable).
 * **Custom Timers:** Set custom timer durations using minute buttons or manual input.
 * **Persistent Storage:** Support for local browser storage or MQTT integration for timers that survive reloads and sync across devices.
-* **Audio Notifications:** Play custom audio files when timers expire, with support for repeat counts.
-* **Mobile Push Notifications:** Send push notifications to selected mobile devices when timers expire, with customizable titles and messages.
-* **Alexa Integration:** based on [alexa_media_player](https://github.com/alandtse/alexa_media_player).
+* **Comprehensive Notifications:** Multiple notification options including audio alerts, mobile push notifications, and Alexa integration.
+* **Audio Notifications:** Play custom audio files when timers expire, with repeat counts and play-until-dismissed options.
+* **Mobile Push Notifications:** Send push notifications to selected mobile devices with customizable titles and messages using template support.
+* **Alexa Integration:** Separate audio settings for Alexa devices, based on [alexa_media_player](https://github.com/alandtse/alexa_media_player).
 * **Timer Actions:** Configurable actions when timers expire (keep, dismiss, or auto-dismiss).
 * **Snooze Functionality:** Easily snooze expired timers for additional time.
 * **Active Timer Management:** View and manage multiple active timers simultaneously.
-* **Entity Integration:** Connect to Home Assistant MQTT sensors for data persistence.
+* **Entity Integration:** Connect to Home Assistant entities including MQTT sensors, input helpers, and more.
 * **Customizable Appearance:** Adjust colors, icons, and styling to match your Home Assistant theme.
 * **Native Theme Integration:** Automatically uses Home Assistant theme colors and native UI elements.
 * **Visual Progress Indicators:** Clear visual feedback showing timer progress and status.
@@ -72,12 +74,12 @@ resources:
 | Name                     | Type      | Default                 | Description                                                                                        |
 | :----------------------- | :-------- | :---------------------- | :------------------------------------------------------------------------------------------------- |
 | `type`                   | `string`  | **Required**            | `custom:simple-timer-card`                                                                        |
-| `layout`                 | `string`  | `horizontal`            | Card layout. Can be `horizontal` or `vertical`                                                    |
-| `style`                  | `string`  | `bar`                   | Timer display style. Can be `bar` (progress bar), `fill` (background fill), or `circle` (circular progress)  |
+| `layout`                 | `string`  | `horizontal`            | Card layout for no-timers state. Can be `horizontal` or `vertical`                                |
+| `style`                  | `string`  | `bar_horizontal`        | Timer display style. Can be `fill_vertical`, `fill_horizontal`, `bar_vertical`, `bar_horizontal` (default), or `circle` |
 | `title`                  | `string`  | `null`                  | Optional title for the card                                                                        |
 | `entities`               | `array`   | `[]`                    | Array of timer entities to display                                                                |
 
-> **💡 Style Options:** The `style` parameter supports three distinct visual presentations. Each style works with both horizontal and vertical layouts, giving you complete flexibility in how timers are displayed.
+> **💡 Style Options:** The `style` parameter supports five distinct visual presentations with direction control. The `layout` parameter controls how the card appears when there are no active timers, while `style` controls the active timer display. Any layout/style combination is possible for maximum flexibility.
 
 ### **Timer Configuration**
 
@@ -133,7 +135,7 @@ resources:
 | `notify_on_expire`                | `boolean` | `false`              | Enable push notifications to mobile devices when timers expire                                    |
 | `notify_title`                    | `string`  | `"⏱ Timer done"`     | Title for push notifications (supports {label} template)                                          |
 | `notify_message`                  | `string`  | `"{label} is up."`   | Message for push notifications (supports {label} template)                                        |
-| `notify_device_ids`               | `array`   | `[]`                 | Array of mobile device IDs to send notifications to                                               |
+| `notify_services`                 | `array`   | `[]`                 | Array of notification service names to send notifications to                                       |
 
 ## **🎯 Usage Examples**
 
@@ -148,14 +150,14 @@ title: Kitchen Timer
 
 ### **Vertical Layout with Custom Presets**
 
-Perfect for narrow dashboard spaces:
+Perfect for narrow dashboard spaces with vertical fill display:
 
 ```yaml
 type: custom:simple-timer-card
 layout: vertical
 title: Quick Timer
 timer_presets: [10, 20, 45]
-style: fill
+style: fill_vertical
 ```
 
 ### **Circle Style Timer**
@@ -193,7 +195,7 @@ For synchronized timers across multiple devices:
 type: custom:simple-timer-card
 title: Workout Timer
 layout: horizontal
-style: bar
+style: bar_horizontal
 default_timer_entity: sensor.mqtt_timer_storage
 timer_presets: [30, 45, 60, 90]
 minute_buttons: [5, 10, 15]
@@ -222,23 +224,61 @@ default_timer_icon: 'mdi:chef-hat'
 
 ### **Mobile Notification Timer**
 
-Timer with push notifications to mobile devices:
+Timer with push notifications to mobile devices and vertical bar style:
 
 ```yaml
 type: custom:simple-timer-card
 title: Study Timer
+style: bar_vertical
 timer_presets: [25, 45, 60] # Pomodoro-style intervals
 notify_on_expire: true
 notify_title: "📚 Study Timer Complete"
 notify_message: "{label} session is finished!"
-notify_device_ids:
-  - device_id_of_your_phone
-  - device_id_of_other_phone
+notify_services:
+  - notify.mobile_app_your_phone
+  - notify.mobile_app_other_phone
 audio_enabled: true
 audio_file_url: /local/sounds/study_bell.mp3
 ```
 
-> **💡 Device Selection:** Use the visual editor to select mobile devices from a dropdown list rather than manually entering device IDs.
+### **Style Showcase**
+
+Examples of different style options:
+
+```yaml
+# Horizontal fill with notifications
+type: custom:simple-timer-card
+title: Kitchen Timer
+style: fill_horizontal
+layout: horizontal
+notify_on_expire: true
+notify_title: "🍳 Cooking Timer"
+notify_message: "{label} is ready!"
+
+# Vertical bar in compact space
+type: custom:simple-timer-card
+title: Compact Timer
+style: bar_vertical
+layout: vertical
+timer_presets: [5, 10, 15]
+
+# Circle style with audio alerts
+type: custom:simple-timer-card
+title: Focus Timer
+style: circle
+audio_enabled: true
+audio_file_url: /local/sounds/meditation_bell.mp3
+audio_repeat_count: 3
+```
+
+> **💡 Service Selection:** Use the visual editor to select notification services from a dropdown list rather than manually entering service names.
+
+> **🔔 Notification Features:** The card supports comprehensive notification options including:
+> - **Mobile Push Notifications:** Send alerts to selected Home Assistant mobile devices
+> - **Audio Notifications:** Play custom sound files when timers expire
+> - **Alexa Integration:** Separate audio settings for Alexa devices
+> - **Template Support:** Use `{label}` in notification titles and messages
+> - **Repeat Options:** Configure audio repeat counts and play-until-dismissed behavior
 
 ## **🔧 MQTT Setup for Persistent Timers**
 
@@ -259,11 +299,15 @@ mqtt:
 
 ## **🎨 Styling**
 
-The card offers flexible styling options with three distinct display styles:
+The card offers flexible styling options with five distinct display styles:
 
-- **Progress Bar** (`bar`): Traditional horizontal progress bar with timer information
-- **Background Fill** (`fill`): Full background color fill that progresses as timer counts down  
+- **Progress Bar Horizontal** (`bar_horizontal`): Traditional horizontal progress bar with timer information
+- **Progress Bar Vertical** (`bar_vertical`): Vertical progress bar layout with timer information  
+- **Background Fill Horizontal** (`fill_horizontal`): Full horizontal background color fill that progresses as timer counts down
+- **Background Fill Vertical** (`fill_vertical`): Full vertical background color fill that progresses as timer counts down
 - **Circle** (`circle`): Modern circular progress ring with centered timer display
+
+The `layout` parameter controls the card appearance when there are no active timers, while `style` controls active timer display. This separation allows any combination of layout and style for maximum flexibility.
 
 The card uses CSS custom properties that can be overridden:
 

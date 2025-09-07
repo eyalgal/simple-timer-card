@@ -67,26 +67,29 @@ class SimpleTimerCard extends LitElement {
   const normLayout = (config.layout || "horizontal").toLowerCase();
   const layout = normLayout === "vertical" ? "vertical" : "horizontal";
 
-  const rawStyle = (config.style || "bar").toLowerCase();
+  const normStyle = (config.style || "bar_horizontal").toLowerCase();
   let style;
 
-  // Parse combined style values but don't override user's layout setting
-  if (rawStyle === "fill_vertical" || rawStyle === "fill_horizontal") {
-    style = "fill";
-  } else if (rawStyle === "bar_vertical" || rawStyle === "bar_horizontal") {
-    style = "bar"; 
-  } else if (rawStyle === "circle") {
-    style = "circle";
+  // Validate and normalize style options
+  const validStyles = ["fill_vertical", "fill_horizontal", "bar_vertical", "bar_horizontal", "circle"];
+  if (validStyles.includes(normStyle)) {
+    style = normStyle;
   } else {
-    style = rawStyle === "fill" || rawStyle === "background" || rawStyle === "background_fill"
-      ? "fill"
-      : (rawStyle === "circle" ? "circle" : "bar");
+    // Handle legacy style values for backward compatibility
+    if (normStyle === "fill" || normStyle === "background" || normStyle === "background_fill") {
+      style = "fill_horizontal";
+    } else if (normStyle === "bar") {
+      style = "bar_horizontal";
+    } else if (normStyle === "circle") {
+      style = "circle";
+    } else {
+      style = "bar_horizontal"; // default
+    }
   }
 	
     this._config = {
       layout,
       style,
-      _rawStyle: rawStyle, // Preserve original style for layout determination
       snooze_duration: 5,
       timer_presets: [5, 15, 30],
       show_timer_presets: true,
@@ -110,7 +113,7 @@ class SimpleTimerCard extends LitElement {
       notify_on_expire: false,
       notify_title: "⏱ Timer done",
       notify_message: "{label} is up.",
-      notify_device_ids: [],
+      notify_services: [],
       ...config,
       entities: config.entities || [],
       storage: autoStorage,
@@ -592,32 +595,46 @@ class SimpleTimerCard extends LitElement {
   }
 
   _sendPushNotification(timer) {
-    // Guardrails
     if (!this._config?.notify_on_expire) return;
-    const targets = Array.isArray(this._config.notify_device_ids) ? this._config.notify_device_ids.filter(Boolean) : [];
-    if (!targets.length) return;
+    const svcNames = Array.isArray(this._config.notify_services) ? this._config.notify_services.filter(Boolean) : [];
+    const devIds = Array.isArray(this._config.notify_device_ids) ? this._config.notify_device_ids.filter(Boolean) : [];
+    if (!svcNames.length && !devIds.length) return;
     if (this._notified.has(timer.id)) return;
 
-    // Build message (simple template support)
     const tpl = (s, t) => (s || "").replace("{label}", t?.label || "Timer");
     const title = tpl(this._config.notify_title, timer);
     const message = tpl(this._config.notify_message, timer);
+    const data = {
+      tag: `timer_${timer.id}`,
+      channel: "Timers",
+      sticky: "true",
+      notification_icon: "mdi:timer-outline",
+    };
 
     try {
-      this.hass.callService("notify", "mobile_app", {
-        target: targets,                       // list of device_ids (mobile_app)
-        title,
-        message,
-        data: {
-          tag: `timer_${timer.id}`,
-          channel: "Timers",
-          sticky: "true",
-          notification_icon: "mdi:timer-outline",
-        },
-      });
-      this._notified.add(timer.id);
+      if (svcNames.length) {
+        for (const svc of svcNames) {
+          const serviceName = svc.startsWith('notify.') ? svc.substring(7) : svc;
+          if (this.hass?.services?.notify?.[serviceName]) {
+            this.hass.callService("notify", serviceName, { title, message, data });
+          }
+        }
+        this._notified.add(timer.id);
+        return;
+      }
+      if (this.hass?.services?.notify?.mobile_app) {
+        this.hass.callService("notify", "mobile_app", { target: devIds, title, message, data });
+        this._notified.add(timer.id);
+        return;
+      }
+      if (this.hass?.services?.mobile_app?.send_notification) {
+        for (const id of devIds) {
+          this.hass.callService("mobile_app", "send_notification", { device_id: id, title, message, data });
+        }
+        this._notified.add(timer.id);
+        return;
+      }
     } catch (e) {
-      // fail silently in UI
       console.warn("Push notify failed:", e);
     }
   }
@@ -925,7 +942,7 @@ class SimpleTimerCard extends LitElement {
     
     const pctLeft = 100 - pct;
 
-    const isFillStyle = style === "fill";
+    const isFillStyle = style.startsWith("fill_");
     const baseClasses = isFillStyle ? "card item" : (isCircleStyle ? "item vtile" : "item bar");
     const finishedClasses = isFillStyle ? "card item finished" : (isCircleStyle ? "item vtile" : "card item bar");
 
@@ -1115,13 +1132,13 @@ class SimpleTimerCard extends LitElement {
       }
 
       return html`
-        <li class="item vtile ${style === 'fill' ? 'card' : ''}" style="--tcolor:${color}">
-          ${style === 'fill' ? html`<div class="progress-fill" style="width:100%"></div>` : ""}
+        <li class="item vtile ${style.startsWith('fill_') ? 'card' : ''}" style="--tcolor:${color}">
+          ${style.startsWith('fill_') ? html`<div class="progress-fill" style="width:100%"></div>` : ""}
           <div class="vcol">
             <div class="icon-wrap large"><ha-icon .icon=${icon}></ha-icon></div>
             <div class="vtitle">${t.label}</div>
             <div class="vstatus up">${expiredMessage}</div>
-            ${style === 'bar'
+            ${style.startsWith('bar_')
               ? html`<div class="vactions-center">
                   ${supportsManualControls ? html`
                     <button class="chip" @click=${() => this._handleSnooze(t)}>Snooze</button>
@@ -1167,13 +1184,13 @@ class SimpleTimerCard extends LitElement {
     }
 
     return html`
-      <li class="item vtile ${style === 'fill' ? 'card' : ''}" style="--tcolor:${color}">
-        ${style === 'fill' ? html`<div class="progress-fill" style="width:${pct}%"></div>` : ""}
+      <li class="item vtile ${style.startsWith('fill_') ? 'card' : ''}" style="--tcolor:${color}">
+        ${style.startsWith('fill_') ? html`<div class="progress-fill" style="width:${pct}%"></div>` : ""}
         <div class="vcol">
           <div class="icon-wrap large"><ha-icon .icon=${icon}></ha-icon></div>
           <div class="vtitle">${t.label}</div>
           <div class="vstatus">${timeStr}</div>
-          ${style === 'bar' ? html`
+          ${style.startsWith('bar_') ? html`
             <div class="vprogressbar">
               ${supportsPause && supportsManualControls ? html`
                 <button class="action-btn"
@@ -1227,21 +1244,21 @@ class SimpleTimerCard extends LitElement {
     const style = this._config.style;
 
     // For active timers, derive the display layout from the style
-    const getActiveTimersLayout = (rawConfigStyle) => {
-      const rawStyle = (rawConfigStyle || "bar").toLowerCase();
-      if (rawStyle === "fill_vertical" || rawStyle === "bar_vertical") {
+    const getActiveTimersLayout = (configStyle) => {
+      const styleStr = (configStyle || "bar_horizontal").toLowerCase();
+      if (styleStr === "fill_vertical" || styleStr === "bar_vertical") {
         return "vertical";
-      } else if (rawStyle === "fill_horizontal" || rawStyle === "bar_horizontal") {
+      } else if (styleStr === "fill_horizontal" || styleStr === "bar_horizontal") {
         return "horizontal";
-      } else if (rawStyle === "circle") {
+      } else if (styleStr === "circle") {
         return "vertical"; // circles work better in vertical layout
       } else {
-        // For plain "fill" and "bar", use horizontal by default
+        // fallback to horizontal for any other cases
         return "horizontal";
       }
     };
 
-    const activeTimersLayout = getActiveTimersLayout(this._config._rawStyle || this._config.style);
+    const activeTimersLayout = getActiveTimersLayout(this._config.style);
 
     const noTimerCard = layout === "horizontal" ? html`
       <div class="card nt-h ${this._ui.noTimerHorizontalOpen ? "expanded" : ""}">
@@ -1324,7 +1341,7 @@ class SimpleTimerCard extends LitElement {
     const cols = (useGrid && timers.length > 1) ? 2 : 1;
     const listClass = useGrid ? `list vgrid cols-${cols}` : 'list';
 
-    const activeCard = style === "fill" ? html`
+    const activeCard = style.startsWith("fill_") ? html`
       <div class="card ${this._ui.activeFillOpen ? "card-show" : ""}">
         ${this._config.show_active_header !== false ? html`
           <div class="active-head">
@@ -1605,7 +1622,7 @@ class SimpleTimerCard extends LitElement {
       .vc-prog.done { stroke-dashoffset: 0 !important; }
 
       .icon-wrap.xl {
-        width: 48px; height: 48px; flex: 0 0 48px; border-radius: 50%;
+        width: 44px; height: 44px; flex: 0 0 44px; border-radius: 50%;
         background: color-mix(in srgb, var(--tcolor, var(--divider-color)) 22%, transparent);
         display: flex; align-items: center; justify-content: center;
       }
@@ -1690,27 +1707,28 @@ class SimpleTimerCardEditor extends LitElement {
     const value = ev.detail?.value !== undefined ? ev.detail.value : target.value;
     if (typeof value !== "string" || value === "") return;
     
-    // Handle style selections specially to preserve layout separation
     if (key === "style") {
-      const rawStyle = value.toLowerCase();
-      let parsedStyle;
+      const styleValue = value.toLowerCase();
+      const validStyles = ["fill_vertical", "fill_horizontal", "bar_vertical", "bar_horizontal", "circle"];
       
-      // Parse the combined style values
-      if (rawStyle === "fill_vertical" || rawStyle === "fill_horizontal") {
-        parsedStyle = "fill";
-      } else if (rawStyle === "bar_vertical" || rawStyle === "bar_horizontal") {
-        parsedStyle = "bar"; 
-      } else if (rawStyle === "circle") {
-        parsedStyle = "circle";
+      let normalizedStyle;
+      if (validStyles.includes(styleValue)) {
+        normalizedStyle = styleValue;
       } else {
-        parsedStyle = rawStyle === "fill" || rawStyle === "background" || rawStyle === "background_fill"
-          ? "fill"
-          : (rawStyle === "circle" ? "circle" : "bar");
+        // Handle legacy style values for backward compatibility
+        if (styleValue === "fill" || styleValue === "background" || styleValue === "background_fill") {
+          normalizedStyle = "fill_horizontal";
+        } else if (styleValue === "bar") {
+          normalizedStyle = "bar_horizontal";
+        } else if (styleValue === "circle") {
+          normalizedStyle = "circle";
+        } else {
+          normalizedStyle = "bar_horizontal"; // default
+        }
       }
       
       this._updateConfig({ 
-        style: parsedStyle,
-        _rawStyle: rawStyle
+        style: normalizedStyle
       }, true);
     } else {
       this._updateConfig({ [key]: value }, true);
@@ -1758,6 +1776,37 @@ class SimpleTimerCardEditor extends LitElement {
     entities.splice(i, 1);
     newConfig.entities = entities;
     this._updateConfig(newConfig, true);
+  }
+  _getMobileAppNotifyServices() {
+    if (!this.hass?.services?.notify) return [];
+    return Object.keys(this.hass.services.notify)
+      .filter(service => service.startsWith('mobile_app_'))
+      .map(service => {
+        const deviceName = service.replace('mobile_app_', '')
+          .replace(/_/g, ' ')
+          .replace(/\b\w/g, l => l.toUpperCase()); // Capitalize first letter of each word
+        return {
+          value: `notify.${service}`,
+          label: deviceName
+        };
+      })
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }
+
+  _getOtherNotifyServices() {
+    if (!this.hass?.services?.notify) return [];
+    return Object.keys(this.hass.services.notify)
+      .filter(service => !service.startsWith('mobile_app_'))
+      .map(service => {
+        const friendlyName = service
+          .replace(/_/g, ' ')
+          .replace(/\b\w/g, l => l.toUpperCase()); 
+        return {
+          value: `notify.${service}`,
+          label: friendlyName
+        };
+      })
+      .sort((a, b) => a.label.localeCompare(b.label));
   }
   _debouncedUpdate(changes) {
     if (this._debounceTimeout) clearTimeout(this._debounceTimeout);
@@ -1811,7 +1860,7 @@ class SimpleTimerCardEditor extends LitElement {
       notify_on_expire: false,
       notify_title: "⏱ Timer done",
       notify_message: "{label} is up.",
-      notify_device_ids: []
+      notify_services: [],
     };
 
     const cleaned = { ...config };
@@ -1883,7 +1932,6 @@ class SimpleTimerCardEditor extends LitElement {
       "ha-icon-picker",
       "ha-form",
       "mwc-list-item",
-      "ha-device-picker",
     ];
 
     tags.forEach((t) => {
@@ -1891,7 +1939,7 @@ class SimpleTimerCardEditor extends LitElement {
     });
 
     this._ensureEntityPickerLoaded();
-
+    this._ensureServiceSelectorLoaded();
     this.requestUpdate();
   }
 
@@ -1910,25 +1958,20 @@ class SimpleTimerCardEditor extends LitElement {
     }
   }
 
+  _ensureServiceSelectorLoaded() {
+    try {
+      const loader = document.createElement("ha-form");
+      loader.style.display = "none";
+      loader.schema = [{ name: "x", selector: { service: { domain: "notify", multiple: true } } }];
+      loader.data = {};
+      loader.hass = this.hass;
+      this.shadowRoot?.appendChild(loader);
+      setTimeout(() => loader.remove(), 0);
+    } catch (_) {}
+  }
+
   _getDisplayStyleValue() {
-    const rawStyle = this._config._rawStyle || this._config.style || "bar";
-    const layout = this._config.layout || "horizontal";
-    
-    // If we have a preserved raw style, use it
-    if (this._config._rawStyle) {
-      return this._config._rawStyle;
-    }
-    
-    // Otherwise, construct from current style and layout
-    if (this._config.style === "fill") {
-      return layout === "vertical" ? "fill_vertical" : "fill_horizontal";
-    } else if (this._config.style === "bar") {
-      return layout === "vertical" ? "bar_vertical" : "bar_horizontal";
-    } else if (this._config.style === "circle") {
-      return "circle";
-    }
-    
-    return this._config.style || "bar";
+    return this._config.style || "bar_horizontal";
   }
 
   render() {
@@ -2042,22 +2085,67 @@ class SimpleTimerCardEditor extends LitElement {
           <ha-switch .checked=${this._config.notify_on_expire === true} .configValue=${"notify_on_expire"} @change=${this._valueChanged}></ha-switch>
         </ha-formfield>
 
-        ${this._config.notify_on_expire ? html`
-          <ha-textfield label="Notification title" .value=${this._config.notify_title ?? "⏱ Timer done"} .configValue=${"notify_title"} @input=${this._valueChanged}></ha-textfield>
+		${this._config.notify_on_expire ? html`
+		  <ha-textfield label="Notification title" .value=${this._config.notify_title ?? "⏱ Timer done"} .configValue=${"notify_title"} @input=${this._valueChanged}></ha-textfield>
 
-          <ha-textfield label="Notification message (use {label})" .value=${this._config.notify_message ?? "{label} is up."} .configValue=${"notify_message"} @input=${this._valueChanged}></ha-textfield>
+		  <ha-textfield label="Notification message (use {label})" .value=${this._config.notify_message ?? "{label} is up."} .configValue=${"notify_message"} @input=${this._valueChanged}></ha-textfield>
 
-          <ha-device-picker
-            .hass=${this.hass}
-            .value=${this._config.notify_device_ids || []}
-            .label=${"Mobile devices to notify"}
-            .configValue=${"notify_device_ids"}
-            .includeDomains=${[]}
-            .deviceFilter=${(d) => d.integration === "mobile_app"}
-            .multiple=${true}
-            @value-changed=${this._detailValueChanged}>
-          </ha-device-picker>
-        ` : ""}
+		  <div class="notification-section">
+			<label>Select mobile devices</label>
+			<div class="checkbox-list">
+			  ${this._getMobileAppNotifyServices().map(service => html`
+				<ha-formfield .label=${service.label}>
+				  <ha-checkbox
+					.checked=${(Array.isArray(this._config.notify_services) ? this._config.notify_services : []).includes(service.value)}
+					@change=${(e) => {
+					  const currentServices = Array.isArray(this._config.notify_services) ? [...this._config.notify_services] : [];
+					  if (e.target.checked) {
+						if (!currentServices.includes(service.value)) {
+						  currentServices.push(service.value);
+						}
+					  } else {
+						const index = currentServices.indexOf(service.value);
+						if (index > -1) currentServices.splice(index, 1);
+					  }
+					  this._updateConfig({ notify_services: currentServices }, true);
+					}}
+				  ></ha-checkbox>
+				</ha-formfield>
+			  `)}
+			  ${this._getMobileAppNotifyServices().length === 0 ? html`
+				<div class="no-services">No mobile devices found</div>
+			  ` : ''}
+			</div>
+		  </div>
+
+		  <div class="notification-section">
+			<label>Other Notification Services</label>
+			<div class="checkbox-list">
+			  ${this._getOtherNotifyServices().map(service => html`
+				<ha-formfield .label=${service.label}>
+				  <ha-checkbox
+					.checked=${(Array.isArray(this._config.notify_services) ? this._config.notify_services : []).includes(service.value)}
+					@change=${(e) => {
+					  const currentServices = Array.isArray(this._config.notify_services) ? [...this._config.notify_services] : [];
+					  if (e.target.checked) {
+						if (!currentServices.includes(service.value)) {
+						  currentServices.push(service.value);
+						}
+					  } else {
+						const index = currentServices.indexOf(service.value);
+						if (index > -1) currentServices.splice(index, 1);
+					  }
+					  this._updateConfig({ notify_services: currentServices }, true);
+					}}
+				  ></ha-checkbox>
+				</ha-formfield>
+			  `)}
+			  ${this._getOtherNotifyServices().length === 0 ? html`
+				<div class="no-services">No other notification services found</div>
+			  ` : ''}
+			</div>
+		  </div>
+		` : ""}
 
         <div class="entities-header">
           <h3>Timer Entities</h3>
@@ -2169,6 +2257,23 @@ class SimpleTimerCardEditor extends LitElement {
       .remove-entity { position: absolute; top: 4px; right: 4px; background: var(--error-color, #f44336); border: none; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; transition: filter .2s; }
       .remove-entity:hover { filter: brightness(.9); }
       .remove-entity ha-icon { --mdc-icon-size: 20px; }
+	  .notification-section { margin-top: 12px; }
+	  .notification-section label { display: block; margin-bottom: 8px; font-weight: 500; }
+	  .checkbox-list { 
+	    max-height: 200px; 
+	    overflow-y: auto; 
+	    border: 1px solid var(--divider-color); 
+	    border-radius: 4px; 
+	    padding: 8px;
+	    background: var(--card-background-color);
+	  }
+	  .checkbox-list ha-formfield { display: block; margin: 4px 0; }
+	  .no-services { 
+	    color: var(--secondary-text-color); 
+	    font-style: italic; 
+	    padding: 8px;
+	    text-align: center;
+	  }
     `;
   }
 }
