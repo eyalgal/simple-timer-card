@@ -5,13 +5,13 @@
  *
  * Author: eyalgal
  * License: MIT
- * Version: 1.1.0
+ * Version: 1.1.1
  * For more information, visit: https://github.com/eyalgal/simple-timer-card								   
  */		 
 
 import { LitElement, html, css } from "https://unpkg.com/lit@2.8.0/index.js?module";
 
-const cardVersion = "1.1.0";
+const cardVersion = "1.1.1";
 console.info(
   `%c SIMPLE-TIMER-CARD %c v${cardVersion} `,
   "color: white; background: #4285f4; font-weight: 700;",
@@ -37,7 +37,7 @@ class SimpleTimerCard extends LitElement {
     this._dismissed = new Set();
     this._ringingTimers = new Set();
     this._activeAudioInstances = new Map();
-    this._notified = new Set(); // timer.id values already pushed
+    this._notified = new Set();
 
     this._ui = {
       noTimerHorizontalOpen: false,
@@ -70,12 +70,10 @@ class SimpleTimerCard extends LitElement {
   const normStyle = (config.style || "bar_horizontal").toLowerCase();
   let style;
 
-  // Validate and normalize style options
   const validStyles = ["fill_vertical", "fill_horizontal", "bar_vertical", "bar_horizontal", "circle"];
   if (validStyles.includes(normStyle)) {
     style = normStyle;
   } else {
-    // Handle legacy style values for backward compatibility
     if (normStyle === "fill" || normStyle === "background" || normStyle === "background_fill") {
       style = "fill_horizontal";
     } else if (normStyle === "bar") {
@@ -83,7 +81,7 @@ class SimpleTimerCard extends LitElement {
     } else if (normStyle === "circle") {
       style = "circle";
     } else {
-      style = "bar_horizontal"; // default
+      style = "bar_horizontal";
     }
   }
 	
@@ -936,7 +934,6 @@ class SimpleTimerCard extends LitElement {
     const isCircleStyle = style === "circle";
     let circleValues;
     if (isCircleStyle) {
-      // Fix circle timing: use proper dashoffset calculation for countdown behavior
       circleValues = this._calculateCircleValues(28, pct);
     }
     
@@ -1090,7 +1087,6 @@ class SimpleTimerCard extends LitElement {
     
     let circleValues;
     if (style === "circle") {
-      // Fix circle timing: use proper dashoffset calculation for countdown behavior
       circleValues = this._calculateCircleValues(28, pct);
     }
     
@@ -1240,10 +1236,9 @@ class SimpleTimerCard extends LitElement {
     const minuteButtons = this._config.minute_buttons && this._config.minute_buttons.length ? this._config.minute_buttons : [1, 5, 10];
 
     const timers = this._timers;
-    const layout = this._config.layout;  // Only for no-timers state
+    const layout = this._config.layout;
     const style = this._config.style;
 
-    // For active timers, derive the display layout from the style
     const getActiveTimersLayout = (configStyle) => {
       const styleStr = (configStyle || "bar_horizontal").toLowerCase();
       if (styleStr === "fill_vertical" || styleStr === "bar_vertical") {
@@ -1251,9 +1246,8 @@ class SimpleTimerCard extends LitElement {
       } else if (styleStr === "fill_horizontal" || styleStr === "bar_horizontal") {
         return "horizontal";
       } else if (styleStr === "circle") {
-        return "vertical"; // circles work better in vertical layout
+        return "vertical";
       } else {
-        // fallback to horizontal for any other cases
         return "horizontal";
       }
     };
@@ -1715,7 +1709,6 @@ class SimpleTimerCardEditor extends LitElement {
       if (validStyles.includes(styleValue)) {
         normalizedStyle = styleValue;
       } else {
-        // Handle legacy style values for backward compatibility
         if (styleValue === "fill" || styleValue === "background" || styleValue === "background_fill") {
           normalizedStyle = "fill_horizontal";
         } else if (styleValue === "bar") {
@@ -1723,7 +1716,7 @@ class SimpleTimerCardEditor extends LitElement {
         } else if (styleValue === "circle") {
           normalizedStyle = "circle";
         } else {
-          normalizedStyle = "bar_horizontal"; // default
+          normalizedStyle = "bar_horizontal";
         }
       }
       
@@ -1784,7 +1777,7 @@ class SimpleTimerCardEditor extends LitElement {
       .map(service => {
         const deviceName = service.replace('mobile_app_', '')
           .replace(/_/g, ' ')
-          .replace(/\b\w/g, l => l.toUpperCase()); // Capitalize first letter of each word
+          .replace(/\b\w/g, l => l.toUpperCase());
         return {
           value: `notify.${service}`,
           label: deviceName
@@ -1836,7 +1829,7 @@ class SimpleTimerCardEditor extends LitElement {
   _removeDefaultValues(config) {
     const defaults = {
       layout: "horizontal",
-      style: "bar",
+      style: "bar_horizontal",
       show_timer_presets: true,
       timer_presets: [5, 15, 30],
       expire_action: "keep",
