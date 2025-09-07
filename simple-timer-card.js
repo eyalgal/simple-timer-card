@@ -5,16 +5,15 @@
  *
  * Author: eyalgal
  * License: MIT
- * Version: 2.0.0
+ * Version: 1.2.0
  * For more information, visit: https://github.com/eyalgal/simple-timer-card								   
  */		 
 
 import { LitElement, html, css } from "https://unpkg.com/lit@2.8.0/index.js?module";
 
-const cardVersion = "2.0.0";
+const cardVersion = "1.2.0";
 
-// Constants
-const DAY_IN_MS = 86400000; // 24 hours in milliseconds
+const DAY_IN_MS = 86400000; 
 const HOUR_IN_SECONDS = 3600;
 const MINUTE_IN_SECONDS = 60;
 
@@ -813,7 +812,6 @@ class SimpleTimerCard extends LitElement {
     }
   }
   _formatDuration(value, unit = 'seconds') {
-    // Convert input to seconds based on unit
     let totalSeconds;
     if (unit === 'ms') {
       if (value <= 0) return "00:00";
