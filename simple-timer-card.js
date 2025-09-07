@@ -5,13 +5,19 @@
  *
  * Author: eyalgal
  * License: MIT
- * Version: 1.1.1
+ * Version: 1.1.2
  * For more information, visit: https://github.com/eyalgal/simple-timer-card								   
  */		 
 
 import { LitElement, html, css } from "https://unpkg.com/lit@2.8.0/index.js?module";
 
-const cardVersion = "1.1.1";
+const cardVersion = "1.1.2";
+
+// Constants
+const DAY_IN_MS = 86400000; // 24 hours in milliseconds
+const HOUR_IN_SECONDS = 3600;
+const MINUTE_IN_SECONDS = 60;
+
 console.info(
   `%c SIMPLE-TIMER-CARD %c v${cardVersion} `,
   "color: white; background: #4285f4; font-weight: 700;",
@@ -460,9 +466,9 @@ class SimpleTimerCard extends LitElement {
       .map((t) => {
         let remaining;
         if (t.paused) {
-          if (t.end > 0 && t.end < 86400000) {
+          if (t.end > 0 && t.end < DAY_IN_MS) {
             remaining = t.end;
-          } else if (t.end > 0 && t.end > now && t.end < (now + 86400000)) {
+          } else if (t.end > 0 && t.end > now && t.end < (now + DAY_IN_MS)) {
             remaining = Math.max(0, t.end - now);
           } else if (t.duration && t.duration > 0) {
             remaining = Math.min(t.duration, t.end > 0 ? t.end : t.duration * 0.5);
@@ -840,30 +846,33 @@ class SimpleTimerCard extends LitElement {
       this._toast?.("Only helper, local, MQTT, and timer entities can be snoozed here.");
     }
   }
-  _formatDurationForTimer(totalSeconds) {
-    const h = Math.floor(totalSeconds / 3600);
-    const m = Math.floor((totalSeconds % 3600) / 60);
-    const s = totalSeconds % 60;
+  _formatDuration(value, unit = 'seconds') {
+    // Convert input to seconds based on unit
+    let totalSeconds;
+    if (unit === 'ms') {
+      if (value <= 0) return "00:00";
+      totalSeconds = Math.ceil(value / 1000);
+    } else {
+      if (value <= 0) return "00:00";
+      totalSeconds = Math.floor(value);
+    }
+    
+    const h = Math.floor(totalSeconds / HOUR_IN_SECONDS);
+    const m = Math.floor((totalSeconds % HOUR_IN_SECONDS) / MINUTE_IN_SECONDS);
+    const s = totalSeconds % MINUTE_IN_SECONDS;
     const pad = (n) => String(n).padStart(2, "0");
-    return h > 0 ? `${pad(h)}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
+    return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
+  }
+  
+  // Legacy method wrappers for backwards compatibility
+  _formatDurationForTimer(totalSeconds) {
+    return this._formatDuration(totalSeconds, 'seconds');
   }
   _formatTime(ms) {
-    if (ms <= 0) return "00:00";
-    const total = Math.ceil(ms / 1000);
-    const h = Math.floor(total / 3600);
-    const m = Math.floor((total % 3600) / 60);
-    const s = total % 60;
-    const pad = (n) => String(n).padStart(2, "0");
-    return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
+    return this._formatDuration(ms, 'ms');
   }
-
   _formatSecs(secs) {
-    if (secs <= 0) return "00:00";
-    const h = Math.floor(secs / 3600);
-    const m = Math.floor((secs % 3600) / 60);
-    const s = secs % 60;
-    const pad = (n) => String(n).padStart(2, "0");
-    return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
+    return this._formatDuration(secs, 'seconds');
   }
   _toggleCustom(which) {
     const openKey = `noTimer${which.charAt(0).toUpperCase() + which.slice(1)}Open`;
@@ -925,28 +934,11 @@ class SimpleTimerCard extends LitElement {
   }
 
   _renderItem(t, style) {
-    const isPaused = t.paused;
-    const color = isPaused ? "var(--warning-color)" : (t.color || "var(--primary-color)");
-    const icon = isPaused ? "mdi:timer-pause" : (t.icon || "mdi:timer-outline");
-    const ring = t.remaining <= 0;
-    const pct = typeof t.percent === "number" ? Math.max(0, Math.min(100, t.percent)) : 0;
+    const state = this._getTimerRenderState(t, style);
+    const { isPaused, color, icon, ring, pct, pctLeft, isCircleStyle, isFillStyle, supportsPause, supportsManualControls, timeStr, circleValues } = state;
     
-    const isCircleStyle = style === "circle";
-    let circleValues;
-    if (isCircleStyle) {
-      circleValues = this._calculateCircleValues(28, pct);
-    }
-    
-    const pctLeft = 100 - pct;
-
-    const isFillStyle = style.startsWith("fill_");
     const baseClasses = isFillStyle ? "card item" : (isCircleStyle ? "item vtile" : "item bar");
     const finishedClasses = isFillStyle ? "card item finished" : (isCircleStyle ? "item vtile" : "card item bar");
-
-    const supportsPause = t.source === "helper" || t.source === "local" || t.source === "mqtt" || t.source === "timer";
-    const supportsManualControls = t.source === "local" || t.source === "mqtt";
-
-    const timeStr = isPaused ? `${this._formatTime(t.end)} (Paused)` : this._formatTime(t.remaining);
 
     if (ring) {
       const entityConf = this._getEntityConfig(t.source_entity);
@@ -1076,26 +1068,49 @@ class SimpleTimerCard extends LitElement {
     const circumference = radius * 2 * Math.PI;
     const strokeDashoffset = circumference - (pct / 100) * circumference;
     return { radius, circumference, strokeDashoffset };
-  }  
-
-  _renderItemVertical(t, style) {
+  }
+  
+  _getTimerRenderState(t, style) {
+    // Common calculation for both render methods
     const isPaused = t.paused;
     const color = isPaused ? "var(--warning-color)" : (t.color || "var(--primary-color)");
     const icon = isPaused ? "mdi:timer-pause" : (t.icon || "mdi:timer-outline");
     const ring = t.remaining <= 0;
     const pct = typeof t.percent === "number" ? Math.max(0, Math.min(100, t.percent)) : 0;
+    const pctLeft = 100 - pct;
+    
+    const isCircleStyle = style === "circle";
+    const isFillStyle = style.startsWith("fill_");
+    
+    const supportsPause = t.source === "helper" || t.source === "local" || t.source === "mqtt" || t.source === "timer";
+    const supportsManualControls = t.source === "local" || t.source === "mqtt";
+    
+    const timeStr = isPaused ? `${this._formatTime(t.end)} (Paused)` : this._formatTime(t.remaining);
     
     let circleValues;
-    if (style === "circle") {
+    if (isCircleStyle) {
       circleValues = this._calculateCircleValues(28, pct);
     }
     
-    const pctLeft = 100 - pct;
+    return {
+      isPaused, color, icon, ring, pct, pctLeft,
+      isCircleStyle, isFillStyle,
+      supportsPause, supportsManualControls, timeStr,
+      circleValues
+    };
+  }
+  
+  _renderMinuteButtons(minuteButtons, adjustFunction, sign, label = '') {
+    return minuteButtons.map(m => html`
+      <button class="btn btn-ghost" @click=${() => adjustFunction(m, sign)}>
+        ${sign > 0 ? '+' : '-'}${m}m
+      </button>
+    `);
+  }  
 
-    const supportsPause = t.source === "helper" || t.source === "local" || t.source === "mqtt" || t.source === "timer";
-    const supportsManualControls = t.source === "local" || t.source === "mqtt";
-
-    const timeStr = isPaused ? `${this._formatTime(t.end)} (Paused)` : this._formatTime(t.remaining);
+  _renderItemVertical(t, style) {
+    const state = this._getTimerRenderState(t, style);
+    const { isPaused, color, icon, ring, pct, pctLeft, isCircleStyle, isFillStyle, supportsPause, supportsManualControls, timeStr, circleValues } = state;
 
     if (ring) {
       const entityConf = this._getEntityConfig(t.source_entity);
@@ -1278,11 +1293,11 @@ class SimpleTimerCard extends LitElement {
 
         <div class="picker">
           <div class="grid-3">
-            ${minuteButtons.map(m => html`<button class="btn btn-ghost" @click=${() => this._adjust("horizontal", m, +1)}>+${m}m</button>`)}
+            ${this._renderMinuteButtons(minuteButtons, (m, sign) => this._adjust("horizontal", m, sign), +1)}
           </div>
           <div class="display">${this._formatSecs(this._customSecs.horizontal)}</div>
           <div class="grid-3">
-            ${minuteButtons.map(m => html`<button class="btn btn-ghost" @click=${() => this._adjust("horizontal", m, -1)}>-${m}m</button>`)}
+            ${this._renderMinuteButtons(minuteButtons, (m, sign) => this._adjust("horizontal", m, sign), -1)}
           </div>
           <input id="nt-h-name" class="text-input" placeholder="Timer Name (Optional)" />
           <div class="actions">
@@ -1312,11 +1327,11 @@ class SimpleTimerCard extends LitElement {
 
         <div class="picker">
           <div class="grid-3">
-            ${minuteButtons.map(m => html`<button class="btn btn-ghost" @click=${() => this._adjust("vertical", m, +1)}>+${m}m</button>`)}
+            ${this._renderMinuteButtons(minuteButtons, (m, sign) => this._adjust("vertical", m, sign), +1)}
           </div>
           <div class="display">${this._formatSecs(this._customSecs.vertical)}</div>
           <div class="grid-3">
-            ${minuteButtons.map(m => html`<button class="btn btn-ghost" @click=${() => this._adjust("vertical", m, -1)}>-${m}m</button>`)}
+            ${this._renderMinuteButtons(minuteButtons, (m, sign) => this._adjust("vertical", m, sign), -1)}
           </div>
           <input id="nt-v-name" class="text-input" placeholder="Timer Name (Optional)" />
           <div class="actions">
@@ -1346,11 +1361,11 @@ class SimpleTimerCard extends LitElement {
 
         <div class="active-picker">
           <div class="grid-3">
-            ${minuteButtons.map(m => html`<button class="btn btn-ghost" @click=${() => this._adjustActive("fill", m, +1)}>+${m}m</button>`)}
+            ${this._renderMinuteButtons(minuteButtons, (m, sign) => this._adjustActive("fill", m, sign), +1)}
           </div>
           <div class="display" style="font-size:30px;">${this._formatSecs(this._activeSecs.fill)}</div>
           <div class="grid-3">
-            ${minuteButtons.map(m => html`<button class="btn btn-ghost" @click=${() => this._adjustActive("fill", m, -1)}>-${m}m</button>`)}
+            ${this._renderMinuteButtons(minuteButtons, (m, sign) => this._adjustActive("fill", m, sign), -1)}
           </div>
           <input id="add-fill-name" class="text-input" placeholder="Timer Name (Optional)" />
           <div class="actions">
@@ -1374,11 +1389,11 @@ class SimpleTimerCard extends LitElement {
 
         <div class="active-picker">
           <div class="grid-3">
-            ${minuteButtons.map(m => html`<button class="btn btn-ghost" @click=${() => this._adjustActive("bar", m, +1)}>+${m}m</button>`)}
+            ${this._renderMinuteButtons(minuteButtons, (m, sign) => this._adjustActive("bar", m, sign), +1)}
           </div>
           <div class="display" style="font-size:30px;">${this._formatSecs(this._activeSecs.bar)}</div>
           <div class="grid-3">
-            ${minuteButtons.map(m => html`<button class="btn btn-ghost" @click=${() => this._adjustActive("bar", m, -1)}>-${m}m</button>`)}
+            ${this._renderMinuteButtons(minuteButtons, (m, sign) => this._adjustActive("bar", m, sign), -1)}
           </div>
           <input id="add-bar-name" class="text-input" placeholder="Timer Name (Optional)" />
           <div class="actions">
