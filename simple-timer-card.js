@@ -594,7 +594,7 @@ class SimpleTimerCard extends LitElement {
     }
   }
 
-  async _sendPushNotification(timer) {
+  _sendPushNotification(timer) {
     if (!this._config?.notify_on_expire) return;
     const svcNames = Array.isArray(this._config.notify_services) ? this._config.notify_services.filter(Boolean) : [];
     const devIds = Array.isArray(this._config.notify_device_ids) ? this._config.notify_device_ids.filter(Boolean) : [];
