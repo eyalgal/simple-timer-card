@@ -584,7 +584,6 @@ class SimpleTimerCard extends LitElement {
     }
   }
 
-  // Add this method for MQTT event publishing
   _publishTimerEvent(event, timer) {
     if (this._config.storage === 'mqtt') {
       this.hass.callService("mqtt", "publish", {
@@ -1018,7 +1017,6 @@ class SimpleTimerCard extends LitElement {
   }
   
   _getTimerRenderState(t, style) {
-    // Common calculation for both render methods
     const isPaused = t.paused;
     const color = isPaused ? "var(--warning-color)" : (t.color || "var(--primary-color)");
     const icon = isPaused ? "mdi:timer-pause" : (t.icon || "mdi:timer-outline");
