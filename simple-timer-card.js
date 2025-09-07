@@ -1939,7 +1939,7 @@ class SimpleTimerCardEditor extends LitElement {
     });
 
     this._ensureEntityPickerLoaded();
-	this._ensureServiceSelectorLoaded();
+    this._ensureServiceSelectorLoaded();
     this.requestUpdate();
   }
 
