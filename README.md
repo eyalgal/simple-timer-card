@@ -25,9 +25,7 @@ A versatile and highly customizable timer card for Home Assistant Lovelace, offe
 * **Timer Presets:** Quick-access buttons for commonly used timer durations (customizable).
 * **Custom Timers:** Set custom timer durations using minute buttons or manual input.
 * **Persistent Storage:** Support for local browser storage or MQTT integration for timers that survive reloads and sync across devices.
-* **Comprehensive Notifications:** Multiple notification options including audio alerts, mobile push notifications, and Alexa integration.
 * **Audio Notifications:** Play custom audio files when timers expire, with repeat counts and play-until-dismissed options.
-* **Mobile Push Notifications:** Send push notifications to selected mobile devices with customizable titles and messages using template support.
 * **Alexa Integration:** Separate audio settings for Alexa devices, based on [alexa_media_player](https://github.com/alandtse/alexa_media_player).
 * **Timer Actions:** Configurable actions when timers expire (keep, dismiss, or auto-dismiss).
 * **Snooze Functionality:** Easily snooze expired timers for additional time.
@@ -128,14 +126,25 @@ resources:
 | `alexa_audio_repeat_count`        | `number`  | `1`     | Number of times to repeat Alexa audio (1-10)                                                      |
 | `alexa_audio_play_until_dismissed`| `boolean` | `false` | Continue playing Alexa audio until timer is dismissed or snoozed                                  |
 
-### **Mobile Push Notifications**
+## **🔔 Notifications**
 
-| Name                              | Type      | Default              | Description                                                                                        |
-| :-------------------------------- | :-------- | :------------------- | :------------------------------------------------------------------------------------------------- |
-| `notify_on_expire`                | `boolean` | `false`              | Enable push notifications to mobile devices when timers expire                                    |
-| `notify_title`                    | `string`  | `"⏱ Timer done"`     | Title for push notifications (supports {label} template)                                          |
-| `notify_message`                  | `string`  | `"{label} is up."`   | Message for push notifications (supports {label} template)                                        |
-| `notify_services`                 | `array`   | `[]`                 | Array of notification service names to send notifications to                                       |
+This card focuses on timer display and management. For notifications when timers expire, use Home Assistant automations.
+
+### **MQTT Timers**
+If using MQTT storage, the card publishes events to `simple_timer_card/events/expired` when timers finish. See `examples/mqtt_timer_notifications.yaml` for a mobile notification automation.
+
+### **Helper Timers**
+For helper entities, create a state trigger automation. See `examples/helper_timer_monitor.yaml`.
+
+### **Native Timer Entities**
+Use the built-in `timer.finished` event. Example:
+```yaml
+trigger:
+  - platform: event
+    event_type: timer.finished
+```
+
+Check the `examples/` folder for ready-to-use automation templates.
 
 ## **🎯 Usage Examples**
 
@@ -222,23 +231,34 @@ default_timer_color: '#ff6b35'
 default_timer_icon: 'mdi:chef-hat'
 ```
 
-### **Mobile Notification Timer**
+### **MQTT Timer with Automation Notifications**
 
-Timer with push notifications to mobile devices and vertical bar style:
+Timer with MQTT storage and automated notifications using Home Assistant automations:
 
 ```yaml
 type: custom:simple-timer-card
 title: Study Timer
 style: bar_vertical
 timer_presets: [25, 45, 60] # Pomodoro-style intervals
-notify_on_expire: true
-notify_title: "📚 Study Timer Complete"
-notify_message: "{label} session is finished!"
-notify_services:
-  - notify.mobile_app_your_phone
-  - notify.mobile_app_other_phone
+default_timer_entity: sensor.study_timers
 audio_enabled: true
 audio_file_url: /local/sounds/study_bell.mp3
+```
+
+Then create this automation for notifications:
+```yaml
+alias: "Study Timer Notifications"
+trigger:
+  - platform: mqtt
+    topic: "simple_timer_card/events/expired"
+condition:
+  - condition: template
+    value_template: "{{ 'Study' in trigger.payload_json.label }}"
+action:
+  - service: notify.mobile_app_your_phone
+    data:
+      title: "📚 Study Timer Complete"
+      message: "{{ trigger.payload_json.label }} session is finished!"
 ```
 
 ### **Style Showcase**
@@ -246,14 +266,13 @@ audio_file_url: /local/sounds/study_bell.mp3
 Examples of different style options:
 
 ```yaml
-# Horizontal fill with notifications
+# Horizontal fill style
 type: custom:simple-timer-card
 title: Kitchen Timer
 style: fill_horizontal
 layout: horizontal
-notify_on_expire: true
-notify_title: "🍳 Cooking Timer"
-notify_message: "{label} is ready!"
+audio_enabled: true
+audio_file_url: /local/sounds/kitchen_bell.mp3
 
 # Vertical bar in compact space
 type: custom:simple-timer-card
@@ -271,14 +290,13 @@ audio_file_url: /local/sounds/meditation_bell.mp3
 audio_repeat_count: 3
 ```
 
-> **💡 Service Selection:** Use the visual editor to select notification services from a dropdown list rather than manually entering service names.
+> **💡 Automation Setup:** Check the `examples/` folder for ready-to-use automation templates that work with this card's timer events.
 
-> **🔔 Notification Features:** The card supports comprehensive notification options including:
-> - **Mobile Push Notifications:** Send alerts to selected Home Assistant mobile devices
+> **🔔 Audio Features:** The card supports local audio notifications including:
 > - **Audio Notifications:** Play custom sound files when timers expire
 > - **Alexa Integration:** Separate audio settings for Alexa devices
-> - **Template Support:** Use `{label}` in notification titles and messages
 > - **Repeat Options:** Configure audio repeat counts and play-until-dismissed behavior
+> - **Browser-based:** Audio plays directly in the browser, no automation required
 
 ## **🔧 MQTT Setup for Persistent Timers**
 
@@ -332,11 +350,12 @@ card_mod:
 - Verify browser audio permissions
 - Test with a simple audio file first
 
-**Mobile notifications not working:**
-- Ensure you have selected mobile devices in the card configuration
-- Verify your mobile devices are connected to Home Assistant with the mobile app
-- Check that the `notify.mobile_app` service is available in your Home Assistant instance
-- Test notifications manually using Developer Tools > Services
+**Notifications not working:**
+- Timer notifications are now handled by Home Assistant automations
+- Check the `examples/` folder for automation templates
+- For MQTT timers, ensure your automation listens to `simple_timer_card/events/expired`
+- For helper timers, create state trigger automations
+- For native timer entities, use the built-in `timer.finished` event
 
 **Card not loading:**
 - Ensure the card is properly added to your Lovelace resources
