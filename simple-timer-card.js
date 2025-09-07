@@ -1860,7 +1860,7 @@ class SimpleTimerCardEditor extends LitElement {
       notify_on_expire: false,
       notify_title: "⏱ Timer done",
       notify_message: "{label} is up.",
-	  notify_services: [],
+      notify_services: [],
     };
 
     const cleaned = { ...config };
