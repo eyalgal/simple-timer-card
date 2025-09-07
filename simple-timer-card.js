@@ -78,15 +78,7 @@ class SimpleTimerCard extends LitElement {
   if (validStyles.includes(normStyle)) {
     style = normStyle;
   } else {
-    if (normStyle === "fill" || normStyle === "background" || normStyle === "background_fill") {
-      style = "fill_horizontal";
-    } else if (normStyle === "bar") {
-      style = "bar_horizontal";
-    } else if (normStyle === "circle") {
-      style = "circle";
-    } else {
-      style = "bar_horizontal";
-    }
+    style = "bar_horizontal";
   }
 	
     this._config = {
@@ -592,7 +584,6 @@ class SimpleTimerCard extends LitElement {
     }
   }
 
-  // Add this method for MQTT event publishing
   _publishTimerEvent(event, timer) {
     if (this._config.storage === 'mqtt') {
       this.hass.callService("mqtt", "publish", {
@@ -764,7 +755,7 @@ class SimpleTimerCard extends LitElement {
       this._updateTimerInStorage(timer.id, { paused: false, end: newEndTime }, timer.source);
       this.requestUpdate();
     } else if (timer.source === "timer") {
-      const remainingFormatted = this._formatDurationForTimer(Math.ceil(timer.remaining / 1000));
+      const remainingFormatted = this._formatDuration(Math.ceil(timer.remaining / 1000), 'seconds');
       this.hass.callService("timer", "start", { entity_id: timer.source_entity, duration: remainingFormatted });
     } else {
       this._toast?.("This timer can't be resumed from here.");
@@ -805,7 +796,7 @@ class SimpleTimerCard extends LitElement {
       this._updateTimerInStorage(timer.id, { end: newEndTime, duration: newDurationMs }, timer.source);
       this.requestUpdate();
     } else if (timer.source === "timer") {
-      const str = this._formatDurationForTimer(snoozeMinutes * 60);
+      const str = this._formatDuration(snoozeMinutes * 60, 'seconds');
       this.hass.callService("timer", "start", { entity_id: timer.source_entity, duration: str });
     } else {
       this._toast?.("Only helper, local, MQTT, and timer entities can be snoozed here.");
@@ -828,16 +819,7 @@ class SimpleTimerCard extends LitElement {
     return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
   }
   
-  // Legacy method wrappers for backwards compatibility
-  _formatDurationForTimer(totalSeconds) {
-    return this._formatDuration(totalSeconds, 'seconds');
-  }
-  _formatTime(ms) {
-    return this._formatDuration(ms, 'ms');
-  }
-  _formatSecs(secs) {
-    return this._formatDuration(secs, 'seconds');
-  }
+
   _toggleCustom(which) {
     const openKey = `noTimer${which.charAt(0).toUpperCase() + which.slice(1)}Open`;
     this._ui[openKey] = !this._ui[openKey];
@@ -1035,7 +1017,6 @@ class SimpleTimerCard extends LitElement {
   }
   
   _getTimerRenderState(t, style) {
-    // Common calculation for both render methods
     const isPaused = t.paused;
     const color = isPaused ? "var(--warning-color)" : (t.color || "var(--primary-color)");
     const icon = isPaused ? "mdi:timer-pause" : (t.icon || "mdi:timer-outline");
@@ -1049,7 +1030,7 @@ class SimpleTimerCard extends LitElement {
     const supportsPause = t.source === "helper" || t.source === "local" || t.source === "mqtt" || t.source === "timer";
     const supportsManualControls = t.source === "local" || t.source === "mqtt";
     
-    const timeStr = isPaused ? `${this._formatTime(t.end)} (Paused)` : this._formatTime(t.remaining);
+    const timeStr = isPaused ? `${this._formatDuration(t.end, 'ms')} (Paused)` : this._formatDuration(t.remaining, 'ms');
     
     let circleValues;
     if (isCircleStyle) {
@@ -1259,7 +1240,7 @@ class SimpleTimerCard extends LitElement {
           <div class="grid-3">
             ${this._renderMinuteButtons(minuteButtons, (m, sign) => this._adjust("horizontal", m, sign), +1)}
           </div>
-          <div class="display">${this._formatSecs(this._customSecs.horizontal)}</div>
+          <div class="display">${this._formatDuration(this._customSecs.horizontal, 'seconds')}</div>
           <div class="grid-3">
             ${this._renderMinuteButtons(minuteButtons, (m, sign) => this._adjust("horizontal", m, sign), -1)}
           </div>
@@ -1293,7 +1274,7 @@ class SimpleTimerCard extends LitElement {
           <div class="grid-3">
             ${this._renderMinuteButtons(minuteButtons, (m, sign) => this._adjust("vertical", m, sign), +1)}
           </div>
-          <div class="display">${this._formatSecs(this._customSecs.vertical)}</div>
+          <div class="display">${this._formatDuration(this._customSecs.vertical, 'seconds')}</div>
           <div class="grid-3">
             ${this._renderMinuteButtons(minuteButtons, (m, sign) => this._adjust("vertical", m, sign), -1)}
           </div>
@@ -1327,7 +1308,7 @@ class SimpleTimerCard extends LitElement {
           <div class="grid-3">
             ${this._renderMinuteButtons(minuteButtons, (m, sign) => this._adjustActive("fill", m, sign), +1)}
           </div>
-          <div class="display" style="font-size:30px;">${this._formatSecs(this._activeSecs.fill)}</div>
+          <div class="display" style="font-size:30px;">${this._formatDuration(this._activeSecs.fill, 'seconds')}</div>
           <div class="grid-3">
             ${this._renderMinuteButtons(minuteButtons, (m, sign) => this._adjustActive("fill", m, sign), -1)}
           </div>
@@ -1355,7 +1336,7 @@ class SimpleTimerCard extends LitElement {
           <div class="grid-3">
             ${this._renderMinuteButtons(minuteButtons, (m, sign) => this._adjustActive("bar", m, sign), +1)}
           </div>
-          <div class="display" style="font-size:30px;">${this._formatSecs(this._activeSecs.bar)}</div>
+          <div class="display" style="font-size:30px;">${this._formatDuration(this._activeSecs.bar, 'seconds')}</div>
           <div class="grid-3">
             ${this._renderMinuteButtons(minuteButtons, (m, sign) => this._adjustActive("bar", m, sign), -1)}
           </div>
@@ -1688,15 +1669,7 @@ class SimpleTimerCardEditor extends LitElement {
       if (validStyles.includes(styleValue)) {
         normalizedStyle = styleValue;
       } else {
-        if (styleValue === "fill" || styleValue === "background" || styleValue === "background_fill") {
-          normalizedStyle = "fill_horizontal";
-        } else if (styleValue === "bar") {
-          normalizedStyle = "bar_horizontal";
-        } else if (styleValue === "circle") {
-          normalizedStyle = "circle";
-        } else {
-          normalizedStyle = "bar_horizontal";
-        }
+        normalizedStyle = "bar_horizontal";
       }
       
       this._updateConfig({ 
