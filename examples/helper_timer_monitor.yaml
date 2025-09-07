@@ -1,0 +1,17 @@
+# Example: Monitor helper entity for expired timers
+alias: "Helper Timer Monitor"
+trigger:
+  - platform: state
+    entity_id: 
+      - input_text.kitchen_timers
+      - input_text.laundry_timers
+condition:
+  - condition: template
+    value_template: >
+      {% set data = trigger.to_state.state | from_json %}
+      {{ data.timers | selectattr('remaining', 'le', 0) | list | length > 0 }}
+action:
+  - service: persistent_notification.create
+    data:
+      title: "Timer Expired"
+      message: "Check your timers!"

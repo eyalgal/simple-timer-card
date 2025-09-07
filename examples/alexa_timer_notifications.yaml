@@ -1,0 +1,14 @@
+# Example: Announce on Alexa when timer expires
+alias: "Alexa Timer Announcement"
+trigger:
+  - platform: mqtt
+    topic: "simple_timer_card/events/expired"
+condition:
+  - condition: template
+    value_template: "{{ trigger.payload_json.source == 'alexa' }}"
+action:
+  - service: notify.alexa_media_everywhere
+    data:
+      message: "Your {{ trigger.payload_json.label }} timer is done"
+      data:
+        type: "tts"
