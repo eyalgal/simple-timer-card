@@ -13,8 +13,7 @@ import { LitElement, html, css } from "https://unpkg.com/lit@2.8.0/index.js?modu
 
 const cardVersion = "1.1.2";
 
-// Constants
-const DAY_IN_MS = 86400000; // 24 hours in milliseconds
+const DAY_IN_MS = 86400000;
 const HOUR_IN_SECONDS = 3600;
 const MINUTE_IN_SECONDS = 60;
 
@@ -798,7 +797,7 @@ class SimpleTimerCard extends LitElement {
       this._updateTimerInStorage(timer.id, { paused: false, end: newEndTime }, timer.source);
       this.requestUpdate();
     } else if (timer.source === "timer") {
-      const remainingFormatted = this._formatDurationForTimer(Math.ceil(timer.remaining / 1000));
+      const remainingFormatted = this._formatDuration(Math.ceil(timer.remaining / 1000), 'seconds');
       this.hass.callService("timer", "start", { entity_id: timer.source_entity, duration: remainingFormatted });
     } else {
       this._toast?.("This timer can't be resumed from here.");
@@ -840,14 +839,13 @@ class SimpleTimerCard extends LitElement {
       this._updateTimerInStorage(timer.id, { end: newEndTime, duration: newDurationMs }, timer.source);
       this.requestUpdate();
     } else if (timer.source === "timer") {
-      const str = this._formatDurationForTimer(snoozeMinutes * 60);
+      const str = this._formatDuration(snoozeMinutes * 60, 'seconds');
       this.hass.callService("timer", "start", { entity_id: timer.source_entity, duration: str });
     } else {
       this._toast?.("Only helper, local, MQTT, and timer entities can be snoozed here.");
     }
   }
   _formatDuration(value, unit = 'seconds') {
-    // Convert input to seconds based on unit
     let totalSeconds;
     if (unit === 'ms') {
       if (value <= 0) return "00:00";
@@ -862,17 +860,6 @@ class SimpleTimerCard extends LitElement {
     const s = totalSeconds % MINUTE_IN_SECONDS;
     const pad = (n) => String(n).padStart(2, "0");
     return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
-  }
-  
-  // Legacy method wrappers for backwards compatibility
-  _formatDurationForTimer(totalSeconds) {
-    return this._formatDuration(totalSeconds, 'seconds');
-  }
-  _formatTime(ms) {
-    return this._formatDuration(ms, 'ms');
-  }
-  _formatSecs(secs) {
-    return this._formatDuration(secs, 'seconds');
   }
   _toggleCustom(which) {
     const openKey = `noTimer${which.charAt(0).toUpperCase() + which.slice(1)}Open`;
@@ -1071,7 +1058,6 @@ class SimpleTimerCard extends LitElement {
   }
   
   _getTimerRenderState(t, style) {
-    // Common calculation for both render methods
     const isPaused = t.paused;
     const color = isPaused ? "var(--warning-color)" : (t.color || "var(--primary-color)");
     const icon = isPaused ? "mdi:timer-pause" : (t.icon || "mdi:timer-outline");
@@ -1085,7 +1071,7 @@ class SimpleTimerCard extends LitElement {
     const supportsPause = t.source === "helper" || t.source === "local" || t.source === "mqtt" || t.source === "timer";
     const supportsManualControls = t.source === "local" || t.source === "mqtt";
     
-    const timeStr = isPaused ? `${this._formatTime(t.end)} (Paused)` : this._formatTime(t.remaining);
+    const timeStr = isPaused ? `${this._formatDuration(t.end, 'ms')} (Paused)` : this._formatDuration(t.remaining, 'ms');
     
     let circleValues;
     if (isCircleStyle) {
@@ -1295,7 +1281,7 @@ class SimpleTimerCard extends LitElement {
           <div class="grid-3">
             ${this._renderMinuteButtons(minuteButtons, (m, sign) => this._adjust("horizontal", m, sign), +1)}
           </div>
-          <div class="display">${this._formatSecs(this._customSecs.horizontal)}</div>
+          <div class="display">${this._formatDuration(this._customSecs.horizontal, 'seconds')}</div>
           <div class="grid-3">
             ${this._renderMinuteButtons(minuteButtons, (m, sign) => this._adjust("horizontal", m, sign), -1)}
           </div>
@@ -1329,7 +1315,7 @@ class SimpleTimerCard extends LitElement {
           <div class="grid-3">
             ${this._renderMinuteButtons(minuteButtons, (m, sign) => this._adjust("vertical", m, sign), +1)}
           </div>
-          <div class="display">${this._formatSecs(this._customSecs.vertical)}</div>
+          <div class="display">${this._formatDuration(this._customSecs.vertical, 'seconds')}</div>
           <div class="grid-3">
             ${this._renderMinuteButtons(minuteButtons, (m, sign) => this._adjust("vertical", m, sign), -1)}
           </div>
@@ -1363,7 +1349,7 @@ class SimpleTimerCard extends LitElement {
           <div class="grid-3">
             ${this._renderMinuteButtons(minuteButtons, (m, sign) => this._adjustActive("fill", m, sign), +1)}
           </div>
-          <div class="display" style="font-size:30px;">${this._formatSecs(this._activeSecs.fill)}</div>
+          <div class="display" style="font-size:30px;">${this._formatDuration(this._activeSecs.fill, 'seconds')}</div>
           <div class="grid-3">
             ${this._renderMinuteButtons(minuteButtons, (m, sign) => this._adjustActive("fill", m, sign), -1)}
           </div>
@@ -1391,7 +1377,7 @@ class SimpleTimerCard extends LitElement {
           <div class="grid-3">
             ${this._renderMinuteButtons(minuteButtons, (m, sign) => this._adjustActive("bar", m, sign), +1)}
           </div>
-          <div class="display" style="font-size:30px;">${this._formatSecs(this._activeSecs.bar)}</div>
+          <div class="display" style="font-size:30px;">${this._formatDuration(this._activeSecs.bar, 'seconds')}</div>
           <div class="grid-3">
             ${this._renderMinuteButtons(minuteButtons, (m, sign) => this._adjustActive("bar", m, sign), -1)}
           </div>
