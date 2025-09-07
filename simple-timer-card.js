@@ -67,26 +67,29 @@ class SimpleTimerCard extends LitElement {
   const normLayout = (config.layout || "horizontal").toLowerCase();
   const layout = normLayout === "vertical" ? "vertical" : "horizontal";
 
-  const rawStyle = (config.style || "bar").toLowerCase();
+  const normStyle = (config.style || "bar_horizontal").toLowerCase();
   let style;
 
-  // Parse combined style values but don't override user's layout setting
-  if (rawStyle === "fill_vertical" || rawStyle === "fill_horizontal") {
-    style = "fill";
-  } else if (rawStyle === "bar_vertical" || rawStyle === "bar_horizontal") {
-    style = "bar"; 
-  } else if (rawStyle === "circle") {
-    style = "circle";
+  // Validate and normalize style options
+  const validStyles = ["fill_vertical", "fill_horizontal", "bar_vertical", "bar_horizontal", "circle"];
+  if (validStyles.includes(normStyle)) {
+    style = normStyle;
   } else {
-    style = rawStyle === "fill" || rawStyle === "background" || rawStyle === "background_fill"
-      ? "fill"
-      : (rawStyle === "circle" ? "circle" : "bar");
+    // Handle legacy style values for backward compatibility
+    if (normStyle === "fill" || normStyle === "background" || normStyle === "background_fill") {
+      style = "fill_horizontal";
+    } else if (normStyle === "bar") {
+      style = "bar_horizontal";
+    } else if (normStyle === "circle") {
+      style = "circle";
+    } else {
+      style = "bar_horizontal"; // default
+    }
   }
 	
     this._config = {
       layout,
       style,
-      _rawStyle: rawStyle, // Preserve original style for layout determination
       snooze_duration: 5,
       timer_presets: [5, 15, 30],
       show_timer_presets: true,
@@ -939,7 +942,7 @@ class SimpleTimerCard extends LitElement {
     
     const pctLeft = 100 - pct;
 
-    const isFillStyle = style === "fill";
+    const isFillStyle = style.startsWith("fill_");
     const baseClasses = isFillStyle ? "card item" : (isCircleStyle ? "item vtile" : "item bar");
     const finishedClasses = isFillStyle ? "card item finished" : (isCircleStyle ? "item vtile" : "card item bar");
 
@@ -1129,13 +1132,13 @@ class SimpleTimerCard extends LitElement {
       }
 
       return html`
-        <li class="item vtile ${style === 'fill' ? 'card' : ''}" style="--tcolor:${color}">
-          ${style === 'fill' ? html`<div class="progress-fill" style="width:100%"></div>` : ""}
+        <li class="item vtile ${style.startsWith('fill_') ? 'card' : ''}" style="--tcolor:${color}">
+          ${style.startsWith('fill_') ? html`<div class="progress-fill" style="width:100%"></div>` : ""}
           <div class="vcol">
             <div class="icon-wrap large"><ha-icon .icon=${icon}></ha-icon></div>
             <div class="vtitle">${t.label}</div>
             <div class="vstatus up">${expiredMessage}</div>
-            ${style === 'bar'
+            ${style.startsWith('bar_')
               ? html`<div class="vactions-center">
                   ${supportsManualControls ? html`
                     <button class="chip" @click=${() => this._handleSnooze(t)}>Snooze</button>
@@ -1181,13 +1184,13 @@ class SimpleTimerCard extends LitElement {
     }
 
     return html`
-      <li class="item vtile ${style === 'fill' ? 'card' : ''}" style="--tcolor:${color}">
-        ${style === 'fill' ? html`<div class="progress-fill" style="width:${pct}%"></div>` : ""}
+      <li class="item vtile ${style.startsWith('fill_') ? 'card' : ''}" style="--tcolor:${color}">
+        ${style.startsWith('fill_') ? html`<div class="progress-fill" style="width:${pct}%"></div>` : ""}
         <div class="vcol">
           <div class="icon-wrap large"><ha-icon .icon=${icon}></ha-icon></div>
           <div class="vtitle">${t.label}</div>
           <div class="vstatus">${timeStr}</div>
-          ${style === 'bar' ? html`
+          ${style.startsWith('bar_') ? html`
             <div class="vprogressbar">
               ${supportsPause && supportsManualControls ? html`
                 <button class="action-btn"
@@ -1241,21 +1244,21 @@ class SimpleTimerCard extends LitElement {
     const style = this._config.style;
 
     // For active timers, derive the display layout from the style
-    const getActiveTimersLayout = (rawConfigStyle) => {
-      const rawStyle = (rawConfigStyle || "bar").toLowerCase();
-      if (rawStyle === "fill_vertical" || rawStyle === "bar_vertical") {
+    const getActiveTimersLayout = (configStyle) => {
+      const styleStr = (configStyle || "bar_horizontal").toLowerCase();
+      if (styleStr === "fill_vertical" || styleStr === "bar_vertical") {
         return "vertical";
-      } else if (rawStyle === "fill_horizontal" || rawStyle === "bar_horizontal") {
+      } else if (styleStr === "fill_horizontal" || styleStr === "bar_horizontal") {
         return "horizontal";
-      } else if (rawStyle === "circle") {
+      } else if (styleStr === "circle") {
         return "vertical"; // circles work better in vertical layout
       } else {
-        // For plain "fill" and "bar", use horizontal by default
+        // fallback to horizontal for any other cases
         return "horizontal";
       }
     };
 
-    const activeTimersLayout = getActiveTimersLayout(this._config._rawStyle || this._config.style);
+    const activeTimersLayout = getActiveTimersLayout(this._config.style);
 
     const noTimerCard = layout === "horizontal" ? html`
       <div class="card nt-h ${this._ui.noTimerHorizontalOpen ? "expanded" : ""}">
@@ -1338,7 +1341,7 @@ class SimpleTimerCard extends LitElement {
     const cols = (useGrid && timers.length > 1) ? 2 : 1;
     const listClass = useGrid ? `list vgrid cols-${cols}` : 'list';
 
-    const activeCard = style === "fill" ? html`
+    const activeCard = style.startsWith("fill_") ? html`
       <div class="card ${this._ui.activeFillOpen ? "card-show" : ""}">
         ${this._config.show_active_header !== false ? html`
           <div class="active-head">
@@ -1705,24 +1708,27 @@ class SimpleTimerCardEditor extends LitElement {
     if (typeof value !== "string" || value === "") return;
     
     if (key === "style") {
-      const rawStyle = value.toLowerCase();
-      let parsedStyle;
+      const styleValue = value.toLowerCase();
+      const validStyles = ["fill_vertical", "fill_horizontal", "bar_vertical", "bar_horizontal", "circle"];
       
-      if (rawStyle === "fill_vertical" || rawStyle === "fill_horizontal") {
-        parsedStyle = "fill";
-      } else if (rawStyle === "bar_vertical" || rawStyle === "bar_horizontal") {
-        parsedStyle = "bar"; 
-      } else if (rawStyle === "circle") {
-        parsedStyle = "circle";
+      let normalizedStyle;
+      if (validStyles.includes(styleValue)) {
+        normalizedStyle = styleValue;
       } else {
-        parsedStyle = rawStyle === "fill" || rawStyle === "background" || rawStyle === "background_fill"
-          ? "fill"
-          : (rawStyle === "circle" ? "circle" : "bar");
+        // Handle legacy style values for backward compatibility
+        if (styleValue === "fill" || styleValue === "background" || styleValue === "background_fill") {
+          normalizedStyle = "fill_horizontal";
+        } else if (styleValue === "bar") {
+          normalizedStyle = "bar_horizontal";
+        } else if (styleValue === "circle") {
+          normalizedStyle = "circle";
+        } else {
+          normalizedStyle = "bar_horizontal"; // default
+        }
       }
       
       this._updateConfig({ 
-        style: parsedStyle,
-        _rawStyle: rawStyle
+        style: normalizedStyle
       }, true);
     } else {
       this._updateConfig({ [key]: value }, true);
@@ -1965,24 +1971,7 @@ class SimpleTimerCardEditor extends LitElement {
   }
 
   _getDisplayStyleValue() {
-    const rawStyle = this._config._rawStyle || this._config.style || "bar";
-    const layout = this._config.layout || "horizontal";
-    
-    // If we have a preserved raw style, use it
-    if (this._config._rawStyle) {
-      return this._config._rawStyle;
-    }
-    
-    // Otherwise, construct from current style and layout
-    if (this._config.style === "fill") {
-      return layout === "vertical" ? "fill_vertical" : "fill_horizontal";
-    } else if (this._config.style === "bar") {
-      return layout === "vertical" ? "bar_vertical" : "bar_horizontal";
-    } else if (this._config.style === "circle") {
-      return "circle";
-    }
-    
-    return this._config.style || "bar";
+    return this._config.style || "bar_horizontal";
   }
 
   render() {
