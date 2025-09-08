@@ -417,6 +417,10 @@ class SimpleTimerCard extends LitElement {
   _parseHelper(entityId, entityState, entityConf) {
     try {
       const data = JSON.parse(entityState.state || '{}');
+      if (!this._validateStoredTimerData(data)) {
+        console.warn("Invalid helper timer data structure, returning empty array");
+        return [];
+      }
       if (data?.timers?.map) {
         return data.timers.map((timer) => ({
           ...timer,
@@ -442,7 +446,8 @@ class SimpleTimerCard extends LitElement {
         }];
       }
       return [];
-    } catch {
+    } catch (e) {
+      console.warn("Failed to parse helper timer data:", e);
       return [];
     }
   }
