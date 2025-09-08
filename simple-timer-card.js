@@ -9,7 +9,7 @@
  * For more information, visit: https://github.com/eyalgal/simple-timer-card								   
  */		 
 
-import { LitElement, html, css } from "https://unpkg.com/lit@2.8.0/index.js?module";
+import { LitElement, html, css } from "https://unpkg.com/lit@3.1.0/index.js?module";
 
 const cardVersion = "1.2.0";
 
@@ -35,6 +35,50 @@ class SimpleTimerCard extends LitElement {
     };
   }
 
+  _sanitizeText(text) {
+    if (!text || typeof text !== 'string') return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  _validateAudioUrl(url) {
+    if (!url || typeof url !== 'string') return false;
+    try {
+      const parsed = new URL(url, window.location.origin);
+      return ['https:', 'http:', 'file:'].includes(parsed.protocol) ||
+             url.startsWith('/local/') || url.startsWith('/hacsfiles/');
+    } catch {
+      return false;
+    }
+  }
+
+  _validateStoredTimerData(data) {
+    if (!data || typeof data !== 'object') return false;
+    if (!Array.isArray(data.timers)) return false;
+    for (const timer of data.timers) {
+      if (!timer || typeof timer !== 'object') return false;
+      if (!timer.id || typeof timer.id !== 'string') return false;
+      if (timer.label && typeof timer.label !== 'string') return false;
+      if (timer.duration && typeof timer.duration !== 'number') return false;
+      if (timer.end && typeof timer.end !== 'number') return false;
+    }
+    return true;
+  }
+
+  _validateTimerInput(duration, label) {
+    const MAX_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
+    const MAX_LABEL_LENGTH = 100;
+    
+    if (duration && (typeof duration !== 'number' || duration <= 0 || duration > MAX_DURATION_MS)) {
+      return { valid: false, error: 'Invalid duration' };
+    }
+    if (label && (typeof label !== 'string' || label.length > MAX_LABEL_LENGTH)) {
+      return { valid: false, error: 'Invalid label' };
+    }
+    return { valid: true };
+  }
+
   constructor() {
     super();
     this._timers = [];
@@ -42,6 +86,7 @@ class SimpleTimerCard extends LitElement {
     this._dismissed = new Set();
     this._ringingTimers = new Set();
     this._activeAudioInstances = new Map();
+    this._lastActionTime = new Map();
 
     this._ui = {
       noTimerHorizontalOpen: false,
@@ -51,6 +96,19 @@ class SimpleTimerCard extends LitElement {
     };
     this._customSecs = { horizontal: 15 * 60, vertical: 15 * 60 };
     this._activeSecs = { fill: 10 * 60, bar: 10 * 60 };
+  }
+
+  _isActionThrottled(actionType, timerId = 'global', throttleMs = 1000) {
+    const key = `${actionType}-${timerId}`;
+    const now = Date.now();
+    const lastTime = this._lastActionTime.get(key) || 0;
+    
+    if (now - lastTime < throttleMs) {
+      return true;
+    }
+    
+    this._lastActionTime.set(key, now);
+    return false;
   }
 
   setConfig(config) {
@@ -147,10 +205,20 @@ class SimpleTimerCard extends LitElement {
       const stored = localStorage.getItem(this._getStorageKey());
       if (stored) {
         const parsed = JSON.parse(stored);
-        return Array.isArray(parsed.timers) ? parsed.timers : [];
+        if (this._validateStoredTimerData(parsed)) {
+          return parsed.timers;
+        } else {
+          console.warn("Invalid stored timer data, resetting storage");
+          localStorage.removeItem(this._getStorageKey());
+        }
       }
     } catch (e) {
       console.warn("Failed to load timers from storage:", e);
+      try {
+        localStorage.removeItem(this._getStorageKey());
+      } catch (removeErr) {
+        console.warn("Failed to clean corrupted storage:", removeErr);
+      }
     }
     return [];
   }
@@ -303,7 +371,7 @@ class SimpleTimerCard extends LitElement {
 
       let label;
       if (t?.timerLabel) {
-        label = t.timerLabel;
+        label = this._sanitizeText(t.timerLabel);
       } else {
         const cleanedFriendlyName = this._cleanFriendlyName(entityState.attributes.friendly_name);
         const baseName = entityConf?.name || cleanedFriendlyName || (pausedFlag ? "Alexa Timer (Paused)" : "Alexa Timer");
@@ -313,9 +381,9 @@ class SimpleTimerCard extends LitElement {
         displayTime = originalDuration > 0 ? this._formatDurationDisplay(originalDuration) : "0m";
 
         if (baseName && baseName !== "Alexa Timer" && baseName !== "Alexa Timer (Paused)") {
-          label = `${baseName} - ${displayTime}`;
+          label = this._sanitizeText(`${baseName} - ${displayTime}`);
         } else {
-          label = baseName;
+          label = this._sanitizeText(baseName);
         }
       }
 
@@ -354,7 +422,7 @@ class SimpleTimerCard extends LitElement {
           ...timer,
           source: "helper",
           source_entity: entityId,
-          label: timer.label || entityConf?.name || "Timer",
+          label: this._sanitizeText(timer.label || entityConf?.name || "Timer"),
           icon: timer.icon || entityConf?.icon || "mdi:timer-outline",
           color: timer.color || entityConf?.color || "var(--primary-color)",
         }));
@@ -365,7 +433,7 @@ class SimpleTimerCard extends LitElement {
           end: singleTimer.e,
           duration: singleTimer.d,
           id: `single-timer-${entityId}`,
-          label: entityConf?.name || entityState?.attributes?.friendly_name || "Timer",
+          label: this._sanitizeText(entityConf?.name || entityState?.attributes?.friendly_name || "Timer"),
           paused: false,
           source: "helper",
           source_entity: entityId,
@@ -548,7 +616,7 @@ class SimpleTimerCard extends LitElement {
       audioPlayUntilDismissed = this._config.audio_play_until_dismissed;
     }
 
-    if (!audioEnabled || !audioFileUrl) return;
+    if (!audioEnabled || !audioFileUrl || !this._validateAudioUrl(audioFileUrl)) return;
 
     this._stopAudioForTimer(timerId);
 
@@ -628,7 +696,15 @@ class SimpleTimerCard extends LitElement {
   }
   _mutateHelper(entityId, mutator) {
     const state = this.hass.states[entityId]?.state ?? '{"timers":[]}';
-    let data; try { data = JSON.parse(state); } catch { data = { timers: [] }; }
+    let data;
+    try {
+      data = JSON.parse(state);
+      if (!this._validateStoredTimerData(data)) {
+        data = { timers: [] };
+      }
+    } catch {
+      data = { timers: [] };
+    }
     if (!Array.isArray(data.timers)) data.timers = [];
     mutator(data);
     const domain = entityId.split(".")[0];
@@ -642,12 +718,19 @@ class SimpleTimerCard extends LitElement {
     const targetEntity = form.querySelector('[name="target_entity"]')?.value ?? "";
     const durationMs = this._parseDuration(durationStr);
     if (durationMs <= 0) return;
+    
+    const validation = this._validateTimerInput(durationMs, label);
+    if (!validation.valid) {
+      console.warn('Timer creation failed:', validation.error);
+      return;
+    }
+    
     const endTime = Date.now() + durationMs;
 
     this._mutateHelper(targetEntity, (data) => {
       const newTimer = {
         id: `custom-${Date.now()}`,
-        label: label || "Timer",
+        label: this._sanitizeText(label || "Timer"),
         icon: this._config.default_timer_icon || "mdi:timer-outline",
         color: this._config.default_timer_color || "var(--primary-color)",
         end: endTime,
@@ -708,6 +791,10 @@ class SimpleTimerCard extends LitElement {
   }
 
   _handleCancel(timer) {
+    if (this._isActionThrottled('cancel', timer.id)) {
+      return;
+    }
+    
     this._ringingTimers.delete(timer.id);
     if (timer.source === "helper") {
       this._mutateHelper(timer.source_entity, (data) => { data.timers = data.timers.filter((t) => t.id !== timer.id); });
@@ -781,6 +868,10 @@ class SimpleTimerCard extends LitElement {
     }
   }
   _handleSnooze(timer) {
+    if (this._isActionThrottled('snooze', timer.id)) {
+      return;
+    }
+    
     this._ringingTimers.delete(timer.id);
     this._stopAudioForTimer(timer.id);
     const snoozeMinutes = this._config.snooze_duration;
@@ -829,9 +920,19 @@ class SimpleTimerCard extends LitElement {
     this._customSecs = { ...this._customSecs, [which]: Math.max(0, this._customSecs[which] + sign * delta) };
   }
   _createAndSaveTimer(secs, label) {
+    if (this._isActionThrottled('create_timer', 'global', 500)) {
+      return;
+    }
+    
     if (secs <= 0) return;
 
-    const finalLabel = label && label.trim() ? label.trim() : this._formatTimerLabel(Math.ceil(secs / 60));
+    const validation = this._validateTimerInput(secs * 1000, label);
+    if (!validation.valid) {
+      console.warn('Timer creation failed:', validation.error);
+      return;
+    }
+
+    const finalLabel = label && label.trim() ? this._sanitizeText(label.trim()) : this._formatTimerLabel(Math.ceil(secs / 60));
 
     const newTimer = {
       id: `custom-${Date.now()}`,
