@@ -34,6 +34,19 @@ A versatile and highly customizable timer card for Home Assistant Lovelace, offe
 * **Customizable Appearance:** Adjust colors, icons, and styling to match your Home Assistant theme.
 * **Native Theme Integration:** Automatically uses Home Assistant theme colors and native UI elements.
 * **Visual Progress Indicators:** Clear visual feedback showing timer progress and status.
+* **🔒 Security Features:** Built-in XSS protection, input validation, rate limiting, and secure audio URL handling.
+
+## **🔒 Security**
+
+Simple Timer Card v1.2.0+ includes comprehensive security features:
+
+* **XSS Protection:** All timer labels are automatically sanitized to prevent script injection
+* **Input Validation:** Duration limits (24h max), label length limits (100 chars), and type validation
+* **URL Security:** Audio URLs are validated to only allow safe protocols and paths
+* **Rate Limiting:** Actions are throttled to prevent spam and performance issues
+* **Data Integrity:** localStorage and MQTT data validation with graceful error handling
+
+For security guidelines and vulnerability reporting, see [SECURITY.md](SECURITY.md).
 
 ## **✅ Requirements**
 
