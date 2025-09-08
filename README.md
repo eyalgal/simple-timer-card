@@ -7,7 +7,7 @@
 [release_badge]: https://img.shields.io/github/v/release/eyalgal/simple-timer-card
 [release]: https://github.com/eyalgal/simple-timer-card/releases
 [forum_badge]: https://img.shields.io/badge/Community-Forum-5294E2.svg
-[forum]: https://community.home-assistant.io/
+[forum]: https://community.home-assistant.io/t/simple-timer-card-a-clean-way-to-track-timers-in-home-assistant/928813
 [bmac_badge]: https://img.shields.io/badge/buy_me_a-coffee-yellow
 [bmac]: https://www.buymeacoffee.com/eyalgal
 
