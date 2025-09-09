@@ -464,14 +464,50 @@ class SimpleTimerCard extends LitElement {
   }
   _parseTimer(entityId, entityState, entityConf) {
     const state = entityState.state; const attrs = entityState.attributes;
-    if (state !== "active" && state !== "paused" && state !== "idle") return [];
-    let endMs = null; let duration = null;
-    if (attrs.finishes_at) endMs = Date.parse(attrs.finishes_at);
-    else if (attrs.remaining && attrs.remaining !== "0:00:00") {
-      const remaining = this._parseHMSToMs(attrs.remaining); if (remaining > 0) endMs = Date.now() + remaining;
-    }
+    if (state !== "active" && state !== "paused" && state !== "idle" && state !== "finished") return [];
+    let endMs = null; let duration = null; let remainingMs = null;
+    
     if (attrs.duration) duration = this._parseHMSToMs(attrs.duration);
-    if (!endMs && state !== "idle") return [];
+    
+    if (state === "idle") {
+      const entityIcon = attrs.icon;
+      const defaultIcon = entityIcon || "mdi:play";
+      return [{
+        id: `${entityId}-${state}`, source: "timer", source_entity: entityId,
+        label: entityConf?.name || entityState.attributes.friendly_name || "Timer",
+        icon: entityConf?.icon || defaultIcon,
+        color: entityConf?.color || "var(--primary-color)",
+        end: null, duration, paused: false, idle: true
+      }];
+    }
+    
+    if (state === "finished") {
+      const finishedAt = attrs.finishes_at ? Date.parse(attrs.finishes_at) : Date.now();
+      const entityIcon = attrs.icon;
+      const defaultIcon = entityIcon || "mdi:timer-check";
+      return [{
+        id: `${entityId}-${state}`, source: "timer", source_entity: entityId,
+        label: entityConf?.name || entityState.attributes.friendly_name || "Timer",
+        icon: entityConf?.icon || defaultIcon,
+        color: entityConf?.color || "var(--success-color)",
+        end: finishedAt, duration, paused: false, finished: true, finishedAt
+      }];
+    }
+    
+    if (state === "paused") {
+      if (attrs.remaining && attrs.remaining !== "0:00:00") {
+        remainingMs = this._parseHMSToMs(attrs.remaining);
+        endMs = remainingMs;
+      }
+    } else if (state === "active") {
+      if (attrs.finishes_at) endMs = Date.parse(attrs.finishes_at);
+      else if (attrs.remaining && attrs.remaining !== "0:00:00") {
+        remainingMs = this._parseHMSToMs(attrs.remaining);
+        if (remainingMs > 0) endMs = Date.now() + remainingMs;
+      }
+    }
+    
+    if (!endMs && state !== "idle" && state !== "finished") return [];
     
     const entityIcon = attrs.icon;
     const defaultIcon = entityIcon || (state === "paused" ? "mdi:timer-pause" : "mdi:timer");
@@ -481,7 +517,7 @@ class SimpleTimerCard extends LitElement {
       label: entityConf?.name || entityState.attributes.friendly_name || "Timer",
       icon: entityConf?.icon || defaultIcon,
       color: entityConf?.color || (state === "paused" ? "var(--warning-color)" : "var(--primary-color)"),
-      end: endMs, duration, paused: state === "paused"
+      end: endMs, duration, paused: state === "paused", idle: state === "idle", finished: state === "finished"
     }];
   }
   _parseHMSToMs(timeStr) {
@@ -528,23 +564,25 @@ class SimpleTimerCard extends LitElement {
     this._timers = filtered
       .map((t) => {
         let remaining;
-        if (t.paused) {
-          if (t.end > 0 && t.end < DAY_IN_MS) {
-            remaining = t.end;
-          } else if (t.end > 0 && t.end > now && t.end < (now + DAY_IN_MS)) {
-            remaining = Math.max(0, t.end - now);
-          } else if (t.duration && t.duration > 0) {
-            remaining = Math.min(t.duration, t.end > 0 ? t.end : t.duration * 0.5);
-          } else {
-            remaining = t.end > 0 ? t.end : 60000;
-          }
+        if (t.idle) {
+          remaining = t.duration || 0;
+        } else if (t.finished) {
+          remaining = 0;
+        } else if (t.paused) {
+          remaining = t.end || 0;
         } else {
           remaining = Math.max(0, t.end - now);
         }
-        const percent = t.duration ? ((t.duration - remaining) / t.duration) * 100 : null;
+        const percent = t.duration && remaining >= 0 ? Math.max(0, Math.min(100, ((t.duration - remaining) / t.duration) * 100)) : 0;
         return { ...t, remaining, percent };
       })
-      .sort((a, b) => a.remaining - b.remaining);
+      .sort((a, b) => {
+        if (a.idle && !b.idle) return 1;
+        if (!a.idle && b.idle) return -1;
+        if (a.finished && !b.finished) return 1;
+        if (!a.finished && b.finished) return -1;
+        return a.remaining - b.remaining;
+      });
 
     for (const timer of this._timers) {
       const isNowRinging = timer.remaining <= 0 && !timer.paused;
@@ -569,8 +607,17 @@ class SimpleTimerCard extends LitElement {
 
     const now2 = Date.now();
     for (const timer of [...this._timers]) {
+      if (timer.idle) continue;
       if (timer.remaining > 0 || timer.paused) continue;
-      if (timer.source === "helper") {
+      if (timer.source === "timer") {
+        if (this._config.expire_action === "keep") {
+          timer.expiredAt ??= now2;
+          const keepMs = (this._config.expire_keep_for || 0) * 1000;
+          if (keepMs > 0 && now2 - timer.expiredAt > keepMs) {
+            // Timer entity will handle its own cleanup when the entity state changes
+          }
+        }
+      } else if (timer.source === "helper") {
         if (this._config.auto_dismiss_writable || this._config.expire_action === "dismiss") {
           this._handleDismiss(timer);
         } else if (this._config.expire_action === "remove") {
@@ -799,6 +846,18 @@ class SimpleTimerCard extends LitElement {
     return friendlyName.replace(/\s*next\s+timer\s*/i, '').trim();
   }
 
+  _handleStart(timer) {
+    if (timer.source === "timer") {
+      if (timer.duration) {
+        const durationFormatted = this._formatDuration(Math.ceil(timer.duration / 1000), 'seconds');
+        this.hass.callService("timer", "start", { entity_id: timer.source_entity, duration: durationFormatted });
+      } else {
+        this.hass.callService("timer", "start", { entity_id: timer.source_entity });
+      }
+    } else {
+      this._toast?.("This timer can't be started from here.");
+    }
+  }
   _handleCancel(timer) {
     if (this._isActionThrottled('cancel', timer.id)) {
       return;
@@ -851,8 +910,7 @@ class SimpleTimerCard extends LitElement {
       this._updateTimerInStorage(timer.id, { paused: false, end: newEndTime }, timer.source);
       this.requestUpdate();
     } else if (timer.source === "timer") {
-      const remainingFormatted = this._formatDuration(Math.ceil(timer.remaining / 1000), 'seconds');
-      this.hass.callService("timer", "start", { entity_id: timer.source_entity, duration: remainingFormatted });
+      this.hass.callService("timer", "start", { entity_id: timer.source_entity });
     } else {
       this._toast?.("This timer can't be resumed from here.");
     }
@@ -902,6 +960,21 @@ class SimpleTimerCard extends LitElement {
       this._toast?.("Only helper, local, MQTT, and timer entities can be snoozed here.");
     }
   }
+  _formatTimeAgo(ms) {
+    if (ms < 1000) return null;
+    const seconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    
+    if (hours > 0) {
+      return hours === 1 ? "1 hour ago" : `${hours} hours ago`;
+    } else if (minutes > 0) {
+      return minutes === 1 ? "1 minute ago" : `${minutes} minutes ago`;
+    } else {
+      return seconds === 1 ? "1 second ago" : `${seconds} seconds ago`;
+    }
+  }
+
   _formatDuration(value, unit = 'seconds') {
     let totalSeconds;
     if (unit === 'ms') {
@@ -991,7 +1064,7 @@ class SimpleTimerCard extends LitElement {
 
   _renderItem(t, style) {
     const state = this._getTimerRenderState(t, style);
-    const { isPaused, color, icon, ring, pct, pctLeft, isCircleStyle, isFillStyle, supportsPause, supportsManualControls, timeStr, circleValues } = state;
+    const { isPaused, isIdle, isFinished, color, icon, ring, pct, pctLeft, isCircleStyle, isFillStyle, supportsPause, supportsManualControls, timeStr, circleValues } = state;
     
     const baseClasses = isFillStyle ? "card item" : (isCircleStyle ? "item vtile" : "item bar");
     const finishedClasses = isFillStyle ? "card item finished" : (isCircleStyle ? "item vtile" : "card item bar");
@@ -1014,7 +1087,7 @@ class SimpleTimerCard extends LitElement {
                 <div class="icon-wrap xl"><ha-icon .icon=${icon}></ha-icon></div>
               </div>
               <div class="vtitle">${t.label}</div>
-              <div class="vstatus up">${expiredMessage}</div>
+              <div class="vstatus up">${timeStr}</div>
               <div class="vactions">
                 ${supportsManualControls ? html`
                   <button class="chip" @click=${() => this._handleSnooze(t)}>Snooze</button>
@@ -1033,7 +1106,7 @@ class SimpleTimerCard extends LitElement {
             <div class="icon-wrap"><ha-icon .icon=${icon}></ha-icon></div>
             <div class="info">
               <div class="title">${t.label}</div>
-              <div class="status up">${expiredMessage}</div>
+              <div class="status up">${timeStr}</div>
             </div>
             ${supportsManualControls ? html`
               <div class="chips">
@@ -1057,7 +1130,11 @@ class SimpleTimerCard extends LitElement {
               <div class="status">${timeStr}</div>
             </div>
             <div class="actions">
-              ${supportsPause && !ring && supportsManualControls ? html`
+              ${isIdle && supportsManualControls ? html`
+                <button class="action-btn" title="Start" @click=${() => this._handleStart(t)}>
+                  <ha-icon icon="mdi:play"></ha-icon>
+                </button>
+              ` : supportsPause && !ring && supportsManualControls ? html`
                 <button class="action-btn" title="${t.paused ? 'Resume' : 'Pause'}" @click=${() => t.paused ? this._handleResume(t) : this._handlePause(t)}>
                   <ha-icon icon="${t.paused ? 'mdi:play' : 'mdi:pause'}"></ha-icon>
                 </button>
@@ -1078,8 +1155,14 @@ class SimpleTimerCard extends LitElement {
           ` : ""}
           <div class="vcol">
             <div class="vcircle-wrap"
-                 title="${t.paused ? 'Resume' : 'Pause'}"
-                 @click=${(e)=>this._togglePause(t, e)}>
+                 title="${isIdle ? 'Start' : (t.paused ? 'Resume' : 'Pause')}"
+                 @click=${(e)=> {
+                   if (isIdle && supportsManualControls) {
+                     this._handleStart(t);
+                   } else if (supportsPause && supportsManualControls) {
+                     this._togglePause(t, e);
+                   }
+                 }}>
               <svg class="vcircle" width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
                 <circle class="vc-track" cx="32" cy="32" r="${circleValues.radius}"></circle>
                 <circle class="vc-prog" cx="32" cy="32" r="${circleValues.radius}"
@@ -1106,7 +1189,11 @@ class SimpleTimerCard extends LitElement {
               <div class="track"><div class="fill" style="width:${pctLeft}%"></div></div>
             </div>
             <div class="actions">
-              ${supportsPause && !ring && supportsManualControls ? html`
+              ${isIdle && supportsManualControls ? html`
+                <button class="action-btn" title="Start" @click=${() => this._handleStart(t)}>
+                  <ha-icon icon="mdi:play"></ha-icon>
+                </button>
+              ` : supportsPause && !ring && supportsManualControls ? html`
                 <button class="action-btn" title="${t.paused ? 'Resume' : 'Pause'}" @click=${() => t.paused ? this._handleResume(t) : this._handlePause(t)}>
                   <ha-icon icon="${t.paused ? 'mdi:play' : 'mdi:pause'}"></ha-icon>
                 </button>
@@ -1128,9 +1215,11 @@ class SimpleTimerCard extends LitElement {
   
   _getTimerRenderState(t, style) {
     const isPaused = t.paused;
-    const color = isPaused ? "var(--warning-color)" : (t.color || "var(--primary-color)");
-    const icon = isPaused ? "mdi:timer-pause" : (t.icon || "mdi:timer-outline");
-    const ring = t.remaining <= 0;
+    const isIdle = t.idle;
+    const isFinished = t.finished;
+    const color = isPaused ? "var(--warning-color)" : (isFinished ? "var(--success-color)" : (t.color || "var(--primary-color)"));
+    const icon = isIdle ? "mdi:play" : (isPaused ? "mdi:timer-pause" : (isFinished ? "mdi:timer-check" : (t.icon || "mdi:timer-outline")));
+    const ring = t.remaining <= 0 && !isIdle;
     const pct = typeof t.percent === "number" ? Math.max(0, Math.min(100, t.percent)) : 0;
     const pctLeft = 100 - pct;
     
@@ -1138,9 +1227,23 @@ class SimpleTimerCard extends LitElement {
     const isFillStyle = style.startsWith("fill_");
     
     const supportsPause = t.source === "helper" || t.source === "local" || t.source === "mqtt" || t.source === "timer";
-    const supportsManualControls = t.source === "local" || t.source === "mqtt";
+    const supportsManualControls = t.source === "local" || t.source === "mqtt" || t.source === "timer";
     
-    const timeStr = isPaused ? `${this._formatDuration(t.end, 'ms')} (Paused)` : this._formatDuration(t.remaining, 'ms');
+    let timeStr;
+    if (isIdle) {
+      timeStr = t.duration ? this._formatDuration(t.duration, 'ms') : "Ready";
+    } else if (isPaused) {
+      timeStr = `${this._formatDuration(t.remaining, 'ms')} (Paused)`;
+    } else if (isFinished) {
+      const now = Date.now();
+      const elapsedSinceFinish = now - (t.finishedAt || t.end || now);
+      const elapsedStr = this._formatTimeAgo(elapsedSinceFinish);
+      const entityConf = this._getEntityConfig(t.source_entity);
+      const expiredMessage = entityConf?.expired_subtitle || this._config.expired_subtitle || "Time's up!";
+      timeStr = elapsedStr ? `${expiredMessage} - ${elapsedStr}` : expiredMessage;
+    } else {
+      timeStr = this._formatDuration(t.remaining, 'ms');
+    }
     
     let circleValues;
     if (isCircleStyle) {
@@ -1148,7 +1251,7 @@ class SimpleTimerCard extends LitElement {
     }
     
     return {
-      isPaused, color, icon, ring, pct, pctLeft,
+      isPaused, isIdle, isFinished, color, icon, ring, pct, pctLeft,
       isCircleStyle, isFillStyle,
       supportsPause, supportsManualControls, timeStr,
       circleValues
@@ -1165,12 +1268,9 @@ class SimpleTimerCard extends LitElement {
 
   _renderItemVertical(t, style) {
     const state = this._getTimerRenderState(t, style);
-    const { isPaused, color, icon, ring, pct, pctLeft, isCircleStyle, isFillStyle, supportsPause, supportsManualControls, timeStr, circleValues } = state;
+    const { isPaused, isIdle, isFinished, color, icon, ring, pct, pctLeft, isCircleStyle, isFillStyle, supportsPause, supportsManualControls, timeStr, circleValues } = state;
 
     if (ring) {
-      const entityConf = this._getEntityConfig(t.source_entity);
-      const expiredMessage = entityConf?.expired_subtitle || this._config.expired_subtitle || "Time's up!";
-
       if (style === "circle") {
         return html`
           <li class="item vtile" style="--tcolor:${color}">
@@ -1185,7 +1285,7 @@ class SimpleTimerCard extends LitElement {
                 <div class="icon-wrap xl"><ha-icon .icon=${icon}></ha-icon></div>
               </div>
               <div class="vtitle">${t.label}</div>
-              <div class="vstatus up">${expiredMessage}</div>
+              <div class="vstatus up">${timeStr}</div>
               <div class="vactions">
                 ${supportsManualControls ? html`
                   <button class="chip" @click=${() => this._handleSnooze(t)}>Snooze</button>
@@ -1203,7 +1303,7 @@ class SimpleTimerCard extends LitElement {
           <div class="vcol">
             <div class="icon-wrap large"><ha-icon .icon=${icon}></ha-icon></div>
             <div class="vtitle">${t.label}</div>
-            <div class="vstatus up">${expiredMessage}</div>
+            <div class="vstatus up">${timeStr}</div>
             ${style.startsWith('bar_')
               ? html`<div class="vactions-center">
                   ${supportsManualControls ? html`
@@ -1232,8 +1332,14 @@ class SimpleTimerCard extends LitElement {
           ` : ""}
           <div class="vcol">
             <div class="vcircle-wrap"
-                 title="${t.paused ? 'Resume' : 'Pause'}"
-                 @click=${(e)=>this._togglePause(t, e)}>
+                 title="${isIdle ? 'Start' : (t.paused ? 'Resume' : 'Pause')}"
+                 @click=${(e)=> {
+                   if (isIdle && supportsManualControls) {
+                     this._handleStart(t);
+                   } else if (supportsPause && supportsManualControls) {
+                     this._togglePause(t, e);
+                   }
+                 }}>
               <svg class="vcircle" width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
                 <circle class="vc-track" cx="32" cy="32" r="${circleValues.radius}"></circle>
                 <circle class="vc-prog" cx="32" cy="32" r="${circleValues.radius}"
@@ -1258,7 +1364,11 @@ class SimpleTimerCard extends LitElement {
           <div class="vstatus">${timeStr}</div>
           ${style.startsWith('bar_') ? html`
             <div class="vprogressbar">
-              ${supportsPause && supportsManualControls ? html`
+              ${isIdle && supportsManualControls ? html`
+                <button class="action-btn" title="Start" @click=${() => this._handleStart(t)}>
+                  <ha-icon icon="mdi:play"></ha-icon>
+                </button>
+              ` : supportsPause && supportsManualControls ? html`
                 <button class="action-btn"
                   title="${t.paused ? 'Resume' : 'Pause'}"
                   @click=${() => t.paused ? this._handleResume(t) : this._handlePause(t)}>
@@ -1276,7 +1386,11 @@ class SimpleTimerCard extends LitElement {
             </div>
           ` : html`
             <div class="vactions">
-              ${supportsPause && supportsManualControls ? html`
+              ${isIdle && supportsManualControls ? html`
+                <button class="action-btn" title="Start" @click=${() => this._handleStart(t)}>
+                  <ha-icon icon="mdi:play"></ha-icon>
+                </button>
+              ` : supportsPause && supportsManualControls ? html`
                 <button class="action-btn"
                   title="${t.paused ? 'Resume' : 'Pause'}"
                   @click=${() => t.paused ? this._handleResume(t) : this._handlePause(t)}>
