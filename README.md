@@ -27,6 +27,7 @@ A versatile and highly customizable timer card for Home Assistant Lovelace, offe
 * **Persistent Storage:** Support for local browser storage or MQTT integration for timers that survive reloads and sync across devices.
 * **Audio Notifications:** Play custom audio files when timers expire, with repeat counts and play-until-dismissed options.
 * **Alexa Integration:** Separate audio settings for Alexa devices, based on [alexa_media_player](https://github.com/alandtse/alexa_media_player).
+* **Voice PE Integration:** Full support for Voice PE timers with template sensors - [see setup guide](voice-pe.md).
 * **Timer Actions:** Configurable actions when timers expire (keep, dismiss, or auto-dismiss).
 * **Snooze Functionality:** Easily snooze expired timers for additional time.
 * **Active Timer Management:** View and manage multiple active timers simultaneously.
@@ -377,6 +378,12 @@ audio_repeat_count: 3
 > - **Alexa Integration:** Separate audio settings for Alexa devices
 > - **Repeat Options:** Configure audio repeat counts and play-until-dismissed behavior
 > - **Browser-based:** Audio plays directly in the browser, no automation required
+
+> **🎙️ Voice PE Integration:** Full support for Voice PE timers! Voice PE users can now display their local timers in Home Assistant. [**See our setup guide →**](voice-pe.md)
+> - ESPHome integration for mirroring Voice PE timers to HA sensors
+> - Template sensor setup with finished state support
+> - Simple Timer Card configuration examples
+> - **Major user-requested feature** - seamlessly integrate your Voice PE timers!
 
 ## **🔧 MQTT Setup for Persistent Timers**
 

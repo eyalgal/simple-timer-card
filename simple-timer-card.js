@@ -1504,8 +1504,7 @@ class SimpleTimerCard extends LitElement {
       
       if (t.idle && t.source === "timer") {
         const entityConfig = this._getEntityConfig(t.source_entity);
-        const keepVisible = entityConfig?.keep_timer_visible_when_idle || 
-                           (entityConfig?.keep_timer_visible_when_idle === undefined && this._config.keep_timer_visible_when_idle);
+        const keepVisible = entityConfig?.keep_timer_visible_when_idle === true;
         if (!keepVisible) {
           return false;
         }
@@ -2002,8 +2001,16 @@ class SimpleTimerCardEditor extends LitElement {
     if (index < 0 || index >= (this._config.entities || []).length) return;
 
     const target = e.target; const key = target.configValue; if (!key) return;
-    let value; if (e.detail && e.detail.value !== undefined) value = e.detail.value;
-    else if (target.value !== undefined) value = target.value; else return;
+    let value;
+    if (target.checked !== undefined) {
+      value = target.checked;
+    } else if (e.detail && e.detail.value !== undefined) {
+      value = e.detail.value;
+    } else if (target.value !== undefined) {
+      value = target.value;
+    } else {
+      return;
+    }
 
     const newConfig = { ...this._config };
     const entities = [...(newConfig.entities || [])];
@@ -2121,9 +2128,7 @@ class SimpleTimerCardEditor extends LitElement {
       }
     }
 
-    if ('keep_timer_visible_when_idle' in cleaned) {
-      delete cleaned.keep_timer_visible_when_idle;
-    }
+
 
     if (cleaned.entities && Array.isArray(cleaned.entities)) {
       cleaned.entities = cleaned.entities.map(entityConf => {
