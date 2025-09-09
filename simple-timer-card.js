@@ -67,7 +67,7 @@ class SimpleTimerCard extends LitElement {
   }
 
   _validateTimerInput(duration, label) {
-    const MAX_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
+    const MAX_DURATION_MS = 24 * 60 * 60 * 1000; 
     const MAX_LABEL_LENGTH = 100;
     
     if (duration && (typeof duration !== 'number' || duration <= 0 || duration > MAX_DURATION_MS)) {
@@ -162,6 +162,7 @@ class SimpleTimerCard extends LitElement {
       alexa_audio_repeat_count: 1,
       alexa_audio_play_until_dismissed: false,
       expired_subtitle: "Time's up!",
+      keep_timer_visible_when_idle: false,
       ...config,
       entities: config.entities || [],
       storage: autoStorage,
@@ -614,7 +615,6 @@ class SimpleTimerCard extends LitElement {
           timer.expiredAt ??= now2;
           const keepMs = (this._config.expire_keep_for || 0) * 1000;
           if (keepMs > 0 && now2 - timer.expiredAt > keepMs) {
-            // Timer entity will handle its own cleanup when the entity state changes
           }
         }
       } else if (timer.source === "helper") {
@@ -739,6 +739,16 @@ class SimpleTimerCard extends LitElement {
 
   _parseDuration(durationStr) {
     if (!durationStr) return 0;
+    
+    if (/^\d{1,2}:\d{2}:\d{2}$/.test(durationStr)) {
+      return this._parseHMSToMs(durationStr);
+    }
+    
+    if (/^\d{1,2}:\d{2}$/.test(durationStr)) {
+      const parts = durationStr.split(":").map(p => parseInt(p, 10));
+      return (parts[0] * 60 + parts[1]) * 1000;
+    }
+    
     let totalSeconds = 0;
     const hourMatch = durationStr.match(/(\d+)\s*h/);
     const minuteMatch = durationStr.match(/(\d+)\s*m/);
@@ -849,8 +859,9 @@ class SimpleTimerCard extends LitElement {
   _handleStart(timer) {
     if (timer.source === "timer") {
       if (timer.duration) {
-        const durationFormatted = this._formatDuration(Math.ceil(timer.duration / 1000), 'seconds');
-        this.hass.callService("timer", "start", { entity_id: timer.source_entity, duration: durationFormatted });
+        const totalSeconds = Math.ceil(timer.duration / 1000);
+        const serviceDuration = this._formatDurationForService(totalSeconds);
+        this.hass.callService("timer", "start", { entity_id: timer.source_entity, duration: serviceDuration });
       } else {
         this.hass.callService("timer", "start", { entity_id: timer.source_entity });
       }
@@ -954,8 +965,8 @@ class SimpleTimerCard extends LitElement {
       this._updateTimerInStorage(timer.id, { end: newEndTime, duration: newDurationMs }, timer.source);
       this.requestUpdate();
     } else if (timer.source === "timer") {
-      const str = this._formatDuration(snoozeMinutes * 60, 'seconds');
-      this.hass.callService("timer", "start", { entity_id: timer.source_entity, duration: str });
+      const serviceDuration = this._formatDurationForService(snoozeMinutes * 60);
+      this.hass.callService("timer", "start", { entity_id: timer.source_entity, duration: serviceDuration });
     } else {
       this._toast?.("Only helper, local, MQTT, and timer entities can be snoozed here.");
     }
@@ -984,7 +995,6 @@ class SimpleTimerCard extends LitElement {
       if (value <= 0) return "00:00";
       totalSeconds = Math.floor(value);
     }
-    
     const h = Math.floor(totalSeconds / HOUR_IN_SECONDS);
     const m = Math.floor((totalSeconds % HOUR_IN_SECONDS) / MINUTE_IN_SECONDS);
     const s = totalSeconds % MINUTE_IN_SECONDS;
@@ -992,6 +1002,14 @@ class SimpleTimerCard extends LitElement {
     return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
   }
   
+  _formatDurationForService(totalSeconds) {
+    totalSeconds = Math.max(0, Math.floor(totalSeconds));
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = totalSeconds % 60;
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${pad(h)}:${pad(m)}:${pad(s)}`;
+  }
 
   _toggleCustom(which) {
     const openKey = `noTimer${which.charAt(0).toUpperCase() + which.slice(1)}Open`;
@@ -1139,7 +1157,7 @@ class SimpleTimerCard extends LitElement {
                   <ha-icon icon="${t.paused ? 'mdi:play' : 'mdi:pause'}"></ha-icon>
                 </button>
               ` : ""}
-              ${supportsManualControls ? html`<button class="action-btn" title="Cancel" @click=${() => this._handleCancel(t)}><ha-icon icon="mdi:close"></ha-icon></button>` : ""}
+              ${supportsManualControls && !isIdle ? html`<button class="action-btn" title="Cancel" @click=${() => this._handleCancel(t)}><ha-icon icon="mdi:close"></ha-icon></button>` : ""}
             </div>
           </div>
         </li>
@@ -1147,7 +1165,7 @@ class SimpleTimerCard extends LitElement {
     } else if (isCircleStyle) {
       return html`
         <li class="${baseClasses}" style="--tcolor:${color}">
-          ${supportsManualControls ? html`
+          ${supportsManualControls && !isIdle ? html`
             <button class="vtile-close" title="Cancel"
               @click=${(e)=>{ e.stopPropagation(); this._handleCancel(t); }}>
               <ha-icon icon="mdi:close"></ha-icon>
@@ -1198,7 +1216,7 @@ class SimpleTimerCard extends LitElement {
                   <ha-icon icon="${t.paused ? 'mdi:play' : 'mdi:pause'}"></ha-icon>
                 </button>
               ` : ""}
-              ${supportsManualControls ? html`<button class="action-btn" title="Cancel" @click=${() => this._handleCancel(t)}><ha-icon icon="mdi:close"></ha-icon></button>` : ""}
+              ${supportsManualControls && !isIdle ? html`<button class="action-btn" title="Cancel" @click=${() => this._handleCancel(t)}><ha-icon icon="mdi:close"></ha-icon></button>` : ""}
             </div>
           </div>
         </li>
@@ -1218,7 +1236,7 @@ class SimpleTimerCard extends LitElement {
     const isIdle = t.idle;
     const isFinished = t.finished;
     const color = isPaused ? "var(--warning-color)" : (isFinished ? "var(--success-color)" : (t.color || "var(--primary-color)"));
-    const icon = isIdle ? "mdi:play" : (isPaused ? "mdi:timer-pause" : (isFinished ? "mdi:timer-check" : (t.icon || "mdi:timer-outline")));
+    const icon = isIdle ? (t.icon || "mdi:timer-outline") : (isPaused ? "mdi:timer-pause" : (isFinished ? "mdi:timer-check" : (t.icon || "mdi:timer-outline")));
     const ring = t.remaining <= 0 && !isIdle;
     const pct = typeof t.percent === "number" ? Math.max(0, Math.min(100, t.percent)) : 0;
     const pctLeft = 100 - pct;
@@ -1324,7 +1342,7 @@ class SimpleTimerCard extends LitElement {
     if (style === "circle") {
       return html`
         <li class="item vtile" style="--tcolor:${color}">
-          ${supportsManualControls ? html`
+          ${supportsManualControls && !isIdle ? html`
             <button class="vtile-close" title="Cancel"
               @click=${(e)=>{ e.stopPropagation(); this._handleCancel(t); }}>
               <ha-icon icon="mdi:close"></ha-icon>
@@ -1378,7 +1396,7 @@ class SimpleTimerCard extends LitElement {
               <div class="vtrack small">
                 <div class="vfill" style="width:${pctLeft}%"></div>
               </div>
-              ${supportsManualControls ? html`
+              ${supportsManualControls && !isIdle ? html`
                 <button class="action-btn" title="Cancel" @click=${() => this._handleCancel(t)}>
                   <ha-icon icon="mdi:close"></ha-icon>
                 </button>
@@ -1397,7 +1415,7 @@ class SimpleTimerCard extends LitElement {
                   <ha-icon icon="${t.paused ? 'mdi:play' : 'mdi:pause'}"></ha-icon>
                 </button>
               ` : ""}
-              ${supportsManualControls ? html`
+              ${supportsManualControls && !isIdle ? html`
                 <button class="action-btn" title="Cancel" @click=${() => this._handleCancel(t)}>
                   <ha-icon icon="mdi:close"></ha-icon>
                 </button>
@@ -1419,7 +1437,12 @@ class SimpleTimerCard extends LitElement {
 
     const minuteButtons = this._config.minute_buttons && this._config.minute_buttons.length ? this._config.minute_buttons : [1, 5, 10];
 
-    const timers = this._timers;
+    const timers = this._timers.filter(t => {
+      if (t.idle && !this._config.keep_timer_visible_when_idle && t.source === "timer") {
+        return false;
+      }
+      return true;
+    });
     const layout = this._config.layout;
     const style = this._config.style;
 
@@ -2139,6 +2162,10 @@ class SimpleTimerCardEditor extends LitElement {
             <ha-switch .checked=${this._config.auto_dismiss_writable === true} .configValue=${"auto_dismiss_writable"} @change=${this._valueChanged}></ha-switch>
           </ha-formfield>
         </div>
+
+        <ha-formfield label="Keep timer entities visible when idle">
+          <ha-switch .checked=${this._config.keep_timer_visible_when_idle === true} .configValue=${"keep_timer_visible_when_idle"} @change=${this._valueChanged}></ha-switch>
+        </ha-formfield>
 
         <ha-formfield label="Show timer preset buttons">
           <ha-switch .checked=${this._config.show_timer_presets !== false} .configValue=${"show_timer_presets"} @change=${this._valueChanged}></ha-switch>
