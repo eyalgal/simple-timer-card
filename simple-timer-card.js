@@ -5,13 +5,13 @@
  *
  * Author: eyalgal
  * License: MIT
- * Version: 1.2.0
+ * Version: 1.2.1
  * For more information, visit: https://github.com/eyalgal/simple-timer-card								   
  */		 
 
 import { LitElement, html, css } from "https://unpkg.com/lit@3.1.0/index.js?module";
 
-const cardVersion = "1.2.0";
+const cardVersion = "1.2.1";
 
 const DAY_IN_MS = 86400000; 
 const HOUR_IN_SECONDS = 3600;
@@ -464,18 +464,22 @@ class SimpleTimerCard extends LitElement {
   }
   _parseTimer(entityId, entityState, entityConf) {
     const state = entityState.state; const attrs = entityState.attributes;
-    if (state !== "active" && state !== "paused") return [];
+    if (state !== "active" && state !== "paused" && state !== "inactive") return [];
     let endMs = null; let duration = null;
     if (attrs.finishes_at) endMs = Date.parse(attrs.finishes_at);
     else if (attrs.remaining && attrs.remaining !== "0:00:00") {
       const remaining = this._parseHMSToMs(attrs.remaining); if (remaining > 0) endMs = Date.now() + remaining;
     }
     if (attrs.duration) duration = this._parseHMSToMs(attrs.duration);
-    if (!endMs) return [];
+    if (!endMs && state !== "inactive") return [];
+    
+    const entityIcon = attrs.icon;
+    const defaultIcon = entityIcon || (state === "paused" ? "mdi:timer-pause" : "mdi:timer");
+    
     return [{
       id: `${entityId}-${state}`, source: "timer", source_entity: entityId,
       label: entityConf?.name || entityState.attributes.friendly_name || "Timer",
-      icon: entityConf?.icon || (state === "paused" ? "mdi:timer-pause" : "mdi:timer"),
+      icon: entityConf?.icon || defaultIcon,
       color: entityConf?.color || (state === "paused" ? "var(--warning-color)" : "var(--primary-color)"),
       end: endMs, duration, paused: state === "paused"
     }];
@@ -2113,6 +2117,7 @@ class SimpleTimerCardEditor extends LitElement {
                         @selected=${(e) => { e.stopPropagation(); this._entityValueChanged(e, index); }} @closed=${(e) => { e.stopPropagation(); this._entityValueChanged(e, index); }}>
                         <mwc-list-item value="auto">Auto</mwc-list-item>
                         <mwc-list-item value="alexa">Alexa</mwc-list-item>
+                        <mwc-list-item value="timer">Timer</mwc-list-item>
                         <mwc-list-item value="helper">Helper (input_text/text)</mwc-list-item>
                         <mwc-list-item value="timestamp">Timestamp sensor</mwc-list-item>
                         <mwc-list-item value="minutes_attr">Minutes attribute</mwc-list-item>
