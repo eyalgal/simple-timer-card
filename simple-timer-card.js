@@ -67,7 +67,7 @@ class SimpleTimerCard extends LitElement {
   }
 
   _validateTimerInput(duration, label) {
-    const MAX_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
+    const MAX_DURATION_MS = 24 * 60 * 60 * 1000; 
     const MAX_LABEL_LENGTH = 100;
     
     if (duration && (typeof duration !== 'number' || duration <= 0 || duration > MAX_DURATION_MS)) {
@@ -615,7 +615,6 @@ class SimpleTimerCard extends LitElement {
           timer.expiredAt ??= now2;
           const keepMs = (this._config.expire_keep_for || 0) * 1000;
           if (keepMs > 0 && now2 - timer.expiredAt > keepMs) {
-            // Timer entity will handle its own cleanup when the entity state changes
           }
         }
       } else if (timer.source === "helper") {
@@ -741,12 +740,10 @@ class SimpleTimerCard extends LitElement {
   _parseDuration(durationStr) {
     if (!durationStr) return 0;
     
-    // Handle HMS format (00:00:10)
     if (/^\d{1,2}:\d{2}:\d{2}$/.test(durationStr)) {
       return this._parseHMSToMs(durationStr);
     }
     
-    // Handle MM:SS format (00:10)
     if (/^\d{1,2}:\d{2}$/.test(durationStr)) {
       const parts = durationStr.split(":").map(p => parseInt(p, 10));
       return (parts[0] * 60 + parts[1]) * 1000;
@@ -862,8 +859,9 @@ class SimpleTimerCard extends LitElement {
   _handleStart(timer) {
     if (timer.source === "timer") {
       if (timer.duration) {
-        const durationFormatted = this._formatDuration(Math.ceil(timer.duration / 1000), 'seconds');
-        this.hass.callService("timer", "start", { entity_id: timer.source_entity, duration: durationFormatted });
+        const totalSeconds = Math.ceil(timer.duration / 1000);
+        const serviceDuration = this._formatDurationForService(totalSeconds);
+        this.hass.callService("timer", "start", { entity_id: timer.source_entity, duration: serviceDuration });
       } else {
         this.hass.callService("timer", "start", { entity_id: timer.source_entity });
       }
@@ -967,8 +965,8 @@ class SimpleTimerCard extends LitElement {
       this._updateTimerInStorage(timer.id, { end: newEndTime, duration: newDurationMs }, timer.source);
       this.requestUpdate();
     } else if (timer.source === "timer") {
-      const str = this._formatDuration(snoozeMinutes * 60, 'seconds');
-      this.hass.callService("timer", "start", { entity_id: timer.source_entity, duration: str });
+      const serviceDuration = this._formatDurationForService(snoozeMinutes * 60);
+      this.hass.callService("timer", "start", { entity_id: timer.source_entity, duration: serviceDuration });
     } else {
       this._toast?.("Only helper, local, MQTT, and timer entities can be snoozed here.");
     }
@@ -997,7 +995,6 @@ class SimpleTimerCard extends LitElement {
       if (value <= 0) return "00:00";
       totalSeconds = Math.floor(value);
     }
-    
     const h = Math.floor(totalSeconds / HOUR_IN_SECONDS);
     const m = Math.floor((totalSeconds % HOUR_IN_SECONDS) / MINUTE_IN_SECONDS);
     const s = totalSeconds % MINUTE_IN_SECONDS;
@@ -1005,6 +1002,14 @@ class SimpleTimerCard extends LitElement {
     return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
   }
   
+  _formatDurationForService(totalSeconds) {
+    totalSeconds = Math.max(0, Math.floor(totalSeconds));
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = totalSeconds % 60;
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${pad(h)}:${pad(m)}:${pad(s)}`;
+  }
 
   _toggleCustom(which) {
     const openKey = `noTimer${which.charAt(0).toUpperCase() + which.slice(1)}Open`;
@@ -1433,7 +1438,6 @@ class SimpleTimerCard extends LitElement {
     const minuteButtons = this._config.minute_buttons && this._config.minute_buttons.length ? this._config.minute_buttons : [1, 5, 10];
 
     const timers = this._timers.filter(t => {
-      // If timer is idle and keep_timer_visible_when_idle is false, hide it for timer mode
       if (t.idle && !this._config.keep_timer_visible_when_idle && t.source === "timer") {
         return false;
       }
