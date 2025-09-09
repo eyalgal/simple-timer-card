@@ -534,7 +534,7 @@ class SimpleTimerCard extends LitElement {
       const defaultIcon = entityIcon || "mdi:play";
       return [{
         id: `${entityId}-${state}`, source: "voice_pe", source_entity: entityId,
-        label: entityConf?.name || entityState.attributes.friendly_name || "Timer",
+        label: entityConf?.name || entityState.attributes.display_name || entityState.attributes.friendly_name || "Timer",
         icon: entityConf?.icon || defaultIcon,
         color: entityConf?.color || "var(--primary-color)",
         end: null, duration, paused: false, idle: true
@@ -547,7 +547,7 @@ class SimpleTimerCard extends LitElement {
       const defaultIcon = entityIcon || "mdi:timer-check";
       return [{
         id: `${entityId}-${state}`, source: "voice_pe", source_entity: entityId,
-        label: entityConf?.name || entityState.attributes.friendly_name || "Timer",
+        label: entityConf?.name || entityState.attributes.display_name || entityState.attributes.friendly_name || "Timer",
         icon: entityConf?.icon || defaultIcon,
         color: entityConf?.color || "var(--success-color)",
         end: finishedAt, duration, paused: false, finished: true, finishedAt
@@ -574,7 +574,7 @@ class SimpleTimerCard extends LitElement {
     
     return [{
       id: `${entityId}-${state}`, source: "voice_pe", source_entity: entityId,
-      label: entityConf?.name || entityState.attributes.friendly_name || "Timer",
+      label: entityConf?.name || entityState.attributes.display_name || entityState.attributes.friendly_name || "Timer",
       icon: entityConf?.icon || defaultIcon,
       color: entityConf?.color || (state === "paused" ? "var(--warning-color)" : "var(--primary-color)"),
       end: endMs, duration, paused: state === "paused", idle: state === "idle", finished: state === "finished"
@@ -1498,12 +1498,10 @@ class SimpleTimerCard extends LitElement {
     const minuteButtons = this._config.minute_buttons && this._config.minute_buttons.length ? this._config.minute_buttons : [1, 5, 10];
 
     const timers = this._timers.filter(t => {
-      // Never show Voice PE entities when idle
       if (t.idle && t.source === "voice_pe") {
         return false;
       }
       
-      // For timer entities, check entity-level keep_timer_visible_when_idle setting
       if (t.idle && t.source === "timer") {
         const entityConfig = this._getEntityConfig(t.source_entity);
         const keepVisible = entityConfig?.keep_timer_visible_when_idle || 
@@ -2123,7 +2121,6 @@ class SimpleTimerCardEditor extends LitElement {
       }
     }
 
-    // Remove global keep_timer_visible_when_idle as it's now entity-level only
     if ('keep_timer_visible_when_idle' in cleaned) {
       delete cleaned.keep_timer_visible_when_idle;
     }
@@ -2146,7 +2143,6 @@ class SimpleTimerCardEditor extends LitElement {
           }
         });
 
-        // Remove keep_timer_visible_when_idle if false (default) or if mode is not timer
         if (cleanedEntity.keep_timer_visible_when_idle === false || 
             (cleanedEntity.mode && cleanedEntity.mode !== "timer")) {
           delete cleanedEntity.keep_timer_visible_when_idle;
