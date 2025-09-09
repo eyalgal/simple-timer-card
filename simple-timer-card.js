@@ -464,14 +464,14 @@ class SimpleTimerCard extends LitElement {
   }
   _parseTimer(entityId, entityState, entityConf) {
     const state = entityState.state; const attrs = entityState.attributes;
-    if (state !== "active" && state !== "paused" && state !== "inactive") return [];
+    if (state !== "active" && state !== "paused" && state !== "idle") return [];
     let endMs = null; let duration = null;
     if (attrs.finishes_at) endMs = Date.parse(attrs.finishes_at);
     else if (attrs.remaining && attrs.remaining !== "0:00:00") {
       const remaining = this._parseHMSToMs(attrs.remaining); if (remaining > 0) endMs = Date.now() + remaining;
     }
     if (attrs.duration) duration = this._parseHMSToMs(attrs.duration);
-    if (!endMs && state !== "inactive") return [];
+    if (!endMs && state !== "idle") return [];
     
     const entityIcon = attrs.icon;
     const defaultIcon = entityIcon || (state === "paused" ? "mdi:timer-pause" : "mdi:timer");
