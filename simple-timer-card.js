@@ -2001,8 +2001,16 @@ class SimpleTimerCardEditor extends LitElement {
     if (index < 0 || index >= (this._config.entities || []).length) return;
 
     const target = e.target; const key = target.configValue; if (!key) return;
-    let value; if (e.detail && e.detail.value !== undefined) value = e.detail.value;
-    else if (target.value !== undefined) value = target.value; else return;
+    let value;
+    if (target.checked !== undefined) {
+      value = target.checked;
+    } else if (e.detail && e.detail.value !== undefined) {
+      value = e.detail.value;
+    } else if (target.value !== undefined) {
+      value = target.value;
+    } else {
+      return;
+    }
 
     const newConfig = { ...this._config };
     const entities = [...(newConfig.entities || [])];
