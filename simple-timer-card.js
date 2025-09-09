@@ -5,13 +5,13 @@
  *
  * Author: eyalgal
  * License: MIT
- * Version: 1.2.1
+ * Version: 1.3.0
  * For more information, visit: https://github.com/eyalgal/simple-timer-card								   
  */		 
 
 import { LitElement, html, css } from "https://unpkg.com/lit@3.1.0/index.js?module";
 
-const cardVersion = "1.2.1";
+const cardVersion = "1.3.0";
 
 const DAY_IN_MS = 86400000; 
 const HOUR_IN_SECONDS = 3600;
@@ -521,6 +521,65 @@ class SimpleTimerCard extends LitElement {
       end: endMs, duration, paused: state === "paused", idle: state === "idle", finished: state === "finished"
     }];
   }
+
+  _parseVoicePE(entityId, entityState, entityConf) {
+    const state = entityState.state; const attrs = entityState.attributes;
+    if (state !== "active" && state !== "paused" && state !== "idle" && state !== "finished") return [];
+    let endMs = null; let duration = null; let remainingMs = null;
+    
+    if (attrs.duration) duration = this._parseHMSToMs(attrs.duration);
+    
+    if (state === "idle") {
+      const entityIcon = attrs.icon;
+      const defaultIcon = entityIcon || "mdi:play";
+      return [{
+        id: `${entityId}-${state}`, source: "voice_pe", source_entity: entityId,
+        label: entityConf?.name || entityState.attributes.friendly_name || "Timer",
+        icon: entityConf?.icon || defaultIcon,
+        color: entityConf?.color || "var(--primary-color)",
+        end: null, duration, paused: false, idle: true
+      }];
+    }
+    
+    if (state === "finished") {
+      const finishedAt = attrs.finishes_at ? Date.parse(attrs.finishes_at) : Date.now();
+      const entityIcon = attrs.icon;
+      const defaultIcon = entityIcon || "mdi:timer-check";
+      return [{
+        id: `${entityId}-${state}`, source: "voice_pe", source_entity: entityId,
+        label: entityConf?.name || entityState.attributes.friendly_name || "Timer",
+        icon: entityConf?.icon || defaultIcon,
+        color: entityConf?.color || "var(--success-color)",
+        end: finishedAt, duration, paused: false, finished: true, finishedAt
+      }];
+    }
+    
+    if (state === "paused") {
+      if (attrs.remaining && attrs.remaining !== "0:00:00") {
+        remainingMs = this._parseHMSToMs(attrs.remaining);
+        endMs = remainingMs;
+      }
+    } else if (state === "active") {
+      if (attrs.finishes_at) endMs = Date.parse(attrs.finishes_at);
+      else if (attrs.remaining && attrs.remaining !== "0:00:00") {
+        remainingMs = this._parseHMSToMs(attrs.remaining);
+        if (remainingMs > 0) endMs = Date.now() + remainingMs;
+      }
+    }
+    
+    if (!endMs && state !== "idle" && state !== "finished") return [];
+    
+    const entityIcon = attrs.icon;
+    const defaultIcon = entityIcon || (state === "paused" ? "mdi:timer-pause" : "mdi:timer");
+    
+    return [{
+      id: `${entityId}-${state}`, source: "voice_pe", source_entity: entityId,
+      label: entityConf?.name || entityState.attributes.friendly_name || "Timer",
+      icon: entityConf?.icon || defaultIcon,
+      color: entityConf?.color || (state === "paused" ? "var(--warning-color)" : "var(--primary-color)"),
+      end: endMs, duration, paused: state === "paused", idle: state === "idle", finished: state === "finished"
+    }];
+  }
   _parseHMSToMs(timeStr) {
     if (!timeStr) return 0;
     const parts = timeStr.split(":").map((p) => parseInt(p, 10));
@@ -544,6 +603,7 @@ class SimpleTimerCard extends LitElement {
         if (mode === "alexa") collected.push(...this._parseAlexa(entityId, st, conf));
         else if (mode === "helper") collected.push(...this._parseHelper(entityId, st, conf));
         else if (mode === "timer") collected.push(...this._parseTimer(entityId, st, conf));
+        else if (mode === "voice_pe") collected.push(...this._parseVoicePE(entityId, st, conf));
         else if (mode === "minutes_attr") collected.push(...this._parseMinutesAttr(entityId, st, conf));
         else if (mode === "timestamp") collected.push(...this._parseTimestamp(entityId, st, conf));
       } catch (e) { console.error(`Failed to parse ${entityId} (${mode})`, e); }
@@ -1244,7 +1304,7 @@ class SimpleTimerCard extends LitElement {
     const isCircleStyle = style === "circle";
     const isFillStyle = style.startsWith("fill_");
     
-    const supportsPause = t.source === "helper" || t.source === "local" || t.source === "mqtt" || t.source === "timer";
+    const supportsPause = t.source === "helper" || t.source === "local" || t.source === "mqtt" || t.source === "timer" || t.source === "voice_pe";
     const supportsManualControls = t.source === "local" || t.source === "mqtt" || t.source === "timer";
     
     let timeStr;
@@ -2259,6 +2319,7 @@ class SimpleTimerCardEditor extends LitElement {
                         <mwc-list-item value="auto">Auto</mwc-list-item>
                         <mwc-list-item value="alexa">Alexa</mwc-list-item>
                         <mwc-list-item value="timer">Timer</mwc-list-item>
+                        <mwc-list-item value="voice_pe">Voice PE</mwc-list-item>
                         <mwc-list-item value="helper">Helper (input_text/text)</mwc-list-item>
                         <mwc-list-item value="timestamp">Timestamp sensor</mwc-list-item>
                         <mwc-list-item value="minutes_attr">Minutes attribute</mwc-list-item>
