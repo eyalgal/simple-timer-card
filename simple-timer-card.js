@@ -1498,9 +1498,21 @@ class SimpleTimerCard extends LitElement {
     const minuteButtons = this._config.minute_buttons && this._config.minute_buttons.length ? this._config.minute_buttons : [1, 5, 10];
 
     const timers = this._timers.filter(t => {
-      if (t.idle && !this._config.keep_timer_visible_when_idle && t.source === "timer") {
+      // Never show Voice PE entities when idle
+      if (t.idle && t.source === "voice_pe") {
         return false;
       }
+      
+      // For timer entities, check entity-level keep_timer_visible_when_idle setting
+      if (t.idle && t.source === "timer") {
+        const entityConfig = this._getEntityConfig(t.source_entity);
+        const keepVisible = entityConfig?.keep_timer_visible_when_idle || 
+                           (entityConfig?.keep_timer_visible_when_idle === undefined && this._config.keep_timer_visible_when_idle);
+        if (!keepVisible) {
+          return false;
+        }
+      }
+      
       return true;
     });
     const layout = this._config.layout;
@@ -2078,6 +2090,7 @@ class SimpleTimerCardEditor extends LitElement {
       alexa_audio_play_until_dismissed: false,
       expired_subtitle: "Time's up!",
       default_timer_entity: null,
+      keep_timer_visible_when_idle: false,
     };
 
     const cleaned = { ...config };
@@ -2110,6 +2123,11 @@ class SimpleTimerCardEditor extends LitElement {
       }
     }
 
+    // Remove global keep_timer_visible_when_idle as it's now entity-level only
+    if ('keep_timer_visible_when_idle' in cleaned) {
+      delete cleaned.keep_timer_visible_when_idle;
+    }
+
     if (cleaned.entities && Array.isArray(cleaned.entities)) {
       cleaned.entities = cleaned.entities.map(entityConf => {
         if (typeof entityConf === "string") return entityConf;
@@ -2127,6 +2145,12 @@ class SimpleTimerCardEditor extends LitElement {
             delete cleanedEntity[key];
           }
         });
+
+        // Remove keep_timer_visible_when_idle if false (default) or if mode is not timer
+        if (cleanedEntity.keep_timer_visible_when_idle === false || 
+            (cleanedEntity.mode && cleanedEntity.mode !== "timer")) {
+          delete cleanedEntity.keep_timer_visible_when_idle;
+        }
 
         return cleanedEntity;
       });
@@ -2222,10 +2246,6 @@ class SimpleTimerCardEditor extends LitElement {
             <ha-switch .checked=${this._config.auto_dismiss_writable === true} .configValue=${"auto_dismiss_writable"} @change=${this._valueChanged}></ha-switch>
           </ha-formfield>
         </div>
-
-        <ha-formfield label="Keep timer entities visible when idle">
-          <ha-switch .checked=${this._config.keep_timer_visible_when_idle === true} .configValue=${"keep_timer_visible_when_idle"} @change=${this._valueChanged}></ha-switch>
-        </ha-formfield>
 
         <ha-formfield label="Show timer preset buttons">
           <ha-switch .checked=${this._config.show_timer_presets !== false} .configValue=${"show_timer_presets"} @change=${this._valueChanged}></ha-switch>
@@ -2347,6 +2367,12 @@ class SimpleTimerCardEditor extends LitElement {
                         <ha-textfield label="Audio file URL" .value=${conf.audio_file_url || ""} .configValue=${"audio_file_url"} @input=${(e) => this._entityValueChanged(e, index)}></ha-textfield>
                         <ha-textfield label="Audio repeat count" type="number" min="1" max="10" .value=${conf.audio_repeat_count ?? 1} .configValue=${"audio_repeat_count"} @input=${(e) => this._entityValueChanged(e, index)}></ha-textfield>
                       </div>
+                    ` : ""}
+                    
+                    ${(conf.mode === "timer") ? html`
+                      <ha-formfield label="Keep visible when idle">
+                        <ha-switch .checked=${conf.keep_timer_visible_when_idle === true} .configValue=${"keep_timer_visible_when_idle"} @change=${(e) => this._entityValueChanged(e, index)}></ha-switch>
+                      </ha-formfield>
                     ` : ""}
                   </div>
 
