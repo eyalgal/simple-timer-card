@@ -27,6 +27,7 @@ A versatile and highly customizable timer card for Home Assistant Lovelace, offe
 * **Persistent Storage:** Support for local browser storage or MQTT integration for timers that survive reloads and sync across devices.
 * **Audio Notifications:** Play custom audio files when timers expire, with repeat counts and play-until-dismissed options.
 * **Alexa Integration:** Separate audio settings for Alexa devices, based on [alexa_media_player](https://github.com/alandtse/alexa_media_player).
+* **Voice PE Integration:** Full support for Voice PE timers with template sensors - [see setup guide](voice-pe.md).
 * **Timer Actions:** Configurable actions when timers expire (keep, dismiss, or auto-dismiss).
 * **Snooze Functionality:** Easily snooze expired timers for additional time.
 * **Active Timer Management:** View and manage multiple active timers simultaneously.
@@ -89,6 +90,34 @@ resources:
 | `style`                  | `string`  | `bar_horizontal`        | Timer display style. Can be `fill_vertical`, `fill_horizontal`, `bar_vertical`, `bar_horizontal` (default), or `circle` |
 | `title`                  | `string`  | `null`                  | Optional title for the card                                                                        |
 | `entities`               | `array`   | `[]`                    | Array of timer entities to display                                                                |
+
+### **Entity Configuration**
+
+Each entity in the `entities` array can be either a simple string (entity ID) or an object with the following properties:
+
+| Name                           | Type      | Default         | Description                                                                                        |
+| :----------------------------- | :-------- | :-------------- | :------------------------------------------------------------------------------------------------- |
+| `entity`                       | `string`  | **Required**    | Home Assistant entity ID                                                                           |
+| `name`                         | `string`  | `auto`          | Override the entity name                                                                           |
+| `mode`                         | `string`  | `auto`          | Timer parsing mode: `auto`, `alexa`, `timer`, `voice_pe`, `helper`, `timestamp`, or `minutes_attr` |
+| `icon`                         | `string`  | `auto`          | Override the entity icon                                                                           |
+| `color`                        | `string`  | `auto`          | Override the entity color                                                                          |
+| `minutes_attr`                 | `string`  | `Minutes to arrival` | Attribute name for `minutes_attr` mode                                                       |
+| `keep_timer_visible_when_idle` | `boolean` | `false`         | Keep timer visible when idle (timer mode only)                                                    |
+| `audio_enabled`                | `boolean` | `false`         | Enable per-entity audio notifications                                                             |
+| `audio_file_url`               | `string`  | `""`            | Per-entity audio file URL                                                                          |
+| `audio_repeat_count`           | `number`  | `1`             | Per-entity audio repeat count                                                                      |
+| `audio_play_until_dismissed`   | `boolean` | `false`         | Per-entity play until dismissed setting                                                           |
+
+**Supported Timer Sources:**
+
+- **Auto**: Automatically detects the timer source based on entity type and attributes
+- **Alexa**: Amazon Alexa timers via [alexa_media_player](https://github.com/alandtse/alexa_media_player) integration
+- **Timer**: Native Home Assistant timer entities (`timer.*`)
+- **Voice PE**: Voice PE integration timers with `display_name` attribute support
+- **Helper**: Input text/text entities for manual timer management
+- **Timestamp**: Sensor entities with timestamp device class
+- **Minutes Attr**: Sensors with custom minutes-to-arrival attributes
 
 > **💡 Style Options:** The `style` parameter supports five distinct visual presentations with direction control. The `layout` parameter controls how the card appears when there are no active timers, while `style` controls the active timer display. Any layout/style combination is possible for maximum flexibility.
 
@@ -274,6 +303,45 @@ action:
       message: "{{ trigger.payload_json.label }} session is finished!"
 ```
 
+### **Entity Configuration Examples**
+
+Configuration with multiple timer sources and per-entity settings:
+
+```yaml
+type: custom:simple-timer-card
+title: Multi-Source Timers
+entities:
+  # Simple entity reference
+  - timer.cooking
+  # Entity with overrides
+  - entity: sensor.alexa_kitchen
+    name: Kitchen Alexa
+    mode: alexa
+    color: '#2196f3'
+    icon: 'mdi:amazon-alexa'
+  # Voice PE timer with display_name support
+  - entity: sensor.voice_pe_timer
+    mode: voice_pe
+    audio_enabled: true
+    audio_file_url: /local/sounds/voice_pe_alert.mp3
+  # Helper entity with custom settings
+  - entity: input_text.workout_timer
+    mode: helper
+    name: Workout Session
+    keep_timer_visible_when_idle: true
+    color: '#4caf50'
+  # Timestamp sensor
+  - entity: sensor.next_train_arrival
+    mode: timestamp
+    name: Next Train
+    icon: 'mdi:train'
+  # Custom minutes attribute
+  - entity: sensor.delivery_eta
+    mode: minutes_attr
+    minutes_attr: 'minutes_remaining'
+    name: Package Delivery
+```
+
 ### **Style Showcase**
 
 Examples of different style options:
@@ -310,6 +378,12 @@ audio_repeat_count: 3
 > - **Alexa Integration:** Separate audio settings for Alexa devices
 > - **Repeat Options:** Configure audio repeat counts and play-until-dismissed behavior
 > - **Browser-based:** Audio plays directly in the browser, no automation required
+
+> **🎙️ Voice PE Integration:** Full support for Voice PE timers! Voice PE users can now display their local timers in Home Assistant. [**See our setup guide →**](voice-pe.md)
+> - ESPHome integration for mirroring Voice PE timers to HA sensors
+> - Template sensor setup with finished state support
+> - Simple Timer Card configuration examples
+> - **Major user-requested feature** - seamlessly integrate your Voice PE timers!
 
 ## **🔧 MQTT Setup for Persistent Timers**
 

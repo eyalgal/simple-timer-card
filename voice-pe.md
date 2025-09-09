@@ -4,18 +4,18 @@ This guide exposes local Voice PE timers as Home Assistant template sensors you 
 
 What’s included:
 - ESPHome code that mirrors local timers into sensors and text sensors
-- A sticky `finished` state that lasts **60 seconds** or until the timer is cancelled on the device
+- A sticky `finished` state that lasts **10 seconds** or until the timer is cancelled on the device
 - Home Assistant template sensors with `state`, `duration`, `remaining`, `timer_name`, and `display_name` attributes
 - A sample Simple Timer Card config (`mode: voice_pe`)
 
 Notes:
 - Example shows **3 timers**, but you can do **1..N**. Copy the slot blocks to add more.
 - Voice PE keeps the timer list **sorted by soonest to finish**. When a new timer is shorter, it takes the first slot. Example: if Timer 1 has 5m left and you add a 2m timer, the 2m timer becomes slot 1 and the 5m timer moves to slot 2.
-- The **60 seconds** finished latch is **hardcoded** below. Change the `TTL` value if you want a different period, or remove the `globals` and `interval` if you do not want sticky finished at all.
+- The **10 seconds** finished latch is **hardcoded** below. Change the `TTL` value if you want a different period, or remove the `globals` and `interval` if you do not want sticky finished at all.
 
 ---
 
-## 1) ESPHome: mirror timers (with 60s sticky finished)
+## 1) ESPHome: mirror timers (with 10s sticky finished)
 
 Append to your Voice PE YAML. Keep your existing `packages`, `wifi`, etc.
 
@@ -113,7 +113,7 @@ text_sensor:
     id: timer_3_state
     name: "Timer 3 State"
 
-# Auto-clear sticky "finished" after 60 seconds (TTL)
+# Auto-clear sticky "finished" after 10 seconds (TTL)
 interval:
   - interval: 5s
     then:
@@ -142,7 +142,7 @@ interval:
           };
 
           const uint32_t now = millis();
-          const uint32_t TTL = 60000;  // hardcoded 60s sticky finished
+          const uint32_t TTL = 10000;  // hardcoded 10s sticky finished
 
           if (id(t1_finished) && id(t1_finished_ts) != 0 && (uint32_t)(now - id(t1_finished_ts)) > TTL) clear_slot(1);
           if (id(t2_finished) && id(t2_finished_ts) != 0 && (uint32_t)(now - id(t2_finished_ts)) > TTL) clear_slot(2);
@@ -204,7 +204,7 @@ voice_assistant:
 
   on_timer_finished:
     - lambda: |-
-        // Latch the first non-latched slot as "finished" for 60s
+        // Latch the first non-latched slot as "finished" for 10s
         auto latch = [&](int slot){
           switch(slot){
             case 1: id(t1_finished) = true; id(t1_finished_ts) = millis(); break;
@@ -233,7 +233,7 @@ voice_assistant:
         if (!id(t1_finished)) { latch(1); }
         else if (!id(t2_finished)) { latch(2); }
         else if (!id(t3_finished)) { latch(3); }
-        // If all three are latched, the oldest will auto-clear within 60s
+        // If all three are latched, the oldest will auto-clear within 10s
 
   on_timer_cancelled:
     - lambda: |-
