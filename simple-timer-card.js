@@ -162,6 +162,7 @@ class SimpleTimerCard extends LitElement {
       alexa_audio_repeat_count: 1,
       alexa_audio_play_until_dismissed: false,
       expired_subtitle: "Time's up!",
+      keep_timer_visible_when_idle: false,
       ...config,
       entities: config.entities || [],
       storage: autoStorage,
@@ -739,6 +740,18 @@ class SimpleTimerCard extends LitElement {
 
   _parseDuration(durationStr) {
     if (!durationStr) return 0;
+    
+    // Handle HMS format (00:00:10)
+    if (/^\d{1,2}:\d{2}:\d{2}$/.test(durationStr)) {
+      return this._parseHMSToMs(durationStr);
+    }
+    
+    // Handle MM:SS format (00:10)
+    if (/^\d{1,2}:\d{2}$/.test(durationStr)) {
+      const parts = durationStr.split(":").map(p => parseInt(p, 10));
+      return (parts[0] * 60 + parts[1]) * 1000;
+    }
+    
     let totalSeconds = 0;
     const hourMatch = durationStr.match(/(\d+)\s*h/);
     const minuteMatch = durationStr.match(/(\d+)\s*m/);
@@ -1139,7 +1152,7 @@ class SimpleTimerCard extends LitElement {
                   <ha-icon icon="${t.paused ? 'mdi:play' : 'mdi:pause'}"></ha-icon>
                 </button>
               ` : ""}
-              ${supportsManualControls ? html`<button class="action-btn" title="Cancel" @click=${() => this._handleCancel(t)}><ha-icon icon="mdi:close"></ha-icon></button>` : ""}
+              ${supportsManualControls && !isIdle ? html`<button class="action-btn" title="Cancel" @click=${() => this._handleCancel(t)}><ha-icon icon="mdi:close"></ha-icon></button>` : ""}
             </div>
           </div>
         </li>
@@ -1147,7 +1160,7 @@ class SimpleTimerCard extends LitElement {
     } else if (isCircleStyle) {
       return html`
         <li class="${baseClasses}" style="--tcolor:${color}">
-          ${supportsManualControls ? html`
+          ${supportsManualControls && !isIdle ? html`
             <button class="vtile-close" title="Cancel"
               @click=${(e)=>{ e.stopPropagation(); this._handleCancel(t); }}>
               <ha-icon icon="mdi:close"></ha-icon>
@@ -1198,7 +1211,7 @@ class SimpleTimerCard extends LitElement {
                   <ha-icon icon="${t.paused ? 'mdi:play' : 'mdi:pause'}"></ha-icon>
                 </button>
               ` : ""}
-              ${supportsManualControls ? html`<button class="action-btn" title="Cancel" @click=${() => this._handleCancel(t)}><ha-icon icon="mdi:close"></ha-icon></button>` : ""}
+              ${supportsManualControls && !isIdle ? html`<button class="action-btn" title="Cancel" @click=${() => this._handleCancel(t)}><ha-icon icon="mdi:close"></ha-icon></button>` : ""}
             </div>
           </div>
         </li>
@@ -1218,7 +1231,7 @@ class SimpleTimerCard extends LitElement {
     const isIdle = t.idle;
     const isFinished = t.finished;
     const color = isPaused ? "var(--warning-color)" : (isFinished ? "var(--success-color)" : (t.color || "var(--primary-color)"));
-    const icon = isIdle ? "mdi:play" : (isPaused ? "mdi:timer-pause" : (isFinished ? "mdi:timer-check" : (t.icon || "mdi:timer-outline")));
+    const icon = isIdle ? (t.icon || "mdi:timer-outline") : (isPaused ? "mdi:timer-pause" : (isFinished ? "mdi:timer-check" : (t.icon || "mdi:timer-outline")));
     const ring = t.remaining <= 0 && !isIdle;
     const pct = typeof t.percent === "number" ? Math.max(0, Math.min(100, t.percent)) : 0;
     const pctLeft = 100 - pct;
@@ -1324,7 +1337,7 @@ class SimpleTimerCard extends LitElement {
     if (style === "circle") {
       return html`
         <li class="item vtile" style="--tcolor:${color}">
-          ${supportsManualControls ? html`
+          ${supportsManualControls && !isIdle ? html`
             <button class="vtile-close" title="Cancel"
               @click=${(e)=>{ e.stopPropagation(); this._handleCancel(t); }}>
               <ha-icon icon="mdi:close"></ha-icon>
@@ -1378,7 +1391,7 @@ class SimpleTimerCard extends LitElement {
               <div class="vtrack small">
                 <div class="vfill" style="width:${pctLeft}%"></div>
               </div>
-              ${supportsManualControls ? html`
+              ${supportsManualControls && !isIdle ? html`
                 <button class="action-btn" title="Cancel" @click=${() => this._handleCancel(t)}>
                   <ha-icon icon="mdi:close"></ha-icon>
                 </button>
@@ -1397,7 +1410,7 @@ class SimpleTimerCard extends LitElement {
                   <ha-icon icon="${t.paused ? 'mdi:play' : 'mdi:pause'}"></ha-icon>
                 </button>
               ` : ""}
-              ${supportsManualControls ? html`
+              ${supportsManualControls && !isIdle ? html`
                 <button class="action-btn" title="Cancel" @click=${() => this._handleCancel(t)}>
                   <ha-icon icon="mdi:close"></ha-icon>
                 </button>
@@ -1419,7 +1432,13 @@ class SimpleTimerCard extends LitElement {
 
     const minuteButtons = this._config.minute_buttons && this._config.minute_buttons.length ? this._config.minute_buttons : [1, 5, 10];
 
-    const timers = this._timers;
+    const timers = this._timers.filter(t => {
+      // If timer is idle and keep_timer_visible_when_idle is false, hide it for timer mode
+      if (t.idle && !this._config.keep_timer_visible_when_idle && t.source === "timer") {
+        return false;
+      }
+      return true;
+    });
     const layout = this._config.layout;
     const style = this._config.style;
 
@@ -2139,6 +2158,10 @@ class SimpleTimerCardEditor extends LitElement {
             <ha-switch .checked=${this._config.auto_dismiss_writable === true} .configValue=${"auto_dismiss_writable"} @change=${this._valueChanged}></ha-switch>
           </ha-formfield>
         </div>
+
+        <ha-formfield label="Keep timer entities visible when idle">
+          <ha-switch .checked=${this._config.keep_timer_visible_when_idle === true} .configValue=${"keep_timer_visible_when_idle"} @change=${this._valueChanged}></ha-switch>
+        </ha-formfield>
 
         <ha-formfield label="Show timer preset buttons">
           <ha-switch .checked=${this._config.show_timer_presets !== false} .configValue=${"show_timer_presets"} @change=${this._valueChanged}></ha-switch>
