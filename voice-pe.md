@@ -275,20 +275,13 @@ title: Voice PE Timers
 entities:
   - entity: sensor.vpe_timer_1
     mode: voice_pe
-    keep_timer_visible_when_idle: true
   - entity: sensor.vpe_timer_2  
     mode: voice_pe
-    keep_timer_visible_when_idle: true
   - entity: sensor.vpe_timer_3
     mode: voice_pe
-    keep_timer_visible_when_idle: true
 ```
 
-## 4) Optional: hiding idle timers
-
-If you don't want to see idle Voice PE timer slots, simply remove `keep_timer_visible_when_idle: true` from the entities you don't want to show when idle.
-
-## 5) Troubleshooting
+## 4) Troubleshooting
 
 - **ESPHome sensors not updating?** Check that your Voice PE device's ESPHome config includes the `on_timer_tick`, `on_timer_finished`, and `on_timer_cancelled` sections.
 - **Template sensors showing "unknown"?** Verify the sensor entity IDs match between ESPHome and your template config.
