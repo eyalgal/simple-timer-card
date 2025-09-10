@@ -1306,7 +1306,6 @@ class SimpleTimerCard extends LitElement {
     
     const supportsPause = t.source === "helper" || t.source === "local" || t.source === "mqtt" || t.source === "timer" || t.source === "voice_pe";
     
-    // Check if manual controls should be hidden for timer entities
     const entityConf = this._getEntityConfig(t.source_entity);
     const hideTimerActions = entityConf?.hide_timer_actions === true;
     const isTimerSource = t.source === "timer";
