@@ -105,6 +105,7 @@ Each entity in the `entities` array can be either a simple string (entity ID) or
 | `audio_file_url`               | `string`  | `""`            | Per-entity audio file URL                                                                          |
 | `audio_repeat_count`           | `number`  | `1`             | Per-entity audio repeat count                                                                      |
 | `audio_play_until_dismissed`   | `boolean` | `false`         | Per-entity play until dismissed setting                                                           |
+| `hide_timer_actions`           | `boolean` | `false`         | Hide manual action buttons (start/pause/cancel/dismiss/snooze) for entities where `mode: timer` |
 
 **Supported Timer Sources:**
 
