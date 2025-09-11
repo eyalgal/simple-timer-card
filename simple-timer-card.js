@@ -5,13 +5,13 @@
  *
  * Author: eyalgal
  * License: MIT
- * Version: 1.3.0
+ * Version: 1.3.1
  * For more information, visit: https://github.com/eyalgal/simple-timer-card								   
  */		 
 
 import { LitElement, html, css } from "https://unpkg.com/lit@3.1.0/index.js?module";
 
-const cardVersion = "1.3.0";
+const cardVersion = "1.3.1";
 
 const DAY_IN_MS = 86400000; 
 const HOUR_IN_SECONDS = 3600;
