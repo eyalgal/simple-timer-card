@@ -5,13 +5,13 @@
  *
  * Author: eyalgal
  * License: MIT
- * Version: 1.3.0
+ * Version: 1.3.1
  * For more information, visit: https://github.com/eyalgal/simple-timer-card								   
  */		 
 
 import { LitElement, html, css } from "https://unpkg.com/lit@3.1.0/index.js?module";
 
-const cardVersion = "1.3.0";
+const cardVersion = "1.3.1";
 
 const DAY_IN_MS = 86400000; 
 const HOUR_IN_SECONDS = 3600;
@@ -1305,7 +1305,13 @@ class SimpleTimerCard extends LitElement {
     const isFillStyle = style.startsWith("fill_");
     
     const supportsPause = t.source === "helper" || t.source === "local" || t.source === "mqtt" || t.source === "timer" || t.source === "voice_pe";
-    const supportsManualControls = t.source === "local" || t.source === "mqtt" || t.source === "timer";
+    
+    const entityConf = this._getEntityConfig(t.source_entity);
+    const hideTimerActions = entityConf?.hide_timer_actions === true;
+    const isTimerSource = t.source === "timer";
+    
+    const supportsManualControls = (t.source === "local" || t.source === "mqtt" || t.source === "timer") 
+      && !(isTimerSource && hideTimerActions);
     
     let timeStr;
     if (isIdle) {
@@ -2153,6 +2159,11 @@ class SimpleTimerCardEditor extends LitElement {
           delete cleanedEntity.keep_timer_visible_when_idle;
         }
 
+        if (cleanedEntity.hide_timer_actions === false || 
+            (cleanedEntity.mode && cleanedEntity.mode !== "timer")) {
+          delete cleanedEntity.hide_timer_actions;
+        }
+
         return cleanedEntity;
       });
     }
@@ -2373,6 +2384,9 @@ class SimpleTimerCardEditor extends LitElement {
                     ${(conf.mode === "timer") ? html`
                       <ha-formfield label="Keep visible when idle">
                         <ha-switch .checked=${conf.keep_timer_visible_when_idle === true} .configValue=${"keep_timer_visible_when_idle"} @change=${(e) => this._entityValueChanged(e, index)}></ha-switch>
+                      </ha-formfield>
+                      <ha-formfield label="Hide action buttons">
+                        <ha-switch .checked=${conf.hide_timer_actions === true} .configValue=${"hide_timer_actions"} @change=${(e) => this._entityValueChanged(e, index)}></ha-switch>
                       </ha-formfield>
                     ` : ""}
                   </div>
