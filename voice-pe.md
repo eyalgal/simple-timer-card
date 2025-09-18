@@ -2,11 +2,29 @@
 
 This guide exposes local Voice PE timers as Home Assistant template sensors you can drop into your Simple Timer Card.
 
-What’s included:
+> **⚠️ Important - Unofficial Hack Warning:**
+> This is an **unofficial workaround** that requires taking **full control** of your Voice PE device. Future Voice PE updates may break this integration, and while I'll do my best to fix issues (since I use this setup too), there's a possibility this guide may become obsolete if Voice PE officially exposes timers as entities in future updates.
+
+> **📋 Before You Start:**
+> - You must take **complete control** of your Voice PE device (overwrite existing configuration)
+> - Template sensors **must be added to your Home Assistant `configuration.yaml`**
+> - **Change all example entity names** in this guide to match your actual device entities
+> - This setup will **not affect** future Voice PE device updates (the mirroring code is separate)
+
+What's included:
 - ESPHome code that mirrors local timers into sensors and text sensors
 - A sticky `finished` state that lasts **10 seconds** or until the timer is cancelled on the device
 - Home Assistant template sensors with `state`, `duration`, `remaining`, `timer_name`, and `display_name` attributes
 - A sample Simple Timer Card config (`mode: voice_pe`)
+
+**Capabilities Provided:**
+- ✅ Timer name (spoken name when created)
+- ✅ Total seconds (original duration)
+- ✅ Seconds left (remaining time)
+- ✅ Timer count (number of active timers)
+- ✅ Timer state (active, paused, finished, idle)
+- ❌ Pause/cancel control (Voice PE device doesn't support external control yet)
+
 
 Notes:
 - Example shows **3 timers**, but you can do **1..N**. Copy the slot blocks to add more.
@@ -275,6 +293,10 @@ Create one HA template sensor per slot. These expose:
 - `display_name`: dynamic label like `Voice PE - 1h` or `Voice PE - 20m` (your card can use this)
 
 **Use your actual entity IDs**. The generic IDs below assume you kept the ESPHome IDs exactly as in section 1.
+
+> **⚠️ Critical:** Replace `sensor.timer_1_state`, `sensor.timer_1_name`, etc. with your actual entity names. Many users copy this example exactly and wonder why it doesn't work - you **must** change these to match your specific Voice PE device entities.
+
+**Add this to your `configuration.yaml` file:**
 
 ```yaml
 template:

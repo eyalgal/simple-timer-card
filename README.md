@@ -100,6 +100,7 @@ Each entity in the `entities` array can be either a simple string (entity ID) or
 | `icon`                         | `string`  | `auto`          | Override the entity icon                                                                           |
 | `color`                        | `string`  | `auto`          | Override the entity color                                                                          |
 | `minutes_attr`                 | `string`  | `Minutes to arrival` | Attribute name for `minutes_attr` mode                                                       |
+| `start_time_attr`              | `string`  | `start_time`    | Attribute name for start time when using `timestamp` mode (enables duration calculation)         |
 | `keep_timer_visible_when_idle` | `boolean` | `false`         | Keep timer visible when idle (timer mode only)                                                    |
 | `audio_enabled`                | `boolean` | `false`         | Enable per-entity audio notifications                                                             |
 | `audio_file_url`               | `string`  | `""`            | Per-entity audio file URL                                                                          |
@@ -114,7 +115,7 @@ Each entity in the `entities` array can be either a simple string (entity ID) or
 - **Timer**: Native Home Assistant timer entities (`timer.*`)
 - **Voice PE**: Voice PE integration timers with `display_name` attribute support
 - **Helper**: Input text/text entities for manual timer management
-- **Timestamp**: Sensor entities with timestamp device class
+- **Timestamp**: Sensor entities with timestamp device class. Supports optional `start_time` attribute for duration calculation
 - **Minutes Attr**: Sensors with custom minutes-to-arrival attributes
 
 > **💡 Style Options:** The `style` parameter supports five distinct visual presentations with direction control. The `layout` parameter controls how the card appears when there are no active timers, while `style` controls the active timer display. Any layout/style combination is possible for maximum flexibility.
@@ -141,12 +142,17 @@ Each entity in the `entities` array can be either a simple string (entity ID) or
 
 | Name                           | Type      | Default      | Description                                                                                        |
 | :----------------------------- | :-------- | :----------- | :------------------------------------------------------------------------------------------------- |
-| `expire_action`                | `string`  | `keep`       | Action when timer expires: `keep`, `dismiss`, or `auto_dismiss`                                   |
+| `expire_action`                | `string`  | `keep`       | Action when timer expires: `keep`, `dismiss`, or `remove`                                         |
 | `expire_keep_for`              | `number`  | `120`        | How long to keep expired timers (in seconds) before auto-dismissing                               |
 | `auto_dismiss_writable`        | `boolean` | `false`      | Allow expired timers to be dismissed automatically                                                |
 | `snooze_duration`              | `number`  | `5`          | Default snooze duration in minutes                                                                |
 | `expired_subtitle`             | `string`  | `Time's up!` | Message displayed when timer expires                                                              |
 | `show_progress_when_unknown`   | `boolean` | `false`      | Show progress bar even when timer duration is unknown                                             |
+
+**Expiry Action Behavior:**
+- **`keep`**: Expired timers remain visible for `expire_keep_for` seconds, then auto-dismiss. Works with all timer sources.
+- **`dismiss`**: Expired timers are immediately hidden from view but remain in entity state (for read-only sources like `timestamp`, `voice_pe`, `alexa`).
+- **`remove`**: Expired timers are completely removed. For writable sources (`helper`, `local`, `mqtt`), this deletes the timer data. For read-only sources, behaves like `dismiss`.
 
 ### **Audio Notifications**
 
