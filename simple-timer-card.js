@@ -5,13 +5,13 @@
  *
  * Author: eyalgal
  * License: MIT
- * Version: 1.3.1
+ * Version: 1.3.2
  * For more information, visit: https://github.com/eyalgal/simple-timer-card								   
  */		 
 
 import { LitElement, html, css } from "https://unpkg.com/lit@3.1.0/index.js?module";
 
-const cardVersion = "1.3.1";
+const cardVersion = "1.3.2";
 
 const DAY_IN_MS = 86400000; 
 const HOUR_IN_SECONDS = 3600;
@@ -87,6 +87,7 @@ class SimpleTimerCard extends LitElement {
     this._ringingTimers = new Set();
     this._activeAudioInstances = new Map();
     this._lastActionTime = new Map();
+    this._expirationTimes = new Map();
 
     this._ui = {
       noTimerHorizontalOpen: false,
@@ -157,6 +158,7 @@ class SimpleTimerCard extends LitElement {
       audio_file_url: "",
       audio_repeat_count: 1,
       audio_play_until_dismissed: false,
+      audio_completion_delay: 4,
       alexa_audio_enabled: false,
       alexa_audio_file_url: "",
       alexa_audio_repeat_count: 1,
@@ -209,16 +211,16 @@ class SimpleTimerCard extends LitElement {
         if (this._validateStoredTimerData(parsed)) {
           return parsed.timers;
         } else {
-          console.warn("Invalid stored timer data, resetting storage");
+																	   
           localStorage.removeItem(this._getStorageKey());
         }
       }
     } catch (e) {
-      console.warn("Failed to load timers from storage:", e);
+															 
       try {
         localStorage.removeItem(this._getStorageKey());
       } catch (removeErr) {
-        console.warn("Failed to clean corrupted storage:", removeErr);
+																	  
       }
     }
     return [];
@@ -228,7 +230,7 @@ class SimpleTimerCard extends LitElement {
       const data = { timers: timers || [], version: 1, lastUpdated: Date.now() };
       localStorage.setItem(this._getStorageKey(), JSON.stringify(data));
     } catch (e) {
-      console.warn("Failed to save timers to storage:", e);
+														   
     }
   }
   _updateTimerInStorage_local(timerId, updates) {
@@ -252,7 +254,7 @@ class SimpleTimerCard extends LitElement {
       const timers = entity?.attributes?.timers;
       return Array.isArray(timers) ? timers : [];
     } catch (e) {
-      console.warn("Failed to load timers from MQTT storage:", e);
+																  
       return [];
     }
   }
@@ -270,7 +272,7 @@ class SimpleTimerCard extends LitElement {
         retain: true,
       });
     } catch (e) {
-      console.warn("Failed to save timers to MQTT storage:", e);
+																
     }
   }
   _updateTimerInStorage_mqtt(timerId, updates) {
@@ -419,7 +421,7 @@ class SimpleTimerCard extends LitElement {
     try {
       const data = JSON.parse(entityState.state || '{}');
       if (!this._validateStoredTimerData(data)) {
-        console.warn("Invalid helper timer data structure, returning empty array");
+																				   
         return [];
       }
       if (data?.timers?.map) {
@@ -448,14 +450,35 @@ class SimpleTimerCard extends LitElement {
       }
       return [];
     } catch (e) {
-      console.warn("Failed to parse helper timer data:", e);
+															
       return [];
     }
   }
   _parseTimestamp(entityId, entityState, entityConf) {
     const s = entityState.state; if (!s || s === "unknown" || s === "unavailable") return [];
     const endMs = Date.parse(s); if (isNaN(endMs)) return [];
-    return [{ id:`${entityId}-${endMs}`, source:"timestamp", source_entity:entityId, label:entityConf?.name||entityState.attributes.friendly_name||"Timer", icon:entityConf?.icon||"mdi:timer-sand", color:entityConf?.color||"var(--primary-color)", end:endMs, duration:null }];
+
+    let duration = null;
+    const startTimeAttr = entityConf?.start_time_attr || "start_time";
+    const startTimeVal = entityState.attributes[startTimeAttr];
+
+    if (startTimeVal) {
+      const startMs = Date.parse(startTimeVal);
+      if (!isNaN(startMs) && endMs > startMs) {
+        duration = endMs - startMs;
+      }
+    }
+
+    return [{
+      id: `${entityId}-${endMs}`,
+      source: "timestamp",
+      source_entity: entityId,
+      label: entityConf?.name || entityState.attributes.friendly_name || "Timer",
+      icon: entityConf?.icon || "mdi:timer-sand",
+      color: entityConf?.color || "var(--primary-color)",
+      end: endMs,
+      duration: duration
+    }];
   }
   _parseMinutesAttr(entityId, entityState, entityConf) {
     const attrName = entityConf?.minutes_attr || "Minutes to arrival";
@@ -474,7 +497,7 @@ class SimpleTimerCard extends LitElement {
       const entityIcon = attrs.icon;
       const defaultIcon = entityIcon || "mdi:play";
       return [{
-        id: `${entityId}-${state}`, source: "timer", source_entity: entityId,
+        id: entityId, source: "timer", source_entity: entityId,
         label: entityConf?.name || entityState.attributes.friendly_name || "Timer",
         icon: entityConf?.icon || defaultIcon,
         color: entityConf?.color || "var(--primary-color)",
@@ -487,7 +510,7 @@ class SimpleTimerCard extends LitElement {
       const entityIcon = attrs.icon;
       const defaultIcon = entityIcon || "mdi:timer-check";
       return [{
-        id: `${entityId}-${state}`, source: "timer", source_entity: entityId,
+        id: entityId, source: "timer", source_entity: entityId,
         label: entityConf?.name || entityState.attributes.friendly_name || "Timer",
         icon: entityConf?.icon || defaultIcon,
         color: entityConf?.color || "var(--success-color)",
@@ -514,7 +537,7 @@ class SimpleTimerCard extends LitElement {
     const defaultIcon = entityIcon || (state === "paused" ? "mdi:timer-pause" : "mdi:timer");
     
     return [{
-      id: `${entityId}-${state}`, source: "timer", source_entity: entityId,
+      id: entityId, source: "timer", source_entity: entityId,
       label: entityConf?.name || entityState.attributes.friendly_name || "Timer",
       icon: entityConf?.icon || defaultIcon,
       color: entityConf?.color || (state === "paused" ? "var(--warning-color)" : "var(--primary-color)"),
@@ -533,7 +556,7 @@ class SimpleTimerCard extends LitElement {
       const entityIcon = attrs.icon;
       const defaultIcon = entityIcon || "mdi:play";
       return [{
-        id: `${entityId}-${state}`, source: "voice_pe", source_entity: entityId,
+        id: entityId, source: "voice_pe", source_entity: entityId,
         label: entityConf?.name || entityState.attributes.display_name || entityState.attributes.friendly_name || "Timer",
         icon: entityConf?.icon || defaultIcon,
         color: entityConf?.color || "var(--primary-color)",
@@ -546,7 +569,7 @@ class SimpleTimerCard extends LitElement {
       const entityIcon = attrs.icon;
       const defaultIcon = entityIcon || "mdi:timer-check";
       return [{
-        id: `${entityId}-${state}`, source: "voice_pe", source_entity: entityId,
+        id: entityId, source: "voice_pe", source_entity: entityId,
         label: entityConf?.name || entityState.attributes.display_name || entityState.attributes.friendly_name || "Timer",
         icon: entityConf?.icon || defaultIcon,
         color: entityConf?.color || "var(--success-color)",
@@ -573,7 +596,7 @@ class SimpleTimerCard extends LitElement {
     const defaultIcon = entityIcon || (state === "paused" ? "mdi:timer-pause" : "mdi:timer");
     
     return [{
-      id: `${entityId}-${state}`, source: "voice_pe", source_entity: entityId,
+      id: entityId, source: "voice_pe", source_entity: entityId,
       label: entityConf?.name || entityState.attributes.display_name || entityState.attributes.friendly_name || "Timer",
       icon: entityConf?.icon || defaultIcon,
       color: entityConf?.color || (state === "paused" ? "var(--warning-color)" : "var(--primary-color)"),
@@ -596,7 +619,7 @@ class SimpleTimerCard extends LitElement {
       const entityId = typeof entityConfig === "string" ? entityConfig : entityConfig.entity;
       const conf = typeof entityConfig === "string" ? {} : entityConfig;
       const st = this.hass.states[entityId];
-      if (!st) { console.warn(`Entity not found: ${entityId}`); continue; }
+      if (!st) { continue; }
       const mode = conf.mode || this._detectMode(entityId, st, conf);
 
       try {
@@ -606,7 +629,7 @@ class SimpleTimerCard extends LitElement {
         else if (mode === "voice_pe") collected.push(...this._parseVoicePE(entityId, st, conf));
         else if (mode === "minutes_attr") collected.push(...this._parseMinutesAttr(entityId, st, conf));
         else if (mode === "timestamp") collected.push(...this._parseTimestamp(entityId, st, conf));
-      } catch (e) { console.error(`Failed to parse ${entityId} (${mode})`, e); }
+      } catch (e) { }
     }
 
     if (this._config.storage === "local" || this._config.storage === "mqtt") {
@@ -615,9 +638,9 @@ class SimpleTimerCard extends LitElement {
 
     const filtered = collected.filter(
       (t) => !(
-        (t.source === "alexa" && this._dismissed.has(`${t.source_entity}:${t.id}`)) ||
-        (t.source === "timestamp" && this._dismissed.has(`${t.source_entity}:${t.id}`)) ||
-        (t.source === "minutes_attr" && this._dismissed.has(`${t.source_entity}:${t.id}`))
+        this._dismissed.has(`${t.source_entity}:${t.id}`)
+																						  
+																						  
       )
     );
 
@@ -646,8 +669,15 @@ class SimpleTimerCard extends LitElement {
       });
 
     for (const timer of this._timers) {
-      const isNowRinging = timer.remaining <= 0 && !timer.paused;
+																 
       const wasRinging = this._ringingTimers.has(timer.id);
+
+      if (timer.source === 'timer' && timer.idle && wasRinging) {
+        timer.idle = false;
+        timer.remaining = 0;
+      }
+
+      const isNowRinging = timer.remaining <= 0 && !timer.paused && !timer.idle;
       if (isNowRinging && !wasRinging) {
         this._ringingTimers.add(timer.id);
         this._playAudioNotification(timer.id, timer);
@@ -667,45 +697,80 @@ class SimpleTimerCard extends LitElement {
     }
 
     const now2 = Date.now();
+    const audioDelay = (this._config.audio_completion_delay || 4) * 1000;
+							
+													 
+
     for (const timer of [...this._timers]) {
-      if (timer.idle) continue;
-      if (timer.remaining > 0 || timer.paused) continue;
-      if (timer.source === "timer") {
-        if (this._config.expire_action === "keep") {
-          timer.expiredAt ??= now2;
-          const keepMs = (this._config.expire_keep_for || 0) * 1000;
-          if (keepMs > 0 && now2 - timer.expiredAt > keepMs) {
-          }
+      if (timer.idle || timer.remaining > 0 || timer.paused) continue;
+
+      const action = this._config.expire_action;
+
+      if (action === 'dismiss') {
+        continue;
+      }
+      
+      if (action === 'keep') {
+        const isWritable = timer.source === 'helper' || timer.source === 'local' || timer.source === 'mqtt';
+        let expiredAt;
+
+        if (isWritable) {
+            if (!timer.expiredAt) {
+                timer.expiredAt = now2;
+                this._updateTimerInStorage(timer.id, { expiredAt: now2 }, timer.source);
+            }
+            expiredAt = timer.expiredAt;
+        } else {
+            if (!this._expirationTimes.has(timer.id)) {
+                this._expirationTimes.set(timer.id, now2);
+            }
+            expiredAt = this._expirationTimes.get(timer.id);
         }
-      } else if (timer.source === "helper") {
-        if (this._config.auto_dismiss_writable || this._config.expire_action === "dismiss") {
-          this._handleDismiss(timer);
-        } else if (this._config.expire_action === "remove") {
-          this._handleCancel(timer);
-        } else if (this._config.expire_action === "keep") {
-          timer.expiredAt ??= now2;
-          const keepMs = (this._config.expire_keep_for || 0) * 1000;
-          if (keepMs > 0 && now2 - timer.expiredAt > keepMs) this._handleDismiss(timer);
+        
+        const keepMs = (parseInt(this._config.expire_keep_for, 10) || 120) * 1000;
+
+        if (now2 - expiredAt >= keepMs) {
+            if (!timer._isBeingRemoved) {
+                timer._isBeingRemoved = true;
+                this._handleDismiss(timer);
+                if (!isWritable) {
+                    this._expirationTimes.delete(timer.id);
+											 
+														
+                }
+            }
         }
-      } else if (timer.source === "local" || timer.source === "mqtt") {
-        if (this._config.expire_action === "dismiss" || this._config.expire_action === "remove") {
-          this._removeTimerFromStorage(timer.id, timer.source);
-        } else if (this._config.expire_action === "keep") {
-          timer.expiredAt ??= now2;
-          const keepMs = (this._config.expire_keep_for || 0) * 1000;
-          if (keepMs > 0 && now2 - timer.expiredAt > keepMs) this._removeTimerFromStorage(timer.id, timer.source);
+        continue;
+      }
+
+      if (action === 'remove') {
+        const entityConf = this._getEntityConfig(timer.source_entity) || {};
+        let isAudioEnabled;
+        if (entityConf.audio_enabled === true) {
+            isAudioEnabled = true;
+        } else if (entityConf.audio_enabled === false) {
+            isAudioEnabled = false;
+        } else {
+            isAudioEnabled = this._config.audio_enabled || (timer.source === "alexa" && this._config.alexa_audio_enabled);
         }
-      } else if (timer.source === "timestamp" || timer.source === "minutes_attr") {
-        if (this._config.expire_action === "dismiss" || this._config.expire_action === "remove") {
-          this._dismissed.add(`${timer.source_entity}:${timer.id}`);
-        } else if (this._config.expire_action === "keep") {
-          timer.expiredAt ??= now2;
-          const keepMs = (this._config.expire_keep_for || 0) * 1000;
-          if (keepMs > 0 && now2 - timer.expiredAt > keepMs) {
-            this._dismissed.add(`${timer.source_entity}:${timer.id}`);
-          }
+        
+        if (!timer._isBeingRemoved) {
+            timer._isBeingRemoved = true;
+            const dismissAction = () => this._handleDismiss(timer);
+            if (isAudioEnabled) {
+                setTimeout(dismissAction, audioDelay);
+            } else {
+                dismissAction();
+            }
         }
       }
+    }
+    
+    const currentIds = new Set(this._timers.map(t => t.id));
+    for (const id of this._expirationTimes.keys()) {
+        if (!currentIds.has(id)) {
+            this._expirationTimes.delete(id);
+        }
     }
   }
 
@@ -847,7 +912,7 @@ class SimpleTimerCard extends LitElement {
     
     const validation = this._validateTimerInput(durationMs, label);
     if (!validation.valid) {
-      console.warn('Timer creation failed:', validation.error);
+															   
       return;
     }
     
@@ -1003,6 +1068,7 @@ class SimpleTimerCard extends LitElement {
       this.hass.callService("timer", "finish", { entity_id: timer.source_entity });
     } else {
       this._dismissed.add(`${timer.source_entity}:${timer.id}`);
+      this.requestUpdate();
     }
   }
   _handleSnooze(timer) {
@@ -1088,7 +1154,7 @@ class SimpleTimerCard extends LitElement {
 
     const validation = this._validateTimerInput(secs * 1000, label);
     if (!validation.valid) {
-      console.warn('Timer creation failed:', validation.error);
+															   
       return;
     }
 
@@ -1142,7 +1208,7 @@ class SimpleTimerCard extends LitElement {
 
   _renderItem(t, style) {
     const state = this._getTimerRenderState(t, style);
-    const { isPaused, isIdle, isFinished, color, icon, ring, pct, pctLeft, isCircleStyle, isFillStyle, supportsPause, supportsManualControls, timeStr, circleValues } = state;
+    const { isPaused, isIdle, isFinished, color, icon, ring, pct, pctLeft, isCircleStyle, isFillStyle, supportsPause, supportsManualControls, timeStr, circleValues, supportsReadOnlyDismiss } = state;
     
     const baseClasses = isFillStyle ? "card item" : (isCircleStyle ? "item vtile" : "item bar");
     const finishedClasses = isFillStyle ? "card item finished" : (isCircleStyle ? "item vtile" : "card item bar");
@@ -1170,6 +1236,8 @@ class SimpleTimerCard extends LitElement {
                 ${supportsManualControls ? html`
                   <button class="chip" @click=${() => this._handleSnooze(t)}>Snooze</button>
                   <button class="chip" @click=${() => this._handleDismiss(t)}>Dismiss</button>
+                ` : supportsReadOnlyDismiss ? html`
+                  <button class="chip" @click=${() => this._handleDismiss(t)}>Dismiss</button>
                 ` : ""}
               </div>
             </div>
@@ -1191,7 +1259,11 @@ class SimpleTimerCard extends LitElement {
                 <button class="chip" @click=${() => this._handleSnooze(t)}>Snooze</button>
                 <button class="chip" @click=${() => this._handleDismiss(t)}>Dismiss</button>
               </div>
-            ` : ""}
+            ` : supportsReadOnlyDismiss ? html`
+              <div class="chips">
+                <button class="chip" @click=${() => this._handleDismiss(t)}>Dismiss</button>
+              </div>
+            `: ""}
           </div>
         </li>
       `;
@@ -1297,7 +1369,7 @@ class SimpleTimerCard extends LitElement {
     const isFinished = t.finished;
     const color = isPaused ? "var(--warning-color)" : (isFinished ? "var(--success-color)" : (t.color || "var(--primary-color)"));
     const icon = isIdle ? (t.icon || "mdi:timer-outline") : (isPaused ? "mdi:timer-pause" : (isFinished ? "mdi:timer-check" : (t.icon || "mdi:timer-outline")));
-    const ring = t.remaining <= 0 && !isIdle;
+    const ring = t.remaining <= 0 && !isIdle && !isFinished;
     const pct = typeof t.percent === "number" ? Math.max(0, Math.min(100, t.percent)) : 0;
     const pctLeft = 100 - pct;
     
@@ -1310,8 +1382,10 @@ class SimpleTimerCard extends LitElement {
     const hideTimerActions = entityConf?.hide_timer_actions === true;
     const isTimerSource = t.source === "timer";
     
-    const supportsManualControls = (t.source === "local" || t.source === "mqtt" || t.source === "timer") 
+    const supportsManualControls = (t.source === "local" || t.source === "mqtt" || t.source === "timer" || t.source === "helper") 
       && !(isTimerSource && hideTimerActions);
+    
+    const supportsReadOnlyDismiss = ring && (t.source === 'timestamp' || t.source === 'minutes_attr' || t.source === 'voice_pe' || t.source === 'alexa');
     
     let timeStr;
     if (isIdle) {
@@ -1325,6 +1399,8 @@ class SimpleTimerCard extends LitElement {
       const entityConf = this._getEntityConfig(t.source_entity);
       const expiredMessage = entityConf?.expired_subtitle || this._config.expired_subtitle || "Time's up!";
       timeStr = elapsedStr ? `${expiredMessage} - ${elapsedStr}` : expiredMessage;
+    } else if (ring) {
+        timeStr = entityConf?.expired_subtitle || this._config.expired_subtitle || "Time's up!";
     } else {
       timeStr = this._formatDuration(t.remaining, 'ms');
     }
@@ -1338,7 +1414,7 @@ class SimpleTimerCard extends LitElement {
       isPaused, isIdle, isFinished, color, icon, ring, pct, pctLeft,
       isCircleStyle, isFillStyle,
       supportsPause, supportsManualControls, timeStr,
-      circleValues
+      circleValues, supportsReadOnlyDismiss
     };
   }
   
@@ -1352,7 +1428,7 @@ class SimpleTimerCard extends LitElement {
 
   _renderItemVertical(t, style) {
     const state = this._getTimerRenderState(t, style);
-    const { isPaused, isIdle, isFinished, color, icon, ring, pct, pctLeft, isCircleStyle, isFillStyle, supportsPause, supportsManualControls, timeStr, circleValues } = state;
+    const { isPaused, isIdle, isFinished, color, icon, ring, pct, pctLeft, isCircleStyle, isFillStyle, supportsPause, supportsManualControls, timeStr, circleValues, supportsReadOnlyDismiss } = state;
 
     if (ring) {
       if (style === "circle") {
@@ -1374,6 +1450,8 @@ class SimpleTimerCard extends LitElement {
                 ${supportsManualControls ? html`
                   <button class="chip" @click=${() => this._handleSnooze(t)}>Snooze</button>
                   <button class="chip" @click=${() => this._handleDismiss(t)}>Dismiss</button>
+                ` : supportsReadOnlyDismiss ? html`
+                  <button class="chip" @click=${() => this._handleDismiss(t)}>Dismiss</button>
                 ` : ""}
               </div>
             </div>
@@ -1393,13 +1471,19 @@ class SimpleTimerCard extends LitElement {
                   ${supportsManualControls ? html`
                     <button class="chip" @click=${() => this._handleSnooze(t)}>Snooze</button>
                     <button class="chip" @click=${() => this._handleDismiss(t)}>Dismiss</button>
+                  ` : supportsReadOnlyDismiss ? html`
+                    <button class="chip" @click=${() => this._handleDismiss(t)}>Dismiss</button>
                   ` : ""}
                 </div>`
-              : html`${supportsManualControls ? html`
-                  <div class="vactions">
+													 
+              : html`<div class="vactions">
+                  ${supportsManualControls ? html`
                     <button class="chip" @click=${() => this._handleSnooze(t)}>Snooze</button>
                     <button class="chip" @click=${() => this._handleDismiss(t)}>Dismiss</button>
-                  </div>` : ""}`}
+                  ` : supportsReadOnlyDismiss ? html`
+                    <button class="chip" @click=${() => this._handleDismiss(t)}>Dismiss</button>
+                  ` : ""}
+                </div>`}
           </div>
         </li>
       `;
@@ -2074,7 +2158,7 @@ class SimpleTimerCardEditor extends LitElement {
       const cleanedConfig = this._removeDefaultValues(this._config);
       const event = new CustomEvent("config-changed", { detail: { config: cleanedConfig }, bubbles: true, composed: true });
       this.dispatchEvent(event);
-    } catch (error) { console.error("Error emitting config change:", error); }
+    } catch (error) { }
   }
 
   _removeDefaultValues(config) {
@@ -2095,6 +2179,7 @@ class SimpleTimerCardEditor extends LitElement {
       audio_file_url: "",
       audio_repeat_count: 1,
       audio_play_until_dismissed: false,
+      audio_completion_delay: 4,
       alexa_audio_enabled: false,
       alexa_audio_file_url: "",
       alexa_audio_repeat_count: 1,
@@ -2110,6 +2195,7 @@ class SimpleTimerCardEditor extends LitElement {
       delete cleaned.audio_file_url;
       delete cleaned.audio_repeat_count;
       delete cleaned.audio_play_until_dismissed;
+      delete cleaned.audio_completion_delay;
     }
 
     if (!cleaned.alexa_audio_enabled) {
@@ -2297,6 +2383,14 @@ class SimpleTimerCardEditor extends LitElement {
 
         ${this._config.audio_enabled ? html`
           <ha-textfield label="Audio file URL or path" .value=${this._config.audio_file_url || ""} .configValue=${"audio_file_url"} @input=${this._valueChanged}></ha-textfield>
+          <ha-textfield 
+            label="Audio completion delay (seconds)" 
+            type="number" min="1" max="30" 
+            .value=${this._config.audio_completion_delay ?? 4} 
+            .configValue=${"audio_completion_delay"} 
+            @input=${this._valueChanged}
+            help-text="Delay after audio ends before dismissing/removing the timer."
+          ></ha-textfield>
           <ha-textfield label="Number of times to play" type="number" min="1" max="10" .value=${this._config.audio_repeat_count ?? 1} .configValue=${"audio_repeat_count"} @input=${this._valueChanged}></ha-textfield>
           <ha-formfield label="Play audio until timer is dismissed or snoozed">
             <ha-switch .checked=${this._config.audio_play_until_dismissed === true} .configValue=${"audio_play_until_dismissed"} @change=${this._valueChanged}></ha-switch>
@@ -2503,3 +2597,4 @@ setTimeout(() => {
     editor: "simple-timer-card-editor",
   });
 }, 0);
+
