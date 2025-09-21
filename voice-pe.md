@@ -157,6 +157,7 @@ interval:
                       id(t3_finished) = false;
                       id(t3_finished_ts) = 0; break;
             }
+            id(timer_count).publish_state(0);
           };
 
           const uint32_t now = millis();
@@ -193,6 +194,12 @@ voice_assistant:
         clear_slot_if_not_finished(1);
         clear_slot_if_not_finished(2);
         clear_slot_if_not_finished(3);
+
+        int active_count = timers.size();
+        if (timers.size() >= 1 && id(t1_finished)) { active_count--; }
+        if (timers.size() >= 2 && id(t2_finished)) { active_count--; }
+        if (timers.size() >= 3 && id(t3_finished)) { active_count--; }
+        id(timer_count).publish_state(active_count < 0 ? 0 : active_count);
 
         const int count = (int) timers.size();
         id(timer_count).publish_state(count);
