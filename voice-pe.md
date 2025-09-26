@@ -171,60 +171,61 @@ interval:
 voice_assistant:
   on_timer_tick:
     - lambda: |-
-        auto clear_slot_if_not_finished = [&](int slot){
-          bool finished = (slot==1? id(t1_finished) : slot==2? id(t2_finished) : id(t3_finished));
-          if (!finished) {
-            switch(slot){
-              case 1: id(timer_1_name).publish_state("");
-                      id(timer_1_state).publish_state("idle");
-                      id(timer_1_seconds_left).publish_state(0);
-                      id(timer_1_total_seconds).publish_state(0); break;
-              case 2: id(timer_2_name).publish_state("");
-                      id(timer_2_state).publish_state("idle");
-                      id(timer_2_seconds_left).publish_state(0);
-                      id(timer_2_total_seconds).publish_state(0); break;
-              case 3: id(timer_3_name).publish_state("");
-                      id(timer_3_state).publish_state("idle");
-                      id(timer_3_seconds_left).publish_state(0);
-                      id(timer_3_total_seconds).publish_state(0); break;
-            }
-          }
-        };
-
-        clear_slot_if_not_finished(1);
-        clear_slot_if_not_finished(2);
-        clear_slot_if_not_finished(3);
-
-        int active_count = timers.size();
-        if (timers.size() >= 1 && id(t1_finished)) { active_count--; }
-        if (timers.size() >= 2 && id(t2_finished)) { active_count--; }
-        if (timers.size() >= 3 && id(t3_finished)) { active_count--; }
-        id(timer_count).publish_state(active_count < 0 ? 0 : active_count);
-
         const int count = (int) timers.size();
-        id(timer_count).publish_state(count);
         auto clamp_nonneg = [](int v){ return v < 0 ? 0 : v; };
-
-        if (count > 0 && !id(t1_finished)) {
-          const auto &t = timers[0];
+        
+        int finished_count = 0;
+        if (id(t1_finished)) finished_count++;
+        if (id(t2_finished)) finished_count++;
+        if (id(t3_finished)) finished_count++;
+        
+        id(timer_count).publish_state(count);
+        
+        int timer_index = 0;
+        
+        if (id(t1_finished)) {
+        } else if (timer_index < count) {
+          const auto &t = timers[timer_index];
           id(timer_1_name).publish_state(t.name.c_str());
           id(timer_1_state).publish_state(t.is_active ? "active" : "paused");
           id(timer_1_seconds_left).publish_state(clamp_nonneg((int)t.seconds_left));
           id(timer_1_total_seconds).publish_state(clamp_nonneg((int)t.total_seconds));
+          timer_index++;
+        } else {
+          id(timer_1_name).publish_state("");
+          id(timer_1_state).publish_state("idle");
+          id(timer_1_seconds_left).publish_state(0);
+          id(timer_1_total_seconds).publish_state(0);
         }
-        if (count > 1 && !id(t2_finished)) {
-          const auto &t = timers[1];
+        
+        if (id(t2_finished)) {
+        } else if (timer_index < count) {
+          const auto &t = timers[timer_index];
           id(timer_2_name).publish_state(t.name.c_str());
           id(timer_2_state).publish_state(t.is_active ? "active" : "paused");
           id(timer_2_seconds_left).publish_state(clamp_nonneg((int)t.seconds_left));
           id(timer_2_total_seconds).publish_state(clamp_nonneg((int)t.total_seconds));
+          timer_index++;
+        } else {
+          id(timer_2_name).publish_state("");
+          id(timer_2_state).publish_state("idle");
+          id(timer_2_seconds_left).publish_state(0);
+          id(timer_2_total_seconds).publish_state(0);
         }
-        if (count > 2 && !id(t3_finished)) {
-          const auto &t = timers[2];
+        
+        if (id(t3_finished)) {
+        } else if (timer_index < count) {
+          const auto &t = timers[timer_index];
           id(timer_3_name).publish_state(t.name.c_str());
           id(timer_3_state).publish_state(t.is_active ? "active" : "paused");
           id(timer_3_seconds_left).publish_state(clamp_nonneg((int)t.seconds_left));
           id(timer_3_total_seconds).publish_state(clamp_nonneg((int)t.total_seconds));
+          timer_index++;
+        } else {
+          id(timer_3_name).publish_state("");
+          id(timer_3_state).publish_state("idle");
+          id(timer_3_seconds_left).publish_state(0);
+          id(timer_3_total_seconds).publish_state(0);
         }
 
   on_timer_finished:
