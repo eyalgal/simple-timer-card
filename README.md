@@ -21,8 +21,10 @@ A versatile and highly customizable timer card for Home Assistant Lovelace, offe
 ## **✨ Features**
 
 * **Flexible Display Styles:** Choose from five distinct timer display styles: `fill_horizontal`, `fill_vertical`, `bar_horizontal`, `bar_vertical`, or `circle`.
+* **Circular Progress Modes:** Circle style supports both clockwise fill and counter-clockwise drain progress animations.
 * **Dual Layout Control:** Separate `layout` (for no-timers state) and `style` (for active timers) options allow any combination.
 * **Timer Presets:** Quick-access buttons for commonly used timer durations (customizable).
+* **Timer Name Presets:** Predefined timer names for quick selection when creating timers (e.g., "Break", "Exercise", "Cooking").
 * **Custom Timers:** Set custom timer durations using minute buttons or manual input.
 * **Persistent Storage:** Support for local browser storage or MQTT integration for timers that survive reloads and sync across devices.
 * **Audio Notifications:** Play custom audio files when timers expire, with repeat counts and play-until-dismissed options.
@@ -87,6 +89,7 @@ resources:
 | `style`                  | `string`  | `bar_horizontal`        | Timer display style. Can be `fill_vertical`, `fill_horizontal`, `bar_vertical`, `bar_horizontal` (default), or `circle` |
 | `title`                  | `string`  | `null`                  | Optional title for the card                                                                        |
 | `entities`               | `array`   | `[]`                    | Array of timer entities to display                                                                |
+| `circle_mode`            | `string`  | `fill`                  | Circle progress direction: `fill` (clockwise) or `drain` (counter-clockwise)                      |
 
 ### **Entity Configuration**
 
@@ -131,6 +134,9 @@ Each entity in the `entities` array can be either a simple string (entity ID) or
 | `show_active_header`           | `boolean` | `true`          | Show "Active Timers" header section                                                               |
 | `default_timer_icon`           | `string`  | `mdi:timer-outline` | Default icon for timer cards                                                                   |
 | `default_timer_color`          | `string`  | `var(--primary-color)` | Default color for timer elements                                                            |
+| `timer_name_presets`           | `array`   | `[]`                | Array of preset timer names for quick selection when creating timers                               |
+
+**Timer Name Presets:** When configured, preset timer names appear as clickable buttons during timer creation, allowing users to quickly assign meaningful names like "Break", "Exercise", or "Cooking" to their timers. If no presets are configured, a simple text input field is shown instead.
 
 ### **Storage & Persistence**
 
@@ -228,6 +234,21 @@ default_timer_color: '#2196f3'
 default_timer_icon: 'mdi:brain'
 ```
 
+### **Circle Timer with Drain Mode and Name Presets**
+
+Counter-clockwise circle progress with predefined timer names:
+
+```yaml
+type: custom:simple-timer-card
+title: Activity Timer
+style: circle
+circle_mode: drain
+timer_presets: [5, 10, 15, 30]
+timer_name_presets: ['Break', 'Exercise', 'Meditation', 'Reading', 'Work Session']
+default_timer_color: '#9c27b0'
+default_timer_icon: 'mdi:clock-outline'
+```
+
 ### **Persistent Timer with Audio**
 
 Timer that survives browser reloads and plays audio when expired:
@@ -270,6 +291,7 @@ type: custom:simple-timer-card
 title: Cooking Timer
 style: circle
 timer_presets: [3, 5, 8, 12, 15, 20, 25, 30]
+timer_name_presets: ['Eggs', 'Pasta', 'Rice', 'Bread', 'Roast', 'Cookies']
 show_active_header: true
 audio_enabled: true
 audio_file_url: /local/sounds/kitchen_timer.mp3
@@ -414,9 +436,22 @@ The card offers flexible styling options with five distinct display styles:
 - **Progress Bar Vertical** (`bar_vertical`): Vertical progress bar layout with timer information  
 - **Background Fill Horizontal** (`fill_horizontal`): Full horizontal background color fill that progresses as timer counts down
 - **Background Fill Vertical** (`fill_vertical`): Full vertical background color fill that progresses as timer counts down
-- **Circle** (`circle`): Modern circular progress ring with centered timer display
+- **Circle** (`circle`): Modern circular progress ring with centered timer display. Supports both clockwise (`fill`) and counter-clockwise (`drain`) progress modes
 
 The `layout` parameter controls the card appearance when there are no active timers, while `style` controls active timer display. This separation allows any combination of layout and style for maximum flexibility.
+
+### **Circle Mode Options**
+
+When using the `circle` style, you can control the progress direction:
+
+- **`fill`** (default): Clockwise progress - circle fills up as time elapses
+- **`drain`**: Counter-clockwise progress - circle empties/drains as time counts down
+
+```yaml
+type: custom:simple-timer-card
+style: circle
+circle_mode: drain  # Counter-clockwise drain effect
+```
 
 The card uses CSS custom properties that can be overridden:
 
