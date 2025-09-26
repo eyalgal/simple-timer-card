@@ -89,7 +89,7 @@ resources:
 | `style`                  | `string`  | `bar_horizontal`        | Timer display style. Can be `fill_vertical`, `fill_horizontal`, `bar_vertical`, `bar_horizontal` (default), or `circle` |
 | `title`                  | `string`  | `null`                  | Optional title for the card                                                                        |
 | `entities`               | `array`   | `[]`                    | Array of timer entities to display                                                                |
-| `circle_mode`            | `string`  | `fill`                  | Circle progress direction: `fill` (clockwise) or `drain` (counter-clockwise)                      |
+| `circle_mode`            | `string`  | `fill`                  | Circle progress direction: `fill` (clockwise) or `drain` (counter-clockwise). Only applies when `style` is set to `circle` |
 
 ### **Entity Configuration**
 
@@ -134,7 +134,7 @@ Each entity in the `entities` array can be either a simple string (entity ID) or
 | `show_active_header`           | `boolean` | `true`          | Show "Active Timers" header section                                                               |
 | `default_timer_icon`           | `string`  | `mdi:timer-outline` | Default icon for timer cards                                                                   |
 | `default_timer_color`          | `string`  | `var(--primary-color)` | Default color for timer elements                                                            |
-| `timer_name_presets`           | `array`   | `[]`                | Array of preset timer names for quick selection when creating timers                               |
+| `timer_name_presets`           | `array`   | `[]`                | Array of preset timer names for quick selection when creating timers (e.g., `['Break', 'Exercise']`)        |
 
 **Timer Name Presets:** When configured, preset timer names appear as clickable buttons during timer creation, allowing users to quickly assign meaningful names like "Break", "Exercise", or "Cooking" to their timers. If no presets are configured, a simple text input field is shown instead.
 
