@@ -2007,11 +2007,11 @@ _startActive(which, label) {
 	  }
       .text-input::placeholder { color: var(--secondary-text-color); }
       .text-input:focus { box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color) 40%, transparent); }
-	  .name-selector { display: flex; flex-direction: column; gap: 8px; width: 100%; padding-top: 12px; position: relative; transition: all 0.3s ease; }
-	  .name-chips { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; animation: fadeIn 0.3s ease; }
-	  @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
-	  .name-chips .btn { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-	  .name-selector ha-select { width: 100%; }
+  .name-selector { display: flex; flex-direction: column; gap: 8px; width: 100%; padding-top: 12px; position: relative; transition: all 0.3s ease; }
+  .name-chips { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+  .name-chips .btn { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .name-selector ha-select { width: 100%; }
       .active-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
       .active-head h4 { margin: 0; font-size: 16px; font-weight: 600; color: var(--primary-text-color); }
 
