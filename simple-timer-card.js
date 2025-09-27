@@ -2341,7 +2341,7 @@ class SimpleTimerCardEditor extends LitElement {
     const defaults = {
       layout: "horizontal",
       style: "bar_horizontal",
-	  circle_mode: "fill", 
+      circle_mode: "fill", 
       show_timer_presets: true,
       timer_presets: [5, 15, 30],
       expire_action: "keep",
