@@ -206,6 +206,7 @@ A simple timer card with default presets and horizontal layout:
 
 ```yaml
 type: custom:simple-timer-card
+entities: []
 title: Kitchen Timer
 ```
 
@@ -215,6 +216,7 @@ Perfect for narrow dashboard spaces with vertical fill display:
 
 ```yaml
 type: custom:simple-timer-card
+entities: []
 layout: vertical
 title: Quick Timer
 timer_presets: [10, 20, 45]
@@ -227,6 +229,7 @@ Modern circular progress display with custom colors:
 
 ```yaml
 type: custom:simple-timer-card
+entities: []
 title: Focus Timer
 style: circle
 timer_presets: [15, 25, 45]
@@ -240,6 +243,7 @@ Counter-clockwise circle progress with predefined timer names:
 
 ```yaml
 type: custom:simple-timer-card
+entities: []
 title: Activity Timer
 style: circle
 circle_mode: drain
@@ -255,6 +259,7 @@ Timer that survives browser reloads and plays audio when expired:
 
 ```yaml
 type: custom:simple-timer-card
+entities: []
 title: Study Timer
 default_timer_entity: sensor.timer_storage_mqtt
 audio_enabled: true
@@ -269,6 +274,7 @@ For synchronized timers across multiple devices:
 
 ```yaml
 type: custom:simple-timer-card
+entities: []
 title: Workout Timer
 layout: horizontal
 style: bar_horizontal
@@ -288,6 +294,7 @@ Multiple preset timers for different cooking tasks with modern circle display:
 
 ```yaml
 type: custom:simple-timer-card
+entities: []
 title: Cooking Timer
 style: circle
 timer_presets: [3, 5, 8, 12, 15, 20, 25, 30]
@@ -305,6 +312,7 @@ Timer with MQTT storage and automated notifications using Home Assistant automat
 
 ```yaml
 type: custom:simple-timer-card
+entities: []
 title: Study Timer
 style: bar_vertical
 timer_presets: [25, 45, 60] # Pomodoro-style intervals
@@ -375,6 +383,7 @@ Examples of different style options:
 ```yaml
 # Horizontal fill style
 type: custom:simple-timer-card
+entities: []
 title: Kitchen Timer
 style: fill_horizontal
 layout: horizontal
@@ -383,6 +392,7 @@ audio_file_url: /local/sounds/kitchen_bell.mp3
 
 # Vertical bar in compact space
 type: custom:simple-timer-card
+entities: []
 title: Compact Timer
 style: bar_vertical
 layout: vertical
@@ -390,6 +400,7 @@ timer_presets: [5, 10, 15]
 
 # Circle style with audio alerts
 type: custom:simple-timer-card
+entities: []
 title: Focus Timer
 style: circle
 audio_enabled: true
