@@ -2364,7 +2364,7 @@ class SimpleTimerCardEditor extends LitElement {
       expired_subtitle: "Time's up!",
       default_timer_entity: null,
       keep_timer_visible_when_idle: false,
-	  timer_name_presets: [],
+      timer_name_presets: [],
     };
 
     const cleaned = { ...config };
