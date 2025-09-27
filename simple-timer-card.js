@@ -88,7 +88,7 @@ class SimpleTimerCard extends LitElement {
     this._activeAudioInstances = new Map();
     this._lastActionTime = new Map();
     this._expirationTimes = new Map();
-	this._lastCleanupTime = 0;
+    this._lastCleanupTime = 0;
 
     this._ui = {
       noTimerHorizontalOpen: false,
