@@ -841,7 +841,6 @@ class SimpleTimerCard extends LitElement {
     if (audioData) {
       const { audio, playNext } = audioData;
       audio.removeEventListener("ended", playNext);
-      audio.removeEventListener("error", null);
       audio.pause();
       audio.currentTime = 0;
       audio.src = "";
