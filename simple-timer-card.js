@@ -148,7 +148,7 @@ class SimpleTimerCard extends LitElement {
       style,
       snooze_duration: 5,
       timer_presets: [5, 15, 30],
-	  timer_name_presets: [],
+      timer_name_presets: [],
       show_timer_presets: true,
       show_active_header: true,
       minute_buttons: [1, 5, 10],
