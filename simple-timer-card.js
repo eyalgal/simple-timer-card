@@ -5,13 +5,13 @@
  *
  * Author: eyalgal
  * License: MIT
- * Version: 1.3.2
+ * Version: 1.3.3
  * For more information, visit: https://github.com/eyalgal/simple-timer-card								   
  */		 
 
 import { LitElement, html, css } from "https://unpkg.com/lit@3.1.0/index.js?module";
 
-const cardVersion = "1.3.2";
+const cardVersion = "1.3.3";
 
 const DAY_IN_MS = 86400000; 
 const HOUR_IN_SECONDS = 3600;
@@ -88,6 +88,7 @@ class SimpleTimerCard extends LitElement {
     this._activeAudioInstances = new Map();
     this._lastActionTime = new Map();
     this._expirationTimes = new Map();
+    this._lastCleanupTime = 0;
 
     this._ui = {
       noTimerHorizontalOpen: false,
@@ -97,6 +98,8 @@ class SimpleTimerCard extends LitElement {
     };
     this._customSecs = { horizontal: 15 * 60, vertical: 15 * 60 };
     this._activeSecs = { fill: 10 * 60, bar: 10 * 60 };
+    this._showingCustomName = {};
+    this._lastSelectedName = {};
   }
 
   _isActionThrottled(actionType, timerId = 'global', throttleMs = 1000) {
@@ -145,6 +148,7 @@ class SimpleTimerCard extends LitElement {
       style,
       snooze_duration: 5,
       timer_presets: [5, 15, 30],
+      timer_name_presets: [],
       show_timer_presets: true,
       show_active_header: true,
       minute_buttons: [1, 5, 10],
@@ -165,6 +169,7 @@ class SimpleTimerCard extends LitElement {
       alexa_audio_play_until_dismissed: false,
       expired_subtitle: "Time's up!",
       keep_timer_visible_when_idle: false,
+      circle_mode: "fill",
       ...config,
       entities: config.entities || [],
       storage: autoStorage,
@@ -187,6 +192,14 @@ class SimpleTimerCard extends LitElement {
   disconnectedCallback() {
     super.disconnectedCallback();
     this._stopTimerUpdates();
+    for (const timerId of this._activeAudioInstances.keys()) {
+      this._stopAudioForTimer(timerId);
+    }
+    this._activeAudioInstances.clear();
+    this._ringingTimers.clear();
+    this._lastActionTime.clear();
+    this._expirationTimes.clear();
+    this._dismissed.clear();
   }
   _startTimerUpdates() {
     this._stopTimerUpdates();
@@ -211,16 +224,13 @@ class SimpleTimerCard extends LitElement {
         if (this._validateStoredTimerData(parsed)) {
           return parsed.timers;
         } else {
-																	   
           localStorage.removeItem(this._getStorageKey());
         }
       }
     } catch (e) {
-															 
       try {
         localStorage.removeItem(this._getStorageKey());
       } catch (removeErr) {
-																	  
       }
     }
     return [];
@@ -230,7 +240,6 @@ class SimpleTimerCard extends LitElement {
       const data = { timers: timers || [], version: 1, lastUpdated: Date.now() };
       localStorage.setItem(this._getStorageKey(), JSON.stringify(data));
     } catch (e) {
-														   
     }
   }
   _updateTimerInStorage_local(timerId, updates) {
@@ -254,7 +263,6 @@ class SimpleTimerCard extends LitElement {
       const timers = entity?.attributes?.timers;
       return Array.isArray(timers) ? timers : [];
     } catch (e) {
-																  
       return [];
     }
   }
@@ -272,7 +280,6 @@ class SimpleTimerCard extends LitElement {
         retain: true,
       });
     } catch (e) {
-																
     }
   }
   _updateTimerInStorage_mqtt(timerId, updates) {
@@ -421,7 +428,6 @@ class SimpleTimerCard extends LitElement {
     try {
       const data = JSON.parse(entityState.state || '{}');
       if (!this._validateStoredTimerData(data)) {
-																				   
         return [];
       }
       if (data?.timers?.map) {
@@ -450,7 +456,6 @@ class SimpleTimerCard extends LitElement {
       }
       return [];
     } catch (e) {
-															
       return [];
     }
   }
@@ -639,8 +644,6 @@ class SimpleTimerCard extends LitElement {
     const filtered = collected.filter(
       (t) => !(
         this._dismissed.has(`${t.source_entity}:${t.id}`)
-																						  
-																						  
       )
     );
 
@@ -669,7 +672,6 @@ class SimpleTimerCard extends LitElement {
       });
 
     for (const timer of this._timers) {
-																 
       const wasRinging = this._ringingTimers.has(timer.id);
 
       if (timer.source === 'timer' && timer.idle && wasRinging) {
@@ -698,8 +700,6 @@ class SimpleTimerCard extends LitElement {
 
     const now2 = Date.now();
     const audioDelay = (this._config.audio_completion_delay || 4) * 1000;
-							
-													 
 
     for (const timer of [...this._timers]) {
       if (timer.idle || timer.remaining > 0 || timer.paused) continue;
@@ -735,8 +735,6 @@ class SimpleTimerCard extends LitElement {
                 this._handleDismiss(timer);
                 if (!isWritable) {
                     this._expirationTimes.delete(timer.id);
-											 
-														
                 }
             }
         }
@@ -772,8 +770,17 @@ class SimpleTimerCard extends LitElement {
             this._expirationTimes.delete(id);
         }
     }
+    for (const [timerId, audioData] of this._activeAudioInstances.entries()) {
+      if (!this._ringingTimers.has(timerId)) {
+        this._stopAudioForTimer(timerId);
+      }
+    }
+    if (!this._lastCleanupTime || Date.now() - this._lastCleanupTime > 10000) {
+      this._cleanupThrottleMap();
+      this._lastCleanupTime = Date.now();
+    }
   }
-
+  
   _playAudioNotification(timerId, timer) {
     const isAlexaTimer = timer?.source === "alexa";
     const entityConf = this._getEntityConfig(timer?.source_entity);
@@ -796,40 +803,60 @@ class SimpleTimerCard extends LitElement {
       audioRepeatCount = this._config.audio_repeat_count;
       audioPlayUntilDismissed = this._config.audio_play_until_dismissed;
     }
-
     if (!audioEnabled || !audioFileUrl || !this._validateAudioUrl(audioFileUrl)) return;
-
     this._stopAudioForTimer(timerId);
-
     try {
       const audio = new Audio(audioFileUrl);
       let playCount = 0;
       const maxPlays = audioPlayUntilDismissed
         ? Infinity
         : Math.max(1, Math.min(10, audioRepeatCount || 1));
-
       const playNext = () => {
         if (this._ringingTimers.has(timerId) && playCount < maxPlays) {
           playCount++;
           audio.currentTime = 0;
           audio.play().catch(() => {});
+        } else {
+          this._stopAudioForTimer(timerId);
         }
       };
-
+      const audioData = {
+        audio: audio,
+        playNext: playNext
+      };
       audio.addEventListener("ended", playNext);
-
-      this._activeAudioInstances.set(timerId, audio);
-
+      audio.addEventListener("error", () => {
+        console.warn("Audio playback error for timer:", timerId);
+        this._stopAudioForTimer(timerId);
+      });
+      this._activeAudioInstances.set(timerId, audioData);
       playNext();
-    } catch {}
+    } catch (e) {
+      console.warn("Failed to create audio for timer:", timerId, e);
+    }
   }
 
   _stopAudioForTimer(timerId) {
-    const audio = this._activeAudioInstances.get(timerId);
-    if (audio) {
+    const audioData = this._activeAudioInstances.get(timerId);
+    if (audioData) {
+      const { audio, playNext } = audioData;
+      audio.removeEventListener("ended", playNext);
+											   
       audio.pause();
       audio.currentTime = 0;
+      audio.src = "";
       this._activeAudioInstances.delete(timerId);
+    }
+  }
+
+  _cleanupThrottleMap() {
+    const now = Date.now();
+    const CLEANUP_THRESHOLD = 60000;
+    
+    for (const [key, time] of this._lastActionTime.entries()) {
+      if (now - time > CLEANUP_THRESHOLD) {
+        this._lastActionTime.delete(key);
+      }
     }
   }
 
@@ -912,7 +939,6 @@ class SimpleTimerCard extends LitElement {
     
     const validation = this._validateTimerInput(durationMs, label);
     if (!validation.valid) {
-															   
       return;
     }
     
@@ -974,6 +1000,98 @@ class SimpleTimerCard extends LitElement {
     if (totalMinutes === 60) return "1h";
     if (totalMinutes % 60 === 0) return `${totalMinutes / 60}h`;
     return `${Math.floor(totalMinutes / 60)}h${totalMinutes % 60}m`;
+  }
+
+  _renderTimerNameSelector(inputId) {
+    const presets = this._config.timer_name_presets || [];
+    
+    if (presets.length === 0) {
+      return html`
+        <input id="${inputId}" class="text-input" placeholder="Timer Name (Optional)" style="margin-top: 12px;" />
+      `;
+    }
+    
+    const customValue = this._lastSelectedName[inputId];
+    const isCustomValue = customValue && !presets.includes(customValue);
+    
+    return html`
+      <div class="name-selector">
+        <div class="name-chips" style="display: ${this._showingCustomName[inputId] ? 'none' : 'flex'};">
+          ${presets.map(name => html`
+            <button class="btn btn-preset ${this._lastSelectedName[inputId] === name ? 'selected' : ''}" 
+                    @click=${(e) => this._setTimerName(inputId, name, e)}>
+              ${this._sanitizeText(name)}
+            </button>
+          `)}
+          ${isCustomValue ? html`
+            <button class="btn btn-preset selected" 
+                    @click=${(e) => this._editCustomValue(inputId, e)}>
+              ${this._sanitizeText(customValue)}
+            </button>
+          ` : html`
+            <button class="btn btn-ghost" 
+                    @click=${(e) => this._showCustomNameInput(inputId, e)}>
+              Custom
+            </button>
+          `}
+        </div>
+        <input id="${inputId}" class="text-input" placeholder="Timer Name (Optional)" 
+               style="display: ${this._showingCustomName[inputId] ? 'block' : 'none'};"
+               @blur=${(e) => this._handleCustomInputBlur(inputId, e)}
+               @keypress=${(e) => e.key === 'Enter' && this._handleCustomInputBlur(inputId, e)} />
+      </div>
+    `;
+  }
+
+  _setTimerName(inputId, name, e) {
+    e?.stopPropagation();
+    const input = this.shadowRoot?.getElementById(inputId);
+    if (input) {
+      input.value = name;
+      this._lastSelectedName[inputId] = name;
+      this._showingCustomName[inputId] = false;
+      this.requestUpdate();
+    }
+  }
+
+  _showCustomNameInput(inputId, e) {
+    e?.stopPropagation();
+    const input = this.shadowRoot?.getElementById(inputId);
+    if (input) {
+      input.value = '';
+      this._showingCustomName[inputId] = true;
+      this.requestUpdate();
+      setTimeout(() => input.focus(), 10);
+    }
+  }
+
+  _editCustomValue(inputId, e) {
+    e?.stopPropagation();
+    const input = this.shadowRoot?.getElementById(inputId);
+    if (input) {
+      input.value = this._lastSelectedName[inputId] || '';
+      this._showingCustomName[inputId] = true;
+      this.requestUpdate();
+      setTimeout(() => {
+        input.focus();
+        input.select();
+      }, 10);
+    }
+  }
+
+  _handleCustomInputBlur(inputId, e) {
+    const input = e.target;
+    const value = input.value.trim();
+    
+    if (value) {
+      this._lastSelectedName[inputId] = value;
+      this._showingCustomName[inputId] = false;
+    } else {
+      this._showingCustomName[inputId] = false;
+      this._lastSelectedName[inputId] = null;
+    }
+    
+    this.requestUpdate();
   }
 
   _cleanFriendlyName(friendlyName) {
@@ -1154,7 +1272,6 @@ class SimpleTimerCard extends LitElement {
 
     const validation = this._validateTimerInput(secs * 1000, label);
     if (!validation.valid) {
-															   
       return;
     }
 
@@ -1183,13 +1300,40 @@ class SimpleTimerCard extends LitElement {
     }
   }
 
-  _startFromCustom(which, label) {
-    const secs = this._customSecs[which];
-    this._createAndSaveTimer(secs, label);
-    this._customSecs = { ...this._customSecs, [which]: 15 * 60 };
-    const openKey = `noTimer${which.charAt(0).toUpperCase() + which.slice(1)}Open`;
-    this._ui[openKey] = false;
+_startFromCustom(which, label) {
+  const secs = this._customSecs[which];
+  const inputId = which === "horizontal" ? "nt-h-name" : "nt-v-name";
+  let finalLabel = label || this._lastSelectedName[inputId] || '';
+  const input = this.shadowRoot?.getElementById(inputId);
+  if (input && input.value) {
+    finalLabel = input.value.trim();
   }
+  this._createAndSaveTimer(secs, finalLabel);
+  this._customSecs = { ...this._customSecs, [which]: 15 * 60 };
+  const openKey = `noTimer${which.charAt(0).toUpperCase() + which.slice(1)}Open`;
+  this._ui[openKey] = false;
+  this._showingCustomName[inputId] = false;
+  this._lastSelectedName[inputId] = null;
+  if (input) input.value = '';
+}
+
+_startActive(which, label) {
+  const secs = this._activeSecs[which];
+  const inputId = which === "bar" ? "add-bar-name" : "add-fill-name";
+  let finalLabel = label || this._lastSelectedName[inputId] || '';
+  const input = this.shadowRoot?.getElementById(inputId);
+  if (input && input.value) {
+    finalLabel = input.value.trim();
+  }
+  this._createAndSaveTimer(secs, finalLabel);
+  this._activeSecs = { ...this._activeSecs, [which]: 10 * 60 };
+  const openKey = `active${which.charAt(0).toUpperCase() + which.slice(1)}Open`;
+  this._ui[openKey] = false;
+  this._showingCustomName[inputId] = false;
+  this._lastSelectedName[inputId] = null;
+  if (input) input.value = '';
+}
+
   _toggleActivePicker(which) {
     const openKey = `active${which.charAt(0).toUpperCase() + which.slice(1)}Open`;
     this._ui[openKey] = !this._ui[openKey];
@@ -1197,13 +1341,6 @@ class SimpleTimerCard extends LitElement {
   _adjustActive(which, minutes, sign = +1) {
     const delta = Math.max(0, (minutes | 0) * 60);
     this._activeSecs = { ...this._activeSecs, [which]: Math.max(0, this._activeSecs[which] + sign * delta) };
-  }
-  _startActive(which, label) {
-    const secs = this._activeSecs[which];
-    this._createAndSaveTimer(secs, label);
-    this._activeSecs = { ...this._activeSecs, [which]: 10 * 60 };
-    const openKey = `active${which.charAt(0).toUpperCase() + which.slice(1)}Open`;
-    this._ui[openKey] = false;
   }
 
   _renderItem(t, style) {
@@ -1223,10 +1360,13 @@ class SimpleTimerCard extends LitElement {
             <div class="vcol">
               <div class="vcircle-wrap">
                 <svg class="vcircle" width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
-                  <circle class="vc-track" cx="32" cy="32" r="${circleValues.radius}"></circle>
-                  <circle class="vc-prog done" cx="32" cy="32" r="${circleValues.radius}"
+                  <circle class="vc-track ${this._config.circle_mode === 'drain' ? 'vc-track-drain' : ''}" 
+                          cx="32" cy="32" r="${circleValues.radius}"></circle>
+                  <circle class="vc-prog ${this._config.circle_mode === 'drain' ? 'vc-prog-drain done' : 'done'}" 
+                          cx="32" cy="32" r="${circleValues.radius}"
                     stroke-dasharray="${circleValues.circumference} ${circleValues.circumference}"
-                    style="stroke-dashoffset: 0; transition: stroke-dashoffset 0.25s;"></circle>
+                    style="stroke-dashoffset: ${this._config.circle_mode === 'drain' ? circleValues.circumference : '0'}; 
+                           transition: stroke-dashoffset 0.25s;"></circle>
                 </svg>
                 <div class="icon-wrap xl"><ha-icon .icon=${icon}></ha-icon></div>
               </div>
@@ -1314,8 +1454,10 @@ class SimpleTimerCard extends LitElement {
                    }
                  }}>
               <svg class="vcircle" width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
-                <circle class="vc-track" cx="32" cy="32" r="${circleValues.radius}"></circle>
-                <circle class="vc-prog" cx="32" cy="32" r="${circleValues.radius}"
+                <circle class="vc-track ${this._config.circle_mode === 'drain' ? 'vc-track-drain' : ''}" 
+                        cx="32" cy="32" r="${circleValues.radius}"></circle>
+                <circle class="vc-prog ${this._config.circle_mode === 'drain' ? 'vc-prog-drain' : ''}" 
+                        cx="32" cy="32" r="${circleValues.radius}"
                   stroke-dasharray="${circleValues.circumference} ${circleValues.circumference}"
                   style="stroke-dashoffset: ${circleValues.strokeDashoffset}; transition: stroke-dashoffset 0.25s;"></circle>
               </svg>
@@ -1357,9 +1499,16 @@ class SimpleTimerCard extends LitElement {
   }
 
 
-  _calculateCircleValues(radius = 28, pct = 0) {
+  _calculateCircleValues(radius = 28, pct = 0, mode = 'fill') {
     const circumference = radius * 2 * Math.PI;
-    const strokeDashoffset = circumference - (pct / 100) * circumference;
+    let strokeDashoffset;
+  
+    if (mode === 'drain') {
+      strokeDashoffset = (pct / 100) * circumference;
+    } else {
+      strokeDashoffset = circumference - (pct / 100) * circumference;
+    }
+  
     return { radius, circumference, strokeDashoffset };
   }
   
@@ -1407,7 +1556,8 @@ class SimpleTimerCard extends LitElement {
     
     let circleValues;
     if (isCircleStyle) {
-      circleValues = this._calculateCircleValues(28, pct);
+      const circleMode = this._config.circle_mode || 'fill';
+      circleValues = this._calculateCircleValues(28, pct, circleMode);
     }
     
     return {
@@ -1437,10 +1587,13 @@ class SimpleTimerCard extends LitElement {
             <div class="vcol">
               <div class="vcircle-wrap">
                 <svg class="vcircle" width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
-                  <circle class="vc-track" cx="32" cy="32" r="${circleValues.radius}"></circle>
-                  <circle class="vc-prog" cx="32" cy="32" r="${circleValues.radius}"
+                  <circle class="vc-track ${this._config.circle_mode === 'drain' ? 'vc-track-drain' : ''}" 
+                          cx="32" cy="32" r="${circleValues.radius}"></circle>
+                  <circle class="vc-prog ${this._config.circle_mode === 'drain' ? 'vc-prog-drain done' : 'done'}" 
+                          cx="32" cy="32" r="${circleValues.radius}"
                     stroke-dasharray="${circleValues.circumference} ${circleValues.circumference}"
-                    style="stroke-dashoffset: 0; transition: stroke-dashoffset 0.25s;"></circle>
+                    style="stroke-dashoffset: ${this._config.circle_mode === 'drain' ? circleValues.circumference : '0'}; 
+                           transition: stroke-dashoffset 0.25s;"></circle>
                 </svg>
                 <div class="icon-wrap xl"><ha-icon .icon=${icon}></ha-icon></div>
               </div>
@@ -1475,7 +1628,6 @@ class SimpleTimerCard extends LitElement {
                     <button class="chip" @click=${() => this._handleDismiss(t)}>Dismiss</button>
                   ` : ""}
                 </div>`
-													 
               : html`<div class="vactions">
                   ${supportsManualControls ? html`
                     <button class="chip" @click=${() => this._handleSnooze(t)}>Snooze</button>
@@ -1509,8 +1661,10 @@ class SimpleTimerCard extends LitElement {
                    }
                  }}>
               <svg class="vcircle" width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
-                <circle class="vc-track" cx="32" cy="32" r="${circleValues.radius}"></circle>
-                <circle class="vc-prog" cx="32" cy="32" r="${circleValues.radius}"
+                <circle class="vc-track ${this._config.circle_mode === 'drain' ? 'vc-track-drain' : ''}" 
+                        cx="32" cy="32" r="${circleValues.radius}"></circle>
+                <circle class="vc-prog ${this._config.circle_mode === 'drain' ? 'vc-prog-drain' : ''}" 
+                        cx="32" cy="32" r="${circleValues.radius}"
                   stroke-dasharray="${circleValues.circumference} ${circleValues.circumference}"
                   style="stroke-dashoffset: ${circleValues.strokeDashoffset}; transition: stroke-dashoffset 0.25s;"></circle>
               </svg>
@@ -1650,10 +1804,10 @@ class SimpleTimerCard extends LitElement {
           <div class="grid-3">
             ${this._renderMinuteButtons(minuteButtons, (m, sign) => this._adjust("horizontal", m, sign), -1)}
           </div>
-          <input id="nt-h-name" class="text-input" placeholder="Timer Name (Optional)" />
+          ${this._renderTimerNameSelector("nt-h-name")}
           <div class="actions">
             <button class="btn btn-ghost" @click=${() => (this._ui.noTimerHorizontalOpen = false)}>Cancel</button>
-            <button class="btn btn-primary" @click=${() => this._startFromCustom("horizontal", this.shadowRoot?.getElementById("nt-h-name")?.value?.trim())}>Start</button>
+            <button class="btn btn-primary" @click=${() => this._startFromCustom("horizontal")}>Start</button>
           </div>
         </div>
       </div>
@@ -1684,10 +1838,10 @@ class SimpleTimerCard extends LitElement {
           <div class="grid-3">
             ${this._renderMinuteButtons(minuteButtons, (m, sign) => this._adjust("vertical", m, sign), -1)}
           </div>
-          <input id="nt-v-name" class="text-input" placeholder="Timer Name (Optional)" />
+          ${this._renderTimerNameSelector("nt-v-name")}
           <div class="actions">
             <button class="btn btn-ghost" @click=${() => (this._ui.noTimerVerticalOpen = false)}>Cancel</button>
-            <button class="btn btn-primary" @click=${() => this._startFromCustom("vertical", this.shadowRoot?.getElementById("nt-v-name")?.value?.trim())}>Start</button>
+            <button class="btn btn-primary" @click=${() => this._startFromCustom("vertical")}>Start</button>
           </div>
         </div>
       </div>
@@ -1718,10 +1872,10 @@ class SimpleTimerCard extends LitElement {
           <div class="grid-3">
             ${this._renderMinuteButtons(minuteButtons, (m, sign) => this._adjustActive("fill", m, sign), -1)}
           </div>
-          <input id="add-fill-name" class="text-input" placeholder="Timer Name (Optional)" />
+          ${this._renderTimerNameSelector("add-fill-name")}
           <div class="actions">
             <button class="btn btn-ghost" @click=${() => (this._ui.activeFillOpen = false)}>Cancel</button>
-            <button class="btn btn-primary" @click=${() => this._startActive("fill", this.shadowRoot?.getElementById("add-fill-name")?.value?.trim())}>Start</button>
+            <button class="btn btn-primary" @click=${() => this._startActive("fill")}>Start</button>
           </div>
         </div>
 
@@ -1746,10 +1900,10 @@ class SimpleTimerCard extends LitElement {
           <div class="grid-3">
             ${this._renderMinuteButtons(minuteButtons, (m, sign) => this._adjustActive("bar", m, sign), -1)}
           </div>
-          <input id="add-bar-name" class="text-input" placeholder="Timer Name (Optional)" />
+          ${this._renderTimerNameSelector("add-bar-name")}
           <div class="actions">
             <button class="btn btn-ghost" @click=${() => (this._ui.activeBarOpen = false)}>Cancel</button>
-            <button class="btn btn-primary" @click=${() => this._startActive("bar", this.shadowRoot?.getElementById("add-bar-name")?.value?.trim())}>Start</button>
+            <button class="btn btn-primary" @click=${() => this._startActive("bar")}>Start</button>
           </div>
         </div>
 
@@ -1834,6 +1988,8 @@ class SimpleTimerCard extends LitElement {
       .btn-preset:hover, .btn-add:hover { filter: brightness(1.1); }
       .btn-ghost { background: var(--card-background-color); border: 1px solid var(--divider-color); color: var(--primary-text-color); }
       .btn-ghost:hover { background: var(--secondary-background-color); }
+      .btn-preset.selected, .btn-ghost.selected { background: var(--primary-color); color: var(--text-primary-color, #fff); }
+      .btn-preset.selected:hover, .btn-ghost.selected:hover { filter: brightness(0.9); }
       .btn-primary { background: var(--primary-color); color: var(--text-primary-color, #fff); }
       .btn-primary:hover { filter: brightness(0.95); }
       .btn-add { display: flex; align-items: center; gap: 8px; background: var(--secondary-background-color, rgba(0,0,0,.08)); color: var(--secondary-text-color); }
@@ -1844,15 +2000,19 @@ class SimpleTimerCard extends LitElement {
       .actions { display: flex; gap: 12px; max-width: 280px; margin: 10px auto 0; }
       .actions .btn { flex: 1; }
 
-      .text-input {
-        margin-top: 10px; width: 90%; text-align: center; padding: 8px 12px; font-size: 14px;
-        border-radius: var(--stc-chip-radius);
-        color: var(--primary-text-color); background: var(--card-background-color); border: 1px solid var(--divider-color);
-        outline: none; margin-left: auto; margin-right: auto; display: block;
-      }
+	  .text-input {
+		width: 90%; text-align: center; padding: 8px 12px; font-size: 14px;
+		border-radius: var(--stc-chip-radius);
+		color: var(--primary-text-color); background: var(--card-background-color); border: 1px solid var(--divider-color);
+		outline: none; margin-left: auto; margin-right: auto; display: block;
+	  }
       .text-input::placeholder { color: var(--secondary-text-color); }
       .text-input:focus { box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color) 40%, transparent); }
-
+	  .name-selector { display: flex; flex-direction: column; gap: 8px; width: 100%; padding-top: 12px; position: relative; transition: all 0.3s ease; }
+	  .name-chips { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; animation: fadeIn 0.3s ease; }
+	  @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+	  .name-chips .btn { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	  .name-selector ha-select { width: 100%; }
       .active-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
       .active-head h4 { margin: 0; font-size: 16px; font-weight: 600; color: var(--primary-text-color); }
 
@@ -1999,11 +2159,16 @@ class SimpleTimerCard extends LitElement {
       }
       .vtile-close ha-icon { --mdc-icon-size: 18px; }
 
-      .vcircle { position: absolute; inset: 0; transform: rotate(-90deg); }
-
-      .vc-track, .vc-prog { fill: none; stroke-width: 4.5px; vector-effect: non-scaling-stroke; }
-      .vc-track { stroke: color-mix(in srgb, var(--tcolor, var(--primary-color)) 18%, transparent); }
-
+	  .vcircle { position: absolute; inset: 0; transform: rotate(-90deg); }
+	  .vc-track, .vc-prog { fill: none; stroke-width: 4.5px; vector-effect: non-scaling-stroke; }
+	  .vc-track { stroke: color-mix(in srgb, var(--tcolor, var(--primary-color)) 18%, transparent); }
+	  .vc-prog { stroke: var(--tcolor, var(--primary-color)); transition: stroke-dashoffset 1s linear; }
+	  .vc-prog.done { stroke-dashoffset: 0 !important; }
+	  .vc-track-drain { stroke: color-mix(in srgb, var(--tcolor, var(--primary-color)) 18%, transparent); }
+	  .vc-prog-drain { stroke: var(--tcolor, var(--primary-color)); transition: stroke-dashoffset 1s linear; }
+	  .vc-prog-drain.done { stroke-dashoffset: 0 !important; opacity: 0; }
+	  .vcircle-wrap { position: relative; width: 64px; height: 64px; display: grid; place-items: center; }
+	  .vcircle-wrap .icon-wrap { position: absolute; z-index: 10; }
 
     `;
   }
@@ -2026,8 +2191,14 @@ class SimpleTimerCardEditor extends LitElement {
 
   disconnectedCallback() {
     super.disconnectedCallback();
-    if (this._debounceTimeout) { clearTimeout(this._debounceTimeout); this._debounceTimeout = null; }
-    if (this._emitTimeout) { clearTimeout(this._emitTimeout); this._emitTimeout = null; }
+    if (this._debounceTimeout) { 
+      clearTimeout(this._debounceTimeout); 
+      this._debounceTimeout = null; 
+    }
+    if (this._emitTimeout) { 
+      clearTimeout(this._emitTimeout); 
+      this._emitTimeout = null; 
+    }
   }
 
   setConfig(config) {
@@ -2051,6 +2222,12 @@ class SimpleTimerCardEditor extends LitElement {
     if (key === "minute_buttons" && typeof value === "string") {
       value = value.split(",").map((v) => parseInt(v.trim())).filter((v) => !isNaN(v) && v > 0);
       if (value.length === 0) value = [1, 5, 10];
+    }
+    if (key === "timer_name_presets" && typeof value === "string") {
+      value = value.split(",")
+        .map(v => v.trim())
+        .filter(v => v.length > 0);
+      if (value.length === 0) value = [];
     }
     if (value === undefined || value === null) return;
     this._updateConfig({ [key]: value });
@@ -2165,6 +2342,7 @@ class SimpleTimerCardEditor extends LitElement {
     const defaults = {
       layout: "horizontal",
       style: "bar_horizontal",
+      circle_mode: "fill", 
       show_timer_presets: true,
       timer_presets: [5, 15, 30],
       expire_action: "keep",
@@ -2187,6 +2365,7 @@ class SimpleTimerCardEditor extends LitElement {
       expired_subtitle: "Time's up!",
       default_timer_entity: null,
       keep_timer_visible_when_idle: false,
+      timer_name_presets: [],
     };
 
     const cleaned = { ...config };
@@ -2322,6 +2501,14 @@ class SimpleTimerCardEditor extends LitElement {
           </ha-select>
         </div>
 
+        ${this._config.style === 'circle' ? html`
+          <ha-select label="Circle Mode" .value=${this._config.circle_mode || "fill"} .configValue=${"circle_mode"} 
+                     @selected=${this._selectChanged} @closed=${(e) => { e.stopPropagation(); this._selectChanged(e); }}>
+            <mwc-list-item value="fill">Fill (Clockwise)</mwc-list-item>
+            <mwc-list-item value="drain">Drain (Counter-clockwise)</mwc-list-item>
+          </ha-select>
+        ` : ''}
+
         <div class="storage-info">
           <span class="storage-label">Storage type: <strong>${this._getStorageDisplayName(storageType)}</strong></span>
           <small class="storage-description">${this._getStorageDescription(storageType)}</small>
@@ -2351,7 +2538,13 @@ class SimpleTimerCardEditor extends LitElement {
 
         ${this._config.show_timer_presets !== false ? html`
           <ha-textfield label="Timer presets (minutes, comma-separated)" .value=${(this._config.timer_presets || [5, 15, 30]).join(", ")} .configValue=${"timer_presets"} @input=${this._valueChanged}></ha-textfield>
-
+          <ha-textfield 
+            label="Timer name presets (comma-separated)" 
+            .value=${(this._config.timer_name_presets || []).join(", ")} 
+            .configValue=${"timer_name_presets"} 
+            @input=${this._valueChanged}
+            helper-text="Leave empty for text input only. Add preset names separated by commas."
+          ></ha-textfield>
           <ha-entity-picker
             .hass=${this.hass}
             .value=${this._config.default_timer_entity || ""}
