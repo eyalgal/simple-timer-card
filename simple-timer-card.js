@@ -169,7 +169,7 @@ class SimpleTimerCard extends LitElement {
       alexa_audio_play_until_dismissed: false,
       expired_subtitle: "Time's up!",
       keep_timer_visible_when_idle: false,
-	  circle_mode: "fill",
+      circle_mode: "fill",
       ...config,
       entities: config.entities || [],
       storage: autoStorage,
