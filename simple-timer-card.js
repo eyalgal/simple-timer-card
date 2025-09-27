@@ -98,8 +98,8 @@ class SimpleTimerCard extends LitElement {
     };
     this._customSecs = { horizontal: 15 * 60, vertical: 15 * 60 };
     this._activeSecs = { fill: 10 * 60, bar: 10 * 60 };
-	this._showingCustomName = {};
-	this._lastSelectedName = {};
+    this._showingCustomName = {};
+    this._lastSelectedName = {};
   }
 
   _isActionThrottled(actionType, timerId = 'global', throttleMs = 1000) {
