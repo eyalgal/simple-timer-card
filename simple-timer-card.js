@@ -5,13 +5,13 @@
  *
  * Author: eyalgal
  * License: MIT
- * Version: 1.3.3
+ * Version: 1.3.4
  * For more information, visit: https://github.com/eyalgal/simple-timer-card								   
  */		 
 
 import { LitElement, html, css } from "https://unpkg.com/lit@3.1.0/index.js?module";
 
-const cardVersion = "1.3.3";
+const cardVersion = "1.3.4";
 
 const DAY_IN_MS = 86400000; 
 const HOUR_IN_SECONDS = 3600;
@@ -169,7 +169,7 @@ class SimpleTimerCard extends LitElement {
       alexa_audio_play_until_dismissed: false,
       expired_subtitle: "Time's up!",
       keep_timer_visible_when_idle: false,
-      circle_mode: "fill",
+      progress_mode: "drain",
       ...config,
       entities: config.entities || [],
       storage: autoStorage,
@@ -959,9 +959,22 @@ class SimpleTimerCard extends LitElement {
     });
   }
 
-  _createPresetTimer(minutes, entity = null) {
-      const durationMs = minutes * 60000;
-      const label = this._formatTimerLabel(minutes);
+  _createPresetTimer(preset, entity = null) {
+      let durationMs;
+      let label;
+      
+      if (typeof preset === 'string' && preset.toLowerCase().endsWith('s')) {
+          const seconds = parseInt(preset.slice(0, -1), 10);
+          if (isNaN(seconds) || seconds <= 0) return;
+          durationMs = seconds * 1000;
+          label = `${seconds}s Timer`;
+      } else {
+          const minutes = parseInt(preset, 10);
+          if (isNaN(minutes) || minutes <= 0) return;
+          durationMs = minutes * 60000;
+          label = this._formatTimerLabel(minutes * 60);
+      }
+
       const targetEntity = entity || this._config.default_timer_entity;
 
       const newTimer = {
@@ -986,20 +999,63 @@ class SimpleTimerCard extends LitElement {
       this.requestUpdate();
   }
 
-  _formatTimerLabel(minutes) {
-    if (minutes < 60) return `${minutes}m Timer`;
-    if (minutes === 60) return "1h Timer";
-    if (minutes % 60 === 0) return `${minutes / 60}h Timer`;
-    return `${Math.floor(minutes / 60)}h${minutes % 60}m Timer`;
+  _formatTimerLabel(totalSeconds) {
+    if (totalSeconds <= 0) return "Timer";
+    
+    if (totalSeconds < 60) {
+        return `${totalSeconds}s Timer`;
+    }
+
+    if (totalSeconds % 60 === 0) { 
+        const totalMinutes = totalSeconds / 60;
+        if (totalMinutes < 60) return `${totalMinutes}m Timer`;
+        if (totalMinutes === 60) return "1h Timer";
+        if (totalMinutes % 60 === 0) return `${totalMinutes / 60}h Timer`;
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes % 60;
+        return `${hours}h${minutes}m Timer`;
+    }
+
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    if (minutes < 60) {
+        return `${minutes}m${seconds}s Timer`;
+    }
+    
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    return `${hours}h${remainingMinutes}m Timer`;
   }
 
   _formatDurationDisplay(ms) {
-    if (ms <= 0) return "0m";
-    const totalMinutes = Math.ceil(ms / 60000);
-    if (totalMinutes < 60) return `${totalMinutes}m`;
-    if (totalMinutes === 60) return "1h";
-    if (totalMinutes % 60 === 0) return `${totalMinutes / 60}h`;
-    return `${Math.floor(totalMinutes / 60)}h${totalMinutes % 60}m`;
+    if (ms <= 0) return "0s";
+    const totalSeconds = Math.floor(ms / 1000);
+
+    if (totalSeconds < 60) {
+        return `${totalSeconds}s`;
+    }
+
+    if (totalSeconds % 60 === 0) { 
+        const totalMinutes = totalSeconds / 60;
+        if (totalMinutes < 60) return `${totalMinutes}m`;
+        if (totalMinutes === 60) return "1h";
+        if (totalMinutes % 60 === 0) return `${totalMinutes / 60}h`;
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes % 60;
+        return `${hours}h${minutes}m`;
+    }
+
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+
+    if (minutes < 60) {
+        return `${minutes}m${seconds}s`;
+    }
+
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+
+    return `${hours}h${remainingMinutes}m`;
   }
 
   _renderTimerNameSelector(inputId) {
@@ -1259,8 +1315,19 @@ class SimpleTimerCard extends LitElement {
     const openKey = `noTimer${which.charAt(0).toUpperCase() + which.slice(1)}Open`;
     this._ui[openKey] = !this._ui[openKey];
   }
-  _adjust(which, minutes, sign = +1) {
-    const delta = Math.max(0, (minutes | 0) * 60);
+  _parseAdjustmentToSeconds(value) {
+    let seconds = 0;
+    if (typeof value === 'string' && value.toLowerCase().endsWith('s')) {
+        const parsedSeconds = parseInt(value.slice(0, -1), 10);
+        if (!isNaN(parsedSeconds)) seconds = parsedSeconds;
+    } else {
+        const parsedMinutes = parseInt(value, 10);
+        if (!isNaN(parsedMinutes)) seconds = parsedMinutes * 60;
+    }
+    return seconds;
+  }
+  _adjust(which, value, sign = +1) {
+    const delta = this._parseAdjustmentToSeconds(value);
     this._customSecs = { ...this._customSecs, [which]: Math.max(0, this._customSecs[which] + sign * delta) };
   }
   _createAndSaveTimer(secs, label) {
@@ -1275,7 +1342,7 @@ class SimpleTimerCard extends LitElement {
       return;
     }
 
-    const finalLabel = label && label.trim() ? this._sanitizeText(label.trim()) : this._formatTimerLabel(Math.ceil(secs / 60));
+    const finalLabel = label && label.trim() ? this._sanitizeText(label.trim()) : this._formatTimerLabel(secs);
 
     const newTimer = {
       id: `custom-${Date.now()}`,
@@ -1338,8 +1405,8 @@ _startActive(which, label) {
     const openKey = `active${which.charAt(0).toUpperCase() + which.slice(1)}Open`;
     this._ui[openKey] = !this._ui[openKey];
   }
-  _adjustActive(which, minutes, sign = +1) {
-    const delta = Math.max(0, (minutes | 0) * 60);
+  _adjustActive(which, value, sign = +1) {
+    const delta = this._parseAdjustmentToSeconds(value);
     this._activeSecs = { ...this._activeSecs, [which]: Math.max(0, this._activeSecs[which] + sign * delta) };
   }
 
@@ -1359,13 +1426,13 @@ _startActive(which, label) {
           <li class="${finishedClasses}" style="--tcolor:${color}">
             <div class="vcol">
               <div class="vcircle-wrap">
-                <svg class="vcircle" width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
-                  <circle class="vc-track ${this._config.circle_mode === 'drain' ? 'vc-track-drain' : ''}" 
+                <svg class="vcircle" width="64" height="64" viewBox="0 0 64" aria-hidden="true">
+                  <circle class="vc-track ${this._config.progress_mode === 'drain' ? 'vc-track-drain' : ''}" 
                           cx="32" cy="32" r="${circleValues.radius}"></circle>
-                  <circle class="vc-prog ${this._config.circle_mode === 'drain' ? 'vc-prog-drain done' : 'done'}" 
+                  <circle class="vc-prog ${this._config.progress_mode === 'drain' ? 'vc-prog-drain done' : 'done'}" 
                           cx="32" cy="32" r="${circleValues.radius}"
                     stroke-dasharray="${circleValues.circumference} ${circleValues.circumference}"
-                    style="stroke-dashoffset: ${this._config.circle_mode === 'drain' ? circleValues.circumference : '0'}; 
+                    style="stroke-dashoffset: ${this._config.progress_mode === 'drain' ? circleValues.circumference : '0'}; 
                            transition: stroke-dashoffset 0.25s;"></circle>
                 </svg>
                 <div class="icon-wrap xl"><ha-icon .icon=${icon}></ha-icon></div>
@@ -1453,10 +1520,10 @@ _startActive(which, label) {
                      this._togglePause(t, e);
                    }
                  }}>
-              <svg class="vcircle" width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
-                <circle class="vc-track ${this._config.circle_mode === 'drain' ? 'vc-track-drain' : ''}" 
+              <svg class="vcircle" width="64" height="64" viewBox="0 0 64" aria-hidden="true">
+                <circle class="vc-track ${this._config.progress_mode === 'drain' ? 'vc-track-drain' : ''}" 
                         cx="32" cy="32" r="${circleValues.radius}"></circle>
-                <circle class="vc-prog ${this._config.circle_mode === 'drain' ? 'vc-prog-drain' : ''}" 
+                <circle class="vc-prog ${this._config.progress_mode === 'drain' ? 'vc-prog-drain' : ''}" 
                         cx="32" cy="32" r="${circleValues.radius}"
                   stroke-dasharray="${circleValues.circumference} ${circleValues.circumference}"
                   style="stroke-dashoffset: ${circleValues.strokeDashoffset}; transition: stroke-dashoffset 0.25s;"></circle>
@@ -1478,7 +1545,7 @@ _startActive(which, label) {
                 <div class="title">${t.label}</div>
                 <div class="status">${timeStr}</div>
               </div>
-              <div class="track"><div class="fill" style="width:${pctLeft}%"></div></div>
+              <div class="track"><div class="fill" style="width:${this._config.progress_mode === 'fill' ? pct : pctLeft}%"></div></div>
             </div>
             <div class="actions">
               ${isIdle && supportsManualControls ? html`
@@ -1556,8 +1623,8 @@ _startActive(which, label) {
     
     let circleValues;
     if (isCircleStyle) {
-      const circleMode = this._config.circle_mode || 'fill';
-      circleValues = this._calculateCircleValues(28, pct, circleMode);
+      const progressMode = this._config.progress_mode || 'drain';
+      circleValues = this._calculateCircleValues(28, pct, progressMode);
     }
     
     return {
@@ -1569,77 +1636,42 @@ _startActive(which, label) {
   }
   
   _renderMinuteButtons(minuteButtons, adjustFunction, sign, label = '') {
-    return minuteButtons.map(m => html`
-      <button class="btn btn-ghost" @click=${() => adjustFunction(m, sign)}>
-        ${sign > 0 ? '+' : '-'}${m}m
-      </button>
-    `);
+    return minuteButtons.map(val => {
+      const displayLabel = typeof val === 'string' && val.toLowerCase().endsWith('s')
+        ? val.toLowerCase()
+        : `${val}m`;
+      return html`
+        <button class="btn btn-ghost" @click=${() => adjustFunction(val, sign)}>
+          ${sign > 0 ? '+' : '-'}${displayLabel}
+        </button>
+      `;
+    });
   }  
 
   _renderItemVertical(t, style) {
     const state = this._getTimerRenderState(t, style);
     const { isPaused, isIdle, isFinished, color, icon, ring, pct, pctLeft, isCircleStyle, isFillStyle, supportsPause, supportsManualControls, timeStr, circleValues, supportsReadOnlyDismiss } = state;
 
-    if (ring) {
-      if (style === "circle") {
-        return html`
-          <li class="item vtile" style="--tcolor:${color}">
-            <div class="vcol">
-              <div class="vcircle-wrap">
-                <svg class="vcircle" width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
-                  <circle class="vc-track ${this._config.circle_mode === 'drain' ? 'vc-track-drain' : ''}" 
-                          cx="32" cy="32" r="${circleValues.radius}"></circle>
-                  <circle class="vc-prog ${this._config.circle_mode === 'drain' ? 'vc-prog-drain done' : 'done'}" 
-                          cx="32" cy="32" r="${circleValues.radius}"
-                    stroke-dasharray="${circleValues.circumference} ${circleValues.circumference}"
-                    style="stroke-dashoffset: ${this._config.circle_mode === 'drain' ? circleValues.circumference : '0'}; 
-                           transition: stroke-dashoffset 0.25s;"></circle>
-                </svg>
-                <div class="icon-wrap xl"><ha-icon .icon=${icon}></ha-icon></div>
-              </div>
-              <div class="vtitle">${t.label}</div>
-              <div class="vstatus up">${timeStr}</div>
-              <div class="vactions">
-                ${supportsManualControls ? html`
-                  <button class="chip" @click=${() => this._handleSnooze(t)}>Snooze</button>
-                  <button class="chip" @click=${() => this._handleDismiss(t)}>Dismiss</button>
-                ` : supportsReadOnlyDismiss ? html`
-                  <button class="chip" @click=${() => this._handleDismiss(t)}>Dismiss</button>
-                ` : ""}
-              </div>
-            </div>
-          </li>
-        `;
-      }
-
-      return html`
-        <li class="item vtile ${style.startsWith('fill_') ? 'card' : ''}" style="--tcolor:${color}">
-          ${style.startsWith('fill_') ? html`<div class="progress-fill" style="width:100%"></div>` : ""}
-          <div class="vcol">
-            <div class="icon-wrap large"><ha-icon .icon=${icon}></ha-icon></div>
-            <div class="vtitle">${t.label}</div>
-            <div class="vstatus up">${timeStr}</div>
-            ${style.startsWith('bar_')
-              ? html`<div class="vactions-center">
-                  ${supportsManualControls ? html`
-                    <button class="chip" @click=${() => this._handleSnooze(t)}>Snooze</button>
-                    <button class="chip" @click=${() => this._handleDismiss(t)}>Dismiss</button>
-                  ` : supportsReadOnlyDismiss ? html`
-                    <button class="chip" @click=${() => this._handleDismiss(t)}>Dismiss</button>
-                  ` : ""}
-                </div>`
-              : html`<div class="vactions">
-                  ${supportsManualControls ? html`
-                    <button class="chip" @click=${() => this._handleSnooze(t)}>Snooze</button>
-                    <button class="chip" @click=${() => this._handleDismiss(t)}>Dismiss</button>
-                  ` : supportsReadOnlyDismiss ? html`
-                    <button class="chip" @click=${() => this._handleDismiss(t)}>Dismiss</button>
-                  ` : ""}
-                </div>`}
-          </div>
-        </li>
-      `;
-    }
+	if (ring) {
+	  return html`
+		<li class="item vtile ${style.startsWith('fill_') ? 'card' : ''}" style="--tcolor:${color}">
+		  ${style.startsWith('fill_') ? html`<div class="progress-fill" style="width:100%"></div>` : ""}
+		  <div class="vcol">
+			<div class="icon-wrap large"><ha-icon .icon=${icon}></ha-icon></div>
+			<div class="vtitle">${t.label}</div>
+			<div class="vstatus up">${timeStr}</div>
+			<div class="vactions-center">
+			  ${supportsManualControls ? html`
+				<button class="chip" @click=${() => this._handleSnooze(t)}>Snooze</button>
+				<button class="chip" @click=${() => this._handleDismiss(t)}>Dismiss</button>
+			  ` : supportsReadOnlyDismiss ? html`
+				<button class="chip" @click=${() => this._handleDismiss(t)}>Dismiss</button>
+			  ` : ""}
+			</div>
+		  </div>
+		</li>
+	  `;
+	}
 
     if (style === "circle") {
       return html`
@@ -1660,10 +1692,10 @@ _startActive(which, label) {
                      this._togglePause(t, e);
                    }
                  }}>
-              <svg class="vcircle" width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
-                <circle class="vc-track ${this._config.circle_mode === 'drain' ? 'vc-track-drain' : ''}" 
+              <svg class="vcircle" width="64" height="64" viewBox="0 0 64" aria-hidden="true">
+                <circle class="vc-track ${this._config.progress_mode === 'drain' ? 'vc-track-drain' : ''}" 
                         cx="32" cy="32" r="${circleValues.radius}"></circle>
-                <circle class="vc-prog ${this._config.circle_mode === 'drain' ? 'vc-prog-drain' : ''}" 
+                <circle class="vc-prog ${this._config.progress_mode === 'drain' ? 'vc-prog-drain' : ''}" 
                         cx="32" cy="32" r="${circleValues.radius}"
                   stroke-dasharray="${circleValues.circumference} ${circleValues.circumference}"
                   style="stroke-dashoffset: ${circleValues.strokeDashoffset}; transition: stroke-dashoffset 0.25s;"></circle>
@@ -1677,58 +1709,59 @@ _startActive(which, label) {
       `;
     }
 
-    return html`
-      <li class="item vtile ${style.startsWith('fill_') ? 'card' : ''}" style="--tcolor:${color}">
-        ${style.startsWith('fill_') ? html`<div class="progress-fill" style="width:${pct}%"></div>` : ""}
-        <div class="vcol">
-          <div class="icon-wrap large"><ha-icon .icon=${icon}></ha-icon></div>
-          <div class="vtitle">${t.label}</div>
-          <div class="vstatus">${timeStr}</div>
-          ${style.startsWith('bar_') ? html`
-            <div class="vprogressbar">
-              ${isIdle && supportsManualControls ? html`
-                <button class="action-btn" title="Start" @click=${() => this._handleStart(t)}>
-                  <ha-icon icon="mdi:play"></ha-icon>
-                </button>
-              ` : supportsPause && supportsManualControls ? html`
-                <button class="action-btn"
-                  title="${t.paused ? 'Resume' : 'Pause'}"
-                  @click=${() => t.paused ? this._handleResume(t) : this._handlePause(t)}>
-                  <ha-icon icon="${t.paused ? 'mdi:play' : 'mdi:pause'}"></ha-icon>
-                </button>
-              ` : ""}
-              <div class="vtrack small">
-                <div class="vfill" style="width:${pctLeft}%"></div>
-              </div>
-              ${supportsManualControls && !isIdle ? html`
-                <button class="action-btn" title="Cancel" @click=${() => this._handleCancel(t)}>
-                  <ha-icon icon="mdi:close"></ha-icon>
-                </button>
-              ` : ""}
-            </div>
-          ` : html`
-            <div class="vactions">
-              ${isIdle && supportsManualControls ? html`
-                <button class="action-btn" title="Start" @click=${() => this._handleStart(t)}>
-                  <ha-icon icon="mdi:play"></ha-icon>
-                </button>
-              ` : supportsPause && supportsManualControls ? html`
-                <button class="action-btn"
-                  title="${t.paused ? 'Resume' : 'Pause'}"
-                  @click=${() => t.paused ? this._handleResume(t) : this._handlePause(t)}>
-                  <ha-icon icon="${t.paused ? 'mdi:play' : 'mdi:pause'}"></ha-icon>
-                </button>
-              ` : ""}
-              ${supportsManualControls && !isIdle ? html`
-                <button class="action-btn" title="Cancel" @click=${() => this._handleCancel(t)}>
-                  <ha-icon icon="mdi:close"></ha-icon>
-                </button>
-              ` : ""}
-            </div>
-          `}
-        </div>
-      </li>
-    `;
+	return html`
+	  <li class="item vtile ${style.startsWith('fill_') ? 'card' : ''}" style="--tcolor:${color}">
+		${style.startsWith('fill_') ? html`<div class="progress-fill" style="width: ${pct}%"></div>` : ""}
+		<div class="vcol">
+		  <div class="icon-wrap large"><ha-icon .icon=${icon}></ha-icon></div>
+		  <div class="vtitle">${t.label}</div>
+		  <div class="vstatus">${timeStr}</div>
+
+		  ${style.startsWith('bar_') ? html`
+			<div class="vprogressbar">
+			  ${isIdle && supportsManualControls ? html`
+				<button class="action-btn" title="Start" @click=${() => this._handleStart(t)}>
+				  <ha-icon icon="mdi:play"></ha-icon>
+				</button>
+			  ` : supportsPause && supportsManualControls ? html`
+				<button class="action-btn"
+				  title="${t.paused ? 'Resume' : 'Pause'}"
+				  @click=${() => t.paused ? this._handleResume(t) : this._handlePause(t)}>
+				  <ha-icon icon="${t.paused ? 'mdi:play' : 'mdi:pause'}"></ha-icon>
+				</button>
+			  ` : ""}
+			  <div class="vtrack small">
+				<div class="vfill" style="width:${this._config.progress_mode === 'fill' ? pct : pctLeft}%"></div>
+			  </div>
+			  ${supportsManualControls && !isIdle ? html`
+				<button class="action-btn" title="Cancel" @click=${() => this._handleCancel(t)}>
+				  <ha-icon icon="mdi:close"></ha-icon>
+				</button>
+			  ` : ""}
+			</div>
+		  ` : html`
+			<div class="vactions">
+			  ${isIdle && supportsManualControls ? html`
+				<button class="action-btn" title="Start" @click=${() => this._handleStart(t)}>
+				  <ha-icon icon="mdi:play"></ha-icon>
+				</button>
+			  ` : supportsPause && supportsManualControls ? html`
+				<button class="action-btn"
+				  title="${t.paused ? 'Resume' : 'Pause'}"
+				  @click=${() => t.paused ? this._handleResume(t) : this._handlePause(t)}>
+				  <ha-icon icon="${t.paused ? 'mdi:play' : 'mdi:pause'}"></ha-icon>
+				</button>
+			  ` : ""}
+			  ${supportsManualControls && !isIdle ? html`
+				<button class="action-btn" title="Cancel" @click=${() => this._handleCancel(t)}>
+				  <ha-icon icon="mdi:close"></ha-icon>
+				</button>
+			  ` : ""}
+			</div>
+		  `}
+		</div>
+	  </li>
+	`;
   }
 
 
@@ -1785,9 +1818,14 @@ _startActive(which, label) {
             </div>
           </div>
           <div style="display:flex; gap:8px;">
-            ${presets.map((m) => html`
-              <button class="btn btn-preset" @click=${() => this._createPresetTimer(m)}>${m}m</button>
-            `)}
+            ${presets.map((preset) => {
+              const label = typeof preset === 'string' && preset.toLowerCase().endsWith('s')
+                ? preset.toLowerCase()
+                : `${preset}m`;
+              return html`
+                <button class="btn btn-preset" @click=${() => this._createPresetTimer(preset)}>${label}</button>
+              `;
+            })}
             ${this._config.show_timer_presets === false ? html`
               <button class="btn btn-ghost" @click=${() => this._toggleCustom("horizontal")}><ha-icon icon="mdi:plus" style="--mdc-icon-size:16px;"></ha-icon> Add</button>
             ` : html`
@@ -1805,7 +1843,7 @@ _startActive(which, label) {
             ${this._renderMinuteButtons(minuteButtons, (m, sign) => this._adjust("horizontal", m, sign), -1)}
           </div>
           ${this._renderTimerNameSelector("nt-h-name")}
-          <div class="actions">
+          <div class="picker-actions">
             <button class="btn btn-ghost" @click=${() => (this._ui.noTimerHorizontalOpen = false)}>Cancel</button>
             <button class="btn btn-primary" @click=${() => this._startFromCustom("horizontal")}>Start</button>
           </div>
@@ -1819,9 +1857,14 @@ _startActive(which, label) {
             <p class="nt-title">No Active Timers</p>
           </div>
           <div style="display:flex; gap:8px; margin-bottom:8px;">
-            ${presets.map((m) => html`
-              <button class="btn btn-preset" @click=${() => this._createPresetTimer(m)}>${m}m</button>
-            `)}
+            ${presets.map((preset) => {
+              const label = typeof preset === 'string' && preset.toLowerCase().endsWith('s')
+                ? preset.toLowerCase()
+                : `${preset}m`;
+              return html`
+                <button class="btn btn-preset" @click=${() => this._createPresetTimer(preset)}>${label}</button>
+              `;
+            })}
             ${this._config.show_timer_presets === false ? html`
               <button class="btn btn-ghost" @click=${() => this._toggleCustom("vertical")}><ha-icon icon="mdi:plus" style="--mdc-icon-size:16px;"></ha-icon> Add</button>
             ` : html`
@@ -1839,7 +1882,7 @@ _startActive(which, label) {
             ${this._renderMinuteButtons(minuteButtons, (m, sign) => this._adjust("vertical", m, sign), -1)}
           </div>
           ${this._renderTimerNameSelector("nt-v-name")}
-          <div class="actions">
+          <div class="picker-actions">
             <button class="btn btn-ghost" @click=${() => (this._ui.noTimerVerticalOpen = false)}>Cancel</button>
             <button class="btn btn-primary" @click=${() => this._startFromCustom("vertical")}>Start</button>
           </div>
@@ -1873,7 +1916,7 @@ _startActive(which, label) {
             ${this._renderMinuteButtons(minuteButtons, (m, sign) => this._adjustActive("fill", m, sign), -1)}
           </div>
           ${this._renderTimerNameSelector("add-fill-name")}
-          <div class="actions">
+          <div class="picker-actions">
             <button class="btn btn-ghost" @click=${() => (this._ui.activeFillOpen = false)}>Cancel</button>
             <button class="btn btn-primary" @click=${() => this._startActive("fill")}>Start</button>
           </div>
@@ -1901,7 +1944,7 @@ _startActive(which, label) {
             ${this._renderMinuteButtons(minuteButtons, (m, sign) => this._adjustActive("bar", m, sign), -1)}
           </div>
           ${this._renderTimerNameSelector("add-bar-name")}
-          <div class="actions">
+          <div class="picker-actions">
             <button class="btn btn-ghost" @click=${() => (this._ui.activeBarOpen = false)}>Cancel</button>
             <button class="btn btn-primary" @click=${() => this._startActive("bar")}>Start</button>
           </div>
@@ -1928,42 +1971,49 @@ _startActive(which, label) {
 
   static get styles() {
     return css`
-      :host { --stc-radius: 24px; --stc-chip-radius: 9999px; }
-      ha-card { border-radius: var(--ha-card-border-radius, var(--stc-radius)); }
+      :host { --stc-chip-radius: 9999px; }
+      ha-card { border-radius: var(--ha-card-border-radius, 12px); overflow: hidden; padding: 0; }
 
       .section { padding: 12px 16px 0; }
       .section h2 { margin: 0 0 8px 0; font-size: 20px; font-weight: 600; }
 
-      .grid { display: grid; grid-template-columns: 1fr; gap: 12px; padding: 0; }
+      .grid { display: grid; grid-template-columns: 1fr; gap: 12px; padding: 0; margin: -1px 0; }
 
-      .card {
-        background: var(--ha-card-background, var(--card-background-color));
-        border-radius: var(--ha-card-border-radius, var(--stc-radius));
-        position: relative; overflow: hidden;
-        padding: 8px;
-        box-sizing: border-box;
-      }
-      .card-content { position: relative; z-index: 1; display: flex; align-items: center; gap: 12px; padding: 0 4px; }
-      .progress-fill {
-        position: absolute; top: 0; left: 0; height: 100%;
-        width: 0%;
-        border-top-right-radius: var(--ha-card-border-radius, var(--stc-radius));
-        border-bottom-right-radius: var(--ha-card-border-radius, var(--stc-radius));
-        z-index: 0; transition: width 1s linear;
-        background: var(--tcolor, var(--primary-color)); opacity: 0.28;
-      }
+	  .card {
+	    background: var(--ha-card-background, var(--card-background-color));
+	    position: relative;
+	    padding: 0 8px;
+	    box-sizing: border-box;
+	  }
+      .card-content { position: relative; z-index: 1; display: flex; align-items: center; gap: 12px; padding: 0 4px; height: 40px; }
+	  .progress-fill {
+	    position: absolute;
+	    inset: 6px 0;
+	    height: auto;
+	    width: 0;
+	    left: 0;
+	    z-index: 0;
+	    transition: width 1s linear;
+	    background: var(--tcolor, var(--primary-color));
+	    opacity: 0.25;
+	    border-radius: var(--ha-card-border-radius, 12px);
+	  }
       .card.finished .progress-fill {
         width: 100% !important;
-        border-radius: var(--ha-card-border-radius, var(--stc-radius));
-      }
+	  }
+	  .status.secondary {
+	    height: 14px;
+	    line-height: 14px;
+	    margin-top: 2px;
+	  }
 
-      .nt-h { padding: 0 8px; height: 56px; transition: height .3s ease; }
+      .nt-h { padding: 0 8px; min-height: 56px; transition: height .3s ease; }
       .nt-h.expanded { height: auto; }
-      .nt-h .row { display: flex; align-items: center; justify-content: space-between; height: 56px; }
+      .nt-h .row { display: flex; align-items: center; justify-content: space-between; min-height: 56px; }
 
-      .nt-v { padding: 0 12px; height: 120px; transition: height .3s ease; }
+      .nt-v { padding: 0 8px; min-height: 120px; transition: height .3s ease; }
       .nt-v.expanded { height: auto; }
-      .nt-v .col { display: flex; flex-direction: column; align-items: center; justify-content: space-between; height: 120px; width: 100%; }
+      .nt-v .col { display: flex; flex-direction: column; align-items: center; justify-content: space-between; width: 100%; min-height: 120px; }
 
       .picker, .active-picker {
         max-height: 0; opacity: 0; overflow: hidden;
@@ -1971,11 +2021,11 @@ _startActive(which, label) {
         padding-top: 0; margin-bottom: 0;
       }
       .card.expanded .picker { max-height: 320px; opacity: 1; padding: 12px 8px 8px; }
-      .card-show .active-picker { max-height: 320px; opacity: 1; margin-bottom: 8px; }
+      .card-show .active-picker { max-height: 320px; opacity: 1; margin-bottom: 8px; padding: 8px 0; }
 
       .icon-wrap {
-        width: 36px; height: 36px; border-radius: 50%;
-        background: var(--tcolor, var(--divider-color)); opacity: 0.5;
+        width: 36px; height: 36px; border-radius: var(--ha-card-border-radius, 50%);
+        background: var(--tcolor, var(--divider-color)); 
         display: flex; align-items: center; justify-content: center; flex: 0 0 36px;
       }
       .icon-wrap ha-icon { --mdc-icon-size: 22px; color: var(--tcolor, var(--primary-text-color)); }
@@ -1997,8 +2047,8 @@ _startActive(which, label) {
 
       .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; max-width: 220px; margin: 0 auto; }
       .display { text-align: center; font-size: 36px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; margin: 8px 0; }
-      .actions { display: flex; gap: 12px; max-width: 280px; margin: 10px auto 0; }
-      .actions .btn { flex: 1; }
+      .picker-actions { display: flex; gap: 12px; max-width: 280px; margin: 16px auto 0; }
+      .picker-actions .btn { flex: 1; }
 
 	  .text-input {
 		width: 90%; text-align: center; padding: 8px 12px; font-size: 14px;
@@ -2013,12 +2063,11 @@ _startActive(which, label) {
 	  @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 	  .name-chips .btn { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 	  .name-selector ha-select { width: 100%; }
-      .active-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+      .active-head { display: flex; align-items: center; justify-content: space-between; padding-top: 8px; margin-bottom: 6px; }
       .active-head h4 { margin: 0; font-size: 16px; font-weight: 600; color: var(--primary-text-color); }
 
-      .list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
-
-      .item { box-sizing: border-box; position: relative; border-radius: var(--ha-card-border-radius, var(--stc-radius)); padding: 8px; height: 56px; background: var(--ha-card-background, var(--card-background-color)); }
+      .list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+      .item { box-sizing: border-box; position: relative; border-radius: var(--ha-card-border-radius, 12px); overflow: hidden; padding: 8px 0; min-height: 56px; background: var(--ha-card-background, var(--card-background-color)); }
       .item .icon-wrap { background: color-mix(in srgb, var(--tcolor, var(--divider-color)) 20%, transparent); }
       .item .info { display: flex; flex-direction: column; justify-content: center; height: 36px; flex: 1; overflow: hidden; }
       .item .title { font-size: 14px; font-weight: 500; line-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -2026,11 +2075,11 @@ _startActive(which, label) {
       .item .status.up { color: color-mix(in srgb, var(--tcolor, var(--primary-color)) 70%, white); }
       .item .x { color: var(--secondary-text-color); background: none; border: 0; padding: 4px; cursor: pointer; }
       .item .x:hover { color: var(--primary-text-color); }
-      .item .actions { display: flex; gap: 4px; align-items: center; height: 36px; margin-top: -2px; }
+      .item .actions { display: flex; gap: 4px; align-items: center; height: 36px; }
       .item .action-btn { color: var(--secondary-text-color); background: none; border: 0; padding: 4px; cursor: pointer; border-radius: 50%; transition: all 0.2s; }
       .item .action-btn:hover { color: var(--primary-text-color); background: color-mix(in srgb, var(--primary-color) 10%, transparent); }
 
-      .bar .row { display: flex; align-items: center; gap: 12px; }
+      .bar .row { display: flex; align-items: center; gap: 12px; height: 40px; }
       .bar .top { display: flex; align-items: center; justify-content: space-between; height: 18px; }
       .track { width: 100%; height: 8px; border-radius: var(--stc-chip-radius); background: color-mix(in srgb, var(--tcolor, var(--primary-color)) 10%, transparent); margin-top: 2px; overflow: hidden; }
       .fill { height: 100%; width: 0%; border-radius: var(--stc-chip-radius); background: var(--tcolor, var(--primary-color)); transition: width 1s linear; }
@@ -2038,18 +2087,18 @@ _startActive(which, label) {
       .chips { display: flex; gap: 6px; }
       .chip { font-weight: 600; color: color-mix(in srgb, var(--tcolor, var(--primary-color)) 70%, white); border-radius: var(--stc-chip-radius); padding: 4px 8px; font-size: 12px; background: none; border: 0; cursor: pointer; }
       .chip:hover { background: color-mix(in srgb, var(--tcolor, var(--primary-color)) 18%, transparent); }
-      .vgrid { display: grid; gap: 8px; }
+      .vgrid { display: grid; gap: 8px; padding: 0px; }
       .vgrid.cols-1 { grid-template-columns: 1fr; }
       .vgrid.cols-2 { grid-template-columns: 1fr 1fr; }
 
-      .vtile {
-        position: relative;
-        height: auto;
-        padding: 8px;
-        display: flex;
-        align-items: stretch;
-        justify-content: center;
-      }
+	  .vtile {
+	    position: relative;
+		min-height: 120px;
+	    display: flex;
+	    align-items: center;
+	    justify-content: center;
+	    box-sizing: border-box;
+	  }
       .vtile .vcol {
         z-index: 1;
         width: 100%;
@@ -2061,7 +2110,7 @@ _startActive(which, label) {
       }
 
       .icon-wrap.large {
-        width: 36px; height: 36px; flex: 0 0 36px; border-radius: 50%;
+        width: 36px; height: 36px; flex: 0 0 36px; border-radius: var(--ha-card-border-radius, 50%);
         background: color-mix(in srgb, var(--tcolor, var(--divider-color)) 22%, transparent);
       }
       .icon-wrap.large ha-icon { --mdc-icon-size: 22px; color: var(--tcolor, var(--primary-text-color)); }
@@ -2090,7 +2139,7 @@ _startActive(which, label) {
       }
 
       .vtile.card .progress-fill {
-        border-radius: var(--ha-card-border-radius, var(--stc-radius));
+        border-radius: var(--ha-card-border-radius, 12px);
         opacity: 0.22;
       }
 
@@ -2132,7 +2181,7 @@ _startActive(which, label) {
         margin-top: -2px;
       }
 
-      .vtile .vactions { display: flex; gap: 6px; align-items: center; justify-content: center; margin-top: 2px; }
+      .vtile .vactions { display: flex; gap: 6px; align-items: center; justify-content: center; margin-top: -4px; margin-bottom: -4px; }
       .vcircle-wrap { position: relative; width: 64px; height: 64px; display: grid; place-items: center; }
 
       .vc-prog {
@@ -2160,13 +2209,13 @@ _startActive(which, label) {
       .vtile-close ha-icon { --mdc-icon-size: 18px; }
 
 	  .vcircle { position: absolute; inset: 0; transform: rotate(-90deg); }
-	  .vc-track, .vc-prog { fill: none; stroke-width: 4.5px; vector-effect: non-scaling-stroke; }
+      .vc-track, .vc-prog { fill: none; stroke-width: 4.5px; vector-effect: non-scaling-stroke; }
 	  .vc-track { stroke: color-mix(in srgb, var(--tcolor, var(--primary-color)) 18%, transparent); }
 	  .vc-prog { stroke: var(--tcolor, var(--primary-color)); transition: stroke-dashoffset 1s linear; }
 	  .vc-prog.done { stroke-dashoffset: 0 !important; }
 	  .vc-track-drain { stroke: color-mix(in srgb, var(--tcolor, var(--primary-color)) 18%, transparent); }
 	  .vc-prog-drain { stroke: var(--tcolor, var(--primary-color)); transition: stroke-dashoffset 1s linear; }
-	  .vc-prog-drain.done { stroke-dashoffset: 0 !important; opacity: 0; }
+	  .vc-prog-drain.done { stroke-dashoffset: 0 !important; opacity: 1; }
 	  .vcircle-wrap { position: relative; width: 64px; height: 64px; display: grid; place-items: center; }
 	  .vcircle-wrap .icon-wrap { position: absolute; z-index: 10; }
 
@@ -2216,20 +2265,30 @@ class SimpleTimerCardEditor extends LitElement {
     let value = hasChecked ? target.checked : target.value;
 
     if (key === "timer_presets" && typeof value === "string") {
-      value = value.split(",").map((v) => parseInt(v.trim())).filter((v) => !isNaN(v) && v > 0);
+      value = value.split(",").map(v => v.trim()).filter(v => v).map(v => {
+        if (v.toLowerCase().endsWith('s')) {
+          const seconds = parseInt(v.slice(0, -1), 10);
+          if (!isNaN(seconds) && seconds > 0) return `${seconds}s`;
+        }
+        const minutes = parseInt(v, 10);
+        if (!isNaN(minutes) && minutes > 0) return minutes;
+        return null;
+      }).filter(v => v !== null);
       if (value.length === 0) value = [5, 15, 30];
     }
     if (key === "minute_buttons" && typeof value === "string") {
-      value = value.split(",").map((v) => parseInt(v.trim())).filter((v) => !isNaN(v) && v > 0);
+      value = value.split(",").map(v => v.trim()).filter(v => v).map(v => {
+        if (v.toLowerCase().endsWith('s')) {
+          const seconds = parseInt(v.slice(0, -1), 10);
+          if (!isNaN(seconds) && seconds > 0) return `${seconds}s`;
+        }
+        const minutes = parseInt(v, 10);
+        if (!isNaN(minutes) && minutes > 0) return minutes;
+        return null;
+      }).filter(v => v !== null);
       if (value.length === 0) value = [1, 5, 10];
     }
-    if (key === "timer_name_presets" && typeof value === "string") {
-      value = value.split(",")
-        .map(v => v.trim())
-        .filter(v => v.length > 0);
-      if (value.length === 0) value = [];
-    }
-    if (value === undefined || value === null) return;
+    
     this._updateConfig({ [key]: value });
   }
   _detailValueChanged(ev) {
@@ -2342,7 +2401,7 @@ class SimpleTimerCardEditor extends LitElement {
     const defaults = {
       layout: "horizontal",
       style: "bar_horizontal",
-      circle_mode: "fill", 
+      progress_mode: "drain", 
       show_timer_presets: true,
       timer_presets: [5, 15, 30],
       expire_action: "keep",
@@ -2501,11 +2560,11 @@ class SimpleTimerCardEditor extends LitElement {
           </ha-select>
         </div>
 
-        ${this._config.style === 'circle' ? html`
-          <ha-select label="Circle Mode" .value=${this._config.circle_mode || "fill"} .configValue=${"circle_mode"} 
+        ${(this._config.style === 'circle' || (this._config.style || '').startsWith('bar_')) ? html`
+          <ha-select label="Progress Mode" .value=${this._config.progress_mode || "drain"} .configValue=${"progress_mode"} 
                      @selected=${this._selectChanged} @closed=${(e) => { e.stopPropagation(); this._selectChanged(e); }}>
-            <mwc-list-item value="fill">Fill (Clockwise)</mwc-list-item>
-            <mwc-list-item value="drain">Drain (Counter-clockwise)</mwc-list-item>
+            <mwc-list-item value="drain">Drain (shrinks)</mwc-list-item>
+            <mwc-list-item value="fill">Fill (grows)</mwc-list-item>
           </ha-select>
         ` : ''}
 
@@ -2537,7 +2596,7 @@ class SimpleTimerCardEditor extends LitElement {
         </ha-formfield>
 
         ${this._config.show_timer_presets !== false ? html`
-          <ha-textfield label="Timer presets (minutes, comma-separated)" .value=${(this._config.timer_presets || [5, 15, 30]).join(", ")} .configValue=${"timer_presets"} @input=${this._valueChanged}></ha-textfield>
+          <ha-textfield label="Timer presets (minutes or secs, e.g. 5, 90s)" .value=${(this._config.timer_presets || [5, 15, 30]).join(", ")} .configValue=${"timer_presets"} @input=${this._valueChanged}></ha-textfield>
           <ha-textfield 
             label="Timer name presets (comma-separated)" 
             .value=${(this._config.timer_name_presets || []).join(", ")} 
@@ -2790,4 +2849,10 @@ setTimeout(() => {
     editor: "simple-timer-card-editor",
   });
 }, 0);
+
+
+
+
+
+
 
