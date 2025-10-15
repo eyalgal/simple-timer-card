@@ -87,7 +87,7 @@ resources:
 | :----------------------- | :-------- | :---------------------- | :------------------------------------------------------------------------------------------------- |
 | `type`                   | `string`  | **Required**            | `custom:simple-timer-card`                                                                        |
 | `layout`                 | `string`  | `horizontal`            | Card layout for no-timers state. Can be `horizontal` or `vertical`                                |
-| `style`                  | `string`  | `bar_horizontal`        | Timer display style. Can be `fill_vertical`, `fill_horizontal`, `bar_vertical`, `bar_horizontal` (default), or `circle`. Note: Vertical styles and circle style automatically use a 2-column grid when displaying multiple active timers |
+| `style`                  | `string`  | `bar_horizontal`        | Timer display style. Can be `fill_vertical`, `fill_horizontal`, `bar_vertical`, `bar_horizontal` (default), or `circle`. See the Grid Layout section for multi-timer display behavior |
 | `title`                  | `string`  | `null`                  | Optional title for the card                                                                        |
 | `entities`               | `array`   | `[]`                    | Array of timer entities to display                                                                |
 | `circle_mode`            | `string`  | `fill`                  | Circle progress direction: `fill` (clockwise) or `drain` (counter-clockwise). Only applies when `style` is set to `circle` |
@@ -445,10 +445,12 @@ mqtt:
 The card offers flexible styling options with five distinct display styles:
 
 - **Progress Bar Horizontal** (`bar_horizontal`): Traditional horizontal progress bar with timer information
-- **Progress Bar Vertical** (`bar_vertical`): Vertical progress bar layout with timer information. Multiple active timers display in a 2-column grid
+- **Progress Bar Vertical** (`bar_vertical`): Vertical progress bar layout with timer information
 - **Background Fill Horizontal** (`fill_horizontal`): Full horizontal background color fill that progresses as timer counts down
-- **Background Fill Vertical** (`fill_vertical`): Full vertical background color fill that progresses as timer counts down. Multiple active timers display in a 2-column grid
-- **Circle** (`circle`): Modern circular progress ring with centered timer display. Supports both clockwise (`fill`) and counter-clockwise (`drain`) progress modes. Multiple active timers display in a 2-column grid
+- **Background Fill Vertical** (`fill_vertical`): Full vertical background color fill that progresses as timer counts down
+- **Circle** (`circle`): Modern circular progress ring with centered timer display. Supports both clockwise (`fill`) and counter-clockwise (`drain`) progress modes
+
+> **💡 Note:** Vertical styles (`fill_vertical`, `bar_vertical`) and circle style automatically display multiple active timers in a 2-column grid. See the Grid Layout section below for details.
 
 The `layout` parameter controls the card appearance when there are no active timers, while `style` controls active timer display. This separation allows any combination of layout and style for maximum flexibility.
 
