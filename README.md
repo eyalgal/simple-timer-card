@@ -437,7 +437,7 @@ mqtt:
       json_attributes_topic: simple_timer_card/timers
 ```
 
-> **⚠️ Important:** The `state_topic` and `json_attributes_topic` Important: The state_topic and json_attributes_topic must be exactly as shown above. It is also strongly recommend to keep the `value_template` as is.
+> **⚠️ Important:** The `state_topic` and `json_attributes_topic` must be exactly as shown above. It is also strongly recommended to keep the `value_template` as is. Please follow the [**Hybrid Model setup guide**](mqtt-hybrid-model.md) to setup a failover.
 
 ## **🎨 Styling**
 
