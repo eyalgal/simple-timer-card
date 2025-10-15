@@ -198,6 +198,141 @@ trigger:
 
 Check the `examples/` folder for ready-to-use automation templates.
 
+## **✨ New in v1.3.5: Reliable Backend Timers with the Hybrid Model ✨**
+
+The standard MQTT timer setup works great for most use cases, but it has one limitation: the frontend (your browser) needs to be open to check for expired timers and fire notifications. If you close all browser tabs with Home Assistant, timer expiry events might not be published until you reopen the UI.
+
+**The Hybrid Model** solves this by adding a backend "Companion Automation" in Home Assistant. This automation acts as a failsafe, running on your Home Assistant server every second to check for expired timers—guaranteeing timers are handled even when the UI is closed. This gives you the best of both worlds: instant UI feedback when you're viewing the dashboard, and backend reliability when you're not. 🚀
+
+### 🔧 1. Configure the MQTT Sensor
+
+First, for persistent timers that sync across devices, you need to configure an MQTT sensor. Add the following to your `configuration.yaml`:
+
+```yaml
+# configuration.yaml
+mqtt:
+  sensor:
+    - name: "Simple Timer Card Timers" # You can change the name
+      unique_id: simple_timer_card_timers
+      state_topic: "simple_timer_card/timers/state"
+      value_template: "{{ value_json.version | default(1) }}"
+      json_attributes_topic: "simple_timer_card/timers"
+```
+
+> **⚠️ Important:** The `state_topic` and `json_attributes_topic` must be exactly as shown.
+
+### 🚀 2. Set Up the Backend Failsafe
+
+#### A. Create a Helper to Track Timers
+
+This `input_text` helper prevents the backend from sending duplicate notifications for the same timer:
+
+```yaml
+# configuration.yaml or helpers.yaml
+input_text:
+  simple_timer_card_backend_processed:
+    name: "Simple Timer Card Backend Processed"
+    max: 255
+    initial: ""
+```
+
+#### B. Create the Companion Automation
+
+This automation runs every second to check for expired timers that the UI might have missed. Add this automation to your Home Assistant configuration:
+
+```yaml
+alias: "Simple Timer Card: Backend Failsafe"
+description: "Checks for expired timers every second and publishes events if the UI missed them"
+triggers:
+  - trigger: time_pattern
+    seconds: "*"
+conditions: []
+actions:
+  - variables:
+      timers: >-
+        {{ state_attr('sensor.simple_timer_card_timers', 'timers') | default([]) }}
+      now_ts: "{{ now().timestamp() }}"
+      processed_ids: >-
+        {{ states('input_text.simple_timer_card_backend_processed').split(',') | list }}
+  - repeat:
+      for_each: "{{ timers }}"
+      sequence:
+        - variables:
+            timer_id: "{{ repeat.item.id }}"
+            expires_at: "{{ repeat.item.expiresAt / 1000 }}"
+            is_expired: "{{ expires_at <= now_ts }}"
+            already_processed: "{{ timer_id in processed_ids }}"
+        - if:
+            - condition: template
+              value_template: "{{ is_expired and not already_processed }}"
+          then:
+            - action: mqtt.publish
+              data:
+                topic: simple_timer_card/events/expired
+                payload: >-
+                  {{ {
+                    'id': repeat.item.id,
+                    'label': repeat.item.label,
+                    'source': 'backend'
+                  } | to_json }}
+            - action: input_text.set_value
+              target:
+                entity_id: input_text.simple_timer_card_backend_processed
+              data:
+                value: >-
+                  {% set current = states('input_text.simple_timer_card_backend_processed') %}
+                  {% if current == '' %}
+                    {{ timer_id }}
+                  {% else %}
+                    {{ current }},{{ timer_id }}
+                  {% endif %}
+  - variables:
+      active_timer_ids: "{{ timers | map(attribute='id') | list }}"
+  - action: input_text.set_value
+    target:
+      entity_id: input_text.simple_timer_card_backend_processed
+    data:
+      value: >-
+        {% set processed = states('input_text.simple_timer_card_backend_processed').split(',') %}
+        {% set valid = processed | select('in', active_timer_ids) | list %}
+        {{ valid | join(',') }}
+mode: single
+```
+
+> **⚠️ Important:** If you named your sensor differently in step 1, update `sensor.simple_timer_card_timers` in the automation above to match your sensor name.
+
+### ✅ 3. Create Your Notification Automation
+
+This is an example automation that listens for timer expiry events from **both** the frontend and the backend. The two triggers and the `mode: single` setting ensure you won't receive duplicate notifications:
+
+```yaml
+alias: "Timer Notification: Kitchen Timer Finished"
+description: "Sends notification when kitchen timer expires (hybrid model)"
+triggers:
+  - trigger: mqtt
+    topic: simple_timer_card/events/expired
+    value_template: "{{ value_json.source == 'frontend' }}"
+  - trigger: mqtt
+    topic: simple_timer_card/events/expired
+    value_template: "{{ value_json.source == 'backend' }}"
+conditions:
+  - condition: template
+    value_template: "{{ 'Kitchen' in trigger.payload_json.label }}"
+actions:
+  - action: notify.mobile_app_your_phone
+    data:
+      title: "🍳 Kitchen Timer Finished"
+      message: "{{ trigger.payload_json.label }} is done!"
+      data:
+        tag: "timer_{{ trigger.payload_json.id }}"
+        channel: Timers
+        importance: high
+        notification_icon: mdi:timer-outline
+mode: single
+```
+
+With this setup complete, your MQTT timers will fire reliably whether your Home Assistant UI is open or closed! 🎉
+
 ## **🎯 Usage Examples**
 
 ### **Basic Timer Card**
