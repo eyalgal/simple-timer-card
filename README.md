@@ -437,7 +437,7 @@ mqtt:
       json_attributes_topic: simple_timer_card/timers
 ```
 
-> **⚠️ Important:** The `state_topic` and `json_attributes_topic` Important: The state_topic and json_attributes_topic must be exactly as shown above. It is also strongly recommend to keep the `value_template` as is.
+> **⚠️ Important:** The `state_topic` and `json_attributes_topic` must be exactly as shown above. It is also strongly recommend to keep the `value_template` as is.
 
 > **✨ NEW in v1.3.5:** Want fully reliable MQTT timers that work even when the UI is closed? Check out our [**Hybrid Model setup guide**](mqtt-hybrid-model.md) for backend failsafe automations! 🚀
 

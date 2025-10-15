@@ -75,7 +75,7 @@ actions:
       sensor_entity: "sensor.simple_timer_card_timers"  # ⚠️ Change this if you used a different name in step 1
       timers: "{{ state_attr(sensor_entity, 'timers') | default([]) }}"
       current_time: "{{ now().timestamp() }}"
-      processed_list: "{{ states('input_text.simple_timer_card_backend_processed').split(',') }}"
+      processed_list: "{{ states('input_text.simple_timer_card_backend_processed').split(',') | reject('eq', '') | list }}"
   - repeat:
       for_each: "{{ timers }}"
       sequence:
@@ -127,10 +127,7 @@ Now create an automation that listens for timer expiry events from **both** the 
 alias: "Timer Notification: Kitchen Timer Finished"
 description: "Sends notification when kitchen timer expires (works with or without UI open)"
 triggers:
-  # Trigger 1: Frontend event (when UI is open)
-  - trigger: mqtt
-    topic: "simple_timer_card/events/expired"
-  # Trigger 2: Backend failsafe (when UI is closed)
+  # Both frontend and backend publish to the same topic, but we list it once
   - trigger: mqtt
     topic: "simple_timer_card/events/expired"
 conditions:
@@ -150,9 +147,9 @@ mode: single  # ⚠️ Important: Prevents duplicate notifications
 ```
 
 > 💡 **Key Points:**
-> - Both triggers listen to the same MQTT topic
-> - The `mode: single` setting prevents duplicate notifications if both frontend and backend fire at the same time
-> - The `tag` in notification data ensures only one notification per timer appears
+> - Both frontend and backend publish to the same MQTT topic: `simple_timer_card/events/expired`
+> - The `mode: single` setting prevents duplicate notifications if both frontend and backend fire at nearly the same time
+> - The `tag` in notification data ensures only one notification per timer appears on your device
 
 ---
 
