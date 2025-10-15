@@ -21,11 +21,11 @@ A versatile and highly customizable timer card for Home Assistant Lovelace, offe
 ## **✨ Features**
 
 * **Flexible Display Styles:** Choose from five distinct timer display styles: `fill_horizontal`, `fill_vertical`, `bar_horizontal`, `bar_vertical`, or `circle`.
-* **Circular Progress Modes:** Circle style supports both clockwise fill and counter-clockwise drain progress animations.
+* **Progress Animation Modes:** Circle and bar styles support both `drain` (shrinks/empties) and `fill` (grows) progress animations for visual preference.
 * **Dual Layout Control:** Separate `layout` (for no-timers state) and `style` (for active timers) options allow any combination.
-* **Timer Presets:** Quick-access buttons for commonly used timer durations (customizable).
+* **Timer Presets:** Quick-access buttons for commonly used timer durations. Supports both minutes and seconds format (e.g., `5`, `90s`).
 * **Timer Name Presets:** Predefined timer names for quick selection when creating timers (e.g., "Break", "Exercise", "Cooking").
-* **Custom Timers:** Set custom timer durations using minute buttons or manual input.
+* **Custom Timers:** Set custom timer durations using minute/second buttons or manual input with flexible format support (`5m`, `90s`, `1h30m`, `2:30`).
 * **Persistent Storage:** Support for local browser storage or MQTT integration for timers that survive reloads and sync across devices.
 * **Audio Notifications:** Play custom audio files when timers expire, with repeat counts and play-until-dismissed options.
 * **Alexa Integration:** Separate audio settings for Alexa devices, based on [alexa_media_player](https://github.com/alandtse/alexa_media_player).
@@ -89,7 +89,7 @@ resources:
 | `style`                  | `string`  | `bar_horizontal`        | Timer display style. Can be `fill_vertical`, `fill_horizontal`, `bar_vertical`, `bar_horizontal` (default), or `circle` |
 | `title`                  | `string`  | `null`                  | Optional title for the card                                                                        |
 | `entities`               | `array`   | `[]`                    | Array of timer entities to display                                                                |
-| `circle_mode`            | `string`  | `fill`                  | Circle progress direction: `fill` (clockwise) or `drain` (counter-clockwise). Only applies when `style` is set to `circle` |
+| `progress_mode`          | `string`  | `drain`                 | Progress animation mode: `drain` (shrinks as time counts down) or `fill` (grows as time elapses). Applies to `circle`, `bar_horizontal`, and `bar_vertical` styles. **Note:** `circle_mode` is deprecated in favor of `progress_mode` |
 
 ### **Entity Configuration**
 
@@ -127,10 +127,10 @@ Each entity in the `entities` array can be either a simple string (entity ID) or
 
 | Name                           | Type      | Default         | Description                                                                                        |
 | :----------------------------- | :-------- | :-------------- | :------------------------------------------------------------------------------------------------- |
-| `timer_presets`                | `array`   | `[5, 15, 30]`   | Array of preset timer durations in minutes                                                        |
+| `timer_presets`                | `array`   | `[5, 15, 30]`   | Array of preset timer durations. Supports minutes (e.g., `5`, `15`) or seconds with 's' suffix (e.g., `30s`, `90s`) |
 | `show_timer_presets`           | `boolean` | `true`          | Show or hide the timer preset buttons                                                             |
-| `minute_buttons`               | `array`   | `[1, 5, 10]`    | Array of minute increment buttons for custom timers                                               |
-| `show_time_selector`           | `boolean` | `false`         | Show manual time input selector                                                                    |
+| `minute_buttons`               | `array`   | `[1, 5, 10]`    | Array of minute increment buttons for custom timers. Supports minutes or seconds with 's' suffix (e.g., `30s`) |
+| `show_time_selector`           | `boolean` | `false`         | Show manual time input selector. Supports flexible formats like `5m`, `90s`, `1h30m`, or `2:30` |
 | `show_active_header`           | `boolean` | `true`          | Show "Active Timers" header section                                                               |
 | `default_timer_icon`           | `string`  | `mdi:timer-outline` | Default icon for timer cards                                                                   |
 | `default_timer_color`          | `string`  | `var(--primary-color)` | Default color for timer elements                                                            |
@@ -223,6 +223,22 @@ timer_presets: [10, 20, 45]
 style: fill_vertical
 ```
 
+### **Timer with Seconds Support**
+
+Example showing seconds support in both presets and minute buttons:
+
+```yaml
+type: custom:simple-timer-card
+entities: []
+title: Workout Interval Timer
+style: bar_horizontal
+progress_mode: drain
+timer_presets: [20s, 30s, 45s, 60s, 90s, 2, 5]  # Seconds with 's' suffix, minutes without
+minute_buttons: [10s, 30s, 1, 2]  # Mix seconds and minutes for adjustments
+default_timer_color: '#4caf50'
+default_timer_icon: 'mdi:run'
+```
+
 ### **Circle Style Timer**
 
 Modern circular progress display with custom colors:
@@ -246,7 +262,7 @@ type: custom:simple-timer-card
 entities: []
 title: Activity Timer
 style: circle
-circle_mode: drain
+progress_mode: drain
 timer_presets: [5, 10, 15, 30]
 timer_name_presets: ['Break', 'Exercise', 'Meditation', 'Reading', 'Work Session']
 default_timer_color: '#9c27b0'
@@ -290,15 +306,15 @@ snooze_duration: 10
 
 ### **Family Cooking Timer**
 
-Multiple preset timers for different cooking tasks with modern circle display:
+Multiple preset timers for different cooking tasks with modern circle display and seconds support:
 
 ```yaml
 type: custom:simple-timer-card
 entities: []
 title: Cooking Timer
 style: circle
-timer_presets: [3, 5, 8, 12, 15, 20, 25, 30]
-timer_name_presets: ['Eggs', 'Pasta', 'Rice', 'Bread', 'Roast', 'Cookies']
+timer_presets: [30s, 3, 5, 8, 12, 15, 20, 25, 30]  # Mix of seconds (30s) and minutes
+timer_name_presets: ['Quick Check', 'Eggs', 'Pasta', 'Rice', 'Bread', 'Roast', 'Cookies']
 show_active_header: true
 audio_enabled: true
 audio_file_url: /local/sounds/kitchen_timer.mp3
@@ -437,7 +453,7 @@ mqtt:
       json_attributes_topic: simple_timer_card/timers
 ```
 
-> **⚠️ Important:** The `state_topic` and `json_attributes_topic` Important: The state_topic and json_attributes_topic must be exactly as shown above. It is also strongly recommend to keep the `value_template` as is.
+> **⚠️ Important:** The `state_topic` and `json_attributes_topic` must be exactly as shown above. It is also strongly recommended to keep the `value_template` as is. Please follow the [**Hybrid Model setup guide**](mqtt-hybrid-model.md) to setup a failover.
 
 ## **🎨 Styling**
 
@@ -451,18 +467,26 @@ The card offers flexible styling options with five distinct display styles:
 
 The `layout` parameter controls the card appearance when there are no active timers, while `style` controls active timer display. This separation allows any combination of layout and style for maximum flexibility.
 
-### **Circle Mode Options**
+### **Progress Mode Options**
 
-When using the `circle` style, you can control the progress direction:
+When using `circle`, `bar_horizontal`, or `bar_vertical` styles, you can control the progress animation:
 
-- **`fill`** (default): Clockwise progress - circle fills up as time elapses
-- **`drain`**: Counter-clockwise progress - circle empties/drains as time counts down
+- **`drain`** (default): Progress shrinks/empties as time counts down - circle empties, bars decrease
+- **`fill`**: Progress grows as time elapses - circle fills up, bars increase
 
 ```yaml
 type: custom:simple-timer-card
 style: circle
-circle_mode: drain  # Counter-clockwise drain effect
+progress_mode: drain  # Counter-clockwise drain effect for circle, decreasing bar for bars
 ```
+
+```yaml
+type: custom:simple-timer-card
+style: bar_horizontal
+progress_mode: fill  # Bar grows from left to right as time elapses
+```
+
+> **Note:** The deprecated `circle_mode` parameter is still supported for backward compatibility but will be removed in a future version. Please use `progress_mode` instead.
 
 The card uses CSS custom properties that can be overridden:
 
