@@ -23,6 +23,7 @@ A versatile and highly customizable timer card for Home Assistant Lovelace, offe
 * **Flexible Display Styles:** Choose from five distinct timer display styles: `fill_horizontal`, `fill_vertical`, `bar_horizontal`, `bar_vertical`, or `circle`.
 * **Circular Progress Modes:** Circle style supports both clockwise fill and counter-clockwise drain progress animations.
 * **Dual Layout Control:** Separate `layout` (for no-timers state) and `style` (for active timers) options allow any combination.
+* **Grid Layout for Multiple Timers:** Vertical styles and circle style automatically display multiple active timers in a 2-column grid for better space utilization.
 * **Timer Presets:** Quick-access buttons for commonly used timer durations (customizable).
 * **Timer Name Presets:** Predefined timer names for quick selection when creating timers (e.g., "Break", "Exercise", "Cooking").
 * **Custom Timers:** Set custom timer durations using minute buttons or manual input.
@@ -86,7 +87,7 @@ resources:
 | :----------------------- | :-------- | :---------------------- | :------------------------------------------------------------------------------------------------- |
 | `type`                   | `string`  | **Required**            | `custom:simple-timer-card`                                                                        |
 | `layout`                 | `string`  | `horizontal`            | Card layout for no-timers state. Can be `horizontal` or `vertical`                                |
-| `style`                  | `string`  | `bar_horizontal`        | Timer display style. Can be `fill_vertical`, `fill_horizontal`, `bar_vertical`, `bar_horizontal` (default), or `circle` |
+| `style`                  | `string`  | `bar_horizontal`        | Timer display style. Can be `fill_vertical`, `fill_horizontal`, `bar_vertical`, `bar_horizontal` (default), or `circle`. Note: Vertical styles and circle style automatically use a 2-column grid when displaying multiple active timers |
 | `title`                  | `string`  | `null`                  | Optional title for the card                                                                        |
 | `entities`               | `array`   | `[]`                    | Array of timer entities to display                                                                |
 | `circle_mode`            | `string`  | `fill`                  | Circle progress direction: `fill` (clockwise) or `drain` (counter-clockwise). Only applies when `style` is set to `circle` |
@@ -444,10 +445,10 @@ mqtt:
 The card offers flexible styling options with five distinct display styles:
 
 - **Progress Bar Horizontal** (`bar_horizontal`): Traditional horizontal progress bar with timer information
-- **Progress Bar Vertical** (`bar_vertical`): Vertical progress bar layout with timer information  
+- **Progress Bar Vertical** (`bar_vertical`): Vertical progress bar layout with timer information. Multiple active timers display in a 2-column grid
 - **Background Fill Horizontal** (`fill_horizontal`): Full horizontal background color fill that progresses as timer counts down
-- **Background Fill Vertical** (`fill_vertical`): Full vertical background color fill that progresses as timer counts down
-- **Circle** (`circle`): Modern circular progress ring with centered timer display. Supports both clockwise (`fill`) and counter-clockwise (`drain`) progress modes
+- **Background Fill Vertical** (`fill_vertical`): Full vertical background color fill that progresses as timer counts down. Multiple active timers display in a 2-column grid
+- **Circle** (`circle`): Modern circular progress ring with centered timer display. Supports both clockwise (`fill`) and counter-clockwise (`drain`) progress modes. Multiple active timers display in a 2-column grid
 
 The `layout` parameter controls the card appearance when there are no active timers, while `style` controls active timer display. This separation allows any combination of layout and style for maximum flexibility.
 
@@ -475,6 +476,18 @@ card_mod:
       --stc-chip-radius: 6px;
     }
 ```
+
+### **Grid Layout (v1.3.4+)**
+
+Starting in version 1.3.4, the card automatically uses a 2-column grid layout when displaying multiple active timers in vertical styles (`fill_vertical`, `bar_vertical`) or circle style. This provides better space utilization and a cleaner appearance when managing multiple timers simultaneously.
+
+**Grid behavior:**
+- Single timer: Displays full-width (1 column)
+- Multiple timers: Automatically switches to 2-column grid
+- Applies to: `fill_vertical`, `bar_vertical`, and `circle` styles
+- Horizontal styles (`fill_horizontal`, `bar_horizontal`) continue to stack vertically
+
+This feature works automatically with no configuration needed - just set your preferred style and the card will handle the layout intelligently based on the number of active timers.
 
 ## **🐛 Troubleshooting**
 
