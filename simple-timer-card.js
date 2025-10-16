@@ -5,13 +5,13 @@
  *
  * Author: eyalgal
  * License: MIT
- * Version: 1.3.4
+ * Version: 1.3.5
  * For more information, visit: https://github.com/eyalgal/simple-timer-card								   
  */		 
 
 import { LitElement, html, css } from "https://unpkg.com/lit@3.1.0/index.js?module";
 
-const cardVersion = "1.3.4";
+const cardVersion = "1.3.5";
 
 const DAY_IN_MS = 86400000; 
 const HOUR_IN_SECONDS = 3600;
@@ -177,6 +177,10 @@ class SimpleTimerCard extends LitElement {
       style,
       mqtt: mqttConfig,
     };
+
+    if (typeof this._config.timer_name_presets === 'string') {
+        this._config.timer_name_presets = this._config.timer_name_presets.split(',').map(name => name.trim()).filter(name => name);
+    }
   }
 
   static getStubConfig() {
@@ -2289,6 +2293,10 @@ class SimpleTimerCardEditor extends LitElement {
       if (value.length === 0) value = [1, 5, 10];
     }
     
+    if (key === "timer_name_presets" && typeof value === "string") {
+      value = value.split(',').map(name => name.trim()).filter(name => name);
+    }
+    
     this._updateConfig({ [key]: value });
   }
   _detailValueChanged(ev) {
@@ -2849,10 +2857,3 @@ setTimeout(() => {
     editor: "simple-timer-card-editor",
   });
 }, 0);
-
-
-
-
-
-
-
