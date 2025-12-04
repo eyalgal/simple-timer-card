@@ -25,7 +25,7 @@ A versatile and highly customizable timer card for Home Assistant Lovelace, offe
 * **Dual Layout Control:** Separate `layout` (for no-timers state) and `style` (for active timers) options allow any combination.
 * **Timer Presets:** Quick-access buttons for commonly used timer durations. Supports both minutes and seconds format (e.g., `5`, `90s`).
 * **Timer Name Presets:** Predefined timer names for quick selection when creating timers (e.g., "Break", "Exercise", "Cooking").
-* **Custom Timers:** Set custom timer durations using minute/second buttons or manual input with flexible format support (`5m`, `90s`, `1h30m`, `2:30`). Configurable default duration.
+* **Custom Timers:** Set custom timer durations using minute/second buttons or manual input with flexible format support (`5m`, `90s`, `1h30m`, `2:30`). Default duration can be customized via `default_new_timer_duration_mins` parameter.
 * **Persistent Storage:** Support for local browser storage or MQTT integration for timers that survive reloads and sync across devices. MQTT publishes both `started` and `expired` events for automation triggers.
 * **Audio Notifications:** Play custom audio files when timers expire, with repeat counts and play-until-dismissed options.
 * **Alexa Integration:** Separate audio settings for Alexa devices, based on [alexa_media_player](https://github.com/alandtse/alexa_media_player).
@@ -33,7 +33,7 @@ A versatile and highly customizable timer card for Home Assistant Lovelace, offe
 * **Timer Actions:** Configurable actions when timers expire (keep, dismiss, or auto-dismiss).
 * **Snooze Functionality:** Easily snooze expired timers for additional time.
 * **Active Timer Management:** View and manage multiple active timers simultaneously.
-* **Smart Auto-Detection & Entity Integration:** Improved automatic detection of timer sources with strict validation. Connect to Home Assistant entities including MQTT sensors, input helpers, and more.
+* **Smart Auto-Detection & Entity Integration:** Automatic detection of timer sources with ISO date validation and entity type checking. Connect to Home Assistant entities including MQTT sensors, input helpers, and more.
 * **Customizable Appearance:** Adjust colors, icons, and styling to match your Home Assistant theme.
 * **Native Theme Integration:** Automatically uses Home Assistant theme colors and native UI elements.
 * **Visual Progress Indicators:** Clear visual feedback showing timer progress and status.
@@ -104,7 +104,7 @@ Each entity in the `entities` array can be either a simple string (entity ID) or
 | `color`                        | `string`  | `auto`          | Override the entity color                                                                          |
 | `minutes_attr`                 | `string`  | `Minutes to arrival` | Attribute name for `minutes_attr` mode                                                       |
 | `start_time_attr`              | `string`  | `start_time`    | Attribute name for start time when using `timestamp` mode (enables duration calculation)         |
-| `start_time_entity`            | `string`  | `null`          | Entity ID for separate start time entity when using `timestamp` mode (alternative to `start_time_attr`) |
+| `start_time_entity`            | `string`  | none            | Entity ID for separate start time entity when using `timestamp` mode (alternative to `start_time_attr`) |
 | `keep_timer_visible_when_idle` | `boolean` | `false`         | Keep timer visible when idle (timer mode only)                                                    |
 | `audio_enabled`                | `boolean` | `false`         | Enable per-entity audio notifications                                                             |
 | `audio_file_url`               | `string`  | `""`            | Per-entity audio file URL                                                                          |
@@ -186,7 +186,7 @@ This card focuses on timer display and management. For notifications when timers
 
 ### **MQTT Timers**
 If using MQTT storage, the card publishes events to:
-- `simple_timer_card/events/started` when timers are created (new in v1.4.0)
+- `simple_timer_card/events/started` when timers are created
 - `simple_timer_card/events/expired` when timers finish
 
 See `examples/mqtt_timer_notifications.yaml` for a mobile notification automation.
