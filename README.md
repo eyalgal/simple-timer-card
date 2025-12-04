@@ -37,6 +37,7 @@ A versatile and highly customizable timer card for Home Assistant Lovelace, offe
 * **Customizable Appearance:** Adjust colors, icons, and styling to match your Home Assistant theme.
 * **Native Theme Integration:** Automatically uses Home Assistant theme colors and native UI elements.
 * **Visual Progress Indicators:** Clear visual feedback showing timer progress and status.
+* **Language Support:** Added support for multiple languages. Currently supports English (`en`), German (`de`), and Spanish (`es`).
 * **🔒 Security Features:** Built-in XSS protection, input validation, rate limiting, and secure audio URL handling.
 
 ## **🔒 Security**
@@ -88,6 +89,7 @@ resources:
 | `layout`                 | `string`  | `horizontal`            | Card layout for no-timers state. Can be `horizontal` or `vertical`                                |
 | `style`                  | `string`  | `bar_horizontal`        | Timer display style. Can be `fill_vertical`, `fill_horizontal`, `bar_vertical`, `bar_horizontal` (default), or `circle` |
 | `title`                  | `string`  | `null`                  | Optional title for the card                                                                        |
+| `language`               | `string`  | `en`                    | Language for UI text. Supports `en` (English), `de` (German), `es` (Spanish).                            |
 | `entities`               | `array`   | `[]`                    | Array of timer entities to display                                                                |
 | `progress_mode`          | `string`  | `drain`                 | Progress animation mode: `drain` (shrinks as time counts down) or `fill` (grows as time elapses). Applies to `circle`, `bar_horizontal`, and `bar_vertical` styles. **Note:** `circle_mode` is deprecated in favor of `progress_mode` |
 
