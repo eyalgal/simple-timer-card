@@ -20,6 +20,8 @@ A versatile and highly customizable timer card for Home Assistant Lovelace, offe
 
 ## **✨ Features**
 
+* **Alexa Integration:** Separate audio settings for Alexa devices, based on [alexa_media_player](https://github.com/alandtse/alexa_media_player).
+* **Voice PE Integration:** Full support for Voice PE timers with template sensors - [see setup guide](voice-pe.md).
 * **Flexible Display Styles:** Choose from five distinct timer display styles: `fill_horizontal`, `fill_vertical`, `bar_horizontal`, `bar_vertical`, or `circle`.
 * **Progress Animation Modes:** Circle and bar styles support both `drain` (shrinks/empties) and `fill` (grows) progress animations for visual preference.
 * **Dual Layout Control:** Separate `layout` (for no-timers state) and `style` (for active timers) options allow any combination.
@@ -28,8 +30,6 @@ A versatile and highly customizable timer card for Home Assistant Lovelace, offe
 * **Custom Timers:** Set custom timer durations using minute/second buttons or manual input with flexible format support (`5m`, `90s`, `1h30m`, `2:30`). Default duration can be customized via `default_new_timer_duration_mins` parameter.
 * **Persistent Storage:** Support for local browser storage or MQTT integration for timers that survive reloads and sync across devices. MQTT publishes both `started` and `expired` events for automation triggers.
 * **Audio Notifications:** Play custom audio files when timers expire, with repeat counts and play-until-dismissed options.
-* **Alexa Integration:** Separate audio settings for Alexa devices, based on [alexa_media_player](https://github.com/alandtse/alexa_media_player).
-* **Voice PE Integration:** Full support for Voice PE timers with template sensors - [see setup guide](voice-pe.md).
 * **Timer Actions:** Configurable actions when timers expire (keep, dismiss, or auto-dismiss).
 * **Snooze Functionality:** Easily snooze expired timers for additional time.
 * **Active Timer Management:** View and manage multiple active timers simultaneously.
