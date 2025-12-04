@@ -5,17 +5,89 @@
  *
  * Author: eyalgal
  * License: MIT
- * Version: 1.3.5
- * For more information, visit: https://github.com/eyalgal/simple-timer-card								   
- */		 
+ * Version: 1.4.0
+ * For more information, visit: https://github.com/eyalgal/simple-timer-card
+ */
 
 import { LitElement, html, css } from "https://unpkg.com/lit@3.1.0/index.js?module";
 
-const cardVersion = "1.3.5";
+const cardVersion = "1.4.0";
 
-const DAY_IN_MS = 86400000; 
+const DAY_IN_MS = 86400000;
 const HOUR_IN_SECONDS = 3600;
 const MINUTE_IN_SECONDS = 60;
+
+const TRANSLATIONS = {
+  en: {
+    no_timers: "No Timers",
+    click_to_start: "Click to start",
+    no_active_timers: "No Active Timers",
+    active_timers: "Active Timers",
+    add: "Add",
+    custom: "Custom",
+    cancel: "Cancel",
+    start: "Start",
+    snooze: "Snooze",
+    dismiss: "Dismiss",
+    ready: "Ready",
+    paused: "Paused",
+    times_up: "Time's up!",
+    timer: "Timer",
+    hour_ago: "hour ago",
+    hours_ago: "hours ago",
+    minute_ago: "minute ago",
+    minutes_ago: "minutes ago",
+    second_ago: "second ago",
+    seconds_ago: "seconds ago",
+    default_duration: "Default Duration",
+  },
+  de: {
+    no_timers: "Keine Timer",
+    click_to_start: "Zum Starten klicken",
+    no_active_timers: "Keine aktiven Timer",
+    active_timers: "Aktive Timer",
+    add: "Hinzufügen",
+    custom: "Benutzerdefiniert",
+    cancel: "Abbrechen",
+    start: "Starten",
+    snooze: "Schlummern",
+    dismiss: "Verwerfen",
+    ready: "Bereit",
+    paused: "Pausiert",
+    times_up: "Zeit abgelaufen!",
+    timer: "Timer",
+    hour_ago: "Stunde her",
+    hours_ago: "Stunden her",
+    minute_ago: "Minute her",
+    minutes_ago: "Minuten her",
+    second_ago: "Sekunde her",
+    seconds_ago: "Sekunden her",
+    default_duration: "Standarddauer",
+  },
+  es: {
+    no_timers: "Sin Temporizadores",
+    click_to_start: "Clic para iniciar",
+    no_active_timers: "Sin Temporizadores Activos",
+    active_timers: "Temporizadores Activos",
+    add: "Añadir",
+    custom: "Personalizado",
+    cancel: "Cancelar",
+    start: "Iniciar",
+    snooze: "Posponer",
+    dismiss: "Descartar",
+    ready: "Listo",
+    paused: "Pausado",
+    times_up: "¡Se acabó el tiempo!",
+    timer: "Temporizador",
+    hour_ago: "hora atrás",
+    hours_ago: "horas atrás",
+    minute_ago: "minuto atrás",
+    minutes_ago: "minutos atrás",
+    second_ago: "segundo atrás",
+    seconds_ago: "segundos atrás",
+    default_duration: "Duración predeterminada",
+  }
+};
 
 console.info(
   `%c SIMPLE-TIMER-CARD %c v${cardVersion} `,
@@ -42,6 +114,11 @@ class SimpleTimerCard extends LitElement {
     return div.innerHTML;
   }
 
+  _localize(key) {
+    const lang = this._config?.language || 'en';
+    return TRANSLATIONS[lang]?.[key] || TRANSLATIONS['en'][key] || key;
+  }
+
   _validateAudioUrl(url) {
     if (!url || typeof url !== 'string') return false;
     try {
@@ -58,7 +135,7 @@ class SimpleTimerCard extends LitElement {
     if (!Array.isArray(data.timers)) return false;
     for (const timer of data.timers) {
       if (!timer || typeof timer !== 'object') return false;
-      if (!timer.id || typeof timer.id !== 'string') return false;
+      if (timer.id || typeof timer.id !== 'string') return false;
       if (timer.label && typeof timer.label !== 'string') return false;
       if (timer.duration && typeof timer.duration !== 'number') return false;
       if (timer.end && typeof timer.end !== 'number') return false;
@@ -67,9 +144,9 @@ class SimpleTimerCard extends LitElement {
   }
 
   _validateTimerInput(duration, label) {
-    const MAX_DURATION_MS = 24 * 60 * 60 * 1000; 
+    const MAX_DURATION_MS = 24 * 60 * 60 * 1000;
     const MAX_LABEL_LENGTH = 100;
-    
+
     if (duration && (typeof duration !== 'number' || duration <= 0 || duration > MAX_DURATION_MS)) {
       return { valid: false, error: 'Invalid duration' };
     }
@@ -106,11 +183,11 @@ class SimpleTimerCard extends LitElement {
     const key = `${actionType}-${timerId}`;
     const now = Date.now();
     const lastTime = this._lastActionTime.get(key) || 0;
-    
+
     if (now - lastTime < throttleMs) {
       return true;
     }
-    
+
     this._lastActionTime.set(key, now);
     return false;
   }
@@ -142,10 +219,11 @@ class SimpleTimerCard extends LitElement {
   } else {
     style = "bar_horizontal";
   }
-	
+
     this._config = {
       layout,
       style,
+      language: "en",
       snooze_duration: 5,
       timer_presets: [5, 15, 30],
       timer_name_presets: [],
@@ -167,9 +245,10 @@ class SimpleTimerCard extends LitElement {
       alexa_audio_file_url: "",
       alexa_audio_repeat_count: 1,
       alexa_audio_play_until_dismissed: false,
-      expired_subtitle: "Time's up!",
+      expired_subtitle: null,
       keep_timer_visible_when_idle: false,
       progress_mode: "drain",
+      default_new_timer_duration_mins: 15,
       ...config,
       entities: config.entities || [],
       storage: autoStorage,
@@ -177,6 +256,10 @@ class SimpleTimerCard extends LitElement {
       style,
       mqtt: mqttConfig,
     };
+
+    const defaultDurationSecs = (parseInt(this._config.default_new_timer_duration_mins, 10) || 15) * 60;
+    this._customSecs = { horizontal: defaultDurationSecs, vertical: defaultDurationSecs };
+    this._activeSecs = { fill: defaultDurationSecs, bar: defaultDurationSecs };
 
     if (typeof this._config.timer_name_presets === 'string') {
         this._config.timer_name_presets = this._config.timer_name_presets.split(',').map(name => name.trim()).filter(name => name);
@@ -328,13 +411,29 @@ class SimpleTimerCard extends LitElement {
   }
 
   _detectMode(entityId, entityState, entityConf) {
-    if (entityId.startsWith("input_text.") || entityId.startsWith("text.")) return "helper";
+    if (!entityState) return null;
+    
     if (entityId.startsWith("timer.")) return "timer";
-    if (entityId.startsWith("sensor.") && entityState?.attributes?.sorted_active) return "alexa";
-    if (entityState?.attributes?.device_class === "timestamp") return "timestamp";
-    const guessAttr = entityConf?.minutes_attr || "Minutes to arrival";
-    if (entityState?.attributes && (entityState.attributes[guessAttr] ?? null) !== null) return "minutes_attr";
-    return "timestamp";
+    if (entityId.startsWith("input_text.") || entityId.startsWith("text.")) return "helper";
+    
+    const attrs = entityState.attributes || {};
+    
+    if (attrs.sorted_active) return "alexa";
+    if (attrs.device_class === "timestamp") return "timestamp";
+    
+    const guessAttr = entityConf?.minutes_attr;
+    if (guessAttr && (attrs[guessAttr] ?? null) !== null) return "minutes_attr";
+    
+    if (attrs.start_time) return "timestamp";
+    
+    const stateVal = entityState.state;
+    if (stateVal && stateVal !== "unknown" && stateVal !== "unavailable") {
+      if (isNaN(stateVal) && !isNaN(Date.parse(stateVal))) {
+         return "timestamp";
+      }
+    }
+    
+    return null;
   }
   _toMs(v) {
     if (v == null) return null;
@@ -439,7 +538,7 @@ class SimpleTimerCard extends LitElement {
           ...timer,
           source: "helper",
           source_entity: entityId,
-          label: this._sanitizeText(timer.label || entityConf?.name || "Timer"),
+          label: this._sanitizeText(timer.label || entityConf?.name || this._localize("timer")),
           icon: timer.icon || entityConf?.icon || "mdi:timer-outline",
           color: timer.color || entityConf?.color || "var(--primary-color)",
         }));
@@ -450,7 +549,7 @@ class SimpleTimerCard extends LitElement {
           end: singleTimer.e,
           duration: singleTimer.d,
           id: `single-timer-${entityId}`,
-          label: this._sanitizeText(entityConf?.name || entityState?.attributes?.friendly_name || "Timer"),
+          label: this._sanitizeText(entityConf?.name || entityState?.attributes?.friendly_name || this._localize("timer")),
           paused: false,
           source: "helper",
           source_entity: entityId,
@@ -468,13 +567,23 @@ class SimpleTimerCard extends LitElement {
     const endMs = Date.parse(s); if (isNaN(endMs)) return [];
 
     let duration = null;
-    const startTimeAttr = entityConf?.start_time_attr || "start_time";
-    const startTimeVal = entityState.attributes[startTimeAttr];
 
-    if (startTimeVal) {
-      const startMs = Date.parse(startTimeVal);
-      if (!isNaN(startMs) && endMs > startMs) {
-        duration = endMs - startMs;
+    if (entityConf?.start_time_entity) {
+      const startEntityState = this.hass.states[entityConf.start_time_entity];
+      if (startEntityState && startEntityState.state && startEntityState.state !== "unknown" && startEntityState.state !== "unavailable") {
+        const startMs = Date.parse(startEntityState.state);
+         if (!isNaN(startMs) && endMs > startMs) {
+          duration = endMs - startMs;
+        }
+      }
+    } else {
+      const startTimeAttr = entityConf?.start_time_attr || "start_time";
+      const startTimeVal = entityState.attributes[startTimeAttr];
+      if (startTimeVal) {
+        const startMs = Date.parse(startTimeVal);
+        if (!isNaN(startMs) && endMs > startMs) {
+          duration = endMs - startMs;
+        }
       }
     }
 
@@ -482,7 +591,7 @@ class SimpleTimerCard extends LitElement {
       id: `${entityId}-${endMs}`,
       source: "timestamp",
       source_entity: entityId,
-      label: entityConf?.name || entityState.attributes.friendly_name || "Timer",
+      label: entityConf?.name || entityState.attributes.friendly_name || this._localize("timer"),
       icon: entityConf?.icon || "mdi:timer-sand",
       color: entityConf?.color || "var(--primary-color)",
       end: endMs,
@@ -499,34 +608,34 @@ class SimpleTimerCard extends LitElement {
     const state = entityState.state; const attrs = entityState.attributes;
     if (state !== "active" && state !== "paused" && state !== "idle" && state !== "finished") return [];
     let endMs = null; let duration = null; let remainingMs = null;
-    
+
     if (attrs.duration) duration = this._parseHMSToMs(attrs.duration);
-    
+
     if (state === "idle") {
       const entityIcon = attrs.icon;
       const defaultIcon = entityIcon || "mdi:play";
       return [{
         id: entityId, source: "timer", source_entity: entityId,
-        label: entityConf?.name || entityState.attributes.friendly_name || "Timer",
+        label: entityConf?.name || entityState.attributes.friendly_name || this._localize("timer"),
         icon: entityConf?.icon || defaultIcon,
         color: entityConf?.color || "var(--primary-color)",
         end: null, duration, paused: false, idle: true
       }];
     }
-    
+
     if (state === "finished") {
       const finishedAt = attrs.finishes_at ? Date.parse(attrs.finishes_at) : Date.now();
       const entityIcon = attrs.icon;
       const defaultIcon = entityIcon || "mdi:timer-check";
       return [{
         id: entityId, source: "timer", source_entity: entityId,
-        label: entityConf?.name || entityState.attributes.friendly_name || "Timer",
+        label: entityConf?.name || entityState.attributes.friendly_name || this._localize("timer"),
         icon: entityConf?.icon || defaultIcon,
         color: entityConf?.color || "var(--success-color)",
         end: finishedAt, duration, paused: false, finished: true, finishedAt
       }];
     }
-    
+
     if (state === "paused") {
       if (attrs.remaining && attrs.remaining !== "0:00:00") {
         remainingMs = this._parseHMSToMs(attrs.remaining);
@@ -539,15 +648,15 @@ class SimpleTimerCard extends LitElement {
         if (remainingMs > 0) endMs = Date.now() + remainingMs;
       }
     }
-    
+
     if (!endMs && state !== "idle" && state !== "finished") return [];
-    
+
     const entityIcon = attrs.icon;
     const defaultIcon = entityIcon || (state === "paused" ? "mdi:timer-pause" : "mdi:timer");
-    
+
     return [{
       id: entityId, source: "timer", source_entity: entityId,
-      label: entityConf?.name || entityState.attributes.friendly_name || "Timer",
+      label: entityConf?.name || entityState.attributes.friendly_name || this._localize("timer"),
       icon: entityConf?.icon || defaultIcon,
       color: entityConf?.color || (state === "paused" ? "var(--warning-color)" : "var(--primary-color)"),
       end: endMs, duration, paused: state === "paused", idle: state === "idle", finished: state === "finished"
@@ -558,34 +667,34 @@ class SimpleTimerCard extends LitElement {
     const state = entityState.state; const attrs = entityState.attributes;
     if (state !== "active" && state !== "paused" && state !== "idle" && state !== "finished") return [];
     let endMs = null; let duration = null; let remainingMs = null;
-    
+
     if (attrs.duration) duration = this._parseHMSToMs(attrs.duration);
-    
+
     if (state === "idle") {
       const entityIcon = attrs.icon;
       const defaultIcon = entityIcon || "mdi:play";
       return [{
         id: entityId, source: "voice_pe", source_entity: entityId,
-        label: entityConf?.name || entityState.attributes.display_name || entityState.attributes.friendly_name || "Timer",
+        label: entityConf?.name || entityState.attributes.display_name || entityState.attributes.friendly_name || this._localize("timer"),
         icon: entityConf?.icon || defaultIcon,
         color: entityConf?.color || "var(--primary-color)",
         end: null, duration, paused: false, idle: true
       }];
     }
-    
+
     if (state === "finished") {
       const finishedAt = attrs.finishes_at ? Date.parse(attrs.finishes_at) : Date.now();
       const entityIcon = attrs.icon;
       const defaultIcon = entityIcon || "mdi:timer-check";
       return [{
         id: entityId, source: "voice_pe", source_entity: entityId,
-        label: entityConf?.name || entityState.attributes.display_name || entityState.attributes.friendly_name || "Timer",
+        label: entityConf?.name || entityState.attributes.display_name || entityState.attributes.friendly_name || this._localize("timer"),
         icon: entityConf?.icon || defaultIcon,
         color: entityConf?.color || "var(--success-color)",
         end: finishedAt, duration, paused: false, finished: true, finishedAt
       }];
     }
-    
+
     if (state === "paused") {
       if (attrs.remaining && attrs.remaining !== "0:00:00") {
         remainingMs = this._parseHMSToMs(attrs.remaining);
@@ -598,15 +707,15 @@ class SimpleTimerCard extends LitElement {
         if (remainingMs > 0) endMs = Date.now() + remainingMs;
       }
     }
-    
+
     if (!endMs && state !== "idle" && state !== "finished") return [];
-    
+
     const entityIcon = attrs.icon;
     const defaultIcon = entityIcon || (state === "paused" ? "mdi:timer-pause" : "mdi:timer");
-    
+
     return [{
       id: entityId, source: "voice_pe", source_entity: entityId,
-      label: entityConf?.name || entityState.attributes.display_name || entityState.attributes.friendly_name || "Timer",
+      label: entityConf?.name || entityState.attributes.display_name || entityState.attributes.friendly_name || this._localize("timer"),
       icon: entityConf?.icon || defaultIcon,
       color: entityConf?.color || (state === "paused" ? "var(--warning-color)" : "var(--primary-color)"),
       end: endMs, duration, paused: state === "paused", idle: state === "idle", finished: state === "finished"
@@ -629,7 +738,14 @@ class SimpleTimerCard extends LitElement {
       const conf = typeof entityConfig === "string" ? {} : entityConfig;
       const st = this.hass.states[entityId];
       if (!st) { continue; }
-      const mode = conf.mode || this._detectMode(entityId, st, conf);
+      
+      let mode = conf.mode;
+      
+      if (!mode || mode === 'auto') {
+        mode = this._detectMode(entityId, st, conf);
+        
+        if (!mode) continue; 
+      }
 
       try {
         if (mode === "alexa") collected.push(...this._parseAlexa(entityId, st, conf));
@@ -713,7 +829,7 @@ class SimpleTimerCard extends LitElement {
       if (action === 'dismiss') {
         continue;
       }
-      
+
       if (action === 'keep') {
         const isWritable = timer.source === 'helper' || timer.source === 'local' || timer.source === 'mqtt';
         let expiredAt;
@@ -730,7 +846,7 @@ class SimpleTimerCard extends LitElement {
             }
             expiredAt = this._expirationTimes.get(timer.id);
         }
-        
+
         const keepMs = (parseInt(this._config.expire_keep_for, 10) || 120) * 1000;
 
         if (now2 - expiredAt >= keepMs) {
@@ -755,7 +871,7 @@ class SimpleTimerCard extends LitElement {
         } else {
             isAudioEnabled = this._config.audio_enabled || (timer.source === "alexa" && this._config.alexa_audio_enabled);
         }
-        
+
         if (!timer._isBeingRemoved) {
             timer._isBeingRemoved = true;
             const dismissAction = () => this._handleDismiss(timer);
@@ -767,7 +883,7 @@ class SimpleTimerCard extends LitElement {
         }
       }
     }
-    
+
     const currentIds = new Set(this._timers.map(t => t.id));
     for (const id of this._expirationTimes.keys()) {
         if (!currentIds.has(id)) {
@@ -784,7 +900,7 @@ class SimpleTimerCard extends LitElement {
       this._lastCleanupTime = Date.now();
     }
   }
-  
+
   _playAudioNotification(timerId, timer) {
     const isAlexaTimer = timer?.source === "alexa";
     const entityConf = this._getEntityConfig(timer?.source_entity);
@@ -845,7 +961,7 @@ class SimpleTimerCard extends LitElement {
     if (audioData) {
       const { audio, playNext } = audioData;
       audio.removeEventListener("ended", playNext);
-											   
+
       audio.pause();
       audio.currentTime = 0;
       audio.src = "";
@@ -856,7 +972,7 @@ class SimpleTimerCard extends LitElement {
   _cleanupThrottleMap() {
     const now = Date.now();
     const CLEANUP_THRESHOLD = 60000;
-    
+
     for (const [key, time] of this._lastActionTime.entries()) {
       if (now - time > CLEANUP_THRESHOLD) {
         this._lastActionTime.delete(key);
@@ -874,7 +990,8 @@ class SimpleTimerCard extends LitElement {
           source: timer.source,
           source_entity: timer.source_entity,
           timestamp: Date.now(),
-          event: event
+          event: event,
+          duration: timer.duration
         }),
         retain: false
       });
@@ -895,16 +1012,16 @@ class SimpleTimerCard extends LitElement {
 
   _parseDuration(durationStr) {
     if (!durationStr) return 0;
-    
+
     if (/^\d{1,2}:\d{2}:\d{2}$/.test(durationStr)) {
       return this._parseHMSToMs(durationStr);
     }
-    
+
     if (/^\d{1,2}:\d{2}$/.test(durationStr)) {
       const parts = durationStr.split(":").map(p => parseInt(p, 10));
       return (parts[0] * 60 + parts[1]) * 1000;
     }
-    
+
     let totalSeconds = 0;
     const hourMatch = durationStr.match(/(\d+)\s*h/);
     const minuteMatch = durationStr.match(/(\d+)\s*m/);
@@ -940,18 +1057,18 @@ class SimpleTimerCard extends LitElement {
     const targetEntity = form.querySelector('[name="target_entity"]')?.value ?? "";
     const durationMs = this._parseDuration(durationStr);
     if (durationMs <= 0) return;
-    
+
     const validation = this._validateTimerInput(durationMs, label);
     if (!validation.valid) {
       return;
     }
-    
+
     const endTime = Date.now() + durationMs;
 
     this._mutateHelper(targetEntity, (data) => {
       const newTimer = {
         id: `custom-${Date.now()}`,
-        label: this._sanitizeText(label || "Timer"),
+        label: this._sanitizeText(label || this._localize("timer")),
         icon: this._config.default_timer_icon || "mdi:timer-outline",
         color: this._config.default_timer_color || "var(--primary-color)",
         end: endTime,
@@ -966,12 +1083,12 @@ class SimpleTimerCard extends LitElement {
   _createPresetTimer(preset, entity = null) {
       let durationMs;
       let label;
-      
+
       if (typeof preset === 'string' && preset.toLowerCase().endsWith('s')) {
           const seconds = parseInt(preset.slice(0, -1), 10);
           if (isNaN(seconds) || seconds <= 0) return;
           durationMs = seconds * 1000;
-          label = `${seconds}s Timer`;
+          label = `${seconds}s ${this._localize("timer")}`;
       } else {
           const minutes = parseInt(preset, 10);
           if (isNaN(minutes) || minutes <= 0) return;
@@ -999,103 +1116,113 @@ class SimpleTimerCard extends LitElement {
           newTimer.source = this._config.storage;
           newTimer.source_entity = this._config.storage === "mqtt" ? this._config.mqtt.sensor_entity : "local";
           this._addTimerToStorage(newTimer);
+          this._publishTimerEvent('started', newTimer);
       }
       this.requestUpdate();
   }
 
   _formatTimerLabel(totalSeconds) {
-    if (totalSeconds <= 0) return "Timer";
-    
+    if (totalSeconds <= 0) return this._localize("timer");
+
+    const t = this._localize("timer");
+    const h = this._localize("h");
+    const m = this._localize("m");
+    const s = this._localize("s");
+
     if (totalSeconds < 60) {
-        return `${totalSeconds}s Timer`;
+        return `${totalSeconds}${s} ${t}`;
     }
 
-    if (totalSeconds % 60 === 0) { 
+    if (totalSeconds % 60 === 0) {
         const totalMinutes = totalSeconds / 60;
-        if (totalMinutes < 60) return `${totalMinutes}m Timer`;
-        if (totalMinutes === 60) return "1h Timer";
-        if (totalMinutes % 60 === 0) return `${totalMinutes / 60}h Timer`;
+        if (totalMinutes < 60) return `${totalMinutes}${m} ${t}`;
+        if (totalMinutes === 60) return `1${h} ${t}`;
+        if (totalMinutes % 60 === 0) return `${totalMinutes / 60}${h} ${t}`;
         const hours = Math.floor(totalMinutes / 60);
         const minutes = totalMinutes % 60;
-        return `${hours}h${minutes}m Timer`;
+        return `${hours}${h}${minutes}${m} ${t}`;
     }
 
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
     if (minutes < 60) {
-        return `${minutes}m${seconds}s Timer`;
+        return `${minutes}${m}${seconds}${s} ${t}`;
     }
-    
+
     const hours = Math.floor(minutes / 60);
     const remainingMinutes = minutes % 60;
-    return `${hours}h${remainingMinutes}m Timer`;
+    return `${hours}${h}${remainingMinutes}${m} ${t}`;
   }
 
   _formatDurationDisplay(ms) {
-    if (ms <= 0) return "0s";
+    if (ms <= 0) return `0${this._localize("s")}`;
     const totalSeconds = Math.floor(ms / 1000);
 
+    const h = this._localize("h");
+    const m = this._localize("m");
+    const s = this._localize("s");
+
     if (totalSeconds < 60) {
-        return `${totalSeconds}s`;
+        return `${totalSeconds}${s}`;
     }
 
-    if (totalSeconds % 60 === 0) { 
+    if (totalSeconds % 60 === 0) {
         const totalMinutes = totalSeconds / 60;
-        if (totalMinutes < 60) return `${totalMinutes}m`;
-        if (totalMinutes === 60) return "1h";
-        if (totalMinutes % 60 === 0) return `${totalMinutes / 60}h`;
+        if (totalMinutes < 60) return `${totalMinutes}${m}`;
+        if (totalMinutes === 60) return `1${h}`;
+        if (totalMinutes % 60 === 0) return `${totalMinutes / 60}${h}`;
         const hours = Math.floor(totalMinutes / 60);
         const minutes = totalMinutes % 60;
-        return `${hours}h${minutes}m`;
+        return `${hours}${h}${minutes}${m}`;
     }
 
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
 
     if (minutes < 60) {
-        return `${minutes}m${seconds}s`;
+        return `${minutes}${m}${seconds}${s}`;
     }
 
     const hours = Math.floor(minutes / 60);
     const remainingMinutes = minutes % 60;
 
-    return `${hours}h${remainingMinutes}m`;
+    return `${hours}${h}${remainingMinutes}${m}`;
   }
 
-  _renderTimerNameSelector(inputId) {
+  _renderTimerNameSelector(inputId, placeholder) {
     const presets = this._config.timer_name_presets || [];
-    
+
     if (presets.length === 0) {
       return html`
-        <input id="${inputId}" class="text-input" placeholder="Timer Name (Optional)" style="margin-top: 12px;" />
+        <input id="${inputId}" class="text-input" placeholder="${placeholder}" style="margin-top: 12px;" />
       `;
     }
-    
+
     const customValue = this._lastSelectedName[inputId];
     const isCustomValue = customValue && !presets.includes(customValue);
-    
+
     return html`
       <div class="name-selector">
         <div class="name-chips" style="display: ${this._showingCustomName[inputId] ? 'none' : 'flex'};">
           ${presets.map(name => html`
-            <button class="btn btn-preset ${this._lastSelectedName[inputId] === name ? 'selected' : ''}" 
+            <button class="btn btn-preset ${this._lastSelectedName[inputId] === name ? 'selected' : ''}"
                     @click=${(e) => this._setTimerName(inputId, name, e)}>
               ${this._sanitizeText(name)}
             </button>
           `)}
           ${isCustomValue ? html`
-            <button class="btn btn-preset selected" 
+            <button class="btn btn-preset selected"
                     @click=${(e) => this._editCustomValue(inputId, e)}>
               ${this._sanitizeText(customValue)}
             </button>
           ` : html`
-            <button class="btn btn-ghost" 
+            <button class="btn btn-ghost"
                     @click=${(e) => this._showCustomNameInput(inputId, e)}>
-              Custom
+              ${this._localize("custom")}
             </button>
           `}
         </div>
-        <input id="${inputId}" class="text-input" placeholder="Timer Name (Optional)" 
+        <input id="${inputId}" class="text-input" placeholder="${placeholder}"
                style="display: ${this._showingCustomName[inputId] ? 'block' : 'none'};"
                @blur=${(e) => this._handleCustomInputBlur(inputId, e)}
                @keypress=${(e) => e.key === 'Enter' && this._handleCustomInputBlur(inputId, e)} />
@@ -1142,7 +1269,7 @@ class SimpleTimerCard extends LitElement {
   _handleCustomInputBlur(inputId, e) {
     const input = e.target;
     const value = input.value.trim();
-    
+
     if (value) {
       this._lastSelectedName[inputId] = value;
       this._showingCustomName[inputId] = false;
@@ -1150,7 +1277,7 @@ class SimpleTimerCard extends LitElement {
       this._showingCustomName[inputId] = false;
       this._lastSelectedName[inputId] = null;
     }
-    
+
     this.requestUpdate();
   }
 
@@ -1161,6 +1288,7 @@ class SimpleTimerCard extends LitElement {
 
   _handleStart(timer) {
     if (timer.source === "timer") {
+      this._publishTimerEvent('started', timer);
       if (timer.duration) {
         const totalSeconds = Math.ceil(timer.duration / 1000);
         const serviceDuration = this._formatDurationForService(totalSeconds);
@@ -1176,7 +1304,7 @@ class SimpleTimerCard extends LitElement {
     if (this._isActionThrottled('cancel', timer.id)) {
       return;
     }
-    
+
     this._ringingTimers.delete(timer.id);
     if (timer.source === "helper") {
       this._mutateHelper(timer.source_entity, (data) => { data.timers = data.timers.filter((t) => t.id !== timer.id); });
@@ -1253,7 +1381,7 @@ class SimpleTimerCard extends LitElement {
     if (this._isActionThrottled('snooze', timer.id)) {
       return;
     }
-    
+
     this._ringingTimers.delete(timer.id);
     this._stopAudioForTimer(timer.id);
     const snoozeMinutes = this._config.snooze_duration;
@@ -1280,13 +1408,13 @@ class SimpleTimerCard extends LitElement {
     const seconds = Math.floor(ms / 1000);
     const minutes = Math.floor(seconds / 60);
     const hours = Math.floor(minutes / 60);
-    
+
     if (hours > 0) {
-      return hours === 1 ? "1 hour ago" : `${hours} hours ago`;
+      return hours === 1 ? `1 ${this._localize("hour_ago")}` : `${hours} ${this._localize("hours_ago")}`;
     } else if (minutes > 0) {
-      return minutes === 1 ? "1 minute ago" : `${minutes} minutes ago`;
+      return minutes === 1 ? `1 ${this._localize("minute_ago")}` : `${minutes} ${this._localize("minutes_ago")}`;
     } else {
-      return seconds === 1 ? "1 second ago" : `${seconds} seconds ago`;
+      return seconds === 1 ? `1 ${this._localize("second_ago")}` : `${seconds} ${this._localize("seconds_ago")}`;
     }
   }
 
@@ -1305,7 +1433,7 @@ class SimpleTimerCard extends LitElement {
     const pad = (n) => String(n).padStart(2, "0");
     return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
   }
-  
+
   _formatDurationForService(totalSeconds) {
     totalSeconds = Math.max(0, Math.floor(totalSeconds));
     const h = Math.floor(totalSeconds / 3600);
@@ -1338,7 +1466,7 @@ class SimpleTimerCard extends LitElement {
     if (this._isActionThrottled('create_timer', 'global', 500)) {
       return;
     }
-    
+
     if (secs <= 0) return;
 
     const validation = this._validateTimerInput(secs * 1000, label);
@@ -1368,6 +1496,7 @@ class SimpleTimerCard extends LitElement {
       newTimer.source = this._config.storage;
       newTimer.source_entity = this._config.storage === "mqtt" ? this._config.mqtt.sensor_entity : "local";
       this._addTimerToStorage(newTimer);
+      this._publishTimerEvent('started', newTimer);
     }
   }
 
@@ -1380,7 +1509,10 @@ _startFromCustom(which, label) {
     finalLabel = input.value.trim();
   }
   this._createAndSaveTimer(secs, finalLabel);
-  this._customSecs = { ...this._customSecs, [which]: 15 * 60 };
+
+  const defaultDurationSecs = (parseInt(this._config.default_new_timer_duration_mins, 10) || 15) * 60;
+  this._customSecs = { ...this._customSecs, [which]: defaultDurationSecs };
+
   const openKey = `noTimer${which.charAt(0).toUpperCase() + which.slice(1)}Open`;
   this._ui[openKey] = false;
   this._showingCustomName[inputId] = false;
@@ -1397,7 +1529,10 @@ _startActive(which, label) {
     finalLabel = input.value.trim();
   }
   this._createAndSaveTimer(secs, finalLabel);
-  this._activeSecs = { ...this._activeSecs, [which]: 10 * 60 };
+
+  const defaultDurationSecs = (parseInt(this._config.default_new_timer_duration_mins, 10) || 15) * 60;
+  this._activeSecs = { ...this._activeSecs, [which]: defaultDurationSecs };
+
   const openKey = `active${which.charAt(0).toUpperCase() + which.slice(1)}Open`;
   this._ui[openKey] = false;
   this._showingCustomName[inputId] = false;
@@ -1417,13 +1552,13 @@ _startActive(which, label) {
   _renderItem(t, style) {
     const state = this._getTimerRenderState(t, style);
     const { isPaused, isIdle, isFinished, color, icon, ring, pct, pctLeft, isCircleStyle, isFillStyle, supportsPause, supportsManualControls, timeStr, circleValues, supportsReadOnlyDismiss } = state;
-    
+
     const baseClasses = isFillStyle ? "card item" : (isCircleStyle ? "item vtile" : "item bar");
     const finishedClasses = isFillStyle ? "card item finished" : (isCircleStyle ? "item vtile" : "card item bar");
 
     if (ring) {
       const entityConf = this._getEntityConfig(t.source_entity);
-      const expiredMessage = entityConf?.expired_subtitle || this._config.expired_subtitle || "Time's up!";
+      const expiredMessage = entityConf?.expired_subtitle || this._config.expired_subtitle || this._localize("times_up");
 
       if (isCircleStyle) {
         return html`
@@ -1431,12 +1566,12 @@ _startActive(which, label) {
             <div class="vcol">
               <div class="vcircle-wrap">
                 <svg class="vcircle" width="64" height="64" viewBox="0 0 64" aria-hidden="true">
-                  <circle class="vc-track ${this._config.progress_mode === 'drain' ? 'vc-track-drain' : ''}" 
+                  <circle class="vc-track ${this._config.progress_mode === 'drain' ? 'vc-track-drain' : ''}"
                           cx="32" cy="32" r="${circleValues.radius}"></circle>
-                  <circle class="vc-prog ${this._config.progress_mode === 'drain' ? 'vc-prog-drain done' : 'done'}" 
+                  <circle class="vc-prog ${this._config.progress_mode === 'drain' ? 'vc-prog-drain done' : 'done'}"
                           cx="32" cy="32" r="${circleValues.radius}"
                     stroke-dasharray="${circleValues.circumference} ${circleValues.circumference}"
-                    style="stroke-dashoffset: ${this._config.progress_mode === 'drain' ? circleValues.circumference : '0'}; 
+                    style="stroke-dashoffset: ${this._config.progress_mode === 'drain' ? circleValues.circumference : '0'};
                            transition: stroke-dashoffset 0.25s;"></circle>
                 </svg>
                 <div class="icon-wrap xl"><ha-icon .icon=${icon}></ha-icon></div>
@@ -1445,10 +1580,10 @@ _startActive(which, label) {
               <div class="vstatus up">${timeStr}</div>
               <div class="vactions">
                 ${supportsManualControls ? html`
-                  <button class="chip" @click=${() => this._handleSnooze(t)}>Snooze</button>
-                  <button class="chip" @click=${() => this._handleDismiss(t)}>Dismiss</button>
+                  <button class="chip" @click=${() => this._handleSnooze(t)}>${this._localize("snooze")}</button>
+                  <button class="chip" @click=${() => this._handleDismiss(t)}>${this._localize("dismiss")}</button>
                 ` : supportsReadOnlyDismiss ? html`
-                  <button class="chip" @click=${() => this._handleDismiss(t)}>Dismiss</button>
+                  <button class="chip" @click=${() => this._handleDismiss(t)}>${this._localize("dismiss")}</button>
                 ` : ""}
               </div>
             </div>
@@ -1467,12 +1602,12 @@ _startActive(which, label) {
             </div>
             ${supportsManualControls ? html`
               <div class="chips">
-                <button class="chip" @click=${() => this._handleSnooze(t)}>Snooze</button>
-                <button class="chip" @click=${() => this._handleDismiss(t)}>Dismiss</button>
+                <button class="chip" @click=${() => this._handleSnooze(t)}>${this._localize("snooze")}</button>
+                <button class="chip" @click=${() => this._handleDismiss(t)}>${this._localize("dismiss")}</button>
               </div>
             ` : supportsReadOnlyDismiss ? html`
               <div class="chips">
-                <button class="chip" @click=${() => this._handleDismiss(t)}>Dismiss</button>
+                <button class="chip" @click=${() => this._handleDismiss(t)}>${this._localize("dismiss")}</button>
               </div>
             `: ""}
           </div>
@@ -1492,7 +1627,7 @@ _startActive(which, label) {
             </div>
             <div class="actions">
               ${isIdle && supportsManualControls ? html`
-                <button class="action-btn" title="Start" @click=${() => this._handleStart(t)}>
+                <button class="action-btn" title="${this._localize("start")}" @click=${() => this._handleStart(t)}>
                   <ha-icon icon="mdi:play"></ha-icon>
                 </button>
               ` : supportsPause && !ring && supportsManualControls ? html`
@@ -1500,7 +1635,7 @@ _startActive(which, label) {
                   <ha-icon icon="${t.paused ? 'mdi:play' : 'mdi:pause'}"></ha-icon>
                 </button>
               ` : ""}
-              ${supportsManualControls && !isIdle ? html`<button class="action-btn" title="Cancel" @click=${() => this._handleCancel(t)}><ha-icon icon="mdi:close"></ha-icon></button>` : ""}
+              ${supportsManualControls && !isIdle ? html`<button class="action-btn" title="${this._localize("cancel")}" @click=${() => this._handleCancel(t)}><ha-icon icon="mdi:close"></ha-icon></button>` : ""}
             </div>
           </div>
         </li>
@@ -1509,7 +1644,7 @@ _startActive(which, label) {
       return html`
         <li class="${baseClasses}" style="--tcolor:${color}">
           ${supportsManualControls && !isIdle ? html`
-            <button class="vtile-close" title="Cancel"
+            <button class="vtile-close" title="${this._localize("cancel")}"
               @click=${(e)=>{ e.stopPropagation(); this._handleCancel(t); }}>
               <ha-icon icon="mdi:close"></ha-icon>
             </button>
@@ -1525,9 +1660,9 @@ _startActive(which, label) {
                    }
                  }}>
               <svg class="vcircle" width="64" height="64" viewBox="0 0 64" aria-hidden="true">
-                <circle class="vc-track ${this._config.progress_mode === 'drain' ? 'vc-track-drain' : ''}" 
+                <circle class="vc-track ${this._config.progress_mode === 'drain' ? 'vc-track-drain' : ''}"
                         cx="32" cy="32" r="${circleValues.radius}"></circle>
-                <circle class="vc-prog ${this._config.progress_mode === 'drain' ? 'vc-prog-drain' : ''}" 
+                <circle class="vc-prog ${this._config.progress_mode === 'drain' ? 'vc-prog-drain' : ''}"
                         cx="32" cy="32" r="${circleValues.radius}"
                   stroke-dasharray="${circleValues.circumference} ${circleValues.circumference}"
                   style="stroke-dashoffset: ${circleValues.strokeDashoffset}; transition: stroke-dashoffset 0.25s;"></circle>
@@ -1553,7 +1688,7 @@ _startActive(which, label) {
             </div>
             <div class="actions">
               ${isIdle && supportsManualControls ? html`
-                <button class="action-btn" title="Start" @click=${() => this._handleStart(t)}>
+                <button class="action-btn" title="${this._localize("start")}" @click=${() => this._handleStart(t)}>
                   <ha-icon icon="mdi:play"></ha-icon>
                 </button>
               ` : supportsPause && !ring && supportsManualControls ? html`
@@ -1561,7 +1696,7 @@ _startActive(which, label) {
                   <ha-icon icon="${t.paused ? 'mdi:play' : 'mdi:pause'}"></ha-icon>
                 </button>
               ` : ""}
-              ${supportsManualControls && !isIdle ? html`<button class="action-btn" title="Cancel" @click=${() => this._handleCancel(t)}><ha-icon icon="mdi:close"></ha-icon></button>` : ""}
+              ${supportsManualControls && !isIdle ? html`<button class="action-btn" title="${this._localize("cancel")}" @click=${() => this._handleCancel(t)}><ha-icon icon="mdi:close"></ha-icon></button>` : ""}
             </div>
           </div>
         </li>
@@ -1573,16 +1708,16 @@ _startActive(which, label) {
   _calculateCircleValues(radius = 28, pct = 0, mode = 'fill') {
     const circumference = radius * 2 * Math.PI;
     let strokeDashoffset;
-  
+
     if (mode === 'drain') {
       strokeDashoffset = (pct / 100) * circumference;
     } else {
       strokeDashoffset = circumference - (pct / 100) * circumference;
     }
-  
+
     return { radius, circumference, strokeDashoffset };
   }
-  
+
   _getTimerRenderState(t, style) {
     const isPaused = t.paused;
     const isIdle = t.idle;
@@ -1592,45 +1727,45 @@ _startActive(which, label) {
     const ring = t.remaining <= 0 && !isIdle && !isFinished;
     const pct = typeof t.percent === "number" ? Math.max(0, Math.min(100, t.percent)) : 0;
     const pctLeft = 100 - pct;
-    
+
     const isCircleStyle = style === "circle";
     const isFillStyle = style.startsWith("fill_");
-    
+
     const supportsPause = t.source === "helper" || t.source === "local" || t.source === "mqtt" || t.source === "timer" || t.source === "voice_pe";
-    
+
     const entityConf = this._getEntityConfig(t.source_entity);
     const hideTimerActions = entityConf?.hide_timer_actions === true;
     const isTimerSource = t.source === "timer";
-    
-    const supportsManualControls = (t.source === "local" || t.source === "mqtt" || t.source === "timer" || t.source === "helper") 
+
+    const supportsManualControls = (t.source === "local" || t.source === "mqtt" || t.source === "timer" || t.source === "helper")
       && !(isTimerSource && hideTimerActions);
-    
+
     const supportsReadOnlyDismiss = ring && (t.source === 'timestamp' || t.source === 'minutes_attr' || t.source === 'voice_pe' || t.source === 'alexa');
-    
+
     let timeStr;
     if (isIdle) {
-      timeStr = t.duration ? this._formatDuration(t.duration, 'ms') : "Ready";
+      timeStr = t.duration ? this._formatDuration(t.duration, 'ms') : this._localize("ready");
     } else if (isPaused) {
-      timeStr = `${this._formatDuration(t.remaining, 'ms')} (Paused)`;
+      timeStr = `${this._formatDuration(t.remaining, 'ms')} (${this._localize("paused")})`;
     } else if (isFinished) {
       const now = Date.now();
       const elapsedSinceFinish = now - (t.finishedAt || t.end || now);
       const elapsedStr = this._formatTimeAgo(elapsedSinceFinish);
       const entityConf = this._getEntityConfig(t.source_entity);
-      const expiredMessage = entityConf?.expired_subtitle || this._config.expired_subtitle || "Time's up!";
+      const expiredMessage = entityConf?.expired_subtitle || this._config.expired_subtitle || this._localize("times_up");
       timeStr = elapsedStr ? `${expiredMessage} - ${elapsedStr}` : expiredMessage;
     } else if (ring) {
-        timeStr = entityConf?.expired_subtitle || this._config.expired_subtitle || "Time's up!";
+        timeStr = entityConf?.expired_subtitle || this._config.expired_subtitle || this._localize("times_up");
     } else {
       timeStr = this._formatDuration(t.remaining, 'ms');
     }
-    
+
     let circleValues;
     if (isCircleStyle) {
       const progressMode = this._config.progress_mode || 'drain';
       circleValues = this._calculateCircleValues(28, pct, progressMode);
     }
-    
+
     return {
       isPaused, isIdle, isFinished, color, icon, ring, pct, pctLeft,
       isCircleStyle, isFillStyle,
@@ -1638,19 +1773,29 @@ _startActive(which, label) {
       circleValues, supportsReadOnlyDismiss
     };
   }
-  
-  _renderMinuteButtons(minuteButtons, adjustFunction, sign, label = '') {
+
+  _renderMinuteButtons(which, adjustFunction, sign) {
+    const minuteButtons = this._config.minute_buttons && this._config.minute_buttons.length ? this._config.minute_buttons : [1, 5, 10];
+    const target = which === 'horizontal' || which === 'vertical' ? 'custom' : 'active';
+    const whichKey = which === 'horizontal' ? 'horizontal' : (which === 'vertical' ? 'vertical' : (which === 'fill' ? 'fill' : 'bar'));
+    const currentSecs = this[`_${target}Secs`][whichKey];
+
     return minuteButtons.map(val => {
+      const delta = this._parseAdjustmentToSeconds(val);
+      const isNegative = sign < 0;
+      const isClickable = !isNegative || (currentSecs >= delta);
       const displayLabel = typeof val === 'string' && val.toLowerCase().endsWith('s')
         ? val.toLowerCase()
-        : `${val}m`;
+        : `${val}${this._localize("m")}`;
+
       return html`
-        <button class="btn btn-ghost" @click=${() => adjustFunction(val, sign)}>
-          ${sign > 0 ? '+' : '-'}${displayLabel}
+        <button class="btn btn-ghost ${isClickable ? '' : 'disabled'}"
+                @click=${() => isClickable && adjustFunction(whichKey, val, sign)}>
+          ${isNegative ? '-' : '+'}${displayLabel}
         </button>
       `;
     });
-  }  
+  }
 
   _renderItemVertical(t, style) {
     const state = this._getTimerRenderState(t, style);
@@ -1666,10 +1811,10 @@ _startActive(which, label) {
 			<div class="vstatus up">${timeStr}</div>
 			<div class="vactions-center">
 			  ${supportsManualControls ? html`
-				<button class="chip" @click=${() => this._handleSnooze(t)}>Snooze</button>
-				<button class="chip" @click=${() => this._handleDismiss(t)}>Dismiss</button>
+				<button class="chip" @click=${() => this._handleSnooze(t)}>${this._localize("snooze")}</button>
+				<button class="chip" @click=${() => this._handleDismiss(t)}>${this._localize("dismiss")}</button>
 			  ` : supportsReadOnlyDismiss ? html`
-				<button class="chip" @click=${() => this._handleDismiss(t)}>Dismiss</button>
+				<button class="chip" @click=${() => this._handleDismiss(t)}>${this._localize("dismiss")}</button>
 			  ` : ""}
 			</div>
 		  </div>
@@ -1681,7 +1826,7 @@ _startActive(which, label) {
       return html`
         <li class="item vtile" style="--tcolor:${color}">
           ${supportsManualControls && !isIdle ? html`
-            <button class="vtile-close" title="Cancel"
+            <button class="vtile-close" title="${this._localize("cancel")}"
               @click=${(e)=>{ e.stopPropagation(); this._handleCancel(t); }}>
               <ha-icon icon="mdi:close"></ha-icon>
             </button>
@@ -1697,9 +1842,9 @@ _startActive(which, label) {
                    }
                  }}>
               <svg class="vcircle" width="64" height="64" viewBox="0 0 64" aria-hidden="true">
-                <circle class="vc-track ${this._config.progress_mode === 'drain' ? 'vc-track-drain' : ''}" 
+                <circle class="vc-track ${this._config.progress_mode === 'drain' ? 'vc-track-drain' : ''}"
                         cx="32" cy="32" r="${circleValues.radius}"></circle>
-                <circle class="vc-prog ${this._config.progress_mode === 'drain' ? 'vc-prog-drain' : ''}" 
+                <circle class="vc-prog ${this._config.progress_mode === 'drain' ? 'vc-prog-drain' : ''}"
                         cx="32" cy="32" r="${circleValues.radius}"
                   stroke-dasharray="${circleValues.circumference} ${circleValues.circumference}"
                   style="stroke-dashoffset: ${circleValues.strokeDashoffset}; transition: stroke-dashoffset 0.25s;"></circle>
@@ -1724,7 +1869,7 @@ _startActive(which, label) {
 		  ${style.startsWith('bar_') ? html`
 			<div class="vprogressbar">
 			  ${isIdle && supportsManualControls ? html`
-				<button class="action-btn" title="Start" @click=${() => this._handleStart(t)}>
+				<button class="action-btn" title="${this._localize("start")}" @click=${() => this._handleStart(t)}>
 				  <ha-icon icon="mdi:play"></ha-icon>
 				</button>
 			  ` : supportsPause && supportsManualControls ? html`
@@ -1738,7 +1883,7 @@ _startActive(which, label) {
 				<div class="vfill" style="width:${this._config.progress_mode === 'fill' ? pct : pctLeft}%"></div>
 			  </div>
 			  ${supportsManualControls && !isIdle ? html`
-				<button class="action-btn" title="Cancel" @click=${() => this._handleCancel(t)}>
+				<button class="action-btn" title="${this._localize("cancel")}" @click=${() => this._handleCancel(t)}>
 				  <ha-icon icon="mdi:close"></ha-icon>
 				</button>
 			  ` : ""}
@@ -1746,7 +1891,7 @@ _startActive(which, label) {
 		  ` : html`
 			<div class="vactions">
 			  ${isIdle && supportsManualControls ? html`
-				<button class="action-btn" title="Start" @click=${() => this._handleStart(t)}>
+				<button class="action-btn" title="${this._localize("start")}" @click=${() => this._handleStart(t)}>
 				  <ha-icon icon="mdi:play"></ha-icon>
 				</button>
 			  ` : supportsPause && supportsManualControls ? html`
@@ -1757,7 +1902,7 @@ _startActive(which, label) {
 				</button>
 			  ` : ""}
 			  ${supportsManualControls && !isIdle ? html`
-				<button class="action-btn" title="Cancel" @click=${() => this._handleCancel(t)}>
+				<button class="action-btn" title="${this._localize("cancel")}" @click=${() => this._handleCancel(t)}>
 				  <ha-icon icon="mdi:close"></ha-icon>
 				</button>
 			  ` : ""}
@@ -1776,13 +1921,11 @@ _startActive(which, label) {
       ? []
       : (this._config.timer_presets && this._config.timer_presets.length ? this._config.timer_presets : [5, 15, 30]);
 
-    const minuteButtons = this._config.minute_buttons && this._config.minute_buttons.length ? this._config.minute_buttons : [1, 5, 10];
-
     const timers = this._timers.filter(t => {
       if (t.idle && t.source === "voice_pe") {
         return false;
       }
-      
+
       if (t.idle && t.source === "timer") {
         const entityConfig = this._getEntityConfig(t.source_entity);
         const keepVisible = entityConfig?.keep_timer_visible_when_idle === true;
@@ -1790,7 +1933,7 @@ _startActive(which, label) {
           return false;
         }
       }
-      
+
       return true;
     });
     const layout = this._config.layout;
@@ -1817,39 +1960,39 @@ _startActive(which, label) {
           <div class="card-content" @click=${this._config.show_timer_presets === false ? () => this._toggleCustom("horizontal") : null}>
             <div class="icon-wrap"><ha-icon icon="mdi:timer-off"></ha-icon></div>
             <div>
-              <p class="nt-title">No Timers</p>
-              <p class="nt-sub">Click to start</p>
+              <p class="nt-title">${this._localize("no_timers")}</p>
+              <p class="nt-sub">${this._localize("click_to_start")}</p>
             </div>
           </div>
           <div style="display:flex; gap:8px;">
             ${presets.map((preset) => {
               const label = typeof preset === 'string' && preset.toLowerCase().endsWith('s')
                 ? preset.toLowerCase()
-                : `${preset}m`;
+                : `${preset}${this._localize("m")}`;
               return html`
                 <button class="btn btn-preset" @click=${() => this._createPresetTimer(preset)}>${label}</button>
               `;
             })}
             ${this._config.show_timer_presets === false ? html`
-              <button class="btn btn-ghost" @click=${() => this._toggleCustom("horizontal")}><ha-icon icon="mdi:plus" style="--mdc-icon-size:16px;"></ha-icon> Add</button>
+              <button class="btn btn-ghost" @click=${() => this._toggleCustom("horizontal")}><ha-icon icon="mdi:plus" style="--mdc-icon-size:16px;"></ha-icon> ${this._localize("add")}</button>
             ` : html`
-              <button class="btn btn-ghost" @click=${() => this._toggleCustom("horizontal")}>Custom</button>
+              <button class="btn btn-ghost" @click=${() => this._toggleCustom("horizontal")}>${this._localize("custom")}</button>
             `}
           </div>
         </div>
 
         <div class="picker">
           <div class="grid-3">
-            ${this._renderMinuteButtons(minuteButtons, (m, sign) => this._adjust("horizontal", m, sign), +1)}
+            ${this._renderMinuteButtons('horizontal', (which, m, sign) => this._adjust(which, m, sign), +1)}
           </div>
           <div class="display">${this._formatDuration(this._customSecs.horizontal, 'seconds')}</div>
           <div class="grid-3">
-            ${this._renderMinuteButtons(minuteButtons, (m, sign) => this._adjust("horizontal", m, sign), -1)}
+            ${this._renderMinuteButtons('horizontal', (which, m, sign) => this._adjust(which, m, sign), -1)}
           </div>
-          ${this._renderTimerNameSelector("nt-h-name")}
+          ${this._renderTimerNameSelector("nt-h-name", "Timer Name (Optional)")}
           <div class="picker-actions">
-            <button class="btn btn-ghost" @click=${() => (this._ui.noTimerHorizontalOpen = false)}>Cancel</button>
-            <button class="btn btn-primary" @click=${() => this._startFromCustom("horizontal")}>Start</button>
+            <button class="btn btn-ghost" @click=${() => (this._ui.noTimerHorizontalOpen = false)}>${this._localize("cancel")}</button>
+            <button class="btn btn-primary" @click=${() => this._startFromCustom("horizontal")}>${this._localize("start")}</button>
           </div>
         </div>
       </div>
@@ -1858,42 +2001,42 @@ _startActive(which, label) {
         <div class="col">
           <div class="card-content" style="flex-direction:column;justify-content:center;gap:8px;flex:1;" @click=${this._config.show_timer_presets === false ? () => this._toggleCustom("vertical") : null}>
             <div class="icon-wrap"><ha-icon icon="mdi:timer-off"></ha-icon></div>
-            <p class="nt-title">No Active Timers</p>
+            <p class="nt-title">${this._localize("no_active_timers")}</p>
           </div>
           <div style="display:flex; gap:8px; margin-bottom:8px;">
             ${presets.map((preset) => {
               const label = typeof preset === 'string' && preset.toLowerCase().endsWith('s')
                 ? preset.toLowerCase()
-                : `${preset}m`;
+                : `${preset}${this._localize("m")}`;
               return html`
                 <button class="btn btn-preset" @click=${() => this._createPresetTimer(preset)}>${label}</button>
               `;
             })}
             ${this._config.show_timer_presets === false ? html`
-              <button class="btn btn-ghost" @click=${() => this._toggleCustom("vertical")}><ha-icon icon="mdi:plus" style="--mdc-icon-size:16px;"></ha-icon> Add</button>
+              <button class="btn btn-ghost" @click=${() => this._toggleCustom("vertical")}><ha-icon icon="mdi:plus" style="--mdc-icon-size:16px;"></ha-icon> ${this._localize("add")}</button>
             ` : html`
-              <button class="btn btn-ghost" @click=${() => this._toggleCustom("vertical")}>Custom</button>
+              <button class="btn btn-ghost" @click=${() => this._toggleCustom("vertical")}>${this._localize("custom")}</button>
             `}
           </div>
         </div>
 
         <div class="picker">
           <div class="grid-3">
-            ${this._renderMinuteButtons(minuteButtons, (m, sign) => this._adjust("vertical", m, sign), +1)}
+            ${this._renderMinuteButtons('vertical', (which, m, sign) => this._adjust(which, m, sign), +1)}
           </div>
           <div class="display">${this._formatDuration(this._customSecs.vertical, 'seconds')}</div>
           <div class="grid-3">
-            ${this._renderMinuteButtons(minuteButtons, (m, sign) => this._adjust("vertical", m, sign), -1)}
+            ${this._renderMinuteButtons('vertical', (which, m, sign) => this._adjust(which, m, sign), -1)}
           </div>
-          ${this._renderTimerNameSelector("nt-v-name")}
+          ${this._renderTimerNameSelector("nt-v-name", "Timer Name (Optional)")}
           <div class="picker-actions">
-            <button class="btn btn-ghost" @click=${() => (this._ui.noTimerVerticalOpen = false)}>Cancel</button>
-            <button class="btn btn-primary" @click=${() => this._startFromCustom("vertical")}>Start</button>
+            <button class="btn btn-ghost" @click=${() => (this._ui.noTimerVerticalOpen = false)}>${this._localize("cancel")}</button>
+            <button class="btn btn-primary" @click=${() => this._startFromCustom("vertical")}>${this._localize("start")}</button>
           </div>
         </div>
       </div>
     `;
-	
+
     const renderFn = activeTimersLayout === "vertical"
       ? this._renderItemVertical.bind(this)
       : this._renderItem.bind(this);
@@ -1906,23 +2049,23 @@ _startActive(which, label) {
       <div class="card ${this._ui.activeFillOpen ? "card-show" : ""}">
         ${this._config.show_active_header !== false ? html`
           <div class="active-head">
-            <h4>Active Timers</h4>
-            <button class="btn btn-add" @click=${() => this._toggleActivePicker("fill")}><ha-icon icon="mdi:plus" style="--mdc-icon-size:16px;"></ha-icon> Add</button>
+            <h4>${this._localize("active_timers")}</h4>
+            <button class="btn btn-add" @click=${() => this._toggleActivePicker("fill")}><ha-icon icon="mdi:plus" style="--mdc-icon-size:16px;"></ha-icon> ${this._localize("add")}</button>
           </div>
         ` : ""}
 
         <div class="active-picker">
           <div class="grid-3">
-            ${this._renderMinuteButtons(minuteButtons, (m, sign) => this._adjustActive("fill", m, sign), +1)}
+            ${this._renderMinuteButtons('fill', (which, m, sign) => this._adjustActive(which, m, sign), +1)}
           </div>
           <div class="display" style="font-size:30px;">${this._formatDuration(this._activeSecs.fill, 'seconds')}</div>
           <div class="grid-3">
-            ${this._renderMinuteButtons(minuteButtons, (m, sign) => this._adjustActive("fill", m, sign), -1)}
+            ${this._renderMinuteButtons('fill', (which, m, sign) => this._adjustActive(which, m, sign), -1)}
           </div>
-          ${this._renderTimerNameSelector("add-fill-name")}
+          ${this._renderTimerNameSelector("add-fill-name", "Timer Name (Optional)")}
           <div class="picker-actions">
-            <button class="btn btn-ghost" @click=${() => (this._ui.activeFillOpen = false)}>Cancel</button>
-            <button class="btn btn-primary" @click=${() => this._startActive("fill")}>Start</button>
+            <button class="btn btn-ghost" @click=${() => (this._ui.activeFillOpen = false)}>${this._localize("cancel")}</button>
+            <button class="btn btn-primary" @click=${() => this._startActive("fill")}>${this._localize("start")}</button>
           </div>
         </div>
 
@@ -1934,23 +2077,23 @@ _startActive(which, label) {
       <div class="card ${this._ui.activeBarOpen ? "card-show" : ""}">
         ${this._config.show_active_header !== false ? html`
           <div class="active-head">
-            <h4>Active Timers</h4>
-            <button class="btn btn-add" @click=${() => this._toggleActivePicker("bar")}><ha-icon icon="mdi:plus" style="--mdc-icon-size:16px;"></ha-icon> Add</button>
+            <h4>${this._localize("active_timers")}</h4>
+            <button class="btn btn-add" @click=${() => this._toggleActivePicker("bar")}><ha-icon icon="mdi:plus" style="--mdc-icon-size:16px;"></ha-icon> ${this._localize("add")}</button>
           </div>
         ` : ""}
 
         <div class="active-picker">
           <div class="grid-3">
-            ${this._renderMinuteButtons(minuteButtons, (m, sign) => this._adjustActive("bar", m, sign), +1)}
+            ${this._renderMinuteButtons('bar', (which, m, sign) => this._adjustActive(which, m, sign), +1)}
           </div>
           <div class="display" style="font-size:30px;">${this._formatDuration(this._activeSecs.bar, 'seconds')}</div>
           <div class="grid-3">
-            ${this._renderMinuteButtons(minuteButtons, (m, sign) => this._adjustActive("bar", m, sign), -1)}
+            ${this._renderMinuteButtons('bar', (which, m, sign) => this._adjustActive(which, m, sign), -1)}
           </div>
-          ${this._renderTimerNameSelector("add-bar-name")}
+          ${this._renderTimerNameSelector("add-bar-name", "Timer Name (Optional)")}
           <div class="picker-actions">
-            <button class="btn btn-ghost" @click=${() => (this._ui.activeBarOpen = false)}>Cancel</button>
-            <button class="btn btn-primary" @click=${() => this._startActive("bar")}>Start</button>
+            <button class="btn btn-ghost" @click=${() => (this._ui.activeBarOpen = false)}>${this._localize("cancel")}</button>
+            <button class="btn btn-primary" @click=${() => this._startActive("bar")}>${this._localize("start")}</button>
           </div>
         </div>
 
@@ -2029,7 +2172,7 @@ _startActive(which, label) {
 
       .icon-wrap {
         width: 36px; height: 36px; border-radius: var(--ha-card-border-radius, 50%);
-        background: var(--tcolor, var(--divider-color)); 
+        background: var(--tcolor, var(--divider-color));
         display: flex; align-items: center; justify-content: center; flex: 0 0 36px;
       }
       .icon-wrap ha-icon { --mdc-icon-size: 22px; color: var(--tcolor, var(--primary-text-color)); }
@@ -2038,6 +2181,7 @@ _startActive(which, label) {
       .nt-sub { margin: 0; font-size: 12px; color: var(--secondary-text-color); line-height: 16px; }
 
       .btn { font-weight: 600; border-radius: var(--stc-chip-radius); padding: 6px 10px; font-size: 12px; border: none; cursor: pointer; }
+      .btn.disabled { opacity: 0.5; pointer-events: none; }
       .btn-preset { background: var(--secondary-background-color, rgba(0,0,0,.08)); color: var(--primary-text-color); }
       .btn-preset:hover, .btn-add:hover { filter: brightness(1.1); }
       .btn-ghost { background: var(--card-background-color); border: 1px solid var(--divider-color); color: var(--primary-text-color); }
@@ -2244,13 +2388,13 @@ class SimpleTimerCardEditor extends LitElement {
 
   disconnectedCallback() {
     super.disconnectedCallback();
-    if (this._debounceTimeout) { 
-      clearTimeout(this._debounceTimeout); 
-      this._debounceTimeout = null; 
+    if (this._debounceTimeout) {
+      clearTimeout(this._debounceTimeout);
+      this._debounceTimeout = null;
     }
-    if (this._emitTimeout) { 
-      clearTimeout(this._emitTimeout); 
-      this._emitTimeout = null; 
+    if (this._emitTimeout) {
+      clearTimeout(this._emitTimeout);
+      this._emitTimeout = null;
     }
   }
 
@@ -2292,11 +2436,11 @@ class SimpleTimerCardEditor extends LitElement {
       }).filter(v => v !== null);
       if (value.length === 0) value = [1, 5, 10];
     }
-    
+
     if (key === "timer_name_presets" && typeof value === "string") {
       value = value.split(',').map(name => name.trim()).filter(name => name);
     }
-    
+
     this._updateConfig({ [key]: value });
   }
   _detailValueChanged(ev) {
@@ -2310,19 +2454,19 @@ class SimpleTimerCardEditor extends LitElement {
     ev.stopPropagation();
     const value = ev.detail?.value !== undefined ? ev.detail.value : target.value;
     if (typeof value !== "string" || value === "") return;
-    
+
     if (key === "style") {
       const styleValue = value.toLowerCase();
       const validStyles = ["fill_vertical", "fill_horizontal", "bar_vertical", "bar_horizontal", "circle"];
-      
+
       let normalizedStyle;
       if (validStyles.includes(styleValue)) {
         normalizedStyle = styleValue;
       } else {
         normalizedStyle = "bar_horizontal";
       }
-      
-      this._updateConfig({ 
+
+      this._updateConfig({
         style: normalizedStyle
       }, true);
     } else {
@@ -2409,7 +2553,7 @@ class SimpleTimerCardEditor extends LitElement {
     const defaults = {
       layout: "horizontal",
       style: "bar_horizontal",
-      progress_mode: "drain", 
+      progress_mode: "drain",
       show_timer_presets: true,
       timer_presets: [5, 15, 30],
       expire_action: "keep",
@@ -2429,10 +2573,12 @@ class SimpleTimerCardEditor extends LitElement {
       alexa_audio_file_url: "",
       alexa_audio_repeat_count: 1,
       alexa_audio_play_until_dismissed: false,
-      expired_subtitle: "Time's up!",
+      expired_subtitle: null,
       default_timer_entity: null,
       keep_timer_visible_when_idle: false,
       timer_name_presets: [],
+      language: "en",
+      default_new_timer_duration_mins: 15,
     };
 
     const cleaned = { ...config };
@@ -2486,12 +2632,12 @@ class SimpleTimerCardEditor extends LitElement {
           }
         });
 
-        if (cleanedEntity.keep_timer_visible_when_idle === false || 
+        if (cleanedEntity.keep_timer_visible_when_idle === false ||
             (cleanedEntity.mode && cleanedEntity.mode !== "timer")) {
           delete cleanedEntity.keep_timer_visible_when_idle;
         }
 
-        if (cleanedEntity.hide_timer_actions === false || 
+        if (cleanedEntity.hide_timer_actions === false ||
             (cleanedEntity.mode && cleanedEntity.mode !== "timer")) {
           delete cleanedEntity.hide_timer_actions;
         }
@@ -2540,6 +2686,27 @@ class SimpleTimerCardEditor extends LitElement {
     return this._config.style || "bar_horizontal";
   }
 
+  _detectMode(entityId) {
+    if (!this.hass || !entityId) return null;
+    const entityState = this.hass.states[entityId];
+    if (!entityState) return null;
+
+    if (entityId.startsWith("timer.")) return "timer";
+    if (entityId.startsWith("input_text.") || entityId.startsWith("text.")) return "helper";
+
+    const attrs = entityState.attributes || {};
+    if (attrs.sorted_active) return "alexa";
+    if (attrs.device_class === "timestamp") return "timestamp";
+
+    const stateVal = entityState.state;
+    if (stateVal && stateVal !== "unknown" && stateVal !== "unavailable") {
+      if (isNaN(stateVal) && !isNaN(Date.parse(stateVal))) {
+         return "timestamp";
+      }
+    }
+    return "unknown";
+  }
+
   render() {
     if (!this.hass || !this._config) return html``;
 
@@ -2551,6 +2718,7 @@ class SimpleTimerCardEditor extends LitElement {
 
     return html`
       <div class="card-config">
+        <!-- Appearance Section -->
         <ha-textfield label="Title (Optional)" .value=${this._config.title || ""} .configValue=${"title"} @input=${this._valueChanged}></ha-textfield>
 
         <div class="side-by-side">
@@ -2568,88 +2736,101 @@ class SimpleTimerCardEditor extends LitElement {
           </ha-select>
         </div>
 
-        ${(this._config.style === 'circle' || (this._config.style || '').startsWith('bar_')) ? html`
-          <ha-select label="Progress Mode" .value=${this._config.progress_mode || "drain"} .configValue=${"progress_mode"} 
-                     @selected=${this._selectChanged} @closed=${(e) => { e.stopPropagation(); this._selectChanged(e); }}>
-            <mwc-list-item value="drain">Drain (shrinks)</mwc-list-item>
-            <mwc-list-item value="fill">Fill (grows)</mwc-list-item>
+        <div class="side-by-side">
+          <ha-select label="Language" .value=${this._config.language || "en"} .configValue=${"language"} @selected=${this._selectChanged} @closed=${(e) => { e.stopPropagation(); this._selectChanged(e); }}>
+            <mwc-list-item value="en">English (Default)</mwc-list-item>
+            <mwc-list-item value="de">Deutsch (German)</mwc-list-item>
+            <mwc-list-item value="es">Español (Spanish)</mwc-list-item>
           </ha-select>
-        ` : ''}
+          
+          ${(this._config.style === 'circle' || (this._config.style || '').startsWith('bar_')) ? html`
+            <ha-select label="Progress Mode" .value=${this._config.progress_mode || "drain"} .configValue=${"progress_mode"}
+                       @selected=${this._selectChanged} @closed=${(e) => { e.stopPropagation(); this._selectChanged(e); }}>
+              <mwc-list-item value="drain">Drain (shrinks)</mwc-list-item>
+              <mwc-list-item value="fill">Fill (grows)</mwc-list-item>
+            </ha-select>
+          ` : html`<div></div>`}
+        </div>
 
-        <div class="storage-info">
-          <span class="storage-label">Storage type: <strong>${this._getStorageDisplayName(storageType)}</strong></span>
-          <small class="storage-description">${this._getStorageDescription(storageType)}</small>
+        <ha-formfield label="Show 'Active Timers' header">
+          <ha-switch .checked=${this._config.show_active_header !== false} .configValue=${"show_active_header"} @change=${this._valueChanged}></ha-switch>
+        </ha-formfield>
+
+        <!-- Timer Behavior Section -->
+        <div class="side-by-side">
+          <ha-textfield label="Default Duration (minutes)" type="number" .value=${this._config.default_new_timer_duration_mins ?? 15} .configValue=${"default_new_timer_duration_mins"} @input=${this._valueChanged}></ha-textfield>
+          <ha-textfield label="Snooze Duration (minutes)" type="number" .value=${this._config.snooze_duration ?? 5} .configValue=${"snooze_duration"} @input=${this._valueChanged}></ha-textfield>
         </div>
 
         <div class="side-by-side">
-          <ha-textfield label="Snooze Duration (minutes)" type="number" .value=${this._config.snooze_duration ?? 5} .configValue=${"snooze_duration"} @input=${this._valueChanged}></ha-textfield>
-
           <ha-select label="When timer reaches 0" .value=${this._config.expire_action || "keep"} .configValue=${"expire_action"} @selected=${this._selectChanged} @closed=${(e) => { e.stopPropagation(); this._selectChanged(e); }}>
             <mwc-list-item value="keep">Keep visible</mwc-list-item>
             <mwc-list-item value="dismiss">Dismiss</mwc-list-item>
             <mwc-list-item value="remove">Remove</mwc-list-item>
           </ha-select>
-        </div>
-
-        <div class="side-by-side">
           <ha-textfield label="Keep-visible duration (seconds)" type="number" .value=${this._config.expire_keep_for ?? 120} .configValue=${"expire_keep_for"} @input=${this._valueChanged}></ha-textfield>
-
-          <ha-formfield label="Auto-dismiss helper timers at 0">
-            <ha-switch .checked=${this._config.auto_dismiss_writable === true} .configValue=${"auto_dismiss_writable"} @change=${this._valueChanged}></ha-switch>
-          </ha-formfield>
         </div>
 
+        <ha-formfield label="Auto-dismiss helper timers at 0">
+          <ha-switch .checked=${this._config.auto_dismiss_writable === true} .configValue=${"auto_dismiss_writable"} @change=${this._valueChanged}></ha-switch>
+        </ha-formfield>
+
+        <!-- Visual Overrides Section -->
+        <div class="side-by-side">
+          <ha-icon-picker label="Default timer icon" .value=${this._config.default_timer_icon || "mdi:timer-outline"} .configValue=${"default_timer_icon"} @value-changed=${this._detailValueChanged}></ha-icon-picker>
+          <ha-textfield label="Default timer color" .value=${this._config.default_timer_color || "var(--primary-color)"} .configValue=${"default_timer_color"} @input=${this._valueChanged}></ha-textfield>
+        </div>
+        <ha-textfield label="Timer expired message" .value=${this._config.expired_subtitle || ""} .configValue=${"expired_subtitle"} @input=${this._valueChanged} placeholder="Time's up!"></ha-textfield>
+
+        <!-- Presets Section -->
         <ha-formfield label="Show timer preset buttons">
           <ha-switch .checked=${this._config.show_timer_presets !== false} .configValue=${"show_timer_presets"} @change=${this._valueChanged}></ha-switch>
         </ha-formfield>
 
         ${this._config.show_timer_presets !== false ? html`
           <ha-textfield label="Timer presets (minutes or secs, e.g. 5, 90s)" .value=${(this._config.timer_presets || [5, 15, 30]).join(", ")} .configValue=${"timer_presets"} @input=${this._valueChanged}></ha-textfield>
-          <ha-textfield 
-            label="Timer name presets (comma-separated)" 
-            .value=${(this._config.timer_name_presets || []).join(", ")} 
-            .configValue=${"timer_name_presets"} 
+          <ha-textfield
+            label="Timer name presets (comma-separated)"
+            .value=${(this._config.timer_name_presets || []).join(", ")}
+            .configValue=${"timer_name_presets"}
             @input=${this._valueChanged}
             helper-text="Leave empty for text input only. Add preset names separated by commas."
           ></ha-textfield>
-          <ha-entity-picker
-            .hass=${this.hass}
-            .value=${this._config.default_timer_entity || ""}
-            .configValue=${"default_timer_entity"}
-            @value-changed=${this._detailValueChanged}
-            label="Default Timer Storage (Optional)"
-            help-text="Select a helper (input_text) or an MQTT sensor to store timers."
-            allow-custom-entity
-            .includeDomains=${["input_text", "text", "sensor"]}
-          ></ha-entity-picker>
         ` : ""}
-
-        <ha-formfield label="Show 'Active Timers' header">
-          <ha-switch .checked=${this._config.show_active_header !== false} .configValue=${"show_active_header"} @change=${this._valueChanged}></ha-switch>
-        </ha-formfield>
-
+        
         <ha-textfield label="Minute adjustment buttons (comma-separated)" .value=${(this._config.minute_buttons || [1, 5, 10]).join(", ")} .configValue=${"minute_buttons"} @input=${this._valueChanged}></ha-textfield>
 
-        <div class="side-by-side">
-          <ha-icon-picker label="Default timer icon" .value=${this._config.default_timer_icon || "mdi:timer-outline"} .configValue=${"default_timer_icon"} @value-changed=${this._detailValueChanged}></ha-icon-picker>
-          <ha-textfield label="Default timer color" .value=${this._config.default_timer_color || "var(--primary-color)"} .configValue=${"default_timer_color"} @input=${this._valueChanged}></ha-textfield>
+        <!-- Storage Section -->
+        <ha-entity-picker
+          .hass=${this.hass}
+          .value=${this._config.default_timer_entity || ""}
+          .configValue=${"default_timer_entity"}
+          @value-changed=${this._detailValueChanged}
+          label="Default Timer Storage (Optional)"
+          help-text="Select a helper (input_text) or an MQTT sensor to store timers."
+          allow-custom-entity
+          .includeDomains=${["input_text", "text", "sensor"]}
+        ></ha-entity-picker>
+        
+        <div class="storage-info">
+          <span class="storage-label">Storage type: <strong>${this._getStorageDisplayName(storageType)}</strong></span>
+          <small class="storage-description">${this._getStorageDescription(storageType)}</small>
         </div>
 
-        <ha-textfield label="Timer expired message" .value=${this._config.expired_subtitle || "Time's up!"} .configValue=${"expired_subtitle"} @input=${this._valueChanged}></ha-textfield>
-
+        <!-- Audio Section -->
         <ha-formfield label="Enable audio notifications">
           <ha-switch .checked=${this._config.audio_enabled === true} .configValue=${"audio_enabled"} @change=${this._valueChanged}></ha-switch>
         </ha-formfield>
 
         ${this._config.audio_enabled ? html`
           <ha-textfield label="Audio file URL or path" .value=${this._config.audio_file_url || ""} .configValue=${"audio_file_url"} @input=${this._valueChanged}></ha-textfield>
-          <ha-textfield 
-            label="Audio completion delay (seconds)" 
-            type="number" min="1" max="30" 
-            .value=${this._config.audio_completion_delay ?? 4} 
-            .configValue=${"audio_completion_delay"} 
+          <ha-textfield
+            label="Audio completion delay (seconds)"
+            type="number" min="1" max="30"
+            .value=${this._config.audio_completion_delay ?? 4}
+            .configValue=${"audio_completion_delay"}
             @input=${this._valueChanged}
-            help-text="Delay after audio ends before dismissing/removing the timer."
+            helper-text="Delay after audio ends before dismissing/removing the timer."
           ></ha-textfield>
           <ha-textfield label="Number of times to play" type="number" min="1" max="10" .value=${this._config.audio_repeat_count ?? 1} .configValue=${"audio_repeat_count"} @input=${this._valueChanged}></ha-textfield>
           <ha-formfield label="Play audio until timer is dismissed or snoozed">
@@ -2669,6 +2850,7 @@ class SimpleTimerCardEditor extends LitElement {
           </ha-formfield>
         ` : ""}
 
+        <!-- Entities Section -->
         <div class="entities-header">
           <h3>Timer Entities</h3>
           <button class="add-entity-button" @click=${this._addEntity} title="Add timer entity"><ha-icon icon="mdi:plus"></ha-icon></button>
@@ -2679,6 +2861,12 @@ class SimpleTimerCardEditor extends LitElement {
           : (this._config.entities || []).map((entityConf, index) => {
               const entityId = typeof entityConf === "string" ? entityConf : (entityConf?.entity || "");
               const conf = typeof entityConf === "string" ? {} : (entityConf || {});
+              
+              const detectedMode = this._detectMode(entityId);
+              const isAuto = !conf.mode || conf.mode === "auto";
+              
+              const isTimestampMode = conf.mode === "timestamp" || (isAuto && detectedMode === "timestamp");
+              
               return html`
                 <div class="entity-editor">
                   ${entityPickerReady ? html`
@@ -2699,20 +2887,50 @@ class SimpleTimerCardEditor extends LitElement {
                   `}
 
                   <div class="entity-options">
-                    <div class="side-by-side">
-                      <ha-select label="Mode" .value=${conf.mode || "auto"} .configValue=${"mode"}
-                        @selected=${(e) => { e.stopPropagation(); this._entityValueChanged(e, index); }} @closed=${(e) => { e.stopPropagation(); this._entityValueChanged(e, index); }}>
-                        <mwc-list-item value="auto">Auto</mwc-list-item>
-                        <mwc-list-item value="alexa">Alexa</mwc-list-item>
-                        <mwc-list-item value="timer">Timer</mwc-list-item>
-                        <mwc-list-item value="voice_pe">Voice PE</mwc-list-item>
-                        <mwc-list-item value="helper">Helper (input_text/text)</mwc-list-item>
-                        <mwc-list-item value="timestamp">Timestamp sensor</mwc-list-item>
-                        <mwc-list-item value="minutes_attr">Minutes attribute</mwc-list-item>
-                      </ha-select>
+                    <div class="side-by-side" style="align-items:flex-start;">
+                      <div style="flex:1;">
+                        <ha-select label="Mode" .value=${conf.mode || "auto"} .configValue=${"mode"}
+                          @selected=${(e) => { e.stopPropagation(); this._entityValueChanged(e, index); }} @closed=${(e) => { e.stopPropagation(); this._entityValueChanged(e, index); }}>
+                          <mwc-list-item value="auto">Auto (Default)</mwc-list-item>
+                          <mwc-list-item value="alexa">Alexa</mwc-list-item>
+                          <mwc-list-item value="timer">Timer</mwc-list-item>
+                          <mwc-list-item value="voice_pe">Voice PE</mwc-list-item>
+                          <mwc-list-item value="helper">Helper (input_text/text)</mwc-list-item>
+                          <mwc-list-item value="timestamp">Timestamp sensor</mwc-list-item>
+                          <mwc-list-item value="minutes_attr">Minutes attribute</mwc-list-item>
+                        </ha-select>
+                        ${isAuto && detectedMode ? html`
+                          <div style="font-size: 11px; color: var(--secondary-text-color); margin-top: 4px; margin-left: 4px;">
+                            Detected mode: <strong>${detectedMode === 'unknown' ? 'Unknown' : detectedMode.charAt(0).toUpperCase() + detectedMode.slice(1)}</strong>
+                          </div>
+                        ` : ''}
+                      </div>
 
-                      <ha-textfield label="Minutes attribute (for minutes_attr)" .value=${conf.minutes_attr || ""} .configValue=${"minutes_attr"} @input=${(e) => this._entityValueChanged(e, index)}></ha-textfield>
+                      ${conf.mode === "minutes_attr" ? html`
+                        <ha-textfield label="Minutes attribute" .value=${conf.minutes_attr || ""} .configValue=${"minutes_attr"} @input=${(e) => this._entityValueChanged(e, index)}></ha-textfield>
+                      ` : ""}
+
+                      ${isTimestampMode ? html`
+                        <ha-entity-picker
+                            .hass=${this.hass}
+                            .value=${conf.start_time_entity || ""}
+                            .configValue=${"start_time_entity"}
+                            @value-changed=${(e) => this._entityValueChanged(e, index)}
+                            label="Start time entity"
+                            allow-custom-entity
+                        ></ha-entity-picker>
+                      ` : ""}
                     </div>
+
+                    ${isTimestampMode ? html`
+                      <ha-textfield 
+                        label="Start time attribute (Optional)" 
+                        .value=${conf.start_time_attr || ""} 
+                        .configValue=${"start_time_attr"} 
+                        @input=${(e) => this._entityValueChanged(e, index)}
+                        helper-text="Attribute on this entity containing the start timestamp (e.g., 'last_triggered')."
+                      ></ha-textfield>
+                    ` : ""}
 
                     <div class="side-by-side">
                       <ha-textfield label="Name Override" .value=${conf.name || ""} .configValue=${"name"} @input=${(e) => this._entityValueChanged(e, index)}></ha-textfield>
@@ -2734,8 +2952,8 @@ class SimpleTimerCardEditor extends LitElement {
                         <ha-textfield label="Audio repeat count" type="number" min="1" max="10" .value=${conf.audio_repeat_count ?? 1} .configValue=${"audio_repeat_count"} @input=${(e) => this._entityValueChanged(e, index)}></ha-textfield>
                       </div>
                     ` : ""}
-                    
-                    ${(conf.mode === "timer") ? html`
+
+                    ${(conf.mode === "timer" || (isAuto && detectedMode === "timer")) ? html`
                       <ha-formfield label="Keep visible when idle">
                         <ha-switch .checked=${conf.keep_timer_visible_when_idle === true} .configValue=${"keep_timer_visible_when_idle"} @change=${(e) => this._entityValueChanged(e, index)}></ha-switch>
                       </ha-formfield>
