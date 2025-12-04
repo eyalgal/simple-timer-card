@@ -33,7 +33,7 @@ A versatile and highly customizable timer card for Home Assistant Lovelace, offe
 * **Timer Actions:** Configurable actions when timers expire (keep, dismiss, or auto-dismiss).
 * **Snooze Functionality:** Easily snooze expired timers for additional time.
 * **Active Timer Management:** View and manage multiple active timers simultaneously.
-* **Smart Auto-Detection:** Improved automatic detection of timer sources with strict validation to prevent errors.
+* **Smart Auto-Detection & Entity Integration:** Improved automatic detection of timer sources with strict validation. Connect to Home Assistant entities including MQTT sensors, input helpers, and more.
 * **Customizable Appearance:** Adjust colors, icons, and styling to match your Home Assistant theme.
 * **Native Theme Integration:** Automatically uses Home Assistant theme colors and native UI elements.
 * **Visual Progress Indicators:** Clear visual feedback showing timer progress and status.
