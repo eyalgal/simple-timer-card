@@ -187,9 +187,13 @@ Each entity in the `entities` array can be either a simple string (entity ID) or
 This card focuses on timer display and management. For notifications when timers expire, use Home Assistant automations.
 
 ### **MQTT Timers**
-If using MQTT storage, the card publishes events to:
-- `simple_timer_card/events/started` when timers are created
-- `simple_timer_card/events/expired` when timers finish
+If you use MQTT storage, Simple Timer Card publishes timer event messages to MQTT topics for external automation, notification, or cross-device sync. The following topics/events are published:
+
+- `simple_timer_card/events/started` When a timer is **created/started**
+- `simple_timer_card/events/expired` When a timer **finishes/expires** (countdown hits zero)
+- `simple_timer_card/events/cancelled` When a timer is **cancelled**
+- `simple_timer_card/events/paused` When a timer is **paused**
+- `simple_timer_card/events/resumed` When a timer is **resumed**
 
 See `examples/mqtt_timer_notifications.yaml` for a mobile notification automation.
 
