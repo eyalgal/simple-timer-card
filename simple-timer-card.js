@@ -5,13 +5,13 @@
  *
  * Author: eyalgal
  * License: MIT
- * Version: 1.4.0
+ * Version: 1.4.1
  * For more information, visit: https://github.com/eyalgal/simple-timer-card
  */
 
 import { LitElement, html, css } from "https://unpkg.com/lit@3.1.0/index.js?module";
 
-const cardVersion = "1.4.0";
+const cardVersion = "1.4.1";
 
 const DAY_IN_MS = 86400000;
 const HOUR_IN_SECONDS = 3600;
@@ -40,6 +40,9 @@ const TRANSLATIONS = {
     second_ago: "second ago",
     seconds_ago: "seconds ago",
     default_duration: "Default Duration",
+    h: "h",
+    m: "m",
+    s: "s",
   },
   de: {
     no_timers: "Keine Timer",
@@ -63,6 +66,9 @@ const TRANSLATIONS = {
     second_ago: "Sekunde her",
     seconds_ago: "Sekunden her",
     default_duration: "Standarddauer",
+    h: "h",
+    m: "m",
+    s: "s",
   },
   es: {
     no_timers: "Sin Temporizadores",
@@ -86,6 +92,9 @@ const TRANSLATIONS = {
     second_ago: "segundo atrás",
     seconds_ago: "segundos atrás",
     default_duration: "Duración predeterminada",
+    h: "h",
+    m: "m",
+    s: "s",
   }
 };
 
@@ -135,7 +144,7 @@ class SimpleTimerCard extends LitElement {
     if (!Array.isArray(data.timers)) return false;
     for (const timer of data.timers) {
       if (!timer || typeof timer !== 'object') return false;
-      if (timer.id || typeof timer.id !== 'string') return false;
+      if (!timer.id || typeof timer.id !== 'string') return false;
       if (timer.label && typeof timer.label !== 'string') return false;
       if (timer.duration && typeof timer.duration !== 'number') return false;
       if (timer.end && typeof timer.end !== 'number') return false;
@@ -207,18 +216,18 @@ class SimpleTimerCard extends LitElement {
       sensor_entity: mqttSensorEntity,
     };
 
-  const normLayout = (config.layout || "horizontal").toLowerCase();
-  const layout = normLayout === "vertical" ? "vertical" : "horizontal";
+    const normLayout = (config.layout || "horizontal").toLowerCase();
+    const layout = normLayout === "vertical" ? "vertical" : "horizontal";
 
-  const normStyle = (config.style || "bar_horizontal").toLowerCase();
-  let style;
+    const normStyle = (config.style || "bar_horizontal").toLowerCase();
+    let style;
 
-  const validStyles = ["fill_vertical", "fill_horizontal", "bar_vertical", "bar_horizontal", "circle"];
-  if (validStyles.includes(normStyle)) {
-    style = normStyle;
-  } else {
-    style = "bar_horizontal";
-  }
+    const validStyles = ["fill_vertical", "fill_horizontal", "bar_vertical", "bar_horizontal", "circle"];
+    if (validStyles.includes(normStyle)) {
+      style = normStyle;
+    } else {
+      style = "bar_horizontal";
+    }
 
     this._config = {
       layout,
@@ -266,12 +275,12 @@ class SimpleTimerCard extends LitElement {
     }
   }
 
-  static getStubConfig() {
-    return {
-      entities: [],
-    };
-  }
 
+						  
+			
+				   
+	  
+   
   connectedCallback() {
     super.connectedCallback();
     this._startTimerUpdates();
@@ -981,7 +990,7 @@ class SimpleTimerCard extends LitElement {
   }
 
   _publishTimerEvent(event, timer) {
-    if (this._config.storage === 'mqtt') {
+    if (this._config.storage === 'mqtt' || this._config.default_timer_entity?.startsWith("sensor.")) {
       this.hass.callService("mqtt", "publish", {
         topic: `simple_timer_card/events/${event}`,
         payload: JSON.stringify({
@@ -991,7 +1000,8 @@ class SimpleTimerCard extends LitElement {
           source_entity: timer.source_entity,
           timestamp: Date.now(),
           event: event,
-          duration: timer.duration
+          duration: timer.duration,
+          remaining: timer.remaining
         }),
         retain: false
       });
@@ -1064,20 +1074,31 @@ class SimpleTimerCard extends LitElement {
     }
 
     const endTime = Date.now() + durationMs;
+    const newTimer = {
+      id: `custom-${Date.now()}`,
+      label: this._sanitizeText(label || this._localize("timer")),
+      icon: this._config.default_timer_icon || "mdi:timer-outline",
+      color: this._config.default_timer_color || "var(--primary-color)",
+      end: endTime,
+      duration: durationMs,
+      source: "helper",
+      paused: false,
+    };
 
     this._mutateHelper(targetEntity, (data) => {
-      const newTimer = {
-        id: `custom-${Date.now()}`,
-        label: this._sanitizeText(label || this._localize("timer")),
-        icon: this._config.default_timer_icon || "mdi:timer-outline",
-        color: this._config.default_timer_color || "var(--primary-color)",
-        end: endTime,
-        duration: durationMs,
-        source: "helper",
-        paused: false,
-      };
+
+												
+						
+								   
+																	
+																	 
+																		  
+					 
+							 
+						 
       data.timers.push(newTimer);
     });
+    this._publishTimerEvent('started', newTimer);
   }
 
   _createPresetTimer(preset, entity = null) {
@@ -1112,6 +1133,7 @@ class SimpleTimerCard extends LitElement {
           newTimer.source = "helper";
           newTimer.source_entity = targetEntity;
           this._mutateHelper(targetEntity, (data) => { data.timers.push(newTimer); });
+          this._publishTimerEvent('started', newTimer);
       } else {
           newTimer.source = this._config.storage;
           newTimer.source_entity = this._config.storage === "mqtt" ? this._config.mqtt.sensor_entity : "local";
@@ -1306,6 +1328,8 @@ class SimpleTimerCard extends LitElement {
     }
 
     this._ringingTimers.delete(timer.id);
+    this._publishTimerEvent('cancelled', timer);
+
     if (timer.source === "helper") {
       this._mutateHelper(timer.source_entity, (data) => { data.timers = data.timers.filter((t) => t.id !== timer.id); });
     } else if (timer.source === "local" || timer.source === "mqtt") {
@@ -1318,6 +1342,7 @@ class SimpleTimerCard extends LitElement {
     }
   }
   _handlePause(timer) {
+    this._publishTimerEvent('paused', timer);
     if (timer.source === "helper") {
       const remaining = timer.remaining;
       this._mutateHelper(timer.source_entity, (data) => {
@@ -1338,6 +1363,7 @@ class SimpleTimerCard extends LitElement {
     }
   }
   _handleResume(timer) {
+    this._publishTimerEvent('resumed', timer);
     if (timer.source === "helper") {
       const newEndTime = Date.now() + timer.remaining;
       this._mutateHelper(timer.source_entity, (data) => {
@@ -1384,6 +1410,7 @@ class SimpleTimerCard extends LitElement {
 
     this._ringingTimers.delete(timer.id);
     this._stopAudioForTimer(timer.id);
+    this._publishTimerEvent('snoozed', timer);
     const snoozeMinutes = this._config.snooze_duration;
     const newDurationMs = snoozeMinutes * 60000;
     const newEndTime = Date.now() + newDurationMs;
@@ -1446,6 +1473,7 @@ class SimpleTimerCard extends LitElement {
   _toggleCustom(which) {
     const openKey = `noTimer${which.charAt(0).toUpperCase() + which.slice(1)}Open`;
     this._ui[openKey] = !this._ui[openKey];
+    this.requestUpdate();
   }
   _parseAdjustmentToSeconds(value) {
     let seconds = 0;
@@ -1492,6 +1520,7 @@ class SimpleTimerCard extends LitElement {
       newTimer.source = "helper";
       newTimer.source_entity = targetEntity;
       this._mutateHelper(targetEntity, (data) => { data.timers.push(newTimer); });
+      this._publishTimerEvent('started', newTimer);
     } else {
       newTimer.source = this._config.storage;
       newTimer.source_entity = this._config.storage === "mqtt" ? this._config.mqtt.sensor_entity : "local";
@@ -1518,6 +1547,7 @@ _startFromCustom(which, label) {
   this._showingCustomName[inputId] = false;
   this._lastSelectedName[inputId] = null;
   if (input) input.value = '';
+  this.requestUpdate();
 }
 
 _startActive(which, label) {
@@ -1538,11 +1568,13 @@ _startActive(which, label) {
   this._showingCustomName[inputId] = false;
   this._lastSelectedName[inputId] = null;
   if (input) input.value = '';
+  this.requestUpdate();
 }
 
   _toggleActivePicker(which) {
     const openKey = `active${which.charAt(0).toUpperCase() + which.slice(1)}Open`;
     this._ui[openKey] = !this._ui[openKey];
+    this.requestUpdate();
   }
   _adjustActive(which, value, sign = +1) {
     const delta = this._parseAdjustmentToSeconds(value);
@@ -1558,8 +1590,8 @@ _startActive(which, label) {
 
     if (ring) {
       const entityConf = this._getEntityConfig(t.source_entity);
-      const expiredMessage = entityConf?.expired_subtitle || this._config.expired_subtitle || this._localize("times_up");
-
+      
+																
       if (isCircleStyle) {
         return html`
           <li class="${finishedClasses}" style="--tcolor:${color}">
@@ -2167,8 +2199,8 @@ _startActive(which, label) {
         transition: max-height .5s ease, opacity .3s ease, padding-top .5s ease, margin-bottom .3s ease;
         padding-top: 0; margin-bottom: 0;
       }
-      .card.expanded .picker { max-height: 320px; opacity: 1; padding: 12px 8px 8px; }
-      .card-show .active-picker { max-height: 320px; opacity: 1; margin-bottom: 8px; padding: 8px 0; }
+      .card.expanded .picker { max-height: 450px; opacity: 1; padding: 12px 8px 8px; }
+      .card-show .active-picker { max-height: 450px; opacity: 1; margin-bottom: 8px; padding: 8px 0; }
 
       .icon-wrap {
         width: 36px; height: 36px; border-radius: var(--ha-card-border-radius, 50%);
@@ -2612,7 +2644,7 @@ class SimpleTimerCardEditor extends LitElement {
       }
     }
 
-
+	 
 
     if (cleaned.entities && Array.isArray(cleaned.entities)) {
       cleaned.entities = cleaned.entities.map(entityConf => {
