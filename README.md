@@ -23,7 +23,7 @@ A versatile and highly customizable timer card for Home Assistant Lovelace, offe
 * **Alexa Integration:** Separate audio settings for Alexa devices, based on [alexa_media_player](https://github.com/alandtse/alexa_media_player).
 * **Voice PE Integration:** Full support for Voice PE timers with template sensors - [see setup guide](voice-pe.md).
 * **Flexible Display Styles:** Choose from five distinct timer display styles: `fill_horizontal`, `fill_vertical`, `bar_horizontal`, `bar_vertical`, or `circle`.
-* **Progress Animation Modes:** Circle and bar styles support both `drain` (shrinks/empties) and `fill` (grows) progress animations for visual preference.
+* **Progress Animation Modes:** Circle and bar styles support `drain` (shrinks/empties), `fill` (grows), and `milestones` (segmented progress by time units) animations for visual preference.
 * **Dual Layout Control:** Separate `layout` (for no-timers state) and `style` (for active timers) options allow any combination.
 * **Timer Presets:** Quick-access buttons for commonly used timer durations. Supports both minutes and seconds format (e.g., `5`, `90s`).
 * **Timer Name Presets:** Predefined timer names for quick selection when creating timers (e.g., "Break", "Exercise", "Cooking").
@@ -33,6 +33,7 @@ A versatile and highly customizable timer card for Home Assistant Lovelace, offe
 * **Timer Actions:** Configurable actions when timers expire (keep, dismiss, or auto-dismiss).
 * **Snooze Functionality:** Easily snooze expired timers for additional time.
 * **Active Timer Management:** View and manage multiple active timers simultaneously.
+* **Customizable Time Display:** Multiple time format options including HMS, HM, human-readable formats, and customizable time unit ordering.
 * **Smart Auto-Detection & Entity Integration:** Automatic detection of timer sources with ISO date validation and entity type checking. Connect to Home Assistant entities including MQTT sensors, input helpers, and more.
 * **Customizable Appearance:** Adjust colors, icons, and styling to match your Home Assistant theme.
 * **Native Theme Integration:** Automatically uses Home Assistant theme colors and native UI elements.
@@ -91,7 +92,7 @@ resources:
 | `title`                  | `string`  | `null`                  | Optional title for the card                                                                        |
 | `language`               | `string`  | `en`                    | Language for UI text. Supports `en` (English), `de` (German), `es` (Spanish).                            |
 | `entities`               | `array`   | `[]`                    | Array of timer entities to display                                                                |
-| `progress_mode`          | `string`  | `drain`                 | Progress animation mode: `drain` (shrinks as time counts down) or `fill` (grows as time elapses). Applies to `circle`, `bar_horizontal`, and `bar_vertical` styles. **Note:** `circle_mode` is deprecated in favor of `progress_mode` |
+| `progress_mode`          | `string`  | `drain`                 | Progress animation mode: `drain` (shrinks as time counts down), `fill` (grows as time elapses), or `milestones` (segmented progress by time units). Applies to `circle`, `bar_horizontal`, and `bar_vertical` styles. **Note:** `circle_mode` is deprecated in favor of `progress_mode` |
 
 ### **Entity Configuration**
 
@@ -142,11 +143,28 @@ Each entity in the `entities` array can be either a simple string (entity ID) or
 
 **Timer Name Presets:** When configured, preset timer names appear as clickable buttons during timer creation, allowing users to quickly assign meaningful names like "Break", "Exercise", or "Cooking" to their timers. If no presets are configured, a simple text input field is shown instead.
 
+### **Time Display Configuration**
+
+| Name                    | Type      | Default                      | Description                                                                                        |
+| :---------------------- | :-------- | :--------------------------- | :------------------------------------------------------------------------------------------------- |
+| `time_format`           | `string`  | `hms`                        | Time display format: `hms` (HH:MM:SS), `hm` (HH:MM), `ss` (seconds only), `dhms` (DD:HH:MM:SS), `human_compact` (e.g., "5h 30m"), `human_short` (e.g., "5h 30m 15s"), or `human_natural` (e.g., "5 hours 30 minutes") |
+| `time_format_units`     | `array`   | `['days','hours','minutes','seconds']` | Ordered array of time units to display. Supports: `years`, `months`, `weeks`, `days`, `hours`, `minutes`, `seconds`. Can also be a comma-separated string |
+
+### **Milestones Progress Mode**
+
+When `progress_mode` is set to `milestones`, the progress bar is divided into segments based on time units. The following settings control milestone behavior:
+
+| Name                    | Type      | Default         | Description                                                                                        |
+| :---------------------- | :-------- | :-------------- | :------------------------------------------------------------------------------------------------- |
+| `milestone_unit`        | `string`  | `auto`          | Unit for milestone segments: `auto` (automatically selects appropriate unit), `none`, `years`, `months`, `weeks`, `days`, `hours`, `minutes`, or `seconds`. Only applies when `progress_mode: milestones` |
+| `milestone_pulse`       | `boolean` | `true`          | Enable pulsing animation on the active milestone segment. Only applies when `progress_mode: milestones` |
+
 ### **Storage & Persistence**
 
 | Name                    | Type      | Default | Description                                                                                        |
 | :---------------------- | :-------- | :------ | :------------------------------------------------------------------------------------------------- |
-| `default_timer_entity`  | `string`  | `null`  | Entity ID for timer storage (MQTT sensor)                                                         |
+| `default_timer_entity`  | `string`  | `null`  | Entity ID for timer storage. Supports `input_text.*`, `text.*` entities for helper-based storage, or `sensor.*` entities for MQTT-based storage. Required for persistent timers |
+| `storage_namespace`     | `string`  | `"default"` or entity ID | Namespace for local storage isolation. Allows multiple card instances to maintain separate timer storage. If not specified, uses `default_timer_entity` value when available, otherwise defaults to `"default"` |
 
 ### **Expiry & Actions**
 
@@ -172,6 +190,7 @@ Each entity in the `entities` array can be either a simple string (entity ID) or
 | `audio_file_url`                  | `string`  | `""`    | URL or path to audio file to play                                                                 |
 | `audio_repeat_count`              | `number`  | `1`     | Number of times to repeat the audio (1-10)                                                        |
 | `audio_play_until_dismissed`      | `boolean` | `false` | Continue playing audio until timer is dismissed or snoozed                                        |
+| `audio_completion_delay`          | `number`  | `4`     | Delay in seconds before auto-dismissing timer after audio completes (when using `expire_action: remove`) |
 
 ### **Alexa Audio Settings**
 
@@ -245,6 +264,7 @@ When using `circle`, `bar_horizontal`, or `bar_vertical` styles, you can control
 
 - **`drain`** (default): Progress shrinks/empties as time counts down - circle empties, bars decrease
 - **`fill`**: Progress grows as time elapses - circle fills up, bars increase
+- **`milestones`**: Progress bar is divided into segments based on time units (only works with bar styles: `bar_horizontal` and `bar_vertical`). Each segment represents a time unit (e.g., hours, minutes) and fills/empties as time progresses
 
 ```yaml
 type: custom:simple-timer-card
@@ -258,7 +278,33 @@ style: bar_horizontal
 progress_mode: fill  # Bar grows from left to right as time elapses
 ```
 
+```yaml
+type: custom:simple-timer-card
+style: bar_horizontal
+progress_mode: milestones  # Segmented progress bar with milestone units
+milestone_unit: auto  # Automatically select appropriate unit
+milestone_pulse: true  # Pulse the active segment
+```
+
 > **Note:** The deprecated `circle_mode` parameter is still supported for backward compatibility but will be removed in a future version. Please use `progress_mode` instead.
+
+### **Milestones Mode Details**
+
+The `milestones` progress mode creates a segmented progress bar where each segment represents a unit of time. This provides a clear visual indication of progress through distinct time intervals.
+
+**How it works:**
+- The progress bar is divided into equal segments
+- Each segment represents one unit of the selected time scale (hours, minutes, etc.)
+- Segments fill or empty based on the `progress_mode` setting (drain vs fill)
+- The currently active segment can pulse for visual feedback (controlled by `milestone_pulse`)
+- The time unit is automatically selected based on timer duration when `milestone_unit: auto`
+
+**Configuration options:**
+- `milestone_unit`: Choose the time unit for segments (`auto`, `hours`, `minutes`, `seconds`, etc.)
+- `milestone_pulse`: Enable/disable pulsing animation on the active segment (default: `true`)
+
+**Example:**
+A 30-minute timer with `milestone_unit: minutes` will show 30 segments, each representing 1 minute.
 
 The card uses CSS custom properties that can be overridden:
 
