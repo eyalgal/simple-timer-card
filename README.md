@@ -162,8 +162,8 @@ When `progress_mode` is set to `milestones`, the progress bar is divided into se
 
 | Name                    | Type      | Default | Description                                                                                        |
 | :---------------------- | :-------- | :------ | :------------------------------------------------------------------------------------------------- |
-| `default_timer_entity`  | `string`  | `null`  | Entity ID for timer storage (MQTT sensor or helper entity for persistent timers)                 |
-| `storage_namespace`     | `string`  | `default` | Namespace for local storage isolation. Allows multiple card instances to maintain separate timer storage. Defaults to `default_timer_entity` value if provided |
+| `default_timer_entity`  | `string`  | `null`  | Entity ID for timer storage. Supports `input_text.*`, `text.*` entities for helper-based storage, or `sensor.*` entities for MQTT-based storage. Required for persistent timers |
+| `storage_namespace`     | `string`  | `"default"` or entity ID | Namespace for local storage isolation. Allows multiple card instances to maintain separate timer storage. If not specified, uses `default_timer_entity` value when available, otherwise defaults to `"default"` |
 
 ### **Expiry & Actions**
 
