@@ -5,13 +5,13 @@
  *
  * Author: eyalgal
  * License: MIT
- * Version: 1.5.0
+ * Version: 1.5.1
  * For more information, visit: https://github.com/eyalgal/simple-timer-card
  */
 
 import { LitElement, html, css } from "https://unpkg.com/lit@3.1.0/index.js?module";
 
-const cardVersion = "1.5.0";
+const cardVersion = "1.5.1";
 
 const DAY_IN_MS = 86400000;
 const YEAR_IN_MS = 365 * DAY_IN_MS;
@@ -504,21 +504,61 @@ class SimpleTimerCard extends LitElement {
   }
 
   _parseAlexa(entityId, entityState, entityConf) {
-    let active = entityState.attributes.sorted_active;
-    let paused = entityState.attributes.sorted_paused;
-    let all = entityState.attributes.sorted_all;
+    const attrs = entityState.attributes;
+    
+    let active = attrs.sorted_active;
+    let paused = attrs.sorted_paused;
+    let all = attrs.sorted_all;
+
     const safeParse = (x) => {
       if (Array.isArray(x)) return x;
       if (typeof x === "string") { try { return JSON.parse(x); } catch { return []; } }
       return Array.isArray(x) ? x : [];
     };
+
     active = safeParse(active);
     paused = safeParse(paused);
     all = safeParse(all);
+
+    if (active.length === 0 && paused.length === 0 && attrs.alarms_brief) {
+      const brief = attrs.alarms_brief;
+      const briefActive = Array.isArray(brief.active) ? brief.active : [];
+      
+      return briefActive.map(t => {
+        const isPaused = t.status === "PAUSED";
+        const remaining = t.remainingTime || 0;
+        const lastUpdated = t.lastUpdatedDate || Date.now();
+        
+        const end = isPaused ? remaining : (lastUpdated + remaining);
+
+        let label;
+        if (t.timerLabel) {
+          label = this._sanitizeText(t.timerLabel);
+        } else {
+          const cleanedFriendlyName = this._cleanFriendlyName(attrs.friendly_name);
+          const baseName = entityConf?.name || cleanedFriendlyName || (isPaused ? "Alexa Timer (Paused)" : "Alexa Timer");
+          label = this._sanitizeText(baseName);
+        }
+
+        return {
+          id: t.id,
+          source: "alexa",
+          source_entity: entityId,
+          label,
+          icon: entityConf?.icon || (isPaused ? "mdi:timer-pause" : "mdi:timer"),
+          color: entityConf?.color || (isPaused ? "var(--warning-color)" : "var(--primary-color)"),
+          end: end,
+          duration: t.originalDuration || remaining, 
+          paused: isPaused,
+        };
+      });
+    }
+
     const normDuration = (t) =>
       (typeof t?.originalDurationInMillis === "number" && t.originalDurationInMillis) ||
       (typeof t?.originalDurationInSeconds === "number" && t.originalDurationInSeconds * 1000) ||
       this._toMs(t?.originalDuration) || null;
+      
     const mk = (id, t, pausedFlag) => {
       const remainingMs = pausedFlag ? this._toMs(t?.remainingTime) : null;
       const end = pausedFlag ? (remainingMs ?? 0) : Number(t?.triggerTime || 0);
@@ -2428,20 +2468,21 @@ class SimpleTimerCardEditor extends LitElement {
     return this._config.style || "bar_horizontal";
   }
 
-  _detectMode(entityId) {
-    if (!this.hass || !entityId) return null;
-    const entityState = this.hass.states[entityId];
+  _detectMode(entityId, entityState, entityConf) {
     if (!entityState) return null;
     if (entityId.startsWith("timer.")) return "timer";
     if (entityId.startsWith("input_text.") || entityId.startsWith("text.")) return "helper";
     const attrs = entityState.attributes || {};
-    if (attrs.sorted_active) return "alexa";
+    if (attrs.sorted_active || attrs.alarms_brief) return "alexa";
     if (attrs.device_class === "timestamp") return "timestamp";
+    const guessAttr = entityConf?.minutes_attr;
+    if (guessAttr && (attrs[guessAttr] ?? null) !== null) return "minutes_attr";
+    if (attrs.start_time) return "timestamp";
     const stateVal = entityState.state;
     if (stateVal && stateVal !== "unknown" && stateVal !== "unavailable") {
       if (isNaN(stateVal) && !isNaN(Date.parse(stateVal))) return "timestamp";
     }
-    return "unknown";
+    return null;
   }
 
   render() {
