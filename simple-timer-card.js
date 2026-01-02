@@ -470,7 +470,7 @@ class SimpleTimerCard extends LitElement {
     if (entityId.startsWith("timer.")) return "timer";
     if (entityId.startsWith("input_text.") || entityId.startsWith("text.")) return "helper";
     const attrs = entityState.attributes || {};
-    if (attrs.sorted_active) return "alexa";
+    if (attrs.sorted_active || attrs.alarms_brief) return "alexa";
     if (attrs.device_class === "timestamp") return "timestamp";
     const guessAttr = entityConf?.minutes_attr;
     if (guessAttr && (attrs[guessAttr] ?? null) !== null) return "minutes_attr";
@@ -539,6 +539,8 @@ class SimpleTimerCard extends LitElement {
           const baseName = entityConf?.name || cleanedFriendlyName || (isPaused ? "Alexa Timer (Paused)" : "Alexa Timer");
           label = this._sanitizeText(baseName);
         }
+        
+        const originalDur = t.originalDuration || (isPaused ? remaining : remaining); 
 
         return {
           id: t.id,
@@ -548,7 +550,7 @@ class SimpleTimerCard extends LitElement {
           icon: entityConf?.icon || (isPaused ? "mdi:timer-pause" : "mdi:timer"),
           color: entityConf?.color || (isPaused ? "var(--warning-color)" : "var(--primary-color)"),
           end: end,
-          duration: t.originalDuration || remaining, 
+          duration: originalDur, 
           paused: isPaused,
         };
       });
