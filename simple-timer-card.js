@@ -524,12 +524,35 @@ class SimpleTimerCard extends LitElement {
       const brief = attrs.alarms_brief;
       const briefActive = Array.isArray(brief.active) ? brief.active : [];
       
+      let anchorTime = Date.now();
+      if (attrs.process_timestamp) {
+        anchorTime = new Date(attrs.process_timestamp).getTime();
+      } else if (entityState.last_updated) {
+        anchorTime = new Date(entityState.last_updated).getTime();
+      }
+
       return briefActive.map(t => {
-        const isPaused = t.status === "PAUSED";
+        const isPaused = (t.status === "PAUSED");
         const remaining = t.remainingTime || 0;
-        const lastUpdated = t.lastUpdatedDate || Date.now();
         
-        const end = isPaused ? remaining : (lastUpdated + remaining);
+        const validAnchor = (attrs.process_timestamp || entityState.last_updated) 
+          ? anchorTime 
+          : (t.lastUpdatedDate || Date.now());
+
+        const end = isPaused ? remaining : (validAnchor + remaining);
+
+        let totalDuration = t.originalDuration;
+        
+        if (!totalDuration) {
+          if (isPaused) {
+
+             totalDuration = remaining;
+          } else {
+             const startTime = t.lastUpdatedDate || validAnchor;
+             const elapsed = Math.max(0, validAnchor - startTime);
+             totalDuration = elapsed + remaining;
+          }
+        }
 
         let label;
         if (t.timerLabel) {
@@ -539,8 +562,6 @@ class SimpleTimerCard extends LitElement {
           const baseName = entityConf?.name || cleanedFriendlyName || (isPaused ? "Alexa Timer (Paused)" : "Alexa Timer");
           label = this._sanitizeText(baseName);
         }
-        
-        const originalDur = t.originalDuration || (isPaused ? remaining : remaining); 
 
         return {
           id: t.id,
@@ -550,7 +571,7 @@ class SimpleTimerCard extends LitElement {
           icon: entityConf?.icon || (isPaused ? "mdi:timer-pause" : "mdi:timer"),
           color: entityConf?.color || (isPaused ? "var(--warning-color)" : "var(--primary-color)"),
           end: end,
-          duration: originalDur, 
+          duration: totalDuration, 
           paused: isPaused,
         };
       });
@@ -592,6 +613,7 @@ class SimpleTimerCard extends LitElement {
         paused: !!pausedFlag,
       };
     };
+    
     const activeTimers = active.map(([id, t]) => mk(id, t, false));
     let pausedTimers = paused.map(([id, t]) => mk(id, t, true));
     if (pausedTimers.length === 0 && all.length > 0) {
@@ -671,7 +693,16 @@ class SimpleTimerCard extends LitElement {
     const minutes = Number(entityState?.attributes?.[attrName]);
     if (!isFinite(minutes)) return [];
     const endMs = Date.now() + Math.max(0, minutes) * 60000;
-    return [{ id:`${entityId}-eta-${Math.floor(endMs/1000)}`, source:"minutes_attr", source_entity:entityId, label:entityConf?.name||entityState.attributes.friendly_name||"ETA", icon:entityConf?.icon||"mdi:timer-sand", color:entityConf?.color||"var(--primary-color)", end:endMs, duration: Math.max(0, minutes) * 60000 }];
+    return [{ 
+      id:`${entityId}-eta-${Math.floor(endMs/1000)}`, 
+      source:"minutes_attr", 
+      source_entity:entityId, 
+      label:entityConf?.name||entityState.attributes.friendly_name||"ETA", 
+      icon:entityConf?.icon || "mdi:timer-outline",
+      color:entityConf?.color || "var(--primary-color)",
+      end: endMs,
+      duration: minutes * 60000 
+    }];
   }
 
   _parseTimer(entityId, entityState, entityConf) {
@@ -1964,6 +1995,8 @@ class SimpleTimerCard extends LitElement {
     const layout = this._config.layout;
     const style = this._config.style;
     const activeTimersLayout = ["fill_vertical", "bar_vertical", "circle"].includes((this._config.style || "").toLowerCase()) ? "vertical" : "horizontal";
+    const showPresetsInActive = this._config.show_timer_presets !== false && this._config.show_active_header !== false;
+
     const noTimerCard = layout === "horizontal" ? html`
       <div class="card nt-h ${this._ui.noTimerHorizontalOpen ? "expanded" : ""}">
         <div class="row">
@@ -1989,11 +2022,11 @@ class SimpleTimerCard extends LitElement {
           </div>
         </div>
         <div class="picker">
-          <div class="grid-3">
+          <div class="buttons-grid">
             ${this._renderMinuteButtons("horizontal", (which, m, sign) => this._adjust(which, m, sign), +1)}
           </div>
           <div class="display">${this._formatDuration(this._customSecs.horizontal, "seconds")}</div>
-          <div class="grid-3">
+          <div class="buttons-grid">
             ${this._renderMinuteButtons("horizontal", (which, m, sign) => this._adjust(which, m, sign), -1)}
           </div>
           ${this._renderTimerNameSelector("nt-h-name", "Timer Name (Optional)")}
@@ -2026,11 +2059,11 @@ class SimpleTimerCard extends LitElement {
           </div>
         </div>
         <div class="picker">
-          <div class="grid-3">
+          <div class="buttons-grid">
             ${this._renderMinuteButtons("vertical", (which, m, sign) => this._adjust(which, m, sign), +1)}
           </div>
           <div class="display">${this._formatDuration(this._customSecs.vertical, "seconds")}</div>
-          <div class="grid-3">
+          <div class="buttons-grid">
             ${this._renderMinuteButtons("vertical", (which, m, sign) => this._adjust(which, m, sign), -1)}
           </div>
           ${this._renderTimerNameSelector("nt-v-name", "Timer Name (Optional)")}
@@ -2052,15 +2085,27 @@ class SimpleTimerCard extends LitElement {
         ${this._config.show_active_header !== false ? html`
           <div class="active-head">
             <h4>${this._localize("active_timers")}</h4>
-            <button class="btn btn-add" @click=${() => this._toggleActivePicker("fill")}><ha-icon icon="mdi:plus" style="--mdc-icon-size:16px;"></ha-icon> ${this._localize("add")}</button>
+            ${showPresetsInActive ? html`
+              <div class="header-actions">
+                ${presets.map((preset) => {
+                  const label = typeof preset === "string" && preset.toLowerCase().endsWith("s")
+                    ? preset.toLowerCase()
+                    : `${preset}${this._localize("m")}`;
+                  return html`<button class="btn btn-preset" @click=${() => this._createPresetTimer(preset)}>${label}</button>`;
+                })}
+                <button class="btn btn-ghost" @click=${() => this._toggleActivePicker("fill")}>${this._localize("custom")}</button>
+              </div>
+            ` : html`
+              <button class="btn btn-add" @click=${() => this._toggleActivePicker("fill")}><ha-icon icon="mdi:plus" style="--mdc-icon-size:16px;"></ha-icon> ${this._localize("add")}</button>
+            `}
           </div>
         ` : ""}
         <div class="active-picker">
-          <div class="grid-3">
+          <div class="buttons-grid">
             ${this._renderMinuteButtons("fill", (which, m, sign) => this._adjustActive(which, m, sign), +1)}
           </div>
           <div class="display" style="font-size:30px;">${this._formatDuration(this._activeSecs.fill, "seconds")}</div>
-          <div class="grid-3">
+          <div class="buttons-grid">
             ${this._renderMinuteButtons("fill", (which, m, sign) => this._adjustActive(which, m, sign), -1)}
           </div>
           ${this._renderTimerNameSelector("add-fill-name", "Timer Name (Optional)")}
@@ -2078,15 +2123,27 @@ class SimpleTimerCard extends LitElement {
         ${this._config.show_active_header !== false ? html`
           <div class="active-head">
             <h4>${this._localize("active_timers")}</h4>
-            <button class="btn btn-add" @click=${() => this._toggleActivePicker("bar")}><ha-icon icon="mdi:plus" style="--mdc-icon-size:16px;"></ha-icon> ${this._localize("add")}</button>
+            ${showPresetsInActive ? html`
+              <div class="header-actions">
+                ${presets.map((preset) => {
+                  const label = typeof preset === "string" && preset.toLowerCase().endsWith("s")
+                    ? preset.toLowerCase()
+                    : `${preset}${this._localize("m")}`;
+                  return html`<button class="btn btn-preset" @click=${() => this._createPresetTimer(preset)}>${label}</button>`;
+                })}
+                <button class="btn btn-ghost" @click=${() => this._toggleActivePicker("bar")}>${this._localize("custom")}</button>
+              </div>
+            ` : html`
+              <button class="btn btn-add" @click=${() => this._toggleActivePicker("bar")}><ha-icon icon="mdi:plus" style="--mdc-icon-size:16px;"></ha-icon> ${this._localize("add")}</button>
+            `}
           </div>
         ` : ""}
         <div class="active-picker">
-          <div class="grid-3">
+          <div class="buttons-grid">
             ${this._renderMinuteButtons("bar", (which, m, sign) => this._adjustActive(which, m, sign), +1)}
           </div>
           <div class="display" style="font-size:30px;">${this._formatDuration(this._activeSecs.bar, "seconds")}</div>
-          <div class="grid-3">
+          <div class="buttons-grid">
             ${this._renderMinuteButtons("bar", (which, m, sign) => this._adjustActive(which, m, sign), -1)}
           </div>
           ${this._renderTimerNameSelector("add-bar-name", "Timer Name (Optional)")}
@@ -2115,7 +2172,7 @@ class SimpleTimerCard extends LitElement {
       .grid { display: grid; grid-template-columns: 1fr; gap: 12px; padding: 0; margin: -1px 0; }
       .card { background: var(--ha-card-background, var(--card-background-color)); position: relative; padding: 0 8px; box-sizing: border-box; }
       .card-content { position: relative; z-index: 1; display: flex; align-items: center; gap: 12px; padding: 0 4px; height: 40px; }
-      .progress-fill { position: absolute; inset: 6px 0; height: auto; width: 0; left: 0; z-index: 0; transition: width 1s linear; background: var(--tcolor, var(--primary-color)); opacity: 0.25; border-radius: var(--ha-card-border-radius, 12px); }
+      .progress-fill { position: absolute; inset: 6px 0; height: auto; width: 0; left: 0; z-index: 0; transition: width 1s linear; background: var(--tcolor, var(--primary-color)); opacity: 0.25; border-radius: 0; }
       .card.finished .progress-fill { width: 100% !important; }
       .nt-h { padding: 0 8px; min-height: 56px; transition: height .3s ease; }
       .nt-h.expanded { height: auto; }
@@ -2137,16 +2194,19 @@ class SimpleTimerCard extends LitElement {
       .btn-primary { background: var(--primary-color); color: var(--text-primary-color, #fff); }
       .btn-add { display: flex; align-items: center; gap: 8px; background: var(--secondary-background-color, rgba(0,0,0,.08)); color: var(--secondary-text-color); }
       .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; max-width: 220px; margin: 0 auto; }
+      .buttons-grid { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; width: 100%; box-sizing: border-box; }
+      .buttons-grid .btn { flex: 0 0 auto; min-width: 68px; }
       .display { text-align: center; font-size: 36px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; margin: 8px 0; }
-      .picker-actions { display: flex; gap: 12px; max-width: 280px; margin: 16px auto 0; }
+      .picker-actions { display: flex; gap: 12px; width: 100%; margin: 16px auto 0; box-sizing: border-box; }
       .picker-actions .btn { flex: 1; }
-      .text-input { width: 90%; text-align: center; padding: 8px 12px; font-size: 14px; border-radius: var(--stc-chip-radius); color: var(--primary-text-color); background: var(--card-background-color); border: 1px solid var(--divider-color); outline: none; margin-left: auto; margin-right: auto; display: block; }
+      .text-input { width: 90%; text-align: center; padding: 8px 12px; font-size: 14px; border-radius: var(--stc-chip-radius); color: var(--primary-text-color); background: var(--card-background-color); border: 1px solid var(--divider-color); outline: none; margin: 0 auto; display: block; }
       .text-input::placeholder { color: var(--secondary-text-color); }
       .name-selector { display: flex; flex-direction: column; gap: 8px; width: 100%; padding-top: 12px; position: relative; transition: all 0.3s ease; }
       .name-chips { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; animation: fadeIn 0.3s ease; }
       @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
-      .active-head { display: flex; align-items: center; justify-content: space-between; padding-top: 8px; margin-bottom: 6px; }
+      .active-head { display: flex; align-items: center; justify-content: space-between; padding-top: 8px; margin-bottom: 6px; flex-wrap: wrap; gap: 8px; }
       .active-head h4 { margin: 0; font-size: 16px; font-weight: 600; color: var(--primary-text-color); }
+      .header-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
       .list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
       .item { box-sizing: border-box; position: relative; border-radius: var(--ha-card-border-radius, 12px); overflow: hidden; padding: 8px 0; min-height: 56px; background: var(--ha-card-background, var(--card-background-color)); }
       .item .info { display: flex; flex-direction: column; justify-content: center; height: 36px; flex: 1; overflow: hidden; }
@@ -2159,14 +2219,14 @@ class SimpleTimerCard extends LitElement {
       .bar .top { display: flex; align-items: center; justify-content: space-between; height: 18px; }
       .track { width: 100%; height: 8px; border-radius: var(--stc-chip-radius); background: color-mix(in srgb, var(--tcolor, var(--primary-color)) 10%, transparent); margin-top: 2px; overflow: hidden; }
       .fill { height: 100%; width: 0%; border-radius: var(--stc-chip-radius); background: var(--tcolor, var(--primary-color)); transition: width 1s linear; }
-      .chip { font-weight: 600; color: color-mix(in srgb, var(--tcolor, var(--primary-color)) 70%, white); border-radius: var(--stc-chip-radius); padding: 4px 8px; font-size: 12px; background: none; border: 1px solid color-mix(in srgb, var(--tcolor, var(--primary-color)) 40%, transparent); cursor: pointer; }
+      .chip { font-weight: 600; color: color-mix(in srgb, var(--tcolor, var(--primary-color)) 70%, white); border-radius: var(--stc-chip-radius); padding: 4px 8px; font-size: 12px; background: none; border: 1px solid color-mix(in srgb, var(--tcolor, var(--primary-color)) 20%, transparent); cursor: pointer; }
       .chip:hover { background: color-mix(in srgb, var(--tcolor, var(--primary-color)) 18%, transparent); }
       .vgrid { display: grid; gap: 8px; padding: 0px; }
       .vgrid.cols-1 { grid-template-columns: 1fr; }
       .vgrid.cols-2 { grid-template-columns: 1fr 1fr; }
       .vtile { position: relative; min-height: 120px; display: flex; align-items: center; justify-content: center; box-sizing: border-box; }
       .vtile .vcol { z-index: 1; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; }
-      .icon-wrap.large { width: 36px; height: 36px; flex: 0 0 36px; border-radius: var(--ha-card-border-radius, 50%); background: color-mix(in srgb, var(--tcolor, var(--divider-color)) 22%, transparent); }
+      .icon-wrap.large { width: 36px; height: 36px; flex: 0 0 36px; border-radius: var(--ha-card-border-radius, 50%); background: color-mix(in srgb, var(--tcolor, var(--divider-color)) 22%, transparent); display: flex; align-items: center; justify-content: center; }
       .vtitle { font-size: 14px; font-weight: 600; line-height: 16px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0; }
       .vstatus { font-size: 12px; color: var(--secondary-text-color); line-height: 14px; font-variant-numeric: tabular-nums; margin: 0; margin-bottom: 2px; }
       .vstatus.up { color: color-mix(in srgb, var(--tcolor, var(--primary-color)) 70%, white); }
@@ -2471,6 +2531,8 @@ class SimpleTimerCardEditor extends LitElement {
   }
 
   _detectMode(entityId, entityState, entityConf) {
+											 
+												   
     if (!entityState) return null;
     if (entityId.startsWith("timer.")) return "timer";
     if (entityId.startsWith("input_text.") || entityId.startsWith("text.")) return "helper";
@@ -2526,7 +2588,7 @@ class SimpleTimerCardEditor extends LitElement {
         </div>
 
         <h4 class="section-title">Time presentation</h4>
-        <ha-select label="Time format" .value=${this._config.time_format || "hms"} .configValue=${"time_format"} @selected=${this._selectChanged} @closed=${(e)=>{e.stopPropagation();this._selectChanged(e);}}>
+        <ha-select label="Time format" .value=${this._config.time_format || "hms"} .configValue=${"time_format"} @selected=${this._selectChanged} @closed=${(e)=>{e.stopPropagation();this._selectChanged(e); }}>
           <mwc-list-item value="hms">HH:MM:SS</mwc-list-item>
           <mwc-list-item value="hm">HH:MM</mwc-list-item>
           <mwc-list-item value="ss">Seconds only</mwc-list-item>
@@ -2536,12 +2598,12 @@ class SimpleTimerCardEditor extends LitElement {
           <mwc-list-item value="human_natural">Unit style, natural language</mwc-list-item>
         </ha-select>
 
-        <ha-textfield label="Unit order (comma-separated)" helper="years,months,weeks,days,hours,minutes,seconds" .value=${(this._config.time_format_units || ["days","hours","minutes","seconds"]).join(", ")} .configValue=${"time_format_units"} @input=${this._valueChanged}></ha-textfield>
+        <ha-textfield label="Unit order (comma-separated)" helper="years,months,weeks,days,hours,minutes,seconds" .value=${(this._config.time_format_units || ["days","hours","minutes","seconds"]).join(",")} .configValue=${"time_format_units"} @input=${this._valueChanged}></ha-textfield>
 
         ${showMilestonesSection ? html`
           <h4 class="section-title">Progress milestones</h4>
           <div class="side-by-side">
-            <ha-select label="Milestone unit" .value=${this._config.milestone_unit || "auto"} .configValue=${"milestone_unit"} @selected=${this._selectChanged} @closed=${(e)=>{e.stopPropagation();this._selectChanged(e);}}>
+            <ha-select label="Milestone unit" .value=${this._config.milestone_unit || "auto"} .configValue=${"milestone_unit"} @selected=${this._selectChanged} @closed=${(e)=>{e.stopPropagation();this._selectChanged(e); }}>
               <mwc-list-item value="auto">Auto (default)</mwc-list-item>
               <mwc-list-item value="none">None</mwc-list-item>
               <mwc-list-item value="years">Years</mwc-list-item>
@@ -2789,7 +2851,7 @@ class SimpleTimerCardEditor extends LitElement {
       .no-entities { text-align: center; color: var(--secondary-text-color); padding: 16px; font-style: italic; border: 2px dashed var(--divider-color); border-radius: 8px; margin: 8px 0; }
       .entity-editor { border: 1px solid var(--divider-color); border-radius: 8px; padding: 12px; position: relative; }
       .entity-options { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
-      .remove-entity { position: absolute; top: 4px; right: 4px; background: var(--error-color, #f44336); border: none; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #fff; }
+      .remove-entity { position: absolute; top: 4px; right: 4px; background: var(--error-color, #f44336); border: none; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; }
     `;
   }
 }
