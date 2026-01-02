@@ -20,7 +20,7 @@ A versatile and highly customizable timer card for Home Assistant Lovelace, offe
 
 ## **✨ Features**
 
-* **Alexa Integration:** Separate audio settings for Alexa devices, based on [alexa_media_player](https://github.com/alandtse/alexa_media_player).
+* **Alexa Integration:** Separate audio settings for Alexa devices, based on [alexa_media_player](https://github.com/alandtse/alexa_media_player). Supports both legacy and new attribute structures (v1.5.1+).
 * **Voice PE Integration:** Full support for Voice PE timers with template sensors - [see setup guide](voice-pe.md).
 * **Flexible Display Styles:** Choose from five distinct timer display styles: `fill_horizontal`, `fill_vertical`, `bar_horizontal`, `bar_vertical`, or `circle`.
 * **Progress Animation Modes:** Circle and bar styles support `drain` (shrinks/empties), `fill` (grows), and `milestones` (segmented progress by time units) animations for visual preference.
@@ -118,7 +118,7 @@ Each entity in the `entities` array can be either a simple string (entity ID) or
 **Supported Timer Sources:**
 
 - **Auto**: Automatically detects the timer source based on entity type and attributes
-- **Alexa**: Amazon Alexa timers via [alexa_media_player](https://github.com/alandtse/alexa_media_player) integration
+- **Alexa**: Amazon Alexa timers via [alexa_media_player](https://github.com/alandtse/alexa_media_player) integration. Supports both `sorted_active`/`sorted_paused` (legacy) and `alarms_brief` (v1.5.1+) attribute structures
 - **Timer**: Native Home Assistant timer entities (`timer.*`)
 - **Voice PE**: Voice PE integration timers with `display_name` attribute support
 - **Helper**: Input text/text entities for manual timer management
