@@ -5,13 +5,13 @@
  *
  * Author: eyalgal
  * License: MIT
- * Version: 1.5.1
+ * Version: 1.6.0
  * For more information, visit: https://github.com/eyalgal/simple-timer-card
  */
 
 import { LitElement, html, css } from "https://unpkg.com/lit@3.1.0/index.js?module";
 
-const cardVersion = "1.5.1";
+const cardVersion = "1.6.0";
 
 const DAY_IN_MS = 86400000;
 const YEAR_IN_MS = 365 * DAY_IN_MS;
@@ -28,6 +28,7 @@ const TRANSLATIONS = {
     add: "Add",
     custom: "Custom",
     cancel: "Cancel",
+    save: "Save",
     start: "Start",
     snooze: "Snooze",
     dismiss: "Dismiss",
@@ -41,28 +42,12 @@ const TRANSLATIONS = {
     minutes_ago: "minutes ago",
     second_ago: "second ago",
     seconds_ago: "seconds ago",
-    default_duration: "Default Duration",
-    h: "h",
-    m: "m",
-    s: "s",
-    d: "d",
-    w_short: "w",
-    mo_short: "mo",
-    y_short: "y",
-    day: "day",
-    days: "days",
-    week: "week",
-    weeks: "weeks",
-    month: "month",
-    months: "months",
-    year: "year",
-    years: "years",
-    hour: "hour",
-    hours: "hours",
-    minute: "minute",
-    minutes: "minutes",
-    second: "second",
-    seconds: "seconds",
+    h: "h", m: "m", s: "s", d: "d",
+    w_short: "w", mo_short: "mo", y_short: "y",
+    day: "day", days: "days", week: "week", weeks: "weeks",
+    month: "month", months: "months", year: "year", years: "years",
+    hour: "hour", hours: "hours", minute: "minute", minutes: "minutes",
+    second: "second", seconds: "seconds",
   },
   de: {
     no_timers: "Keine Timer",
@@ -72,6 +57,7 @@ const TRANSLATIONS = {
     add: "Hinzufügen",
     custom: "Benutzerdefiniert",
     cancel: "Abbrechen",
+    save: "Speichern",
     start: "Starten",
     snooze: "Schlummern",
     dismiss: "Verwerfen",
@@ -85,28 +71,12 @@ const TRANSLATIONS = {
     minutes_ago: "Minuten her",
     second_ago: "Sekunde her",
     seconds_ago: "Sekunden her",
-    default_duration: "Standarddauer",
-    h: "h",
-    m: "m",
-    s: "s",
-    d: "T",
-    w_short: "W",
-    mo_short: "Mo",
-    y_short: "J",
-    day: "Tag",
-    days: "Tage",
-    week: "Woche",
-    weeks: "Wochen",
-    month: "Monat",
-    months: "Monate",
-    year: "Jahr",
-    years: "Jahre",
-    hour: "Stunde",
-    hours: "Stunden",
-    minute: "Minute",
-    minutes: "Minuten",
-    second: "Sekunde",
-    seconds: "Sekunden",
+    h: "h", m: "m", s: "s", d: "T",
+    w_short: "W", mo_short: "Mo", y_short: "J",
+    day: "Tag", days: "Tage", week: "Woche", weeks: "Wochen",
+    month: "Monat", months: "Monate", year: "Jahr", years: "Jahre",
+    hour: "Stunde", hours: "Stunden", minute: "Minute", minutes: "Minuten",
+    second: "Sekunde", seconds: "Sekunden",
   },
   es: {
     no_timers: "Sin Temporizadores",
@@ -116,6 +86,7 @@ const TRANSLATIONS = {
     add: "Añadir",
     custom: "Personalizado",
     cancel: "Cancelar",
+    save: "Guardar",
     start: "Iniciar",
     snooze: "Posponer",
     dismiss: "Descartar",
@@ -129,28 +100,12 @@ const TRANSLATIONS = {
     minutes_ago: "minutos atrás",
     second_ago: "segundo atrás",
     seconds_ago: "segundos atrás",
-    default_duration: "Duración predeterminada",
-    h: "h",
-    m: "m",
-    s: "s",
-    d: "d",
-    w_short: "sem",
-    mo_short: "mes",
-    y_short: "a",
-    day: "día",
-    days: "días",
-    week: "semana",
-    weeks: "semanas",
-    month: "mes",
-    months: "meses",
-    year: "año",
-    years: "años",
-    hour: "hora",
-    hours: "horas",
-    minute: "minuto",
-    minutes: "minutos",
-    second: "segundo",
-    seconds: "segundos",
+    h: "h", m: "m", s: "s", d: "d",
+    w_short: "sem", mo_short: "mes", y_short: "a",
+    day: "día", days: "días", week: "semana", weeks: "semanas",
+    month: "mes", months: "meses", year: "año", years: "años",
+    hour: "hora", hours: "horas", minute: "minuto", minutes: "minutos",
+    second: "segundo", seconds: "segundos",
   }
 };
 
@@ -169,6 +124,8 @@ class SimpleTimerCard extends LitElement {
       _ui: { state: true },
       _customSecs: { state: true },
       _activeSecs: { state: true },
+      _editingTimerId: { state: true },
+      _editDuration: { state: true },
     };
   }
 
@@ -236,6 +193,8 @@ class SimpleTimerCard extends LitElement {
     this._showingCustomName = {};
     this._lastSelectedName = {};
     this._storageNamespace = "default";
+    this._editingTimerId = null;
+    this._editDuration = { h: 0, m: 0, s: 0 };
   }
 
   _isActionThrottled(actionType, timerId = "global", throttleMs = 1000) {
@@ -545,7 +504,6 @@ class SimpleTimerCard extends LitElement {
         
         if (!totalDuration) {
           if (isPaused) {
-
              totalDuration = remaining;
           } else {
              const startTime = t.lastUpdatedDate || validAnchor;
@@ -614,10 +572,21 @@ class SimpleTimerCard extends LitElement {
       };
     };
     
-    const activeTimers = active.map(([id, t]) => mk(id, t, false));
-    let pausedTimers = paused.map(([id, t]) => mk(id, t, true));
+    const mapTimerList = (list, isPaused) => {
+      if (!Array.isArray(list)) return [];
+      return list.map(item => {
+        let id, t;
+        if (Array.isArray(item)) { [id, t] = item; }
+        else { t = item; id = t.id; }
+        return mk(id, t, isPaused);
+      });
+    };
+
+    const activeTimers = mapTimerList(active, false);
+    let pausedTimers = mapTimerList(paused, true);
+
     if (pausedTimers.length === 0 && all.length > 0) {
-      pausedTimers = all.filter(([id, t]) => t && String(t.status).toUpperCase() === "PAUSED").map(([id, t]) => mk(id, t, true));
+      pausedTimers = mapTimerList(all, true).filter(pt => pt && String(pt.status).toUpperCase() === "PAUSED");
     }
     return [...activeTimers, ...pausedTimers];
   }
@@ -698,9 +667,9 @@ class SimpleTimerCard extends LitElement {
       source:"minutes_attr", 
       source_entity:entityId, 
       label:entityConf?.name||entityState.attributes.friendly_name||"ETA", 
-      icon:entityConf?.icon || "mdi:timer-outline",
-      color:entityConf?.color || "var(--primary-color)",
-      end: endMs,
+      icon:entityConf?.icon || "mdi:timer-outline", 
+      color:entityConf?.color || "var(--primary-color)", 
+      end: endMs, 
       duration: minutes * 60000 
     }];
   }
@@ -1381,15 +1350,26 @@ class SimpleTimerCard extends LitElement {
   }
 
   _formatClock(totalSeconds, includeDays = false) {
-    if (totalSeconds <= 0) return includeDays ? "00:00:00:00" : "00:00";
+    if (totalSeconds <= 0) return "00:00"; 
+    
     const days = Math.floor(totalSeconds / DAY_IN_SECONDS);
     const remAfterDays = totalSeconds % DAY_IN_SECONDS;
     const hours = Math.floor(remAfterDays / HOUR_IN_SECONDS);
     const minutes = Math.floor((remAfterDays % HOUR_IN_SECONDS) / MINUTE_IN_SECONDS);
     const seconds = remAfterDays % MINUTE_IN_SECONDS;
     const pad = (n, len=2) => String(n).padStart(len, "0");
-    if (includeDays) return `${pad(days)}:${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
-    return `${pad(days*24 + hours)}:${pad(minutes)}:${pad(seconds)}`;
+
+    if (includeDays) {
+      if (days > 0) return `${pad(days)}:${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+      if (hours > 0) return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+      return `${pad(minutes)}:${pad(seconds)}`;
+    }
+
+    const totalHours = days * 24 + hours;
+    if (totalHours > 0) {
+        return `${pad(totalHours)}:${pad(minutes)}:${pad(seconds)}`;
+    }
+    return `${pad(minutes)}:${pad(seconds)}`;
   }
 
   _getUnitLabel(key, count, style) {
@@ -1419,17 +1399,14 @@ class SimpleTimerCard extends LitElement {
     return this._formatClock(totalSeconds, false);
   }
 
-  _formatDurationHMS(ms) {
-    return this._formatClock(Math.ceil(ms / 1000), false);
-  }
-
   _formatDurationHM(ms) {
     const totalSeconds = Math.ceil(ms / 1000);
-    if (totalSeconds <= 0) return "00:00";
+    if (totalSeconds <= 0) return "00"; 
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const pad = (n) => String(n).padStart(2, "0");
-    return `${pad(hours)}:${pad(minutes)}`;
+    if (hours > 0) return `${pad(hours)}:${pad(minutes)}`;
+    return `${pad(minutes)}`;
   }
 
   _formatDurationSS(ms) {
@@ -1480,6 +1457,10 @@ class SimpleTimerCard extends LitElement {
     if (tf === "human_short") return this._formatHumanUnits(t.remaining, "short");
     if (tf === "human_natural") return this._formatHumanUnits(t.remaining, "natural");
     return this._formatDurationHMS(t.remaining);
+  }
+
+  _formatDurationHMS(ms) {
+    return this._formatClock(Math.ceil(ms / 1000), false);
   }
 
   _formatDurationForService(totalSeconds) {
@@ -1650,16 +1631,153 @@ class SimpleTimerCard extends LitElement {
     if (milestoneTrack) return milestoneTrack;
     return html`
       <div class="track">
-        <div class="fill" style="width:${this._config.progress_mode === "fill" ? pct : pctLeft}%"></div>
+        <div class="fill" style="width:${this._config.progress_mode === "drain" ? pctLeft : pct}%"></div>
       </div>
+    `;
+  }
+  
+  _openTimerEditor(t) {
+    if (t.source !== "timer") return; 
+    const ms = t.duration || 0;
+    const totalSeconds = Math.floor(ms / 1000);
+    this._editDuration = {
+      h: Math.floor(totalSeconds / 3600),
+      m: Math.floor((totalSeconds % 3600) / 60),
+      s: totalSeconds % 60
+    };
+    this._editingTimerId = t.id;
+    this.requestUpdate();
+  }
+
+  _cancelEdit() {
+    this._editingTimerId = null;
+    this.requestUpdate();
+  }
+
+  _adjustEditTotal(deltaSeconds) {
+    let total = this._editDuration.h * 3600 + this._editDuration.m * 60 + this._editDuration.s;
+    total += deltaSeconds;
+    if (total < 0) total = 0;
+    this._editDuration = {
+        h: Math.floor(total / 3600),
+        m: Math.floor((total % 3600) / 60),
+        s: total % 60
+    };
+    this.requestUpdate();
+  }
+
+  async _saveTimerConfig(t) {
+    const { h, m, s } = this._editDuration;
+    const durationStr = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    const stateObj = this.hass.states[t.source_entity];
+    const name = stateObj.attributes.friendly_name || t.source_entity;
+
+    try {
+        await this.hass.callWS({
+            type: "timer/update",
+            timer_id: t.source_entity.replace("timer.", ""),
+            duration: durationStr,
+            name: name,
+            icon: stateObj.attributes.icon || ""
+        });
+    } catch(e) {
+        console.error("Error updating timer", e);
+        this._toast(`Error: ${e.message}`);
+        throw e;
+    }
+  }
+
+  async _startEditTimer(t) {
+    try {
+        await this._saveTimerConfig(t);
+        
+        const { h, m, s } = this._editDuration;
+        const durationStr = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        this.hass.callService("timer", "start", {
+            entity_id: t.source_entity,
+            duration: durationStr
+        });
+        this._editingTimerId = null;
+        this.requestUpdate();
+    } catch (e) {
+    }
+  }
+  
+  async _saveAndClose(t) {
+      await this._saveTimerConfig(t);
+      this._editingTimerId = null;
+      this.requestUpdate();
+  }
+
+  _renderInlineEditor(t, style) {
+    const isCircle = style === "circle";
+    const baseClasses = style.startsWith("fill_")
+      ? "card item editor-row"
+      : (isCircle ? "item vtile editor-row" : "item bar editor-row");
+
+    const minuteButtons = this._config.minute_buttons?.length
+      ? this._config.minute_buttons
+      : [1, 5, 10];
+
+    const totalSeconds = this._editDuration.h * 3600 + this._editDuration.m * 60 + this._editDuration.s;
+    const stateObj = t.source_entity ? this.hass.states[t.source_entity] : null;
+    const timerName = stateObj?.attributes?.friendly_name || t.label || t.source_entity || "";
+
+    const renderAdjustButtons = (sign) => minuteButtons.map((val) => {
+      const delta = this._parseAdjustmentToSeconds(val);
+      const isNegative = sign < 0;
+      const isClickable = !isNegative || totalSeconds >= delta;
+      const displayLabel = (typeof val === "string" && val.toLowerCase().endsWith("s"))
+        ? val.toLowerCase()
+        : `${val}${this._localize("m")}`;
+
+      return html`
+        <button class="btn btn-ghost ${isClickable ? "" : "disabled"}"
+                @click=${() => isClickable && this._adjustEditTotal(sign * delta)}>
+          ${isNegative ? "-" : "+"}${displayLabel}
+        </button>
+      `;
+    });
+
+    return html`
+      <li class="${baseClasses}" style="--tcolor:${t.color || "var(--primary-color)"}; cursor: default;">
+        <div class="editor-container">
+          <div class="buttons-grid">
+            ${renderAdjustButtons(+1)}
+          </div>
+
+          <div class="display">${this._formatDuration(totalSeconds, "seconds")}</div>
+
+          <div class="buttons-grid">
+            ${renderAdjustButtons(-1)}
+          </div>
+
+          <input class="text-input" placeholder="Timer Name (Optional)" readonly style="margin-top: 12px;"
+                 .value=${this._sanitizeText(timerName)} />
+
+          <div class="picker-actions">
+            <button class="btn btn-ghost" @click=${() => this._cancelEdit()}>${this._localize("cancel")}</button>
+            <button class="btn btn-ghost" @click=${() => this._saveAndClose(t)}>${this._localize("save")}</button>
+            <button class="btn btn-primary" @click=${() => this._startEditTimer(t)}>${this._localize("start")}</button>
+          </div>
+        </div>
+      </li>
     `;
   }
 
   _renderItem(t, style) {
+    if (this._editingTimerId === t.id) {
+        return this._renderInlineEditor(t, style);
+    }
     const state = this._getTimerRenderState(t, style);
     const { isPaused, isIdle, isFinished, color, icon, ring, pct, pctLeft, isCircleStyle, isFillStyle, supportsPause, supportsManualControls, timeStr, circleValues, supportsReadOnlyDismiss } = state;
     const baseClasses = isFillStyle ? "card item" : (isCircleStyle ? "item vtile" : "item bar");
     const finishedClasses = isFillStyle ? "card item finished" : (isCircleStyle ? "item vtile" : "card item bar");
+    
+
+    const isRunning = !t.idle && !t.paused && !t.finished;
+    const canEdit = t.source === "timer" && !isRunning;
+    
     if (ring) {
       if (isCircleStyle) {
         return html`
@@ -1667,13 +1785,13 @@ class SimpleTimerCard extends LitElement {
             <div class="vcol">
               <div class="vcircle-wrap">
                 <svg class="vcircle" width="64" height="64" viewBox="0 0 64" aria-hidden="true">
-                  <circle class="vc-track ${this._config.progress_mode === "drain" ? "vc-track-drain" : ""}"
+                  <circle class="vc-track ${this._config.progress_mode === "drain" ? "vc-track-drain" : ""}" style="stroke: var(--tcolor, var(--primary-color)); stroke-opacity: 0.22;"
                           cx="32" cy="32" r="${circleValues.radius}"></circle>
                   <circle class="vc-prog ${this._config.progress_mode === "drain" ? "vc-prog-drain done" : "done"}"
                           cx="32" cy="32" r="${circleValues.radius}"
                     stroke-dasharray="${circleValues.circumference} ${circleValues.circumference}"
-                    style="stroke-dashoffset: ${this._config.progress_mode === "drain" ? circleValues.circumference : "0"};
-                           transition: stroke-dashoffset 0.25s;"></circle>
+                    style="stroke: var(--tcolor, var(--primary-color)); stroke-dashoffset: ${this._config.progress_mode === "drain" ? circleValues.circumference : "0"};
+                            transition: stroke-dashoffset 0.25s;"></circle>
                 </svg>
                 <div class="icon-wrap xl"><ha-icon .icon=${icon}></ha-icon></div>
               </div>
@@ -1714,17 +1832,24 @@ class SimpleTimerCard extends LitElement {
         </li>
       `;
     }
+    
+    const clickHandler = canEdit ? () => this._openTimerEditor(t) : null;
+    const rowStyle = canEdit ? "cursor: pointer;" : "";
+
+    const fillPct = this._config.progress_mode === "drain" ? pctLeft : pct;
+    const fillInlineStyle = `width:${fillPct}%;`; 
+
     if (isFillStyle) {
       return html`
-        <li class="${baseClasses}" style="--tcolor:${color}">
-          <div class="progress-fill" style="width:${pct}%"></div>
+        <li class="${baseClasses}" style="--tcolor:${color}; ${rowStyle}" @click=${clickHandler}>
+          <div class="progress-fill" style="${fillInlineStyle}"></div>
           <div class="card-content">
             <div class="icon-wrap"><ha-icon .icon=${icon}></ha-icon></div>
             <div class="info">
               <div class="title">${t.label}</div>
               <div class="status">${timeStr}</div>
             </div>
-            <div class="actions">
+            <div class="actions" @click=${(e) => e.stopPropagation()}>
               ${isIdle && supportsManualControls ? html`
                 <button class="action-btn" title="${this._localize("start")}" @click=${() => this._handleStart(t)}>
                   <ha-icon icon="mdi:play"></ha-icon>
@@ -1741,7 +1866,7 @@ class SimpleTimerCard extends LitElement {
       `;
     } else if (isCircleStyle) {
       return html`
-        <li class="${baseClasses}" style="--tcolor:${color}">
+        <li class="${baseClasses}" style="--tcolor:${color}; ${rowStyle}" @click=${clickHandler}>
           ${supportsManualControls && !isIdle ? html`
             <button class="vtile-close" title="${this._localize("cancel")}"
               @click=${(e)=>{ e.stopPropagation(); this._handleCancel(t); }}>
@@ -1752,16 +1877,17 @@ class SimpleTimerCard extends LitElement {
             <div class="vcircle-wrap"
                  title="${isIdle ? "Start" : (t.paused ? "Resume" : "Pause")}"
                  @click=${(e)=> {
+                   e.stopPropagation();
                    if (isIdle && supportsManualControls) this._handleStart(t);
                    else if (supportsPause && supportsManualControls) this._togglePause(t, e);
                  }}>
               <svg class="vcircle" width="64" height="64" viewBox="0 0 64" aria-hidden="true">
-                <circle class="vc-track ${this._config.progress_mode === "drain" ? "vc-track-drain" : ""}"
+                <circle class="vc-track ${this._config.progress_mode === "drain" ? "vc-track-drain" : ""}" style="stroke: var(--tcolor, var(--primary-color)); stroke-opacity: 0.22;"
                         cx="32" cy="32" r="${circleValues.radius}"></circle>
                 <circle class="vc-prog ${this._config.progress_mode === "drain" ? "vc-prog-drain" : ""}"
                         cx="32" cy="32" r="${circleValues.radius}"
                   stroke-dasharray="${circleValues.circumference} ${circleValues.circumference}"
-                  style="stroke-dashoffset: ${circleValues.strokeDashoffset}; transition: stroke-dashoffset 0.25s;"></circle>
+                  style="stroke: var(--tcolor, var(--primary-color)); stroke-dashoffset: ${circleValues.strokeDashoffset}; transition: stroke-dashoffset 0.25s;"></circle>
               </svg>
               <div class="icon-wrap xl"><ha-icon .icon=${icon}></ha-icon></div>
             </div>
@@ -1772,7 +1898,7 @@ class SimpleTimerCard extends LitElement {
       `;
     } else {
       return html`
-        <li class="${baseClasses}" style="--tcolor:${color}">
+        <li class="${baseClasses}" style="--tcolor:${color}; ${rowStyle}" @click=${clickHandler}>
           <div class="row">
             <div class="icon-wrap"><ha-icon .icon=${icon}></ha-icon></div>
             <div class="info">
@@ -1782,7 +1908,7 @@ class SimpleTimerCard extends LitElement {
               </div>
               ${this._renderProgressTrack(t, style, pct, pctLeft)}
             </div>
-            <div class="actions">
+            <div class="actions" @click=${(e) => e.stopPropagation()}>
               ${isIdle && supportsManualControls ? html`
                 <button class="action-btn" title="${this._localize("start")}" @click=${() => this._handleStart(t)}>
                   <ha-icon icon="mdi:play"></ha-icon>
@@ -1872,11 +1998,24 @@ class SimpleTimerCard extends LitElement {
   }
 
   _renderItemVertical(t, style) {
+    if (this._editingTimerId === t.id) {
+        return this._renderInlineEditor(t, style);
+    }
     const state = this._getTimerRenderState(t, style);
     const { isPaused, isIdle, isFinished, color, icon, ring, pct, pctLeft, isCircleStyle, isFillStyle, supportsPause, supportsManualControls, timeStr, circleValues, supportsReadOnlyDismiss } = state;
+    const baseClasses = style.startsWith("fill_") ? "card item vtile" : "item vtile";
+    
+    const isRunning = !t.idle && !t.paused && !t.finished;
+    const canEdit = t.source === "timer" && !isRunning;
+    const clickHandler = canEdit ? () => this._openTimerEditor(t) : null;
+    const rowStyle = canEdit ? "cursor: pointer;" : "";
+
+    const fillPct = this._config.progress_mode === "drain" ? pctLeft : pct;
+    const fillInlineStyle = `width:${fillPct}%;`;
+
     if (ring) {
       return html`
-        <li class="item vtile ${style.startsWith("fill_") ? "card" : ""}" style="--tcolor:${color}">
+        <li class="${baseClasses}" style="--tcolor:${color}">
           ${style.startsWith("fill_") ? html`<div class="progress-fill" style="width:100%"></div>` : ""}
           <div class="vcol">
             <div class="icon-wrap large"><ha-icon .icon=${icon}></ha-icon></div>
@@ -1894,9 +2033,10 @@ class SimpleTimerCard extends LitElement {
         </li>
       `;
     }
+
     if (style === "circle") {
       return html`
-        <li class="item vtile" style="--tcolor:${color}">
+        <li class="${baseClasses}" style="--tcolor:${color}; ${rowStyle}" @click=${clickHandler}>
           ${supportsManualControls && !isIdle ? html`
             <button class="vtile-close" title="${this._localize("cancel")}"
               @click=${(e)=>{ e.stopPropagation(); this._handleCancel(t); }}>
@@ -1907,6 +2047,11 @@ class SimpleTimerCard extends LitElement {
             <div class="vcircle-wrap"
                  title="${isIdle ? "Start" : (t.paused ? "Resume" : "Pause")}"
                  @click=${(e)=> {
+                   e.stopPropagation();
+                   if (canEdit) {
+                     this._openTimerEditor(t);
+                     return;
+                   }
                    if (isIdle && supportsManualControls) this._handleStart(t);
                    else if (supportsPause && supportsManualControls) this._togglePause(t, e);
                  }}>
@@ -1926,15 +2071,17 @@ class SimpleTimerCard extends LitElement {
         </li>
       `;
     }
+
+
     return html`
-      <li class="item vtile ${style.startsWith("fill_") ? "card" : ""}" style="--tcolor:${color}">
-        ${style.startsWith("fill_") ? html`<div class="progress-fill" style="width: ${pct}%"></div>` : ""}
+      <li class="${baseClasses}" style="--tcolor:${color}; ${rowStyle}" @click=${clickHandler}>
+        ${style.startsWith("fill_") ? html`<div class="progress-fill" style="${fillInlineStyle}"></div>` : ""}
         <div class="vcol">
           <div class="icon-wrap large"><ha-icon .icon=${icon}></ha-icon></div>
           <div class="vtitle">${t.label}</div>
           <div class="vstatus">${timeStr}</div>
           ${style.startsWith("bar_") ? html`
-            <div class="vprogressbar">
+            <div class="vprogressbar" @click=${(e) => e.stopPropagation()}>
               ${isIdle && supportsManualControls ? html`
                 <button class="action-btn" title="${this._localize("start")}" @click=${() => this._handleStart(t)}>
                   <ha-icon icon="mdi:play"></ha-icon>
@@ -1946,9 +2093,11 @@ class SimpleTimerCard extends LitElement {
                   <ha-icon icon=${t.paused ? "mdi:play" : "mdi:pause"}></ha-icon>
                 </button>
               ` : ""}
-              <div class="vtrack small">
-                <div class="vfill" style="width:${this._config.progress_mode === "fill" ? pct : pctLeft}%"></div>
-              </div>
+              ${this._renderMilestoneSegments(t, pct) || html`
+                <div class="vtrack small">
+                  <div class="vfill" style="width:${this._config.progress_mode === "drain" ? pctLeft : pct}%"></div>
+                </div>
+              `}
               ${supportsManualControls && !isIdle ? html`
                 <button class="action-btn" title="${this._localize("cancel")}" @click=${() => this._handleCancel(t)}>
                   <ha-icon icon="mdi:close"></ha-icon>
@@ -1956,7 +2105,13 @@ class SimpleTimerCard extends LitElement {
               ` : ""}
             </div>
           ` : html`
-            <div class="vactions">
+
+
+
+
+
+
+            <div class="vactions" @click=${(e) => e.stopPropagation()}>
               ${isIdle && supportsManualControls ? html`
                 <button class="action-btn" title="${this._localize("start")}" @click=${() => this._handleStart(t)}>
                   <ha-icon icon="mdi:play"></ha-icon>
@@ -2104,7 +2259,7 @@ class SimpleTimerCard extends LitElement {
           <div class="buttons-grid">
             ${this._renderMinuteButtons("fill", (which, m, sign) => this._adjustActive(which, m, sign), +1)}
           </div>
-          <div class="display" style="font-size:30px;">${this._formatDuration(this._activeSecs.fill, "seconds")}</div>
+          <div class="display">${this._formatDuration(this._activeSecs.fill, "seconds")}</div>
           <div class="buttons-grid">
             ${this._renderMinuteButtons("fill", (which, m, sign) => this._adjustActive(which, m, sign), -1)}
           </div>
@@ -2142,7 +2297,7 @@ class SimpleTimerCard extends LitElement {
           <div class="buttons-grid">
             ${this._renderMinuteButtons("bar", (which, m, sign) => this._adjustActive(which, m, sign), +1)}
           </div>
-          <div class="display" style="font-size:30px;">${this._formatDuration(this._activeSecs.bar, "seconds")}</div>
+          <div class="display">${this._formatDuration(this._activeSecs.bar, "seconds")}</div>
           <div class="buttons-grid">
             ${this._renderMinuteButtons("bar", (which, m, sign) => this._adjustActive(which, m, sign), -1)}
           </div>
@@ -2168,7 +2323,7 @@ class SimpleTimerCard extends LitElement {
   static get styles() {
     return css`
       :host { --stc-chip-radius: 9999px; }
-      ha-card { border-radius: var(--ha-card-border-radius, 12px); overflow: hidden; padding: 0; }
+      ha-card { border-radius: var(--ha-card-border-radius, 12px); overflow: hidden; padding: 0; background: var(--ha-card-background, var(--card-background-color)); }
       .grid { display: grid; grid-template-columns: 1fr; gap: 12px; padding: 0; margin: -1px 0; }
       .card { background: var(--ha-card-background, var(--card-background-color)); position: relative; padding: 0 8px; box-sizing: border-box; }
       .card-content { position: relative; z-index: 1; display: flex; align-items: center; gap: 12px; padding: 0 4px; height: 40px; }
@@ -2183,7 +2338,7 @@ class SimpleTimerCard extends LitElement {
       .picker, .active-picker { max-height: 0; opacity: 0; overflow: hidden; transition: max-height .5s ease, opacity .3s ease, padding-top .5s ease, margin-bottom .3s ease; padding-top: 0; margin-bottom: 0; }
       .card.expanded .picker { max-height: 450px; opacity: 1; padding: 12px 8px 8px; }
       .card-show .active-picker { max-height: 450px; opacity: 1; margin-bottom: 8px; padding: 8px 0; }
-      .icon-wrap { width: 36px; height: 36px; border-radius: var(--ha-card-border-radius, 50%); background: color-mix(in srgb, var(--tcolor, var(--primary-color)) 18%, transparent); display: flex; align-items: center; justify-content: center; flex: 0 0 36px; }
+      .icon-wrap { width: 36px; height: 36px; border-radius: var(--ha-card-border-radius, 50%); background: color-mix(in srgb, var(--tcolor, var(--primary-color)) 18%, var(--ha-card-background, var(--card-background-color))); display: flex; align-items: center; justify-content: center; flex: 0 0 36px; }
       .icon-wrap ha-icon { --mdc-icon-size: 22px; color: var(--tcolor, var(--primary-color)); }
       .nt-title { margin: 0; font-size: 14px; font-weight: 500; line-height: 20px; }
       .nt-sub { margin: 0; font-size: 12px; color: var(--secondary-text-color); line-height: 16px; }
@@ -2212,42 +2367,44 @@ class SimpleTimerCard extends LitElement {
       .item .info { display: flex; flex-direction: column; justify-content: center; height: 36px; flex: 1; overflow: hidden; }
       .item .title { font-size: 14px; font-weight: 500; line-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .item .status { font-size: 12px; color: var(--secondary-text-color); line-height: 16px; font-variant-numeric: tabular-nums; }
+      .item .status.editable { cursor: pointer; text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px; }
       .item .status.up { color: color-mix(in srgb, var(--tcolor, var(--primary-color)) 70%, white); }
       .item .actions { display: flex; gap: 4px; align-items: center; height: 36px; }
       .item .action-btn { color: var(--secondary-text-color); background: none; border: 0; padding: 4px; cursor: pointer; border-radius: 50%; transition: all 0.2s; }
       .bar .row { display: flex; align-items: center; gap: 12px; height: 40px; }
       .bar .top { display: flex; align-items: center; justify-content: space-between; height: 18px; }
       .track { width: 100%; height: 8px; border-radius: var(--stc-chip-radius); background: color-mix(in srgb, var(--tcolor, var(--primary-color)) 10%, transparent); margin-top: 2px; overflow: hidden; }
-      .fill { height: 100%; width: 0%; border-radius: var(--stc-chip-radius); background: var(--tcolor, var(--primary-color)); transition: width 1s linear; }
+      .fill { height: 100%; width: 0%; border-radius: var(--stc-chip-radius); background: var(--tcolor, var(--primary-color)); transition: width 1s linear, height 1s linear; }
       .chip { font-weight: 600; color: color-mix(in srgb, var(--tcolor, var(--primary-color)) 70%, white); border-radius: var(--stc-chip-radius); padding: 4px 8px; font-size: 12px; background: none; border: 1px solid color-mix(in srgb, var(--tcolor, var(--primary-color)) 20%, transparent); cursor: pointer; }
-      .chip:hover { background: color-mix(in srgb, var(--tcolor, var(--primary-color)) 18%, transparent); }
+      .chip:hover { background: color-mix(in srgb, var(--tcolor, var(--primary-color)) 18%, var(--ha-card-background, var(--card-background-color))); }
       .vgrid { display: grid; gap: 8px; padding: 0px; }
       .vgrid.cols-1 { grid-template-columns: 1fr; }
       .vgrid.cols-2 { grid-template-columns: 1fr 1fr; }
       .vtile { position: relative; min-height: 120px; display: flex; align-items: center; justify-content: center; box-sizing: border-box; }
       .vtile .vcol { z-index: 1; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; }
-      .icon-wrap.large { width: 36px; height: 36px; flex: 0 0 36px; border-radius: var(--ha-card-border-radius, 50%); background: color-mix(in srgb, var(--tcolor, var(--divider-color)) 22%, transparent); display: flex; align-items: center; justify-content: center; }
+      .vtile-close { position: absolute; top: 4px; right: 4px; border: 0; background: none; padding: 4px; border-radius: 50%; color: var(--secondary-text-color); cursor: pointer; z-index: 3; }
+      .vtile-close:hover { background: color-mix(in srgb, var(--primary-color) 10%, transparent); }
+      .icon-wrap.large { width: 36px; height: 36px; flex: 0 0 36px; border-radius: var(--ha-card-border-radius, 50%); background: color-mix(in srgb, var(--tcolor, var(--primary-color)) 18%, var(--ha-card-background, var(--card-background-color))); display: flex; align-items: center; justify-content: center; }
       .vtitle { font-size: 14px; font-weight: 600; line-height: 16px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0; }
       .vstatus { font-size: 12px; color: var(--secondary-text-color); line-height: 14px; font-variant-numeric: tabular-nums; margin: 0; margin-bottom: 2px; }
+      .vstatus.editable { cursor: pointer; text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px; }
       .vstatus.up { color: color-mix(in srgb, var(--tcolor, var(--primary-color)) 70%, white); }
       .vtrack.small { flex: 0 0 60%; height: 6px; border-radius: var(--stc-chip-radius); background: color-mix(in srgb, var(--tcolor, var(--primary-color)) 10%, transparent); overflow: hidden; }
-      .vfill { height: 100%; background: var(--tcolor, var(--primary-color)); transition: width 1s linear; border-radius: var(--stc-chip-radius); }
+      .vfill { height: 100%; background: var(--tcolor, var(--primary-color)); transition: width 1s linear, height 1s linear; border-radius: var(--stc-chip-radius); }
       .vprogressbar { width: 100%; display: flex; align-items: center; justify-content: center; gap: 0px; margin-top: -4px; margin-bottom: -4px; }
+      .vprogressbar .milestone-track { flex: 0 0 60%; }
       .vactions { display: flex; gap: 6px; align-items: center; justify-content: center; margin-top: -4px; margin-bottom: -4px; }
       .vcircle-wrap { position: relative; width: 64px; height: 64px; display: grid; place-items: center; }
+      .vcircle { position: absolute; inset: 0; transform: rotate(-90deg); z-index: 0; }
+      .vc-track, .vc-prog { fill: none; stroke-width: 4.5px; vector-effect: non-scaling-stroke; }
+      .vc-track { stroke: var(--tcolor, var(--primary-color)); stroke-opacity: 0.22; }
       .vc-prog { stroke: var(--tcolor, var(--primary-color)); transition: stroke-dashoffset 1s linear; }
       .vc-prog.done { stroke-dashoffset: 0 !important; }
-      .icon-wrap.xl { width: 44px; height: 44px; flex: 0 0 44px; border-radius: 50%; background: color-mix(in srgb, var(--tcolor, var(--divider-color)) 22%, transparent); display: flex; align-items: center; justify-content: center; }
-      .icon-wrap.xl ha-icon { --mdc-icon-size: 28px; color: var(--tcolor, var(--primary-color)); }
-      .icon-wrap.large ha-icon { --mdc-icon-size: 22px; color: var(--tcolor, var(--primary-color)); }
-      .icon-wrap ha-icon { --mdc-icon-size: 22px; color: var(--tcolor, var(--primary-color)); }
-      .vtile-close { position: absolute; top: 4px; right: 4px; border: 0; background: none; padding: 4px; border-radius: 50%; color: var(--secondary-text-color); cursor: pointer; z-index: 2; }
-      .vtile-close:hover { background: color-mix(in srgb, var(--primary-color) 10%, transparent); }
-      .vcircle { position: absolute; inset: 0; transform: rotate(-90deg); }
-      .vc-track, .vc-prog { fill: none; stroke-width: 4.5px; vector-effect: non-scaling-stroke; }
-      .vc-track { stroke: color-mix(in srgb, var(--tcolor, var(--primary-color)) 18%, transparent); }
       .vc-prog-drain { stroke: var(--tcolor, var(--primary-color)); transition: stroke-dashoffset 1s linear; }
+      .icon-wrap.xl { width: 44px; height: 44px; flex: 0 0 44px; border-radius: 50%; background: color-mix(in srgb, var(--tcolor, var(--divider-color)) 22%, transparent); display: flex; align-items: center; justify-content: center; position: relative; z-index: 1; }
+      .icon-wrap.xl ha-icon { --mdc-icon-size: 28px; color: var(--tcolor, var(--primary-color)); }
       .milestone-track { display: flex; gap: 1px; width: 100%; height: 8px; margin-top: 2px; }
+      .vprogressbar .milestone-track { flex: 0 0 60%; }
       .milestone-track.idle .segment { background: color-mix(in srgb, var(--tcolor, var(--primary-color)) 15%, transparent); }
       .segment { flex: 1 1 0; height: 100%; background: color-mix(in srgb, var(--tcolor, var(--primary-color)) 15%, transparent); border-radius: 1px; }
       .segment.completed { background: var(--tcolor, var(--primary-color)); }
@@ -2257,6 +2414,15 @@ class SimpleTimerCard extends LitElement {
       .segment.drain.inactive { opacity: 0.2; }
       .segment.idle { background: color-mix(in srgb, var(--tcolor, var(--primary-color)) 15%, transparent); }
       @keyframes pulseMilestone { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+      .editor-row { flex-direction: column; align-items: center; padding: 12px; height: auto !important; min-height: 100px; }
+      .editor-container { width: 100%; display: flex; flex-direction: column; align-items: center; }
+      .editor-header { font-weight: 700; font-size: 1.1em; margin-bottom: 12px; }
+      .time-picker-row { display: flex; justify-content: center; align-items: center; margin-bottom: 16px; }
+      .time-slot { display: flex; flex-direction: column; align-items: center; margin: 0 6px; }
+      .time-slot ha-icon { cursor: pointer; color: var(--primary-color); --mdc-icon-size: 32px; }
+      .time-val { font-size: 2em; font-weight: bold; margin: 4px 0; min-width: 45px; text-align: center; }
+      .colon { font-size: 2em; font-weight: bold; margin-top: -15px; }
+      .time-label { font-size: 0.75em; color: var(--secondary-text-color); }
     `;
   }
 
@@ -2531,8 +2697,6 @@ class SimpleTimerCardEditor extends LitElement {
   }
 
   _detectMode(entityId, entityState, entityConf) {
-											 
-												   
     if (!entityState) return null;
     if (entityId.startsWith("timer.")) return "timer";
     if (entityId.startsWith("input_text.") || entityId.startsWith("text.")) return "helper";
@@ -2711,7 +2875,8 @@ class SimpleTimerCardEditor extends LitElement {
           : (this._config.entities || []).map((entityConf, index) => {
               const entityId = typeof entityConf === "string" ? entityConf : (entityConf?.entity || "");
               const conf = typeof entityConf === "string" ? {} : (entityConf || {});
-              const detectedMode = this._detectMode(entityId);
+              const st = this.hass.states[entityId];
+              const detectedMode = this._detectMode(entityId, st, conf);
               const isAuto = !conf.mode || conf.mode === "auto";
               const isTimestampMode = conf.mode === "timestamp" || (isAuto && detectedMode === "timestamp");
               return html`
