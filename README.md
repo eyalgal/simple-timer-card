@@ -20,12 +20,13 @@ A versatile and highly customizable timer card for Home Assistant Lovelace, offe
 
 ## **✨ Features**
 
-* **Alexa Integration:** Separate audio settings for Alexa devices, based on [alexa_media_player](https://github.com/alandtse/alexa_media_player). Supports both legacy and new attribute structures (v1.5.1+).
+* **Alexa Integration:** Works great with [alexa_media_player](https://github.com/alandtse/alexa_media_player). Auto-detects Alexa timer entities (legacy + new attribute structures). Per-entity audio overrides apply here too.
 * **Voice PE Integration:** Full support for Voice PE timers with template sensors - [see setup guide](voice-pe.md).
 * **Flexible Display Styles:** Choose from five distinct timer display styles: `fill_horizontal`, `fill_vertical`, `bar_horizontal`, `bar_vertical`, or `circle`.
 * **Progress Animation Modes:** Circle and bar styles support `drain` (shrinks/empties), `fill` (grows), and `milestones` (segmented progress by time units) animations for visual preference.
 * **Dual Layout Control:** Separate `layout` (for no-timers state) and `style` (for active timers) options allow any combination.
 * **Timer Presets:** Quick-access buttons for commonly used timer durations. Supports both minutes and seconds format (e.g., `5`, `90s`).
+* **Pinned Timers:** Define one-tap timers (name, duration, icon, color, expiry message, optional audio). When you start a pinned timer, it becomes a normal running timer and the pinned entry hides until that run finishes.
 * **Timer Name Presets:** Predefined timer names for quick selection when creating timers (e.g., "Break", "Exercise", "Cooking").
 * **Custom Timers:** Set custom timer durations using minute/second buttons or manual input with flexible format support (`5m`, `90s`, `1h30m`, `2:30`). Default duration can be customized via `default_new_timer_duration_mins` parameter.
 * **Persistent Storage:** Support for local browser storage or MQTT integration for timers that survive reloads and sync across devices. MQTT publishes both `started` and `expired` events for automation triggers.
@@ -84,6 +85,13 @@ resources:
 
 ### **Basic Configuration**
 
+**Cleaner YAML:** empty arrays and default values are automatically omitted from the editor output. You can start with just:
+
+```yaml
+type: custom:simple-timer-card
+```
+
+
 | Name                     | Type      | Default                 | Description                                                                                        |
 | :----------------------- | :-------- | :---------------------- | :------------------------------------------------------------------------------------------------- |
 | `type`                   | `string`  | **Required**            | `custom:simple-timer-card`                                                                        |
@@ -91,7 +99,8 @@ resources:
 | `style`                  | `string`  | `bar_horizontal`        | Timer display style. Can be `fill_vertical`, `fill_horizontal`, `bar_vertical`, `bar_horizontal` (default), or `circle` |
 | `title`                  | `string`  | `null`                  | Optional title for the card                                                                        |
 | `language`               | `string`  | `en`                    | Language for UI text. Supports `en` (English), `de` (German), `es` (Spanish).                            |
-| `entities`               | `array`   | `[]`                    | Array of timer entities to display                                                                |
+| `entities`               | `array`   | `[]`                    | Optional. Array of timer entities to display                                                      |
+| `pinned_timers`          | `array`   | `[]`                    | Optional. Array of pinned timers (one-tap timers)                                                  |
 | `progress_mode`          | `string`  | `drain`                 | Progress animation mode: `drain` (shrinks as time counts down), `fill` (grows as time elapses), or `milestones` (segmented progress by time units). Applies to `circle`, `bar_horizontal`, and `bar_vertical` styles. **Note:** `circle_mode` is deprecated in favor of `progress_mode` |
 
 ### **Entity Configuration**
@@ -126,6 +135,38 @@ Each entity in the `entities` array can be either a simple string (entity ID) or
 - **Minutes Attr**: Sensors with custom minutes-to-arrival attributes
 
 > **💡 Style Options:** The `style` parameter supports five distinct visual presentations with direction control. The `layout` parameter controls how the card appears when there are no active timers, while `style` controls the active timer display. Any layout/style combination is possible for maximum flexibility.
+
+### **Pinned Timers**
+
+Pinned timers are one-tap presets that appear in the timer list when they are not currently running. Starting a pinned timer creates a normal running timer (with the pinned timer's settings), and the pinned entry stays hidden until that run is gone.
+
+```yaml
+type: custom:simple-timer-card
+pinned_timers:
+  - id: tea
+    name: Tea
+    duration: 420        # seconds
+    icon: mdi:tea
+    color: "#00a7c7"
+    expired_subtitle: "Tea is ready"
+    audio_enabled: true
+    audio_file_url: /local/sounds/done.mp3
+```
+
+**Pinned timer fields**
+
+| Name                     | Type      | Default | Description |
+| :----------------------- | :-------- | :------ | :---------- |
+| `id`                     | `string`  | **Required** | Unique ID for the pinned timer |
+| `name`                   | `string`  | **Required** | Display name |
+| `duration`               | `number`  | **Required** | Duration in seconds |
+| `icon`                   | `string`  | `auto`  | Override icon |
+| `color`                  | `string`  | `auto`  | Override color |
+| `expired_subtitle`       | `string`  | `Time's up!` | Expired message for this pinned timer |
+| `audio_enabled`          | `boolean` | `false` | Enable audio for this pinned timer |
+| `audio_file_url`         | `string`  | `""`    | Audio file URL/path |
+| `audio_repeat_count`     | `number`  | `1`     | Repeat count (1-10) |
+| `audio_play_until_dismissed` | `boolean` | `false` | Keep playing until dismissed |
 
 ### **Timer Configuration**
 
@@ -183,6 +224,9 @@ When `progress_mode` is set to `milestones`, the progress bar is divided into se
 - **`remove`**: Expired timers are completely removed. For writable sources (`helper`, `local`, `mqtt`), this deletes the timer data. For read-only sources, behaves like `dismiss`.
 
 ### **Audio Notifications**
+> **Tip**
+> You can override audio per entity and per pinned timer. If a timer has per-timer audio enabled, it takes precedence over the global audio settings.
+
 
 | Name                              | Type      | Default | Description                                                                                        |
 | :-------------------------------- | :-------- | :------ | :------------------------------------------------------------------------------------------------- |
@@ -192,14 +236,6 @@ When `progress_mode` is set to `milestones`, the progress bar is divided into se
 | `audio_play_until_dismissed`      | `boolean` | `false` | Continue playing audio until timer is dismissed or snoozed                                        |
 | `audio_completion_delay`          | `number`  | `4`     | Delay in seconds before auto-dismissing timer after audio completes (when using `expire_action: remove`) |
 
-### **Alexa Audio Settings**
-
-| Name                              | Type      | Default | Description                                                                                        |
-| :-------------------------------- | :-------- | :------ | :------------------------------------------------------------------------------------------------- |
-| `alexa_audio_enabled`             | `boolean` | `false` | Enable separate audio settings for Alexa devices                                                  |
-| `alexa_audio_file_url`            | `string`  | `""`    | URL or path to audio file for Alexa devices                                                       |
-| `alexa_audio_repeat_count`        | `number`  | `1`     | Number of times to repeat Alexa audio (1-10)                                                      |
-| `alexa_audio_play_until_dismissed`| `boolean` | `false` | Continue playing Alexa audio until timer is dismissed or snoozed                                  |
 
 ## **🔔 Notifications**
 
