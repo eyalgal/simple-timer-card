@@ -21,7 +21,7 @@ A versatile and highly customizable timer card for Home Assistant Lovelace, offe
 ## **✨ Features**
 
 * **Alexa Integration:** Works great with [alexa_media_player](https://github.com/alandtse/alexa_media_player). Auto-detects Alexa timer entities (legacy + new attribute structures). Per-entity audio overrides apply here too.
-* **Voice PE Integration:** Full support for Voice PE timers with template sensors - [see setup guide](voice-pe.md).
+* **Voice PE Integration:** Mirror Voice PE timers via template sensors - [setup guide](voice-pe.md). Advanced UI-controlled local timers (start/pause/resume/cancel): [ESPHome walkthrough](voice-pe-esphome.md).
 * **Flexible Display Styles:** Choose from five distinct timer display styles: `fill_horizontal`, `fill_vertical`, `bar_horizontal`, `bar_vertical`, or `circle`.
 * **Progress Animation Modes:** Circle and bar styles support `drain` (shrinks/empties), `fill` (grows), and `milestones` (segmented progress by time units) animations for visual preference.
 * **Dual Layout Control:** Separate `layout` (for no-timers state) and `style` (for active timers) options allow any combination.
@@ -35,7 +35,7 @@ A versatile and highly customizable timer card for Home Assistant Lovelace, offe
 * **Snooze Functionality:** Easily snooze expired timers for additional time.
 * **Active Timer Management:** View and manage multiple active timers simultaneously.
 * **Customizable Time Display:** Multiple time format options including HMS, HM, human-readable formats, and customizable time unit ordering.
-* **Smart Auto-Detection & Entity Integration:** Automatic detection of timer sources with ISO date validation and entity type checking. Connect to Home Assistant entities including MQTT sensors, input helpers, and more.
+* **Smart Auto-Detection & Entity Integration:** Automatic detection of timer sources based on entity type and attributes. Connect to Home Assistant entities including MQTT sensors, input helpers, and more.
 * **Customizable Appearance:** Adjust colors, icons, and styling to match your Home Assistant theme.
 * **Native Theme Integration:** Automatically uses Home Assistant theme colors and native UI elements.
 * **Visual Progress Indicators:** Clear visual feedback showing timer progress and status.
@@ -91,17 +91,18 @@ resources:
 type: custom:simple-timer-card
 ```
 
-
 | Name                     | Type      | Default                 | Description                                                                                        |
 | :----------------------- | :-------- | :---------------------- | :------------------------------------------------------------------------------------------------- |
 | `type`                   | `string`  | **Required**            | `custom:simple-timer-card`                                                                        |
 | `layout`                 | `string`  | `horizontal`            | Card layout for no-timers state. Can be `horizontal` or `vertical`                                |
 | `style`                  | `string`  | `bar_horizontal`        | Timer display style. Can be `fill_vertical`, `fill_horizontal`, `bar_vertical`, `bar_horizontal` (default), or `circle` |
 | `title`                  | `string`  | `null`                  | Optional title for the card                                                                        |
-| `language`               | `string`  | `en`                    | Language for UI text. Supports `en` (English), `de` (German), `es` (Spanish).                            |
+| `language`               | `string`  | `en`                    | Language for UI text. Supports `en` (English), `de` (German), `es` (Spanish).                     |
 | `entities`               | `array`   | `[]`                    | Optional. Array of timer entities to display                                                      |
 | `pinned_timers`          | `array`   | `[]`                    | Optional. Array of pinned timers (one-tap timers)                                                  |
 | `progress_mode`          | `string`  | `drain`                 | Progress animation mode: `drain` (shrinks as time counts down), `fill` (grows as time elapses), or `milestones` (segmented progress by time units). Applies to `circle`, `bar_horizontal`, and `bar_vertical` styles. **Note:** `circle_mode` is deprecated in favor of `progress_mode` |
+| `auto_voice_pe`          | `boolean` | `false`                 | **v2.1.0+** When enabled, timers started from the card UI (custom/pinned) are created as **local Voice PE timers** (requires Voice PE integration + control entity) |
+| `voice_pe_control_entity`| `string`  | `null`                  | **v2.1.0+** Override the control entity used to send Voice PE commands (e.g. `text.voice_pe_timer_command`). If omitted, the card tries to discover it from the timer entity attributes or by searching for an entity containing `voice_pe_timer_command`. |
 
 ### **Entity Configuration**
 
@@ -129,12 +130,25 @@ Each entity in the `entities` array can be either a simple string (entity ID) or
 - **Auto**: Automatically detects the timer source based on entity type and attributes
 - **Alexa**: Amazon Alexa timers via [alexa_media_player](https://github.com/alandtse/alexa_media_player) integration. Supports both `sorted_active`/`sorted_paused` (legacy) and `alarms_brief` (v1.5.1+) attribute structures
 - **Timer**: Native Home Assistant timer entities (`timer.*`)
-- **Voice PE**: Voice PE integration timers with `display_name` attribute support
+- **Voice PE**: Voice PE integration timers via template sensors (supports `display_name`, `duration`, `remaining`, and optional control attributes)
 - **Helper**: Input text/text entities for manual timer management
 - **Timestamp**: Sensor entities with timestamp device class. Supports optional `start_time_attr` attribute or separate `start_time_entity` for duration calculation
 - **Minutes Attr**: Sensors with custom minutes-to-arrival attributes
 
 > **💡 Style Options:** The `style` parameter supports five distinct visual presentations with direction control. The `layout` parameter controls how the card appears when there are no active timers, while `style` controls the active timer display. Any layout/style combination is possible for maximum flexibility.
+
+### **Voice PE integration (quick note)**
+
+The Voice PE integration is documented in:
+- [voice-pe.md](voice-pe.md) (recommended: Home Assistant template sensors + card setup)
+- [voice-pe-esphome-readonly.md](voice-pe-esphome-readonly.md) (ESPHome mirror-only / read-only implementation)
+- [voice-pe-esphome.md](voice-pe-esphome.md) (ESPHome advanced implementation: local UI-controlled timers + mirroring)
+
+**Advanced local control:** If your template sensors expose:
+- `timer_id` (a string like `local:...`)
+- `control_entity` (e.g. `text.voice_pe_timer_command`)
+
+…then the card can control those timers (pause/resume/cancel) and, with **v2.1.0+**, can optionally create new card timers as local Voice PE timers (`auto_voice_pe: true`).
 
 ### **Pinned Timers**
 
@@ -227,7 +241,6 @@ When `progress_mode` is set to `milestones`, the progress bar is divided into se
 > **Tip**
 > You can override audio per entity and per pinned timer. If a timer has per-timer audio enabled, it takes precedence over the global audio settings.
 
-
 | Name                              | Type      | Default | Description                                                                                        |
 | :-------------------------------- | :-------- | :------ | :------------------------------------------------------------------------------------------------- |
 | `audio_enabled`                   | `boolean` | `false` | Enable audio notifications when timers expire                                                     |
@@ -235,7 +248,6 @@ When `progress_mode` is set to `milestones`, the progress bar is divided into se
 | `audio_repeat_count`              | `number`  | `1`     | Number of times to repeat the audio (1-10)                                                        |
 | `audio_play_until_dismissed`      | `boolean` | `false` | Continue playing audio until timer is dismissed or snoozed                                        |
 | `audio_completion_delay`          | `number`  | `4`     | Delay in seconds before auto-dismissing timer after audio completes (when using `expire_action: remove`) |
-
 
 ## **🔔 Notifications**
 
@@ -385,3 +397,4 @@ This project is licensed under the MIT License. See the `LICENSE` file for detai
 If you find this card useful and would like to show your support, you can buy me a coffee:
 
 <a href="https://coff.ee/eyalgal" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
+```
