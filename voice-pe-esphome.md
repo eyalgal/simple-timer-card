@@ -1,17 +1,19 @@
 # Voice PE → ESPHome walkthrough (mirroring + locally controllable timers)
 
-This page is the **ESPHome implementation walkthrough** for the Voice PE + Simple Timer Card integration.
+This page is the **advanced ESPHome implementation walkthrough** for the Voice PE + Simple Timer Card integration.
 
-It matches the working approach used by this project:
-
-- **Remote timers**: timers created via Voice PE voice assistant (mirrored from `voice_assistant`’s `timers` vector)
+Use this if you want **both**:
+- **Remote timers**: timers created via voice on the Voice PE device (mirrored from `voice_assistant`’s `timers` vector)
 - **Local timers**: timers created from the Home Assistant UI (start / pause / resume / cancel)
-- A fixed number of **display slots** that Home Assistant reads (this page shows **3 slots**; scale to 5+ by copying patterns)
 
-The key idea: keep **remote** and **local** timers separate internally, then publish a merged “display view” into the slot entities.
+If you only want a **mirror-only (read-only)** setup, use:
+- **Mirror-only:** [voice-pe-esphome-readonly.md](voice-pe-esphome-readonly.md)
 
-> **⚠️ Unofficial / advanced**
-> This requires taking **full control** of your Voice PE device configuration. Proceed only if you understand ESPHome and can recover your device.
+---
+
+## ⚠️ Unofficial / advanced
+
+This requires taking **full control** of your Voice PE device configuration. Proceed only if you understand ESPHome and can recover your device.
 
 ---
 
@@ -28,21 +30,21 @@ The key idea: keep **remote** and **local** timers separate internally, then pub
 - `sensor.timer_count` (remote + local active timers)
 
 ### Control input (for local timers)
-- `text.voice_pe_timer_command`
+- `text.voice_pe_timer_command` (receives commands like `start:300:Pasta`, `pause:<id>`, `resume:<id>`, `cancel:<id>`)
 
 ---
 
 ## How the integration works (high level)
 
-1. `voice_assistant.on_timer_tick` runs periodically and provides a `timers` vector.
-2. We mirror the first N entries of `timers` into internal **remote** storage (`r1..r3`).
+1. `voice_assistant.on_timer_tick` provides a `timers` vector (remote timers, sorted by soonest end).
+2. We mirror the first N entries into internal **remote** storage (`r1..r3`).
 3. Separately, **local** timers (`t1..t3`) are created/controlled via commands written to `text.voice_pe_timer_command`.
 4. A `publish_display` script merges:
-   - remote timers first (sorted by soonest end as provided by Voice PE)
+   - remote timers first
    - then local timers
    into display slots `timer_1..timer_3`.
 
-Both remote and local timers use a sticky `finished` state for ~10 seconds (TTL), then clear.
+Both remote and local timers can use a sticky `finished` state for ~10 seconds (TTL), then clear.
 
 ---
 
@@ -155,7 +157,7 @@ text_sensor:
 
 ## 2) Control input (required for local timers)
 
-This is the single entity that Simple Timer Card (and HA) will write commands into.
+This is the single entity that Simple Timer Card (and HA) writes commands into.
 
 ```yaml
 text:
@@ -168,10 +170,6 @@ text:
       then:
         - script.execute: handle_command
 ```
-
-In Home Assistant, this will appear as:
-
-- `text.voice_pe_timer_command`
 
 ---
 
@@ -281,8 +279,6 @@ globals:
 
 ### 3.2) Remote (mirrored) timer globals
 
-Remote slots are treated as “present/not present” plus metadata. They also have a sticky finished TTL.
-
 ```yaml
 globals:
   # Remote slots (r1..r3)
@@ -377,8 +373,6 @@ globals:
 ---
 
 ## 4) Publish the merged display slots (remote first, then local)
-
-This script is the heart of the approach: it merges remote + local into the 3 display slots.
 
 ```yaml
 script:
@@ -718,8 +712,6 @@ interval:
 
 ## 7) Mirror Voice PE timers into remote slots (`voice_assistant.on_timer_tick`)
 
-This is what populates `r1..r3`.
-
 ```yaml
 voice_assistant:
   on_timer_tick:
@@ -813,8 +805,6 @@ interval:
 
 ## 9) Boot counter (optional but recommended)
 
-If you use `boot_counter` to help generate unique local timer IDs, increment it on boot:
-
 ```yaml
 esphome:
   on_boot:
@@ -827,24 +817,14 @@ esphome:
 
 ---
 
-## Testing
+## Next: Home Assistant template sensors + card setup
 
-In Home Assistant → Developer Tools → States:
+After flashing and confirming entities exist, go back to:
+- [voice-pe.md](voice-pe.md)
 
-1. Set `text.voice_pe_timer_command` to:
-   - `start:10:Test`
-2. You should see:
-   - `text_sensor.timer_1_id` becomes `local:...`
-   - `text_sensor.timer_1_state` becomes `active`
-   - then `finished`
-   - then clears to `idle` after ~10 seconds
-
-Then try:
-- `pause:<local-id>`
-- `resume:<local-id>`
-- `cancel:<local-id>`
-
-Finally, speak a timer to Voice PE and confirm remote timers appear first.
+That page covers:
+- mirror-only template sensors + card config
+- and points back here for the advanced local-control setup.
 
 ---
 
@@ -855,5 +835,3 @@ Copy the same pattern:
 - add local globals: `t4_*`, `t5_*`
 - add remote globals: `r4_*`, `r5_*`
 - update loops/conditions from `<=3` to `<=5`
-
-That’s exactly how the “real” 5-slot implementation works; this page just keeps it readable by showing 3.
