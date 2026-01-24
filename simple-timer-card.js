@@ -5,13 +5,13 @@
  *
  * Author: eyalgal
  * License: MIT
- * Version: 2.0.0
- * For more information, visit: https://github.com/eyalgal/simple-timer-card
+ * Version: 2.1.0
+ * For more information, visit: https:
  */
 
 import { LitElement, html, css } from "https://unpkg.com/lit@3.1.0/index.js?module";
 
-const cardVersion="2.0.0";
+const cardVersion="2.1.0";
 
 const DAY_IN_MS = 86400000;
 const YEAR_IN_MS = 365 * DAY_IN_MS;
@@ -300,6 +300,7 @@ class SimpleTimerCard extends LitElement {
       default_timer_icon: "mdi:timer-outline",
       default_timer_color: "var(--primary-color)",
       default_timer_entity: null,
+      auto_voice_pe: false,
       expire_action: "keep",
       expire_keep_for: 120,
       auto_dismiss_writable: false,
@@ -500,7 +501,10 @@ class SimpleTimerCard extends LitElement {
       attrs.sorted_paused != null ||
       attrs.sorted_all != null ||
       attrs.next_timer != null ||
-      attrs.timers != null
+      attrs.timers != null ||
+
+      ((entityId.includes("next_timer") || entityId.endsWith("_next_timer")) &&
+        (attrs.total_active != null || attrs.total_all != null || attrs.status != null || attrs.timer != null || attrs.dismissed != null))
     ) return "alexa";
     if (attrs.device_class === "timestamp") return "timestamp";
     const guessAttr = entityConf?.minutes_attr;
@@ -810,56 +814,118 @@ class SimpleTimerCard extends LitElement {
 
   _parseVoicePE(entityId, entityState, entityConf) {
     const state = entityState.state;
-    const attrs = entityState.attributes;
+    const attrs = entityState.attributes || {};
     if (!["active", "paused", "idle", "finished"].includes(state)) return [];
-    let endMs = null;
-    let duration = null;
-    let remainingMs = null;
-    if (attrs.duration) duration = this._parseHMSToMs(attrs.duration);
+
+    const controlEntity = (attrs.control_entity && String(attrs.control_entity).trim()) ? String(attrs.control_entity).trim() : null;
+
+
+    const timerIdRaw =
+      attrs.timer_id ??
+      attrs.timerId ??
+      attrs.id ??
+      attrs.timer ??
+      attrs.voice_pe_timer_id ??
+      attrs.vpe_timer_id ??
+      attrs.uuid ??
+      null;
+
+    const timerId = (timerIdRaw && String(timerIdRaw).trim()) ? String(timerIdRaw).trim() : null;
+
+    const duration = attrs.duration ? this._parseHMSToMs(attrs.duration) : null;
+    const remainingFromAttrs = attrs.remaining ? this._parseHMSToMs(attrs.remaining) : null;
+
+    const isLocalControllable = !!(controlEntity && timerId);
+
+
+    const label =
+      (attrs.display_name && String(attrs.display_name).trim()) ? String(attrs.display_name).trim() :
+      (attrs.friendly_name && String(attrs.friendly_name).trim()) ? String(attrs.friendly_name).trim() :
+      (entityConf?.name && String(entityConf.name).trim()) ? String(entityConf.name).trim() :
+      this._localize("timer");
+
+
+    const base = {
+      id: timerId ? `vpe-${timerId}` : entityId,
+      source: "voice_pe",
+      source_entity: entityId,
+      label,
+      name: label,
+      duration,
+      voice_pe_timer_id: timerId,
+      control_entity: controlEntity,
+
+      supports: isLocalControllable
+        ? { pause: true, cancel: true, snooze: false, extend: false }
+        : { pause: false, cancel: false, snooze: false, extend: false },
+    };
+
+
     if (state === "idle") {
       const entityIcon = attrs.icon;
       const defaultIcon = entityIcon || "mdi:play";
       return [{
-        id: entityId, source: "timer", source_entity: entityId,
-        label: entityConf?.name || entityState.attributes.display_name || entityState.attributes.friendly_name || this._localize("timer"),
+        ...base,
         icon: entityConf?.icon || defaultIcon,
         color: entityConf?.color || "var(--primary-color)",
-        end: null, duration, paused: false, idle: true
+        end: null,
+        paused: false,
+        idle: true,
+        finished: false,
+        state: "idle",
       }];
     }
+
+
     if (state === "finished") {
       const finishedAt = attrs.finishes_at ? Date.parse(attrs.finishes_at) : Date.now();
       const entityIcon = attrs.icon;
       const defaultIcon = entityIcon || "mdi:timer-check";
       return [{
-        id: entityId, source: "voice_pe", source_entity: entityId,
-        label: entityConf?.name || entityState.attributes.display_name || entityState.attributes.friendly_name || this._localize("timer"),
+        ...base,
         icon: entityConf?.icon || defaultIcon,
         color: entityConf?.color || "var(--success-color)",
-        end: finishedAt, duration, paused: false, finished: true, finishedAt
+        end: finishedAt,
+        paused: false,
+        idle: false,
+        finished: true,
+        finishedAt,
+        state: "finished",
       }];
     }
+
+
+    let endMs = null;
+    let remainingMs = null;
+
     if (state === "paused") {
-      if (attrs.remaining && attrs.remaining !== "0:00:00") {
-        remainingMs = this._parseHMSToMs(attrs.remaining);
+      if (remainingFromAttrs && remainingFromAttrs > 0) {
+        remainingMs = remainingFromAttrs;
         endMs = remainingMs;
       }
     } else if (state === "active") {
-      if (attrs.finishes_at) endMs = Date.parse(attrs.finishes_at);
-      else if (attrs.remaining && attrs.remaining !== "0:00:00") {
-        remainingMs = this._parseHMSToMs(attrs.remaining);
-        if (remainingMs > 0) endMs = Date.now() + remainingMs;
+      if (attrs.finishes_at) {
+        endMs = Date.parse(attrs.finishes_at);
+      } else if (remainingFromAttrs && remainingFromAttrs > 0) {
+        remainingMs = remainingFromAttrs;
+        endMs = Date.now() + remainingMs;
       }
     }
-    if (!endMs && state !== "idle" && state !== "finished") return [];
+
+    if (!endMs) return [];
+
     const entityIcon = attrs.icon;
     const defaultIcon = entityIcon || (state === "paused" ? "mdi:timer-pause" : "mdi:timer");
+
     return [{
-      id: entityId, source: "voice_pe", source_entity: entityId,
-      label: entityConf?.name || entityState.attributes.display_name || entityState.attributes.friendly_name || this._localize("timer"),
+      ...base,
       icon: entityConf?.icon || defaultIcon,
       color: entityConf?.color || (state === "paused" ? "var(--warning-color)" : "var(--primary-color)"),
-      end: endMs, duration, paused: state === "paused", idle: state === "idle", finished: state === "finished"
+      end: endMs,
+      paused: state === "paused",
+      idle: false,
+      finished: false,
+      state,
     }];
   }
 
@@ -871,8 +937,75 @@ class SimpleTimerCard extends LitElement {
     return 0;
   }
 
+
+  _isLocalVoicePETimer(timer) {
+    return timer?.source === "voice_pe"
+      && timer?.control_entity
+      && String(timer.control_entity).trim()
+      && timer?.voice_pe_timer_id
+      && String(timer.voice_pe_timer_id).trim()
+      && timer.supports?.pause === true;
+  }
+
+  async _sendVoicePECommand(controlEntity, command) {
+    if (!this.hass) return;
+    if (!controlEntity || !command) return;
+
+    const entityId = String(controlEntity).trim();
+    const domain = entityId.split(".")[0];
+    if (domain !== "text" && domain !== "input_text") {
+      this._toast("Invalid control entity for Voice PE timers.");
+      return;
+    }
+
+    await this.hass.callService(domain, "set_value", {
+      entity_id: entityId,
+      value: String(command),
+    });
+  }
+
+  _getVoicePEControlEntity(preferredTimerEntityId) {
+    try {
+      const st = preferredTimerEntityId ? this.hass?.states?.[preferredTimerEntityId] : null;
+      const fromAttr = st?.attributes?.control_entity ? String(st.attributes.control_entity).trim() : "";
+      if (fromAttr) return fromAttr;
+    } catch (_) {}
+
+    const fromCfg = this._config?.voice_pe_control_entity ? String(this._config.voice_pe_control_entity).trim() : "";
+    if (fromCfg) return fromCfg;
+
+    try {
+      const states = this.hass?.states || {};
+      const candidates = Object.keys(states)
+        .filter((id) => (id.startsWith("text.") || id.startsWith("input_text.")) && id.toLowerCase().includes("voice_pe_timer_command"))
+        .sort((a, b) => a.localeCompare(b));
+      return candidates.length ? candidates[0] : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+
+  async _sendVoicePEStart(durationMs, name, targetEntityId) {
+    const seconds = Math.max(1, Math.ceil(durationMs / 1000));
+    const controlEntity = this._getVoicePEControlEntity(targetEntityId);
+
+    if (!controlEntity) {
+      this._toast("Voice PE control entity is missing.");
+      return;
+    }
+
+    let cmd = `start:${seconds}`;
+    const cleanName = name && String(name).trim() ? String(name).trim().replace(/:/g, " ") : "";
+    if (cleanName) cmd = `${cmd}:${cleanName}`;
+
+    await this._sendVoicePECommand(controlEntity, cmd);
+  }
+
+
   _updateTimers() {
     if (!this.hass) return;
+    this._ensureAutoVoicePEEntities();
     const collected = [];
     for (const entityConfig of this._config.entities) {
       const entityId = typeof entityConfig === "string" ? entityConfig : entityConfig.entity;
@@ -1118,24 +1251,103 @@ if (!audioEnabled || !audioFileUrl || !this._validateAudioUrl(audioFileUrl)) ret
     }
   }
 
+
+  _discoverVoicePEEntities() {
+    try {
+      const states = this.hass?.states || {};
+      const out = [];
+      for (const [entityId, st] of Object.entries(states)) {
+        if (!entityId || !st) continue;
+        const state = st.state;
+        if (!["active", "paused", "idle", "finished"].includes(state)) continue;
+        const attrs = st.attributes || {};
+        const controlEntity = attrs.control_entity ? String(attrs.control_entity).trim() : "";
+        if (!controlEntity) continue;
+
+        out.push(entityId);
+      }
+      out.sort((a, b) => a.localeCompare(b));
+      return out;
+    } catch (_) {
+      return [];
+    }
+  }
+
+  _getDefaultVoicePETargetEntity() {
+
+    try {
+      const cfg = Array.isArray(this._config?.entities) ? this._config.entities : [];
+      for (const entityConf of cfg) {
+        const entityId = typeof entityConf === "string" ? entityConf : entityConf?.entity;
+        const mode = typeof entityConf === "string" ? null : entityConf?.mode;
+        if (!entityId) continue;
+        if (mode === "voice_pe" || (entityId.startsWith("sensor.") && String(entityId).toLowerCase().includes("vpe_timer"))) {
+          return entityId;
+        }
+        const st = this.hass?.states?.[entityId];
+        const controlEntity = st?.attributes?.control_entity ? String(st.attributes.control_entity).trim() : "";
+        if (controlEntity) return entityId;
+      }
+    } catch (_) {}
+
+    const discovered = this._discoverVoicePEEntities();
+    return discovered.length ? discovered[0] : null;
+  }
+
+  _ensureAutoVoicePEEntities() {
+    if (this._autoVoicePEInjected) return;
+    if (this._config?.auto_voice_pe !== true) return;
+
+    const cfgEntities = Array.isArray(this._config?.entities) ? this._config.entities : [];
+    if (cfgEntities.length > 0) {
+      this._autoVoicePEInjected = true;
+      return;
+    }
+
+    const discovered = this._discoverVoicePEEntities();
+    if (!discovered.length) return;
+
+    this._config.entities = discovered.map((e) => ({ entity: e, mode: "voice_pe" }));
+    this._autoVoicePEInjected = true;
+  }
+
   _publishTimerEvent(event, timer) {
     if (this._config.storage === "mqtt" || this._config.default_timer_entity?.startsWith("sensor.")) {
+      const payload = {
+        id: timer.id,
+        label: timer.label,
+        name: timer.name,
+        source: timer.source,
+        source_entity: timer.source_entity,
+        icon: timer.icon,
+        color: timer.color,
+        voice_pe_timer_id: timer.voice_pe_timer_id,
+        control_entity: timer.control_entity,
+        timestamp: Date.now(),
+        event: event,
+        duration: timer.duration,
+        remaining: timer.remaining
+      };
+
+      if (timer?.pinned_id) payload.pinned_id = timer.pinned_id;
+
+
+      if (timer?.source === "voice_pe") {
+        payload.state = timer.state;
+        payload.start_ts = timer.start_ts;
+        payload.end_ts = timer.end_ts;
+        payload.duration_ms = timer.duration_ms ?? timer.duration;
+        payload.remaining_ms = timer.remaining_ms ?? timer.remaining;
+      }
+
       this.hass.callService("mqtt", "publish", {
         topic: `${this._config?.mqtt?.events_topic || "simple_timer_card/events"}/${event}`,
-        payload: JSON.stringify({
-          id: timer.id,
-          label: timer.label,
-          source: timer.source,
-          source_entity: timer.source_entity,
-          timestamp: Date.now(),
-          event: event,
-          duration: timer.duration,
-          remaining: timer.remaining
-        }),
+        payload: JSON.stringify(payload),
         retain: false,
       });
     }
   }
+
 
   _getEntityConfig(entityId) {
     if (!entityId || !this._config.entities) return null;
@@ -1186,6 +1398,12 @@ if (!audioEnabled || !audioFileUrl || !this._validateAudioUrl(audioFileUrl)) ret
     const label = form.querySelector('ha-textfield[name="label"]')?.value?.trim() ?? "";
     const targetEntity = form.querySelector('[name="target_entity"]')?.value ?? "";
     const durationMs = this._parseDuration(durationStr);
+    let resolvedTargetEntity = targetEntity;
+    if (!resolvedTargetEntity) resolvedTargetEntity = this._config.default_timer_entity || "";
+    if (this._config.auto_voice_pe === true) {
+      const vpeEntity = this._getDefaultVoicePETargetEntity();
+      if (vpeEntity) resolvedTargetEntity = vpeEntity;
+    }
     if (durationMs <= 0) return;
     const validation = this._validateTimerInput(durationMs, label);
     if (!validation.valid) return;
@@ -1200,7 +1418,42 @@ if (!audioEnabled || !audioFileUrl || !this._validateAudioUrl(audioFileUrl)) ret
       source: "helper",
       paused: false,
     };
-    this._mutateHelper(targetEntity, (data) => { data.timers.push(newTimer); });
+    if (resolvedTargetEntity) {
+      const ce = this._getVoicePEControlEntity(resolvedTargetEntity);
+      if (ce) {
+        this._publishTimerEvent("started", { source: "voice_pe", source_entity: resolvedTargetEntity, label: newTimer.label });
+        this._sendVoicePEStart(durationMs, "", resolvedTargetEntity);
+        this.requestUpdate();
+        return;
+      }
+    }
+    if (!resolvedTargetEntity) {
+      const now = Date.now();
+      const t = {
+        id: newTimer.id,
+        kind: "active",
+        label: newTimer.label,
+        name: newTimer.label,
+        source: this._config.storage === "mqtt" ? "mqtt" : "local",
+        source_entity: this._config.storage === "mqtt" ? this._config.mqtt?.sensor_entity : "local",
+        start_ts: now,
+        end_ts: now + durationMs,
+        state: "active",
+        supports: { pause: true, cancel: true, snooze: true, extend: true },
+        icon: newTimer.icon,
+        color: newTimer.color,
+        end: now + durationMs,
+        duration: durationMs,
+        paused: false,
+        idle: false,
+        finished: false,
+      };
+      this._addTimerToStorage(t);
+      this._publishTimerEvent("started", t);
+      this.requestUpdate();
+      return;
+    }
+    this._mutateHelper(resolvedTargetEntity, (data) => { data.timers.push(newTimer); });
     this._publishTimerEvent("started", newTimer);
   }
   _parseDurationInputToMs(input) {
@@ -1214,7 +1467,7 @@ if (!audioEnabled || !audioFileUrl || !this._validateAudioUrl(audioFileUrl)) ret
     if (!m) return null;
     const value = parseInt(m[1], 10);
     if (!Number.isFinite(value) || value <= 0) return null;
-    const unit = m[2] || "m"; 
+    const unit = m[2] || "m";
     if (unit === "s") return value * 1000;
     if (unit === "m") return value * 60000;
     if (unit === "h") return value * 3600000;
@@ -1245,7 +1498,28 @@ if (!audioEnabled || !audioFileUrl || !this._validateAudioUrl(audioFileUrl)) ret
       return this._formatTimerLabel(Math.round(durationMs / 1000));
     })();
 
-    const targetEntity = entity || this._config.default_timer_entity;
+    let targetEntity = entity;
+    if (!targetEntity && this._config.auto_voice_pe === true) {
+      targetEntity = this._getDefaultVoicePETargetEntity();
+    }
+    if (!targetEntity) targetEntity = this._config.default_timer_entity;
+    const voicePEEnabled = this._config.auto_voice_pe === true;
+    const controlEntityFromCfg = this._config?.voice_pe_control_entity ? String(this._config.voice_pe_control_entity).trim() : "";
+    const canStartVoicePE = voicePEEnabled && !!controlEntityFromCfg;
+
+    if (voicePEEnabled && !controlEntityFromCfg) {
+      this._toast("Voice PE control entity is not set. Please configure it in the card editor.");
+    }
+
+    if (canStartVoicePE) {
+      const userProvidedName = !!(overrides?.voice_pe_name && String(overrides.voice_pe_name).trim());
+      const nameForCommand = userProvidedName ? String(overrides.voice_pe_name).trim() : "";
+      this._publishTimerEvent("started", { source: "voice_pe", source_entity: targetEntity, label });
+      this._sendVoicePEStart(durationMs, nameForCommand, targetEntity);
+      this.requestUpdate();
+      return;
+    }
+
     const now = Date.now();
     const newTimer = {
       id: overrides.id || `preset-${now}`,
@@ -1278,7 +1552,16 @@ if (!audioEnabled || !audioFileUrl || !this._validateAudioUrl(audioFileUrl)) ret
     if (targetEntity && (targetEntity.startsWith("input_text.") || targetEntity.startsWith("text."))) {
       newTimer.source = "helper";
       newTimer.source_entity = targetEntity;
-      this._mutateHelper(targetEntity, (data) => { data.timers.push(newTimer); });
+      if (resolvedTargetEntity) {
+      const ce = this._getVoicePEControlEntity(resolvedTargetEntity);
+      if (ce) {
+        this._publishTimerEvent("started", { source: "voice_pe", source_entity: resolvedTargetEntity, label: newTimer.label });
+        this._sendVoicePEStart(durationMs, "", resolvedTargetEntity);
+        this.requestUpdate();
+        return;
+      }
+    }
+    this._mutateHelper(resolvedTargetEntity, (data) => { data.timers.push(newTimer); });
       this._publishTimerEvent("created", newTimer);
     } else if (this._config.storage === "mqtt") {
       newTimer.source = "mqtt";
@@ -1424,6 +1707,7 @@ if (!audioEnabled || !audioFileUrl || !this._validateAudioUrl(audioFileUrl)) ret
         (() => {
           const overrides = {
             label: timer.label || timer.name,
+            voice_pe_name: timer.label || timer.name,
             icon: timer.icon,
             color: timer.color,
             expired_subtitle: timer.expired_subtitle,
@@ -1452,9 +1736,21 @@ if (!audioEnabled || !audioFileUrl || !this._validateAudioUrl(audioFileUrl)) ret
       this._toast("This timer can't be started from here.");
     }
   }
+
   _handleCancel(timer) {
     if (this._isActionThrottled("cancel", timer.id)) return;
     this._ringingTimers.delete(timer.id);
+
+    if (timer.source === "voice_pe") {
+      if (!this._isLocalVoicePETimer(timer)) {
+        this._toast("This timer is read only.");
+        return;
+      }
+      this._publishTimerEvent("cancelled", timer);
+      this._sendVoicePECommand(timer.control_entity, `cancel:${String(timer.voice_pe_timer_id).trim()}`);
+      return;
+    }
+
     this._publishTimerEvent("cancelled", timer);
     if (timer.source === "helper") {
       this._mutateHelper(timer.source_entity, (data) => { data.timers = data.timers.filter((t) => t.id !== timer.id); });
@@ -1469,6 +1765,16 @@ if (!audioEnabled || !audioFileUrl || !this._validateAudioUrl(audioFileUrl)) ret
   }
 
   _handlePause(timer) {
+    if (timer.source === "voice_pe") {
+      if (!this._isLocalVoicePETimer(timer)) {
+        this._toast("This timer is read only.");
+        return;
+      }
+      this._publishTimerEvent("paused", timer);
+      this._sendVoicePECommand(timer.control_entity, `pause:${String(timer.voice_pe_timer_id).trim()}`);
+      return;
+    }
+
     this._publishTimerEvent("paused", timer);
     if (timer.source === "helper") {
       const remaining = timer.remaining;
@@ -1488,6 +1794,16 @@ if (!audioEnabled || !audioFileUrl || !this._validateAudioUrl(audioFileUrl)) ret
   }
 
   _handleResume(timer) {
+    if (timer.source === "voice_pe") {
+      if (!this._isLocalVoicePETimer(timer)) {
+        this._toast("This timer is read only.");
+        return;
+      }
+      this._publishTimerEvent("resumed", timer);
+      this._sendVoicePECommand(timer.control_entity, `resume:${String(timer.voice_pe_timer_id).trim()}`);
+      return;
+    }
+
     this._publishTimerEvent("resumed", timer);
     if (timer.source === "helper") {
       const newEndTime = Date.now() + timer.remaining;
@@ -1746,11 +2062,34 @@ if (!audioEnabled || !audioFileUrl || !this._validateAudioUrl(audioFileUrl)) ret
       duration: secs * 1000,
       paused: false,
     };
-    const targetEntity = this._config.default_timer_entity;
+    let targetEntity = this._config.default_timer_entity;
+    if (this._config.auto_voice_pe === true) {
+      const vpeEntity = this._getDefaultVoicePETargetEntity();
+      if (vpeEntity) targetEntity = vpeEntity;
+    }
+    const hasVoicePEControl = !!this._getVoicePEControlEntity(targetEntity);
+    if (hasVoicePEControl) {
+
+      const userProvidedName = !!(label && String(label).trim());
+      const nameForCommand = userProvidedName ? String(label).trim() : "";
+      this._sendVoicePEStart(secs * 1000, nameForCommand, targetEntity);
+      this.requestUpdate();
+      return;
+    }
+
     if (targetEntity && (targetEntity.startsWith("input_text.") || targetEntity.startsWith("text."))) {
       newTimer.source = "helper";
       newTimer.source_entity = targetEntity;
-      this._mutateHelper(targetEntity, (data) => { data.timers.push(newTimer); });
+      if (resolvedTargetEntity) {
+      const ce = this._getVoicePEControlEntity(resolvedTargetEntity);
+      if (ce) {
+        this._publishTimerEvent("started", { source: "voice_pe", source_entity: resolvedTargetEntity, label: newTimer.label });
+        this._sendVoicePEStart(durationMs, "", resolvedTargetEntity);
+        this.requestUpdate();
+        return;
+      }
+    }
+    this._mutateHelper(resolvedTargetEntity, (data) => { data.timers.push(newTimer); });
       this._publishTimerEvent("started", newTimer);
     } else {
       newTimer.source = this._config.storage;
@@ -2180,11 +2519,11 @@ if (!audioEnabled || !audioFileUrl || !this._validateAudioUrl(audioFileUrl)) ret
     const pctLeft = 100 - pct;
     const isCircleStyle = style === "circle";
     const isFillStyle = style.startsWith("fill_");
-    const supportsPause = ["helper", "local", "mqtt", "timer"].includes(t.source);
+    const supportsPause = ["helper", "local", "mqtt", "timer"].includes(t.source) || (t.source === "voice_pe" && !!(t.control_entity && String(t.control_entity).trim() && t.voice_pe_timer_id && String(t.voice_pe_timer_id).trim()));
     const entityConf = this._getEntityConfig(t.source_entity);
     const hideTimerActions = entityConf?.hide_timer_actions === true;
     const isTimerSource = t.source === "timer";
-    const supportsManualControls = ((["local", "mqtt", "timer", "helper"].includes(t.source)) || t.kind === "template" || t.source === "template") && !(isTimerSource && hideTimerActions);
+    const supportsManualControls = (((["local", "mqtt", "timer", "helper"].includes(t.source)) || t.kind === "template" || t.source === "template") && !(isTimerSource && hideTimerActions)) || (t.source === "voice_pe" && !!(t.control_entity && String(t.control_entity).trim()));
     const supportsReadOnlyDismiss = ring && ["timestamp", "minutes_attr", "alexa"].includes(t.source);
     let timeStr;
     if (isIdle) timeStr = t.duration ? this._formatDuration(t.duration, "ms") : this._localize("ready");
@@ -2795,6 +3134,14 @@ class SimpleTimerCardEditor extends LitElement {
       value = value.split(",").map(u => u.trim().toLowerCase()).filter(u => ["years","months","weeks","days","hours","minutes","seconds"].includes(u));
       if (value.length === 0) value = ["days","hours","minutes","seconds"];
     }
+    if (key === "auto_voice_pe" && value !== true) {
+      const next = { ...this._config };
+      delete next.auto_voice_pe;
+      delete next.voice_pe_control_entity;
+      this._config = next;
+      this._emitChange();
+      return;
+    }
     if (hasChecked) this._updateConfig({ [key]: value }, true);
     else this._updateConfig({ [key]: value });
   }
@@ -3072,7 +3419,16 @@ _pinnedTimerValueChanged(ev, index) {
     if (entityId.startsWith("timer.")) return "timer";
     if (entityId.startsWith("input_text.") || entityId.startsWith("text.")) return "helper";
     const attrs = entityState.attributes || {};
-    if (attrs.sorted_active || attrs.alarms_brief) return "alexa";
+    if (
+      attrs.alarms_brief != null ||
+      attrs.sorted_active != null ||
+      attrs.sorted_paused != null ||
+      attrs.sorted_all != null ||
+      attrs.next_timer != null ||
+      attrs.timers != null ||
+      ((entityId.includes("next_timer") || entityId.endsWith("_next_timer")) &&
+        (attrs.total_active != null || attrs.total_all != null || attrs.status != null || attrs.timer != null || attrs.dismissed != null))
+    ) return "alexa";
     if (attrs.device_class === "timestamp") return "timestamp";
     const guessAttr = entityConf?.minutes_attr;
     if (guessAttr && (attrs[guessAttr] ?? null) !== null) return "minutes_attr";
@@ -3324,6 +3680,24 @@ const storageContent = html`
         allow-custom-entity
         .includeDomains=${["input_text", "text", "sensor"]}
       ></ha-entity-picker>
+      <ha-formfield label="Auto use Voice PE (if available)">
+        <ha-switch .checked=${this._config.auto_voice_pe === true} .configValue=${"auto_voice_pe"} @change=${this._valueChanged}></ha-switch>
+      </ha-formfield>
+
+      ${this._config.auto_voice_pe === true
+        ? html`
+            <ha-entity-picker
+              .hass=${this.hass}
+              .value=${this._config.voice_pe_control_entity || ""}
+              .configValue=${"voice_pe_control_entity"}
+              .includeDomains=${["text", "input_text"]}
+              allow-custom-entity
+              label="Voice PE control entity"
+              @value-changed=${this._valueChanged}
+            ></ha-entity-picker>
+          `
+        : ""}
+
       <div class="storage-info">
         <span class="storage-label">Storage type: <strong>${this._getStorageDisplayName(storageType)}</strong></span>
         <small class="storage-description">${this._getStorageDescription(storageType)}</small>
