@@ -1,0 +1,25 @@
+# This turns off a climate entity when its associated timer expires
+# The timers have an id starting with the name of the climate entity
+# ie, "study_1hr".
+# This assumes that we're using a mqtt source for the timer
+
+- alias: "Climate Timer - Turn Off Climate When Timer Expires"
+  description: "Turn off climate entity when its associated timer expires"
+  id: timer_turn_off_climate
+  trigger:
+    - platform: mqtt
+      topic: "simple_timer_card/events/expired"
+  action:
+    - action: climate.turn_off
+      target:
+        entity_id: >
+          {% set pinned_id = trigger.payload_json.pinned_id %}
+          {% set entity_name = pinned_id | regex_replace('_.+$', '') %}
+          {{ 'climate.' ~ entity_name }}
+  condition:
+    - condition: template
+      value_template: >
+        {% set pinned_id = trigger.payload_json.pinned_id %}
+        {% set entity_name = pinned_id | regex_replace('_.+$', '') %}
+        {% set entity_id = 'climate.' ~ entity_name %}
+        {{ entity_id in states }}
