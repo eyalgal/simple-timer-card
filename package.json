@@ -1,0 +1,30 @@
+{
+  "name": "simple-timer-card",
+  "version": "1.0.0",
+  "description": "[![GitHub Release][release_badge]][release]\r [![Community Forum][forum_badge]][forum]\r [![Buy Me A Coffee][bmac_badge]][bmac]",
+  "main": "index.js",
+  "directories": {
+    "example": "examples"
+  },
+  "scripts": {
+    "build": "rollup -c"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eyalgal/simple-timer-card.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/eyalgal/simple-timer-card/issues"
+  },
+  "homepage": "https://github.com/eyalgal/simple-timer-card#readme",
+  "devDependencies": {
+    "@rollup/plugin-node-resolve": "^16.0.3",
+    "@rollup/plugin-terser": "^0.4.4",
+    "lit": "^3.3.2",
+    "rollup": "^4.56.0"
+  }
+}
