@@ -5,13 +5,13 @@
  *
  * Author: eyalgal
  * License: MIT
- * Version: 2.1.0
+ * Version: 2.1.1
  * For more information, visit: https:
  */
 
 import { LitElement, html, css } from "https://unpkg.com/lit@3.1.0/index.js?module";
 
-const cardVersion="2.1.0";
+const cardVersion="2.1.1";
 
 const DAY_IN_MS = 86400000;
 const YEAR_IN_MS = 365 * DAY_IN_MS;
