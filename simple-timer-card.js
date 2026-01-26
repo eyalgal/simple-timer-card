@@ -3,312 +3,2840 @@
  * Copyright 2019 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const t=globalThis,e=t.ShadowRoot&&(void 0===t.ShadyCSS||t.ShadyCSS.nativeShadow)&&"adoptedStyleSheets"in Document.prototype&&"replace"in CSSStyleSheet.prototype,i=Symbol(),s=new WeakMap;let r=class{constructor(t,e,s){if(this._$cssResult$=!0,s!==i)throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");this.cssText=t,this.t=e}get styleSheet(){let t=this.o;const i=this.t;if(e&&void 0===t){const e=void 0!==i&&1===i.length;e&&(t=s.get(i)),void 0===t&&((this.o=t=new CSSStyleSheet).replaceSync(this.cssText),e&&s.set(i,t))}return t}toString(){return this.cssText}};const n=(t,...e)=>{const s=1===t.length?t[0]:e.reduce((e,i,s)=>e+(t=>{if(!0===t._$cssResult$)return t.cssText;if("number"==typeof t)return t;throw Error("Value passed to 'css' function must be a 'css' function result: "+t+". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.")})(i)+t[s+1],t[0]);return new r(s,t,i)},o=e?t=>t:t=>t instanceof CSSStyleSheet?(t=>{let e="";for(const i of t.cssRules)e+=i.cssText;return(t=>new r("string"==typeof t?t:t+"",void 0,i))(e)})(t):t,{is:a,defineProperty:l,getOwnPropertyDescriptor:c,getOwnPropertyNames:d,getOwnPropertySymbols:u,getPrototypeOf:h}=Object,m=globalThis,_=m.trustedTypes,p=_?_.emptyScript:"",g=m.reactiveElementPolyfillSupport,f=(t,e)=>t,v={toAttribute(t,e){switch(e){case Boolean:t=t?p:null;break;case Object:case Array:t=null==t?t:JSON.stringify(t)}return t},fromAttribute(t,e){let i=t;switch(e){case Boolean:i=null!==t;break;case Number:i=null===t?null:Number(t);break;case Object:case Array:try{i=JSON.parse(t)}catch(t){i=null}}return i}},y=(t,e)=>!a(t,e),b={attribute:!0,type:String,converter:v,reflect:!1,useDefault:!1,hasChanged:y};
+const t$1=globalThis,e$2=t$1.ShadowRoot&&(void 0===t$1.ShadyCSS||t$1.ShadyCSS.nativeShadow)&&"adoptedStyleSheets"in Document.prototype&&"replace"in CSSStyleSheet.prototype,s$2=Symbol(),o$3=new WeakMap;let n$2 = class n{constructor(t,e,o){if(this._$cssResult$=true,o!==s$2)throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");this.cssText=t,this.t=e;}get styleSheet(){let t=this.o;const s=this.t;if(e$2&&void 0===t){const e=void 0!==s&&1===s.length;e&&(t=o$3.get(s)),void 0===t&&((this.o=t=new CSSStyleSheet).replaceSync(this.cssText),e&&o$3.set(s,t));}return t}toString(){return this.cssText}};const r$2=t=>new n$2("string"==typeof t?t:t+"",void 0,s$2),i$3=(t,...e)=>{const o=1===t.length?t[0]:e.reduce((e,s,o)=>e+(t=>{if(true===t._$cssResult$)return t.cssText;if("number"==typeof t)return t;throw Error("Value passed to 'css' function must be a 'css' function result: "+t+". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.")})(s)+t[o+1],t[0]);return new n$2(o,t,s$2)},S$1=(s,o)=>{if(e$2)s.adoptedStyleSheets=o.map(t=>t instanceof CSSStyleSheet?t:t.styleSheet);else for(const e of o){const o=document.createElement("style"),n=t$1.litNonce;void 0!==n&&o.setAttribute("nonce",n),o.textContent=e.cssText,s.appendChild(o);}},c$2=e$2?t=>t:t=>t instanceof CSSStyleSheet?(t=>{let e="";for(const s of t.cssRules)e+=s.cssText;return r$2(e)})(t):t;
+
 /**
  * @license
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
- */Symbol.metadata??=Symbol("metadata"),m.litPropertyMetadata??=new WeakMap;let $=class extends HTMLElement{static addInitializer(t){this._$Ei(),(this.l??=[]).push(t)}static get observedAttributes(){return this.finalize(),this._$Eh&&[...this._$Eh.keys()]}static createProperty(t,e=b){if(e.state&&(e.attribute=!1),this._$Ei(),this.prototype.hasOwnProperty(t)&&((e=Object.create(e)).wrapped=!0),this.elementProperties.set(t,e),!e.noAccessor){const i=Symbol(),s=this.getPropertyDescriptor(t,i,e);void 0!==s&&l(this.prototype,t,s)}}static getPropertyDescriptor(t,e,i){const{get:s,set:r}=c(this.prototype,t)??{get(){return this[e]},set(t){this[e]=t}};return{get:s,set(e){const n=s?.call(this);r?.call(this,e),this.requestUpdate(t,n,i)},configurable:!0,enumerable:!0}}static getPropertyOptions(t){return this.elementProperties.get(t)??b}static _$Ei(){if(this.hasOwnProperty(f("elementProperties")))return;const t=h(this);t.finalize(),void 0!==t.l&&(this.l=[...t.l]),this.elementProperties=new Map(t.elementProperties)}static finalize(){if(this.hasOwnProperty(f("finalized")))return;if(this.finalized=!0,this._$Ei(),this.hasOwnProperty(f("properties"))){const t=this.properties,e=[...d(t),...u(t)];for(const i of e)this.createProperty(i,t[i])}const t=this[Symbol.metadata];if(null!==t){const e=litPropertyMetadata.get(t);if(void 0!==e)for(const[t,i]of e)this.elementProperties.set(t,i)}this._$Eh=new Map;for(const[t,e]of this.elementProperties){const i=this._$Eu(t,e);void 0!==i&&this._$Eh.set(i,t)}this.elementStyles=this.finalizeStyles(this.styles)}static finalizeStyles(t){const e=[];if(Array.isArray(t)){const i=new Set(t.flat(1/0).reverse());for(const t of i)e.unshift(o(t))}else void 0!==t&&e.push(o(t));return e}static _$Eu(t,e){const i=e.attribute;return!1===i?void 0:"string"==typeof i?i:"string"==typeof t?t.toLowerCase():void 0}constructor(){super(),this._$Ep=void 0,this.isUpdatePending=!1,this.hasUpdated=!1,this._$Em=null,this._$Ev()}_$Ev(){this._$ES=new Promise(t=>this.enableUpdating=t),this._$AL=new Map,this._$E_(),this.requestUpdate(),this.constructor.l?.forEach(t=>t(this))}addController(t){(this._$EO??=new Set).add(t),void 0!==this.renderRoot&&this.isConnected&&t.hostConnected?.()}removeController(t){this._$EO?.delete(t)}_$E_(){const t=new Map,e=this.constructor.elementProperties;for(const i of e.keys())this.hasOwnProperty(i)&&(t.set(i,this[i]),delete this[i]);t.size>0&&(this._$Ep=t)}createRenderRoot(){const i=this.shadowRoot??this.attachShadow(this.constructor.shadowRootOptions);return((i,s)=>{if(e)i.adoptedStyleSheets=s.map(t=>t instanceof CSSStyleSheet?t:t.styleSheet);else for(const e of s){const s=document.createElement("style"),r=t.litNonce;void 0!==r&&s.setAttribute("nonce",r),s.textContent=e.cssText,i.appendChild(s)}})(i,this.constructor.elementStyles),i}connectedCallback(){this.renderRoot??=this.createRenderRoot(),this.enableUpdating(!0),this._$EO?.forEach(t=>t.hostConnected?.())}enableUpdating(t){}disconnectedCallback(){this._$EO?.forEach(t=>t.hostDisconnected?.())}attributeChangedCallback(t,e,i){this._$AK(t,i)}_$ET(t,e){const i=this.constructor.elementProperties.get(t),s=this.constructor._$Eu(t,i);if(void 0!==s&&!0===i.reflect){const r=(void 0!==i.converter?.toAttribute?i.converter:v).toAttribute(e,i.type);this._$Em=t,null==r?this.removeAttribute(s):this.setAttribute(s,r),this._$Em=null}}_$AK(t,e){const i=this.constructor,s=i._$Eh.get(t);if(void 0!==s&&this._$Em!==s){const t=i.getPropertyOptions(s),r="function"==typeof t.converter?{fromAttribute:t.converter}:void 0!==t.converter?.fromAttribute?t.converter:v;this._$Em=s;const n=r.fromAttribute(e,t.type);this[s]=n??this._$Ej?.get(s)??n,this._$Em=null}}requestUpdate(t,e,i,s=!1,r){if(void 0!==t){const n=this.constructor;if(!1===s&&(r=this[t]),i??=n.getPropertyOptions(t),!((i.hasChanged??y)(r,e)||i.useDefault&&i.reflect&&r===this._$Ej?.get(t)&&!this.hasAttribute(n._$Eu(t,i))))return;this.C(t,e,i)}!1===this.isUpdatePending&&(this._$ES=this._$EP())}C(t,e,{useDefault:i,reflect:s,wrapped:r},n){i&&!(this._$Ej??=new Map).has(t)&&(this._$Ej.set(t,n??e??this[t]),!0!==r||void 0!==n)||(this._$AL.has(t)||(this.hasUpdated||i||(e=void 0),this._$AL.set(t,e)),!0===s&&this._$Em!==t&&(this._$Eq??=new Set).add(t))}async _$EP(){this.isUpdatePending=!0;try{await this._$ES}catch(t){Promise.reject(t)}const t=this.scheduleUpdate();return null!=t&&await t,!this.isUpdatePending}scheduleUpdate(){return this.performUpdate()}performUpdate(){if(!this.isUpdatePending)return;if(!this.hasUpdated){if(this.renderRoot??=this.createRenderRoot(),this._$Ep){for(const[t,e]of this._$Ep)this[t]=e;this._$Ep=void 0}const t=this.constructor.elementProperties;if(t.size>0)for(const[e,i]of t){const{wrapped:t}=i,s=this[e];!0!==t||this._$AL.has(e)||void 0===s||this.C(e,void 0,i,s)}}let t=!1;const e=this._$AL;try{t=this.shouldUpdate(e),t?(this.willUpdate(e),this._$EO?.forEach(t=>t.hostUpdate?.()),this.update(e)):this._$EM()}catch(e){throw t=!1,this._$EM(),e}t&&this._$AE(e)}willUpdate(t){}_$AE(t){this._$EO?.forEach(t=>t.hostUpdated?.()),this.hasUpdated||(this.hasUpdated=!0,this.firstUpdated(t)),this.updated(t)}_$EM(){this._$AL=new Map,this.isUpdatePending=!1}get updateComplete(){return this.getUpdateComplete()}getUpdateComplete(){return this._$ES}shouldUpdate(t){return!0}update(t){this._$Eq&&=this._$Eq.forEach(t=>this._$ET(t,this[t])),this._$EM()}updated(t){}firstUpdated(t){}};$.elementStyles=[],$.shadowRootOptions={mode:"open"},$[f("elementProperties")]=new Map,$[f("finalized")]=new Map,g?.({ReactiveElement:$}),(m.reactiveElementVersions??=[]).push("2.1.2");
+ */const{is:i$2,defineProperty:e$1,getOwnPropertyDescriptor:h$1,getOwnPropertyNames:r$1,getOwnPropertySymbols:o$2,getPrototypeOf:n$1}=Object,a$1=globalThis,c$1=a$1.trustedTypes,l$1=c$1?c$1.emptyScript:"",p$1=a$1.reactiveElementPolyfillSupport,d$1=(t,s)=>t,u$1={toAttribute(t,s){switch(s){case Boolean:t=t?l$1:null;break;case Object:case Array:t=null==t?t:JSON.stringify(t);}return t},fromAttribute(t,s){let i=t;switch(s){case Boolean:i=null!==t;break;case Number:i=null===t?null:Number(t);break;case Object:case Array:try{i=JSON.parse(t);}catch(t){i=null;}}return i}},f$1=(t,s)=>!i$2(t,s),b$1={attribute:true,type:String,converter:u$1,reflect:false,useDefault:false,hasChanged:f$1};Symbol.metadata??=Symbol("metadata"),a$1.litPropertyMetadata??=new WeakMap;let y$1 = class y extends HTMLElement{static addInitializer(t){this._$Ei(),(this.l??=[]).push(t);}static get observedAttributes(){return this.finalize(),this._$Eh&&[...this._$Eh.keys()]}static createProperty(t,s=b$1){if(s.state&&(s.attribute=false),this._$Ei(),this.prototype.hasOwnProperty(t)&&((s=Object.create(s)).wrapped=true),this.elementProperties.set(t,s),!s.noAccessor){const i=Symbol(),h=this.getPropertyDescriptor(t,i,s);void 0!==h&&e$1(this.prototype,t,h);}}static getPropertyDescriptor(t,s,i){const{get:e,set:r}=h$1(this.prototype,t)??{get(){return this[s]},set(t){this[s]=t;}};return {get:e,set(s){const h=e?.call(this);r?.call(this,s),this.requestUpdate(t,h,i);},configurable:true,enumerable:true}}static getPropertyOptions(t){return this.elementProperties.get(t)??b$1}static _$Ei(){if(this.hasOwnProperty(d$1("elementProperties")))return;const t=n$1(this);t.finalize(),void 0!==t.l&&(this.l=[...t.l]),this.elementProperties=new Map(t.elementProperties);}static finalize(){if(this.hasOwnProperty(d$1("finalized")))return;if(this.finalized=true,this._$Ei(),this.hasOwnProperty(d$1("properties"))){const t=this.properties,s=[...r$1(t),...o$2(t)];for(const i of s)this.createProperty(i,t[i]);}const t=this[Symbol.metadata];if(null!==t){const s=litPropertyMetadata.get(t);if(void 0!==s)for(const[t,i]of s)this.elementProperties.set(t,i);}this._$Eh=new Map;for(const[t,s]of this.elementProperties){const i=this._$Eu(t,s);void 0!==i&&this._$Eh.set(i,t);}this.elementStyles=this.finalizeStyles(this.styles);}static finalizeStyles(s){const i=[];if(Array.isArray(s)){const e=new Set(s.flat(1/0).reverse());for(const s of e)i.unshift(c$2(s));}else void 0!==s&&i.push(c$2(s));return i}static _$Eu(t,s){const i=s.attribute;return  false===i?void 0:"string"==typeof i?i:"string"==typeof t?t.toLowerCase():void 0}constructor(){super(),this._$Ep=void 0,this.isUpdatePending=false,this.hasUpdated=false,this._$Em=null,this._$Ev();}_$Ev(){this._$ES=new Promise(t=>this.enableUpdating=t),this._$AL=new Map,this._$E_(),this.requestUpdate(),this.constructor.l?.forEach(t=>t(this));}addController(t){(this._$EO??=new Set).add(t),void 0!==this.renderRoot&&this.isConnected&&t.hostConnected?.();}removeController(t){this._$EO?.delete(t);}_$E_(){const t=new Map,s=this.constructor.elementProperties;for(const i of s.keys())this.hasOwnProperty(i)&&(t.set(i,this[i]),delete this[i]);t.size>0&&(this._$Ep=t);}createRenderRoot(){const t=this.shadowRoot??this.attachShadow(this.constructor.shadowRootOptions);return S$1(t,this.constructor.elementStyles),t}connectedCallback(){this.renderRoot??=this.createRenderRoot(),this.enableUpdating(true),this._$EO?.forEach(t=>t.hostConnected?.());}enableUpdating(t){}disconnectedCallback(){this._$EO?.forEach(t=>t.hostDisconnected?.());}attributeChangedCallback(t,s,i){this._$AK(t,i);}_$ET(t,s){const i=this.constructor.elementProperties.get(t),e=this.constructor._$Eu(t,i);if(void 0!==e&&true===i.reflect){const h=(void 0!==i.converter?.toAttribute?i.converter:u$1).toAttribute(s,i.type);this._$Em=t,null==h?this.removeAttribute(e):this.setAttribute(e,h),this._$Em=null;}}_$AK(t,s){const i=this.constructor,e=i._$Eh.get(t);if(void 0!==e&&this._$Em!==e){const t=i.getPropertyOptions(e),h="function"==typeof t.converter?{fromAttribute:t.converter}:void 0!==t.converter?.fromAttribute?t.converter:u$1;this._$Em=e;const r=h.fromAttribute(s,t.type);this[e]=r??this._$Ej?.get(e)??r,this._$Em=null;}}requestUpdate(t,s,i,e=false,h){if(void 0!==t){const r=this.constructor;if(false===e&&(h=this[t]),i??=r.getPropertyOptions(t),!((i.hasChanged??f$1)(h,s)||i.useDefault&&i.reflect&&h===this._$Ej?.get(t)&&!this.hasAttribute(r._$Eu(t,i))))return;this.C(t,s,i);} false===this.isUpdatePending&&(this._$ES=this._$EP());}C(t,s,{useDefault:i,reflect:e,wrapped:h},r){i&&!(this._$Ej??=new Map).has(t)&&(this._$Ej.set(t,r??s??this[t]),true!==h||void 0!==r)||(this._$AL.has(t)||(this.hasUpdated||i||(s=void 0),this._$AL.set(t,s)),true===e&&this._$Em!==t&&(this._$Eq??=new Set).add(t));}async _$EP(){this.isUpdatePending=true;try{await this._$ES;}catch(t){Promise.reject(t);}const t=this.scheduleUpdate();return null!=t&&await t,!this.isUpdatePending}scheduleUpdate(){return this.performUpdate()}performUpdate(){if(!this.isUpdatePending)return;if(!this.hasUpdated){if(this.renderRoot??=this.createRenderRoot(),this._$Ep){for(const[t,s]of this._$Ep)this[t]=s;this._$Ep=void 0;}const t=this.constructor.elementProperties;if(t.size>0)for(const[s,i]of t){const{wrapped:t}=i,e=this[s];true!==t||this._$AL.has(s)||void 0===e||this.C(s,void 0,i,e);}}let t=false;const s=this._$AL;try{t=this.shouldUpdate(s),t?(this.willUpdate(s),this._$EO?.forEach(t=>t.hostUpdate?.()),this.update(s)):this._$EM();}catch(s){throw t=false,this._$EM(),s}t&&this._$AE(s);}willUpdate(t){}_$AE(t){this._$EO?.forEach(t=>t.hostUpdated?.()),this.hasUpdated||(this.hasUpdated=true,this.firstUpdated(t)),this.updated(t);}_$EM(){this._$AL=new Map,this.isUpdatePending=false;}get updateComplete(){return this.getUpdateComplete()}getUpdateComplete(){return this._$ES}shouldUpdate(t){return  true}update(t){this._$Eq&&=this._$Eq.forEach(t=>this._$ET(t,this[t])),this._$EM();}updated(t){}firstUpdated(t){}};y$1.elementStyles=[],y$1.shadowRootOptions={mode:"open"},y$1[d$1("elementProperties")]=new Map,y$1[d$1("finalized")]=new Map,p$1?.({ReactiveElement:y$1}),(a$1.reactiveElementVersions??=[]).push("2.1.2");
+
 /**
  * @license
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const x=globalThis,w=t=>t,T=x.trustedTypes,S=T?T.createPolicy("lit-html",{createHTML:t=>t}):void 0,k="$lit$",A=`lit$${Math.random().toFixed(9).slice(2)}$`,C="?"+A,E=`<${C}>`,z=document,P=()=>z.createComment(""),M=t=>null===t||"object"!=typeof t&&"function"!=typeof t,V=Array.isArray,D="[ \t\n\f\r]",N=/<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g,I=/-->/g,U=/>/g,q=RegExp(`>|${D}(?:([^\\s"'>=/]+)(${D}*=${D}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`,"g"),j=/'/g,L=/"/g,O=/^(?:script|style|textarea|title)$/i,H=(t=>(e,...i)=>({_$litType$:t,strings:e,values:i}))(1),R=Symbol.for("lit-noChange"),F=Symbol.for("lit-nothing"),W=new WeakMap,B=z.createTreeWalker(z,129);function J(t,e){if(!V(t)||!t.hasOwnProperty("raw"))throw Error("invalid template strings array");return void 0!==S?S.createHTML(e):e}const K=(t,e)=>{const i=t.length-1,s=[];let r,n=2===e?"<svg>":3===e?"<math>":"",o=N;for(let e=0;e<i;e++){const i=t[e];let a,l,c=-1,d=0;for(;d<i.length&&(o.lastIndex=d,l=o.exec(i),null!==l);)d=o.lastIndex,o===N?"!--"===l[1]?o=I:void 0!==l[1]?o=U:void 0!==l[2]?(O.test(l[2])&&(r=RegExp("</"+l[2],"g")),o=q):void 0!==l[3]&&(o=q):o===q?">"===l[0]?(o=r??N,c=-1):void 0===l[1]?c=-2:(c=o.lastIndex-l[2].length,a=l[1],o=void 0===l[3]?q:'"'===l[3]?L:j):o===L||o===j?o=q:o===I||o===U?o=N:(o=q,r=void 0);const u=o===q&&t[e+1].startsWith("/>")?" ":"";n+=o===N?i+E:c>=0?(s.push(a),i.slice(0,c)+k+i.slice(c)+A+u):i+A+(-2===c?e:u)}return[J(t,n+(t[i]||"<?>")+(2===e?"</svg>":3===e?"</math>":"")),s]};class G{constructor({strings:t,_$litType$:e},i){let s;this.parts=[];let r=0,n=0;const o=t.length-1,a=this.parts,[l,c]=K(t,e);if(this.el=G.createElement(l,i),B.currentNode=this.el.content,2===e||3===e){const t=this.el.content.firstChild;t.replaceWith(...t.childNodes)}for(;null!==(s=B.nextNode())&&a.length<o;){if(1===s.nodeType){if(s.hasAttributes())for(const t of s.getAttributeNames())if(t.endsWith(k)){const e=c[n++],i=s.getAttribute(t).split(A),o=/([.?@])?(.*)/.exec(e);a.push({type:1,index:r,name:o[2],strings:i,ctor:"."===o[1]?tt:"?"===o[1]?et:"@"===o[1]?it:Z}),s.removeAttribute(t)}else t.startsWith(A)&&(a.push({type:6,index:r}),s.removeAttribute(t));if(O.test(s.tagName)){const t=s.textContent.split(A),e=t.length-1;if(e>0){s.textContent=T?T.emptyScript:"";for(let i=0;i<e;i++)s.append(t[i],P()),B.nextNode(),a.push({type:2,index:++r});s.append(t[e],P())}}}else if(8===s.nodeType)if(s.data===C)a.push({type:2,index:r});else{let t=-1;for(;-1!==(t=s.data.indexOf(A,t+1));)a.push({type:7,index:r}),t+=A.length-1}r++}}static createElement(t,e){const i=z.createElement("template");return i.innerHTML=t,i}}function Q(t,e,i=t,s){if(e===R)return e;let r=void 0!==s?i._$Co?.[s]:i._$Cl;const n=M(e)?void 0:e._$litDirective$;return r?.constructor!==n&&(r?._$AO?.(!1),void 0===n?r=void 0:(r=new n(t),r._$AT(t,i,s)),void 0!==s?(i._$Co??=[])[s]=r:i._$Cl=r),void 0!==r&&(e=Q(t,r._$AS(t,e.values),r,s)),e}class Y{constructor(t,e){this._$AV=[],this._$AN=void 0,this._$AD=t,this._$AM=e}get parentNode(){return this._$AM.parentNode}get _$AU(){return this._$AM._$AU}u(t){const{el:{content:e},parts:i}=this._$AD,s=(t?.creationScope??z).importNode(e,!0);B.currentNode=s;let r=B.nextNode(),n=0,o=0,a=i[0];for(;void 0!==a;){if(n===a.index){let e;2===a.type?e=new X(r,r.nextSibling,this,t):1===a.type?e=new a.ctor(r,a.name,a.strings,this,t):6===a.type&&(e=new st(r,this,t)),this._$AV.push(e),a=i[++o]}n!==a?.index&&(r=B.nextNode(),n++)}return B.currentNode=z,s}p(t){let e=0;for(const i of this._$AV)void 0!==i&&(void 0!==i.strings?(i._$AI(t,i,e),e+=i.strings.length-2):i._$AI(t[e])),e++}}class X{get _$AU(){return this._$AM?._$AU??this._$Cv}constructor(t,e,i,s){this.type=2,this._$AH=F,this._$AN=void 0,this._$AA=t,this._$AB=e,this._$AM=i,this.options=s,this._$Cv=s?.isConnected??!0}get parentNode(){let t=this._$AA.parentNode;const e=this._$AM;return void 0!==e&&11===t?.nodeType&&(t=e.parentNode),t}get startNode(){return this._$AA}get endNode(){return this._$AB}_$AI(t,e=this){t=Q(this,t,e),M(t)?t===F||null==t||""===t?(this._$AH!==F&&this._$AR(),this._$AH=F):t!==this._$AH&&t!==R&&this._(t):void 0!==t._$litType$?this.$(t):void 0!==t.nodeType?this.T(t):(t=>V(t)||"function"==typeof t?.[Symbol.iterator])(t)?this.k(t):this._(t)}O(t){return this._$AA.parentNode.insertBefore(t,this._$AB)}T(t){this._$AH!==t&&(this._$AR(),this._$AH=this.O(t))}_(t){this._$AH!==F&&M(this._$AH)?this._$AA.nextSibling.data=t:this.T(z.createTextNode(t)),this._$AH=t}$(t){const{values:e,_$litType$:i}=t,s="number"==typeof i?this._$AC(t):(void 0===i.el&&(i.el=G.createElement(J(i.h,i.h[0]),this.options)),i);if(this._$AH?._$AD===s)this._$AH.p(e);else{const t=new Y(s,this),i=t.u(this.options);t.p(e),this.T(i),this._$AH=t}}_$AC(t){let e=W.get(t.strings);return void 0===e&&W.set(t.strings,e=new G(t)),e}k(t){V(this._$AH)||(this._$AH=[],this._$AR());const e=this._$AH;let i,s=0;for(const r of t)s===e.length?e.push(i=new X(this.O(P()),this.O(P()),this,this.options)):i=e[s],i._$AI(r),s++;s<e.length&&(this._$AR(i&&i._$AB.nextSibling,s),e.length=s)}_$AR(t=this._$AA.nextSibling,e){for(this._$AP?.(!1,!0,e);t!==this._$AB;){const e=w(t).nextSibling;w(t).remove(),t=e}}setConnected(t){void 0===this._$AM&&(this._$Cv=t,this._$AP?.(t))}}class Z{get tagName(){return this.element.tagName}get _$AU(){return this._$AM._$AU}constructor(t,e,i,s,r){this.type=1,this._$AH=F,this._$AN=void 0,this.element=t,this.name=e,this._$AM=s,this.options=r,i.length>2||""!==i[0]||""!==i[1]?(this._$AH=Array(i.length-1).fill(new String),this.strings=i):this._$AH=F}_$AI(t,e=this,i,s){const r=this.strings;let n=!1;if(void 0===r)t=Q(this,t,e,0),n=!M(t)||t!==this._$AH&&t!==R,n&&(this._$AH=t);else{const s=t;let o,a;for(t=r[0],o=0;o<r.length-1;o++)a=Q(this,s[i+o],e,o),a===R&&(a=this._$AH[o]),n||=!M(a)||a!==this._$AH[o],a===F?t=F:t!==F&&(t+=(a??"")+r[o+1]),this._$AH[o]=a}n&&!s&&this.j(t)}j(t){t===F?this.element.removeAttribute(this.name):this.element.setAttribute(this.name,t??"")}}class tt extends Z{constructor(){super(...arguments),this.type=3}j(t){this.element[this.name]=t===F?void 0:t}}class et extends Z{constructor(){super(...arguments),this.type=4}j(t){this.element.toggleAttribute(this.name,!!t&&t!==F)}}class it extends Z{constructor(t,e,i,s,r){super(t,e,i,s,r),this.type=5}_$AI(t,e=this){if((t=Q(this,t,e,0)??F)===R)return;const i=this._$AH,s=t===F&&i!==F||t.capture!==i.capture||t.once!==i.once||t.passive!==i.passive,r=t!==F&&(i===F||s);s&&this.element.removeEventListener(this.name,this,i),r&&this.element.addEventListener(this.name,this,t),this._$AH=t}handleEvent(t){"function"==typeof this._$AH?this._$AH.call(this.options?.host??this.element,t):this._$AH.handleEvent(t)}}class st{constructor(t,e,i){this.element=t,this.type=6,this._$AN=void 0,this._$AM=e,this.options=i}get _$AU(){return this._$AM._$AU}_$AI(t){Q(this,t)}}const rt=x.litHtmlPolyfillSupport;rt?.(G,X),(x.litHtmlVersions??=[]).push("3.3.2");const nt=globalThis;
+const t=globalThis,i$1=t=>t,s$1=t.trustedTypes,e=s$1?s$1.createPolicy("lit-html",{createHTML:t=>t}):void 0,h="$lit$",o$1=`lit$${Math.random().toFixed(9).slice(2)}$`,n="?"+o$1,r=`<${n}>`,l=document,c=()=>l.createComment(""),a=t=>null===t||"object"!=typeof t&&"function"!=typeof t,u=Array.isArray,d=t=>u(t)||"function"==typeof t?.[Symbol.iterator],f="[ \t\n\f\r]",v=/<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g,_=/-->/g,m=/>/g,p=RegExp(`>|${f}(?:([^\\s"'>=/]+)(${f}*=${f}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`,"g"),g=/'/g,$=/"/g,y=/^(?:script|style|textarea|title)$/i,x=t=>(i,...s)=>({_$litType$:t,strings:i,values:s}),b=x(1),E=Symbol.for("lit-noChange"),A=Symbol.for("lit-nothing"),C=new WeakMap,P=l.createTreeWalker(l,129);function V(t,i){if(!u(t)||!t.hasOwnProperty("raw"))throw Error("invalid template strings array");return void 0!==e?e.createHTML(i):i}const N=(t,i)=>{const s=t.length-1,e=[];let n,l=2===i?"<svg>":3===i?"<math>":"",c=v;for(let i=0;i<s;i++){const s=t[i];let a,u,d=-1,f=0;for(;f<s.length&&(c.lastIndex=f,u=c.exec(s),null!==u);)f=c.lastIndex,c===v?"!--"===u[1]?c=_:void 0!==u[1]?c=m:void 0!==u[2]?(y.test(u[2])&&(n=RegExp("</"+u[2],"g")),c=p):void 0!==u[3]&&(c=p):c===p?">"===u[0]?(c=n??v,d=-1):void 0===u[1]?d=-2:(d=c.lastIndex-u[2].length,a=u[1],c=void 0===u[3]?p:'"'===u[3]?$:g):c===$||c===g?c=p:c===_||c===m?c=v:(c=p,n=void 0);const x=c===p&&t[i+1].startsWith("/>")?" ":"";l+=c===v?s+r:d>=0?(e.push(a),s.slice(0,d)+h+s.slice(d)+o$1+x):s+o$1+(-2===d?i:x);}return [V(t,l+(t[s]||"<?>")+(2===i?"</svg>":3===i?"</math>":"")),e]};class S{constructor({strings:t,_$litType$:i},e){let r;this.parts=[];let l=0,a=0;const u=t.length-1,d=this.parts,[f,v]=N(t,i);if(this.el=S.createElement(f,e),P.currentNode=this.el.content,2===i||3===i){const t=this.el.content.firstChild;t.replaceWith(...t.childNodes);}for(;null!==(r=P.nextNode())&&d.length<u;){if(1===r.nodeType){if(r.hasAttributes())for(const t of r.getAttributeNames())if(t.endsWith(h)){const i=v[a++],s=r.getAttribute(t).split(o$1),e=/([.?@])?(.*)/.exec(i);d.push({type:1,index:l,name:e[2],strings:s,ctor:"."===e[1]?I:"?"===e[1]?L:"@"===e[1]?z:H}),r.removeAttribute(t);}else t.startsWith(o$1)&&(d.push({type:6,index:l}),r.removeAttribute(t));if(y.test(r.tagName)){const t=r.textContent.split(o$1),i=t.length-1;if(i>0){r.textContent=s$1?s$1.emptyScript:"";for(let s=0;s<i;s++)r.append(t[s],c()),P.nextNode(),d.push({type:2,index:++l});r.append(t[i],c());}}}else if(8===r.nodeType)if(r.data===n)d.push({type:2,index:l});else {let t=-1;for(;-1!==(t=r.data.indexOf(o$1,t+1));)d.push({type:7,index:l}),t+=o$1.length-1;}l++;}}static createElement(t,i){const s=l.createElement("template");return s.innerHTML=t,s}}function M(t,i,s=t,e){if(i===E)return i;let h=void 0!==e?s._$Co?.[e]:s._$Cl;const o=a(i)?void 0:i._$litDirective$;return h?.constructor!==o&&(h?._$AO?.(false),void 0===o?h=void 0:(h=new o(t),h._$AT(t,s,e)),void 0!==e?(s._$Co??=[])[e]=h:s._$Cl=h),void 0!==h&&(i=M(t,h._$AS(t,i.values),h,e)),i}class R{constructor(t,i){this._$AV=[],this._$AN=void 0,this._$AD=t,this._$AM=i;}get parentNode(){return this._$AM.parentNode}get _$AU(){return this._$AM._$AU}u(t){const{el:{content:i},parts:s}=this._$AD,e=(t?.creationScope??l).importNode(i,true);P.currentNode=e;let h=P.nextNode(),o=0,n=0,r=s[0];for(;void 0!==r;){if(o===r.index){let i;2===r.type?i=new k(h,h.nextSibling,this,t):1===r.type?i=new r.ctor(h,r.name,r.strings,this,t):6===r.type&&(i=new Z(h,this,t)),this._$AV.push(i),r=s[++n];}o!==r?.index&&(h=P.nextNode(),o++);}return P.currentNode=l,e}p(t){let i=0;for(const s of this._$AV) void 0!==s&&(void 0!==s.strings?(s._$AI(t,s,i),i+=s.strings.length-2):s._$AI(t[i])),i++;}}class k{get _$AU(){return this._$AM?._$AU??this._$Cv}constructor(t,i,s,e){this.type=2,this._$AH=A,this._$AN=void 0,this._$AA=t,this._$AB=i,this._$AM=s,this.options=e,this._$Cv=e?.isConnected??true;}get parentNode(){let t=this._$AA.parentNode;const i=this._$AM;return void 0!==i&&11===t?.nodeType&&(t=i.parentNode),t}get startNode(){return this._$AA}get endNode(){return this._$AB}_$AI(t,i=this){t=M(this,t,i),a(t)?t===A||null==t||""===t?(this._$AH!==A&&this._$AR(),this._$AH=A):t!==this._$AH&&t!==E&&this._(t):void 0!==t._$litType$?this.$(t):void 0!==t.nodeType?this.T(t):d(t)?this.k(t):this._(t);}O(t){return this._$AA.parentNode.insertBefore(t,this._$AB)}T(t){this._$AH!==t&&(this._$AR(),this._$AH=this.O(t));}_(t){this._$AH!==A&&a(this._$AH)?this._$AA.nextSibling.data=t:this.T(l.createTextNode(t)),this._$AH=t;}$(t){const{values:i,_$litType$:s}=t,e="number"==typeof s?this._$AC(t):(void 0===s.el&&(s.el=S.createElement(V(s.h,s.h[0]),this.options)),s);if(this._$AH?._$AD===e)this._$AH.p(i);else {const t=new R(e,this),s=t.u(this.options);t.p(i),this.T(s),this._$AH=t;}}_$AC(t){let i=C.get(t.strings);return void 0===i&&C.set(t.strings,i=new S(t)),i}k(t){u(this._$AH)||(this._$AH=[],this._$AR());const i=this._$AH;let s,e=0;for(const h of t)e===i.length?i.push(s=new k(this.O(c()),this.O(c()),this,this.options)):s=i[e],s._$AI(h),e++;e<i.length&&(this._$AR(s&&s._$AB.nextSibling,e),i.length=e);}_$AR(t=this._$AA.nextSibling,s){for(this._$AP?.(false,true,s);t!==this._$AB;){const s=i$1(t).nextSibling;i$1(t).remove(),t=s;}}setConnected(t){ void 0===this._$AM&&(this._$Cv=t,this._$AP?.(t));}}class H{get tagName(){return this.element.tagName}get _$AU(){return this._$AM._$AU}constructor(t,i,s,e,h){this.type=1,this._$AH=A,this._$AN=void 0,this.element=t,this.name=i,this._$AM=e,this.options=h,s.length>2||""!==s[0]||""!==s[1]?(this._$AH=Array(s.length-1).fill(new String),this.strings=s):this._$AH=A;}_$AI(t,i=this,s,e){const h=this.strings;let o=false;if(void 0===h)t=M(this,t,i,0),o=!a(t)||t!==this._$AH&&t!==E,o&&(this._$AH=t);else {const e=t;let n,r;for(t=h[0],n=0;n<h.length-1;n++)r=M(this,e[s+n],i,n),r===E&&(r=this._$AH[n]),o||=!a(r)||r!==this._$AH[n],r===A?t=A:t!==A&&(t+=(r??"")+h[n+1]),this._$AH[n]=r;}o&&!e&&this.j(t);}j(t){t===A?this.element.removeAttribute(this.name):this.element.setAttribute(this.name,t??"");}}class I extends H{constructor(){super(...arguments),this.type=3;}j(t){this.element[this.name]=t===A?void 0:t;}}class L extends H{constructor(){super(...arguments),this.type=4;}j(t){this.element.toggleAttribute(this.name,!!t&&t!==A);}}class z extends H{constructor(t,i,s,e,h){super(t,i,s,e,h),this.type=5;}_$AI(t,i=this){if((t=M(this,t,i,0)??A)===E)return;const s=this._$AH,e=t===A&&s!==A||t.capture!==s.capture||t.once!==s.once||t.passive!==s.passive,h=t!==A&&(s===A||e);e&&this.element.removeEventListener(this.name,this,s),h&&this.element.addEventListener(this.name,this,t),this._$AH=t;}handleEvent(t){"function"==typeof this._$AH?this._$AH.call(this.options?.host??this.element,t):this._$AH.handleEvent(t);}}class Z{constructor(t,i,s){this.element=t,this.type=6,this._$AN=void 0,this._$AM=i,this.options=s;}get _$AU(){return this._$AM._$AU}_$AI(t){M(this,t);}}const B=t.litHtmlPolyfillSupport;B?.(S,k),(t.litHtmlVersions??=[]).push("3.3.2");const D=(t,i,s)=>{const e=s?.renderBefore??i;let h=e._$litPart$;if(void 0===h){const t=s?.renderBefore??null;e._$litPart$=h=new k(i.insertBefore(c(),t),t,void 0,s??{});}return h._$AI(t),h};
+
 /**
  * @license
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
- */class ot extends ${constructor(){super(...arguments),this.renderOptions={host:this},this._$Do=void 0}createRenderRoot(){const t=super.createRenderRoot();return this.renderOptions.renderBefore??=t.firstChild,t}update(t){const e=this.render();this.hasUpdated||(this.renderOptions.isConnected=this.isConnected),super.update(t),this._$Do=((t,e,i)=>{const s=i?.renderBefore??e;let r=s._$litPart$;if(void 0===r){const t=i?.renderBefore??null;s._$litPart$=r=new X(e.insertBefore(P(),t),t,void 0,i??{})}return r._$AI(t),r})(e,this.renderRoot,this.renderOptions)}connectedCallback(){super.connectedCallback(),this._$Do?.setConnected(!0)}disconnectedCallback(){super.disconnectedCallback(),this._$Do?.setConnected(!1)}render(){return R}}ot._$litElement$=!0,ot.finalized=!0,nt.litElementHydrateSupport?.({LitElement:ot});const at=nt.litElementPolyfillSupport;at?.({LitElement:ot}),(nt.litElementVersions??=[]).push("4.2.2");const lt=864e5,ct=31536e6,dt=3600,ut=86400,ht={en:{no_timers:"No Timers",click_to_start:"Click to start",no_active_timers:"No Active Timers",active_timers:"Active Timers",add:"Add",custom:"Custom",cancel:"Cancel",save:"Save",start:"Start",snooze:"Snooze",dismiss:"Dismiss",ready:"Ready",paused:"Paused",times_up:"Time's up!",timer:"Timer",hour_ago:"hour ago",hours_ago:"hours ago",minute_ago:"minute ago",minutes_ago:"minutes ago",second_ago:"second ago",seconds_ago:"seconds ago",h:"h",m:"m",s:"s",d:"d",w_short:"w",mo_short:"mo",y_short:"y",day:"day",days:"days",week:"week",weeks:"weeks",month:"month",months:"months",year:"year",years:"years",hour:"hour",hours:"hours",minute:"minute",minutes:"minutes",second:"second",seconds:"seconds"},de:{no_timers:"Keine Timer",click_to_start:"Zum Starten klicken",no_active_timers:"Keine aktiven Timer",active_timers:"Aktive Timer",add:"Hinzufügen",custom:"Benutzerdefiniert",cancel:"Abbrechen",save:"Speichern",start:"Starten",snooze:"Schlummern",dismiss:"Verwerfen",ready:"Bereit",paused:"Pausiert",times_up:"Zeit abgelaufen!",timer:"Timer",hour_ago:"Stunde her",hours_ago:"Stunden her",minute_ago:"Minute her",minutes_ago:"Minuten her",second_ago:"Sekunde her",seconds_ago:"Sekunden her",h:"h",m:"m",s:"s",d:"T",w_short:"W",mo_short:"Mo",y_short:"J",day:"Tag",days:"Tage",week:"Woche",weeks:"Wochen",month:"Monat",months:"Monate",year:"Jahr",years:"Jahre",hour:"Stunde",hours:"Stunden",minute:"Minute",minutes:"Minuten",second:"Sekunde",seconds:"Sekunden"},es:{no_timers:"Sin Temporizadores",click_to_start:"Clic para iniciar",no_active_timers:"Sin Temporizadores Activos",active_timers:"Temporizadores Activos",add:"Añadir",custom:"Personalizado",cancel:"Cancelar",save:"Guardar",start:"Iniciar",snooze:"Posponer",dismiss:"Descartar",ready:"Listo",paused:"Pausado",times_up:"¡Se acabó el tiempo!",timer:"Temporizador",hour_ago:"hora atrás",hours_ago:"horas atrás",minute_ago:"minuto atrás",minutes_ago:"minutos atrás",second_ago:"segundo atrás",seconds_ago:"segundos atrás",h:"h",m:"m",s:"s",d:"d",w_short:"sem",mo_short:"mes",y_short:"a",day:"día",days:"días",week:"semana",weeks:"semanas",month:"mes",months:"meses",year:"año",years:"años",hour:"hora",hours:"horas",minute:"minuto",minutes:"minutos",second:"segundo",seconds:"segundos"},da:{no_timers:"Ingen timere",click_to_start:"Tryk for at starte",no_active_timers:"Ingen aktive timere",active_timers:"Aktive Timere",add:"Tilføj",custom:"Tilpasset",cancel:"Annuller",save:"Gem",start:"Start",snooze:"Snooze",dismiss:"Afvis",ready:"Klar",paused:"På pause",times_up:"Tid udløbet!",timer:"Timer",hour_ago:"time siden",hours_ago:"timer siden",minute_ago:"minut siden",minutes_ago:"minutter siden",second_ago:"sekund siden",seconds_ago:"sekunder siden",h:"t",m:"m",s:"s",d:"d",w_short:"u",mo_short:"må",y_short:"å",day:"dag",days:"dage",week:"uge",weeks:"uger",month:"måned",months:"måneder",year:"år",years:"år",hour:"time",hours:"timer",minute:"minut",minutes:"minutter",second:"sekund",seconds:"sekunder"}};console.info("%c SIMPLE-TIMER-CARD %c v2.1.1 ","color: white; background: #4285f4; font-weight: 700;","color: #4285f4; background: white; font-weight: 700;");class mt extends ot{static get properties(){return{hass:{},_config:{},_timers:{state:!0},_ui:{state:!0},_customSecs:{state:!0},_activeSecs:{state:!0},_editingTimerId:{state:!0},_editDuration:{state:!0}}}static getStubConfig(){return{type:"custom:simple-timer-card"}}_sanitizeText(t){if(!t||"string"!=typeof t)return"";const e=document.createElement("div");return e.textContent=t,e.textContent}_localize(t){const e=this._config?.language||"en";return ht[e]?.[t]||ht.en[t]||t}_validateAudioUrl(t){if(!t||"string"!=typeof t)return!1;try{const e=new URL(t,window.location.origin);return["https:","http:","file:"].includes(e.protocol)||t.startsWith("/local/")||t.startsWith("/hacsfiles/")}catch{return!1}}_validateStoredTimerData(t){if(!t||"object"!=typeof t)return!1;if(!Array.isArray(t.timers))return!1;for(const e of t.timers){if(!e||"object"!=typeof e)return!1;if(!e.id||"string"!=typeof e.id)return!1;if(e.label&&"string"!=typeof e.label)return!1;if(e.duration&&"number"!=typeof e.duration)return!1;if(e.end&&"number"!=typeof e.end)return!1}return!0}_validateTimerInput(t,e){return t&&("number"!=typeof t||t<=0||t>31536e6)?{valid:!1,error:"Invalid duration"}:e&&("string"!=typeof e||e.length>100)?{valid:!1,error:"Invalid label"}:{valid:!0}}constructor(){super(),this._timers=[],this._timerInterval=null,this._dismissed=new Set,this._ringingTimers=new Set,this._activeAudioInstances=new Map,this._lastActionTime=new Map,this._expirationTimes=new Map,this._lastCleanupTime=0,this._ui={noTimerHorizontalOpen:!1,noTimerVerticalOpen:!1,activeFillOpen:!1,activeBarOpen:!1},this._customSecs={horizontal:900,vertical:900},this._activeSecs={fill:600,bar:600},this._showingCustomName={},this._lastSelectedName={},this._storageNamespace="default",this._editingTimerId=null,this._editDuration={h:0,m:0,s:0}}_isActionThrottled(t,e="global",i=1e3){const s=`${t}-${e}`,r=Date.now();return r-(this._lastActionTime.get(s)||0)<i||(this._lastActionTime.set(s,r),!1)}_normalizeStringList(t,e=[]){return Array.isArray(t)?t.map(t=>String(t).trim()).filter(Boolean):"string"==typeof t?t.split(",").map(t=>t.trim()).filter(Boolean):e}_normalizeNumberList(t,e=[]){return Array.isArray(t)?t.map(t=>"number"==typeof t?t:parseFloat(String(t).trim())).filter(t=>Number.isFinite(t)):"string"==typeof t?t.split(",").map(t=>parseFloat(t.trim())).filter(t=>Number.isFinite(t)):"number"==typeof t&&Number.isFinite(t)?[t]:e}_normalizePresetList(t){const e=Array.isArray(t)?t:"string"==typeof t?t.split(","):"number"==typeof t?[t]:[],i=[];for(const t of e){if(null==t)continue;if("number"==typeof t&&Number.isFinite(t)){i.push(t);continue}const e=String(t).trim();if(!e)continue;const s=Number(e);Number.isFinite(s)&&/^-?\d+(?:\.\d+)?$/.test(e)?i.push(s):i.push(e)}return i}_normalizeConfigTypes(t){const e={...t||{}};return"string"==typeof e.entities&&(e.entities=[e.entities]),Array.isArray(e.entities)||(e.entities=[]),e.timer_name_presets=this._normalizeStringList(e.timer_name_presets,Array.isArray(e.timer_name_presets)?e.timer_name_presets:[]),e.timer_presets=this._normalizePresetList(e.timer_presets),e.minute_buttons=this._normalizeNumberList(e.minute_buttons,Array.isArray(e.minute_buttons)?e.minute_buttons:[]),e.time_format_units=this._normalizeStringList(e.time_format_units,Array.isArray(e.time_format_units)?e.time_format_units:[]),Array.isArray(e.pinned_timers)||(e.pinned_timers=[]),delete e.alexa_audio_enabled,delete e.alexa_audio_file_url,delete e.alexa_audio_repeat_count,delete e.alexa_audio_play_until_dismissed,e}setConfig(t){const e=(t=this._normalizeConfigTypes(t)).default_timer_entity&&t.default_timer_entity.startsWith("sensor."),i=e?"mqtt":"local",s={topic:"simple_timer_card/timers",state_topic:"simple_timer_card/timers/state",events_topic:"simple_timer_card/events",sensor_entity:e?t.default_timer_entity:null,...t.mqtt},r="vertical"===(t.layout||"horizontal").toLowerCase()?"vertical":"horizontal",n=["fill_vertical","fill_horizontal","bar_vertical","bar_horizontal","circle"].includes((t.style||"").toLowerCase())?(t.style||"").toLowerCase():"bar_horizontal",o=["drain","fill","milestones"].includes(t.progress_mode)?t.progress_mode:"drain";this._storageNamespace=t.storage_namespace||t.default_timer_entity||"default";const a=["days","hours","minutes","seconds"];let l=a;Array.isArray(t.time_format_units)?(l=t.time_format_units.map(t=>String(t).toLowerCase()).filter(t=>["years","months","weeks","days","hours","minutes","seconds"].includes(t)),0===l.length&&(l=a)):"string"==typeof t.time_format_units&&(l=t.time_format_units.split(",").map(t=>t.trim().toLowerCase()).filter(t=>["years","months","weeks","days","hours","minutes","seconds"].includes(t)),0===l.length&&(l=a)),this._config={layout:r,style:n,language:"en",snooze_duration:5,timer_presets:[5,15,30],timer_name_presets:[],pinned_timers:[],show_timer_presets:!0,show_active_header:!0,minute_buttons:[1,5,10],default_timer_icon:"mdi:timer-outline",default_timer_color:"var(--primary-color)",default_timer_entity:null,auto_voice_pe:!1,expire_action:"keep",expire_keep_for:120,auto_dismiss_writable:!1,audio_enabled:!1,audio_file_url:"",audio_repeat_count:1,audio_play_until_dismissed:!1,audio_completion_delay:4,expired_subtitle:null,keep_timer_visible_when_idle:!1,progress_mode:o,default_new_timer_duration_mins:15,time_format:"hms",time_format_units:l,milestone_unit:"auto",milestone_pulse:!0,...t,entities:t.entities||[],storage:i,layout:r,style:n,mqtt:s,time_format_units:l};const c=60*(parseInt(this._config.default_new_timer_duration_mins,10)||15);this._customSecs={horizontal:c,vertical:c},this._activeSecs={fill:c,bar:c},"string"==typeof this._config.timer_name_presets&&(this._config.timer_name_presets=this._config.timer_name_presets.split(",").map(t=>t.trim()).filter(t=>t))}connectedCallback(){super.connectedCallback(),this._startTimerUpdates()}disconnectedCallback(){super.disconnectedCallback(),this._stopTimerUpdates();for(const t of this._activeAudioInstances.keys())this._stopAudioForTimer(t);this._activeAudioInstances.clear(),this._ringingTimers.clear(),this._lastActionTime.clear(),this._expirationTimes.clear(),this._dismissed.clear()}_startTimerUpdates(){this._stopTimerUpdates(),this._updateTimers(),this._timerInterval=setInterval(()=>this._updateTimers(),250)}_stopTimerUpdates(){this._timerInterval&&(clearInterval(this._timerInterval),this._timerInterval=null)}_getStorageKey(){return`simple-timer-card-${this._storageNamespace}`}_loadTimersFromStorage_local(){try{const t=localStorage.getItem(this._getStorageKey());if(t){const e=JSON.parse(t);if(this._validateStoredTimerData(e))return e.timers;localStorage.removeItem(this._getStorageKey())}}catch(t){try{localStorage.removeItem(this._getStorageKey())}catch(t){}}return[]}_saveTimersToStorage_local(t){try{const e={timers:t||[],version:1,lastUpdated:Date.now()};localStorage.setItem(this._getStorageKey(),JSON.stringify(e))}catch(t){}}_updateTimerInStorage_local(t,e){const i=this._loadTimersFromStorage_local(),s=i.findIndex(e=>e.id===t);-1!==s&&(i[s]={...i[s],...e},this._saveTimersToStorage_local(i))}_removeTimerFromStorage_local(t){const e=this._loadTimersFromStorage_local().filter(e=>e.id!==t);this._saveTimersToStorage_local(e)}_loadTimersFromStorage_mqtt(){try{const t=this._config?.mqtt?.sensor_entity;if(!t)return[];const e=this.hass?.states?.[t],i=e?.attributes?.timers;return Array.isArray(i)?i:[]}catch(t){return[]}}_saveTimersToStorage_mqtt(t){try{const e={timers:t||[],version:1,lastUpdated:Date.now()};this.hass.callService("mqtt","publish",{topic:this._config?.mqtt?.topic,payload:JSON.stringify(e),retain:!0}),this.hass.callService("mqtt","publish",{topic:this._config?.mqtt?.state_topic,payload:JSON.stringify({version:e.version,t:e.lastUpdated}),retain:!0})}catch(t){}}_updateTimerInStorage_mqtt(t,e){const i=this._loadTimersFromStorage_mqtt(),s=i.findIndex(e=>e.id===t);-1!==s&&(i[s]={...i[s],...e},this._saveTimersToStorage_mqtt(i))}_removeTimerFromStorage_mqtt(t){const e=this._loadTimersFromStorage_mqtt().filter(e=>e.id!==t);this._saveTimersToStorage_mqtt(e)}_loadTimersFromStorage(t=null){const e=t||this._config.storage,i="mqtt"===e?this._loadTimersFromStorage_mqtt():"local"===e?this._loadTimersFromStorage_local():[];return Array.isArray(i)?i.map(t=>{if(!t||"object"!=typeof t)return t;const e=void 0!==t.audio_file_url||void 0!==t.audio_repeat_count||void 0!==t.audio_play_until_dismissed;if(!1===t.audio_enabled&&!e){const e={...t};return delete e.audio_enabled,e}return t}):[]}_saveTimersToStorage(t,e=null){const i=e||this._config.storage;return"mqtt"===i?this._saveTimersToStorage_mqtt(t):"local"===i?this._saveTimersToStorage_local(t):void 0}_updateTimerInStorage(t,e,i=null){const s=i||this._config.storage;return"mqtt"===s?this._updateTimerInStorage_mqtt(t,e):"local"===s?this._updateTimerInStorage_local(t,e):void 0}_removeTimerFromStorage(t,e=null){const i=e||this._config.storage;return"mqtt"===i?this._removeTimerFromStorage_mqtt(t):"local"===i?this._removeTimerFromStorage_local(t):void 0}_addTimerToStorage(t){const e=t.source||this._config.storage,i=this._loadTimersFromStorage(e);i.push(t),this._saveTimersToStorage(i,e)}_detectMode(t,e,i){if(!e)return null;if(t.startsWith("timer."))return"timer";if(t.startsWith("input_text.")||t.startsWith("text."))return"helper";const s=e.attributes||{};if(null!=s.alarms_brief||null!=s.sorted_active||null!=s.sorted_paused||null!=s.sorted_all||null!=s.next_timer||null!=s.timers||(t.includes("next_timer")||t.endsWith("_next_timer"))&&(null!=s.total_active||null!=s.total_all||null!=s.status||null!=s.timer||null!=s.dismissed))return"alexa";if("timestamp"===s.device_class)return"timestamp";const r=i?.minutes_attr;if(r&&null!==(s[r]??null))return"minutes_attr";if(s.start_time)return"timestamp";const n=e.state;return n&&"unknown"!==n&&"unavailable"!==n&&isNaN(n)&&!isNaN(Date.parse(n))?"timestamp":null}_toMs(t){if(null==t)return null;if("number"==typeof t)return t<1e3?1e3*t:t>1e12?Math.max(0,t-Date.now()):t;if("string"==typeof t){const e=Number(t);if(!Number.isNaN(e))return this._toMs(e);const i=/^P(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)$/i.exec(t.trim());if(i){return 1e3*(3600*parseInt(i[1]||"0",10)+60*parseInt(i[2]||"0",10)+parseInt(i[3]||"0",10))}}return null}_parseAlexa(t,e,i){const s=e.attributes;let r=s.sorted_active,n=s.sorted_paused,o=s.sorted_all;null==r&&null==n&&null==o&&null!=s.timers&&(o=s.timers),null==r&&null!=s.next_timer&&(r=[s.next_timer]);const a=t=>{if(Array.isArray(t))return t;if("string"==typeof t)try{return JSON.parse(t)}catch{return[]}return Array.isArray(t)?t:[]};if(r=a(r),n=a(n),o=a(o),0===r.length&&0===n.length&&s.alarms_brief){const r=s.alarms_brief,n=Array.isArray(r.active)?r.active:[];let o=Date.now();return s.process_timestamp?o=new Date(s.process_timestamp).getTime():e.last_updated&&(o=new Date(e.last_updated).getTime()),n.map(r=>{const n="PAUSED"===r.status,a=r.remainingTime||0,l=s.process_timestamp||e.last_updated?o:r.lastUpdatedDate||Date.now(),c=n?a:l+a;let d,u=r.originalDuration;if(!u)if(n)u=a;else{const t=r.lastUpdatedDate||l;u=Math.max(0,l-t)+a}if(r.timerLabel)d=this._sanitizeText(r.timerLabel);else{const t=this._cleanFriendlyName(s.friendly_name),e=i?.name||t||(n?"Alexa Timer (Paused)":"Alexa Timer");d=this._sanitizeText(e)}return{id:r.id,source:"alexa",source_entity:t,label:d,icon:i?.icon||(n?"mdi:timer-pause":"mdi:timer"),color:i?.color||(n?"var(--warning-color)":"var(--primary-color)"),end:c,duration:u,paused:n}})}const l=t=>"number"==typeof t?.originalDurationInMillis&&t.originalDurationInMillis||"number"==typeof t?.originalDurationInSeconds&&1e3*t.originalDurationInSeconds||this._toMs(t?.originalDuration)||null,c=(s,r,n)=>{const o=n?this._toMs(r?.remainingTime):null,a=n?o??0:Number(r?.triggerTime||0);let c;if(r?.timerLabel)c=this._sanitizeText(r.timerLabel);else{const t=this._cleanFriendlyName(e.attributes.friendly_name),s=i?.name||t||(n?"Alexa Timer (Paused)":"Alexa Timer"),o=l(r),a=o>0?this._formatDurationDisplay(o):"0m";c="Alexa Timer"!==s&&"Alexa Timer (Paused)"!==s?this._sanitizeText(`${s} - ${a}`):this._sanitizeText(s)}const d=!!i?.icon,u=!!i?.color;return{id:s,source:"alexa",source_entity:t,label:c,icon:d?i.icon:n?"mdi:timer-pause":"mdi:timer",color:u?i.color:n?"var(--warning-color)":"var(--primary-color)",end:a,duration:l(r),paused:!!n}},d=(t,e)=>Array.isArray(t)?t.map(t=>{let i,s;return Array.isArray(t)?[i,s]=t:(s=t,i=s.id),c(i,s,e)}):[],u=d(r,!1);let h=d(n,!0);return 0===h.length&&o.length>0&&(h=d(o,!0).filter(t=>t&&"PAUSED"===String(t.status).toUpperCase())),[...u,...h]}_parseHelper(t,e,i){try{const s=JSON.parse(e.state||"{}");if(!this._validateStoredTimerData(s))return[];if(s?.timers?.map)return s.timers.map(e=>({...e,source:"helper",source_entity:t,label:this._sanitizeText(e.label||i?.name||this._localize("timer")),icon:e.icon||i?.icon||"mdi:timer-outline",color:e.color||i?.color||"var(--primary-color)"}));if(s?.timer&&"object"==typeof s.timer){const r=s.timer;return[{end:r.e,duration:r.d,id:`single-timer-${t}`,label:this._sanitizeText(i?.name||e?.attributes?.friendly_name||this._localize("timer")),paused:!1,source:"helper",source_entity:t,icon:i?.icon||"mdi:timer-outline",color:i?.color||"var(--primary-color)"}]}return[]}catch(t){return[]}}_parseTimestamp(t,e,i){const s=e.state;if(!s||"unknown"===s||"unavailable"===s)return[];const r=Date.parse(s);if(isNaN(r))return[];let n=null;if(i?.start_time_entity){const t=this.hass.states[i.start_time_entity];if(t&&t.state&&"unknown"!==t.state&&"unavailable"!==t.state){const e=Date.parse(t.state);!isNaN(e)&&r>e&&(n=r-e)}}else{const t=i?.start_time_attr||"start_time",s=e.attributes[t];if(s){const t=Date.parse(s);!isNaN(t)&&r>t&&(n=r-t)}}return[{id:`${t}-${r}`,source:"timestamp",source_entity:t,label:i?.name||e.attributes.friendly_name||this._localize("timer"),icon:i?.icon||"mdi:timer-sand",color:i?.color||"var(--primary-color)",end:r,duration:n}]}_parseMinutesAttr(t,e,i){const s=i?.minutes_attr||"Minutes to arrival",r=Number(e?.attributes?.[s]);if(!isFinite(r))return[];const n=Date.now()+6e4*Math.max(0,r);return[{id:`${t}-eta-${Math.floor(n/1e3)}`,source:"minutes_attr",source_entity:t,label:i?.name||e.attributes.friendly_name||"ETA",icon:i?.icon||"mdi:timer-outline",color:i?.color||"var(--primary-color)",end:n,duration:6e4*r}]}_parseTimer(t,e,i){const s=e.state,r=e.attributes;if(!["active","paused","idle","finished"].includes(s))return[];let n=null,o=null,a=null;if(r.duration&&(o=this._parseHMSToMs(r.duration)),"idle"===s){const s=r.icon||"mdi:play";return[{id:t,source:"timer",source_entity:t,label:i?.name||e.attributes.friendly_name||this._localize("timer"),icon:i?.icon||s,color:i?.color||"var(--primary-color)",end:null,duration:o,paused:!1,idle:!0}]}if("finished"===s){const s=r.finishes_at?Date.parse(r.finishes_at):Date.now(),n=r.icon||"mdi:timer-check";return[{id:t,source:"timer",source_entity:t,label:i?.name||e.attributes.friendly_name||this._localize("timer"),icon:i?.icon||n,color:i?.color||"var(--success-color)",end:s,duration:o,paused:!1,finished:!0,finishedAt:s}]}if("paused"===s?r.remaining&&"0:00:00"!==r.remaining&&(a=this._parseHMSToMs(r.remaining),n=a):"active"===s&&(r.finishes_at?n=Date.parse(r.finishes_at):r.remaining&&"0:00:00"!==r.remaining&&(a=this._parseHMSToMs(r.remaining),a>0&&(n=Date.now()+a))),!n&&"idle"!==s&&"finished"!==s)return[];const l=r.icon||("paused"===s?"mdi:timer-pause":"mdi:timer");return[{id:t,source:"timer",source_entity:t,label:i?.name||e.attributes.friendly_name||this._localize("timer"),icon:i?.icon||l,color:i?.color||("paused"===s?"var(--warning-color)":"var(--primary-color)"),end:n,duration:o,paused:"paused"===s,idle:"idle"===s,finished:"finished"===s}]}_parseVoicePE(t,e,i){const s=e.state,r=e.attributes||{};if(!["active","paused","idle","finished"].includes(s))return[];const n=r.control_entity&&String(r.control_entity).trim()?String(r.control_entity).trim():null,o=r.timer_id??r.timerId??r.id??r.timer??r.voice_pe_timer_id??r.vpe_timer_id??r.uuid??null,a=o&&String(o).trim()?String(o).trim():null,l=r.duration?this._parseHMSToMs(r.duration):null,c=r.remaining?this._parseHMSToMs(r.remaining):null,d=!(!n||!a),u=r.display_name&&String(r.display_name).trim()?String(r.display_name).trim():r.friendly_name&&String(r.friendly_name).trim()?String(r.friendly_name).trim():i?.name&&String(i.name).trim()?String(i.name).trim():this._localize("timer"),h={id:a?`vpe-${a}`:t,source:"voice_pe",source_entity:t,label:u,name:u,duration:l,voice_pe_timer_id:a,control_entity:n,supports:d?{pause:!0,cancel:!0,snooze:!1,extend:!1}:{pause:!1,cancel:!1,snooze:!1,extend:!1}};if("idle"===s){const t=r.icon||"mdi:play";return[{...h,icon:i?.icon||t,color:i?.color||"var(--primary-color)",end:null,paused:!1,idle:!0,finished:!1,state:"idle"}]}if("finished"===s){const t=r.finishes_at?Date.parse(r.finishes_at):Date.now(),e=r.icon||"mdi:timer-check";return[{...h,icon:i?.icon||e,color:i?.color||"var(--success-color)",end:t,paused:!1,idle:!1,finished:!0,finishedAt:t,state:"finished"}]}let m=null,_=null;if("paused"===s?c&&c>0&&(_=c,m=_):"active"===s&&(r.finishes_at?m=Date.parse(r.finishes_at):c&&c>0&&(_=c,m=Date.now()+_)),!m)return[];const p=r.icon||("paused"===s?"mdi:timer-pause":"mdi:timer");return[{...h,icon:i?.icon||p,color:i?.color||("paused"===s?"var(--warning-color)":"var(--primary-color)"),end:m,paused:"paused"===s,idle:!1,finished:!1,state:s}]}_parseHMSToMs(t){if(!t)return 0;const e=t.split(":").map(t=>parseInt(t,10));return 3===e.length?1e3*(3600*e[0]+60*e[1]+e[2]):2===e.length?1e3*(60*e[0]+e[1]):0}_isLocalVoicePETimer(t){return"voice_pe"===t?.source&&t?.control_entity&&String(t.control_entity).trim()&&t?.voice_pe_timer_id&&String(t.voice_pe_timer_id).trim()&&!0===t.supports?.pause}async _sendVoicePECommand(t,e){if(!this.hass)return;if(!t||!e)return;const i=String(t).trim(),s=i.split(".")[0];"text"===s||"input_text"===s?await this.hass.callService(s,"set_value",{entity_id:i,value:String(e)}):this._toast("Invalid control entity for Voice PE timers.")}_getVoicePEControlEntity(t){try{const e=t?this.hass?.states?.[t]:null,i=e?.attributes?.control_entity?String(e.attributes.control_entity).trim():"";if(i)return i}catch(t){}const e=this._config?.voice_pe_control_entity?String(this._config.voice_pe_control_entity).trim():"";if(e)return e;try{const t=this.hass?.states||{},e=Object.keys(t).filter(t=>(t.startsWith("text.")||t.startsWith("input_text."))&&t.toLowerCase().includes("voice_pe_timer_command")).sort((t,e)=>t.localeCompare(e));return e.length?e[0]:null}catch(t){return null}}async _sendVoicePEStart(t,e,i){const s=Math.max(1,Math.ceil(t/1e3)),r=this._getVoicePEControlEntity(i);if(!r)return void this._toast("Voice PE control entity is missing.");let n=`start:${s}`;const o=e&&String(e).trim()?String(e).trim().replace(/:/g," "):"";o&&(n=`${n}:${o}`),await this._sendVoicePECommand(r,n)}_updateTimers(){if(!this.hass)return;this._ensureAutoVoicePEEntities();const t=[];for(const e of this._config.entities){const i="string"==typeof e?e:e.entity,s="string"==typeof e?{}:e,r=this.hass.states[i];if(!r)continue;let n=s.mode;if(n&&"auto"!==n||(n=this._detectMode(i,r,s),n))try{"alexa"===n?t.push(...this._parseAlexa(i,r,s)):"helper"===n?t.push(...this._parseHelper(i,r,s)):"timer"===n?t.push(...this._parseTimer(i,r,s)):"voice_pe"===n?t.push(...this._parseVoicePE(i,r,s)):"minutes_attr"===n?t.push(...this._parseMinutesAttr(i,r,s)):"timestamp"===n&&t.push(...this._parseTimestamp(i,r,s))}catch(t){}}"local"!==this._config.storage&&"mqtt"!==this._config.storage||t.push(...this._loadTimersFromStorage());const e=t.filter(t=>!this._dismissed.has(`${t.source_entity}:${t.id}`)),i=Date.now();this._timers=e.map(t=>{const e=i,s="number"==typeof t.duration?t.duration:0,r="number"==typeof t.end_ts?t.end_ts:t.paused||"number"!=typeof t.end?null:t.end,n="number"==typeof t.start_ts?t.start_ts:r&&s?r-s:null;let o;o="template"===t.kind||t.idle?s:t.finished?0:t.paused?"number"==typeof t.remaining_ms?t.remaining_ms:"number"==typeof t.end?t.end:0:r?Math.max(0,r-e):0;const a=t.state||(t.finished?"finished":t.idle?"idle":t.paused?"paused":o<=0?"expired":"active"),l=t.supports||{pause:["helper","local","mqtt","timer"].includes(t.source),cancel:["helper","local","mqtt","timer","alexa"].includes(t.source),snooze:["helper","local","mqtt","timer","alexa"].includes(t.source),extend:["helper","local","mqtt","timer"].includes(t.source)},c=s&&o>=0?Math.max(0,Math.min(100,(s-o)/s*100)):0;return{...t,name:t.name||t.label,duration_ms:s,start_ts:n,end_ts:r,remaining_ms:o,state:a,supports:l,remaining:o,percent:c}}).sort((t,e)=>{if(t.finished&&!e.finished)return 1;if(!t.finished&&e.finished)return-1;const i=Number(t.remaining_ms??t.remaining??0),s=Number(e.remaining_ms??e.remaining??0);return(isFinite(i)?i:Number.MAX_SAFE_INTEGER)-(isFinite(s)?s:Number.MAX_SAFE_INTEGER)});for(const t of this._timers){const e=this._ringingTimers.has(t.id);"timer"===t.source&&t.idle&&e&&(t.idle=!1,t.remaining=0);const i=t.remaining<=0&&!t.paused&&!t.idle;i&&!e?(this._ringingTimers.add(t.id),this._playAudioNotification(t.id,t),this._publishTimerEvent("expired",t)):!i&&e&&(this._ringingTimers.delete(t.id),this._stopAudioForTimer(t.id))}const s=new Set(this._timers.map(t=>t.id));for(const t of this._ringingTimers)s.has(t)||(this._ringingTimers.delete(t),this._stopAudioForTimer(t));const r=Date.now(),n=1e3*(this._config.audio_completion_delay||4);for(const t of[...this._timers]){if(t.idle||t.remaining>0||t.paused)continue;const e=this._config.expire_action;if("dismiss"!==e){if("keep"===e){const e=["helper","local","mqtt"].includes(t.source);let i;e?(t.expiredAt||(t.expiredAt=r,this._updateTimerInStorage(t.id,{expiredAt:r},t.source)),i=t.expiredAt):(this._expirationTimes.has(t.id)||this._expirationTimes.set(t.id,r),i=this._expirationTimes.get(t.id));r-i>=1e3*(parseInt(this._config.expire_keep_for,10)||120)&&(t._isBeingRemoved||(t._isBeingRemoved=!0,this._handleDismiss(t),e||this._expirationTimes.delete(t.id)));continue}if("remove"===e){const e=this._getEntityConfig(t.source_entity);let i;if(i=!t||!0!==t.audio_enabled&&!1!==t.audio_enabled?e&&void 0!==e.audio_enabled?!0===e.audio_enabled:!0===this._config.audio_enabled:!0===t.audio_enabled,!t._isBeingRemoved){t._isBeingRemoved=!0;const e=()=>this._handleDismiss(t);i?setTimeout(e,n):e()}}}}const o=new Set(this._timers.map(t=>t.id));for(const t of this._expirationTimes.keys())o.has(t)||this._expirationTimes.delete(t);for(const[t,e]of this._activeAudioInstances.entries())this._ringingTimers.has(t)||this._stopAudioForTimer(t);(!this._lastCleanupTime||Date.now()-this._lastCleanupTime>1e4)&&(this._cleanupThrottleMap(),this._lastCleanupTime=Date.now())}_playAudioNotification(t,e){const i=e?.source_entity||e?.entity_id||e?.id||null,s=this._getEntityConfig(i),r=e&&(!0===e.audio_enabled||!1===e.audio_enabled||void 0!==e.audio_file_url||void 0!==e.audio_repeat_count||void 0!==e.audio_play_until_dismissed),n=s&&(void 0!==s.audio_enabled||void 0!==s.audio_file_url||void 0!==s.audio_repeat_count||void 0!==s.audio_play_until_dismissed);let o,a,l,c;if(r?(o=!1!==e.audio_enabled&&!0===e.audio_enabled,a=e.audio_file_url,l=e.audio_repeat_count,c=e.audio_play_until_dismissed):n?(o=s.audio_enabled,a=s.audio_file_url,l=s.audio_repeat_count,c=s.audio_play_until_dismissed):(o=this._config.audio_enabled,a=this._config.audio_file_url,l=this._config.audio_repeat_count,c=this._config.audio_play_until_dismissed),o&&a&&this._validateAudioUrl(a)){this._stopAudioForTimer(t);try{const e=new Audio(a);let i=0;const s=c?1/0:Math.max(1,Math.min(10,l||1)),r=()=>{this._ringingTimers.has(t)&&i<s?(i++,e.currentTime=0,e.play().catch(()=>{})):this._stopAudioForTimer(t)},n={audio:e,playNext:r};e.addEventListener("ended",r),e.addEventListener("error",()=>this._stopAudioForTimer(t)),this._activeAudioInstances.set(t,n),r()}catch(t){}}}_stopAudioForTimer(t){const e=this._activeAudioInstances.get(t);if(e){const{audio:i,playNext:s}=e;i.removeEventListener("ended",s),i.pause(),i.currentTime=0,i.src="",this._activeAudioInstances.delete(t)}}_cleanupThrottleMap(){const t=Date.now();for(const[e,i]of this._lastActionTime.entries())t-i>6e4&&this._lastActionTime.delete(e)}_discoverVoicePEEntities(){try{const t=this.hass?.states||{},e=[];for(const[i,s]of Object.entries(t)){if(!i||!s)continue;const t=s.state;if(!["active","paused","idle","finished"].includes(t))continue;const r=s.attributes||{};(r.control_entity?String(r.control_entity).trim():"")&&e.push(i)}return e.sort((t,e)=>t.localeCompare(e)),e}catch(t){return[]}}_getDefaultVoicePETargetEntity(){try{const t=Array.isArray(this._config?.entities)?this._config.entities:[];for(const e of t){const t="string"==typeof e?e:e?.entity,i="string"==typeof e?null:e?.mode;if(!t)continue;if("voice_pe"===i||t.startsWith("sensor.")&&String(t).toLowerCase().includes("vpe_timer"))return t;const s=this.hass?.states?.[t];if(s?.attributes?.control_entity?String(s.attributes.control_entity).trim():"")return t}}catch(t){}const t=this._discoverVoicePEEntities();return t.length?t[0]:null}_ensureAutoVoicePEEntities(){if(this._autoVoicePEInjected)return;if(!0!==this._config?.auto_voice_pe)return;if((Array.isArray(this._config?.entities)?this._config.entities:[]).length>0)return void(this._autoVoicePEInjected=!0);const t=this._discoverVoicePEEntities();t.length&&(this._config.entities=t.map(t=>({entity:t,mode:"voice_pe"})),this._autoVoicePEInjected=!0)}_publishTimerEvent(t,e){if("mqtt"===this._config.storage||this._config.default_timer_entity?.startsWith("sensor.")){const i={id:e.id,label:e.label,name:e.name,source:e.source,source_entity:e.source_entity,icon:e.icon,color:e.color,voice_pe_timer_id:e.voice_pe_timer_id,control_entity:e.control_entity,timestamp:Date.now(),event:t,duration:e.duration,remaining:e.remaining};e?.pinned_id&&(i.pinned_id=e.pinned_id),"voice_pe"===e?.source&&(i.state=e.state,i.start_ts=e.start_ts,i.end_ts=e.end_ts,i.duration_ms=e.duration_ms??e.duration,i.remaining_ms=e.remaining_ms??e.remaining),this.hass.callService("mqtt","publish",{topic:`${this._config?.mqtt?.events_topic||"simple_timer_card/events"}/${t}`,payload:JSON.stringify(i),retain:!1})}}_getEntityConfig(t){if(!t||!this._config.entities)return null;for(const e of this._config.entities){if(("string"==typeof e?e:e?.entity)===t)return"string"==typeof e?{}:e}return null}_parseDuration(t){if(!t)return 0;if(/^\d{1,2}:\d{2}:\d{2}$/.test(t))return this._parseHMSToMs(t);if(/^\d{1,2}:\d{2}$/.test(t)){const e=t.split(":").map(t=>parseInt(t,10));return 1e3*(60*e[0]+e[1])}let e=0;const i=t.match(/(\d+)\s*h/),s=t.match(/(\d+)\s*m/),r=t.match(/(\d+)\s*s/),n=t.match(/^\d+$/);return i&&(e+=3600*parseInt(i[1])),s&&(e+=60*parseInt(s[1])),r&&(e+=parseInt(r[1])),i||s||r||!n||(e=60*parseInt(n[0])),1e3*e}_mutateHelper(t,e){const i=this.hass.states[t]?.state??'{"timers":[]}';let s;try{s=JSON.parse(i),this._validateStoredTimerData(s)||(s={timers:[]})}catch{s={timers:[]}}Array.isArray(s.timers)||(s.timers=[]),e(s);const r=t.split(".")[0];this.hass.callService(r,"set_value",{entity_id:t,value:JSON.stringify({...s,version:1})})}_handleCreateTimer(t){const e=t.target,i=e.querySelector('ha-textfield[name="duration"]')?.value?.trim()??"",s=e.querySelector('ha-textfield[name="label"]')?.value?.trim()??"",r=e.querySelector('[name="target_entity"]')?.value??"",n=this._parseDuration(i);let o=r;if(o||(o=this._config.default_timer_entity||""),!0===this._config.auto_voice_pe){const t=this._getDefaultVoicePETargetEntity();t&&(o=t)}if(n<=0)return;if(!this._validateTimerInput(n,s).valid)return;const a=Date.now()+n,l={id:`custom-${Date.now()}`,label:this._sanitizeText(s||this._localize("timer")),icon:this._config.default_timer_icon||"mdi:timer-outline",color:this._config.default_timer_color||"var(--primary-color)",end:a,duration:n,source:"helper",paused:!1};if(o){if(this._getVoicePEControlEntity(o))return this._publishTimerEvent("started",{source:"voice_pe",source_entity:o,label:l.label}),this._sendVoicePEStart(n,"",o),void this.requestUpdate()}if(!o){const t=Date.now(),e={id:l.id,kind:"active",label:l.label,name:l.label,source:"mqtt"===this._config.storage?"mqtt":"local",source_entity:"mqtt"===this._config.storage?this._config.mqtt?.sensor_entity:"local",start_ts:t,end_ts:t+n,state:"active",supports:{pause:!0,cancel:!0,snooze:!0,extend:!0},icon:l.icon,color:l.color,end:t+n,duration:n,paused:!1,idle:!1,finished:!1};return this._addTimerToStorage(e),this._publishTimerEvent("started",e),void this.requestUpdate()}this._mutateHelper(o,t=>{t.timers.push(l)}),this._publishTimerEvent("started",l)}_parseDurationInputToMs(t){if(null==t)return null;if("number"==typeof t)return!Number.isFinite(t)||t<=0?null:Math.round(6e4*t);const e=String(t).trim().toLowerCase().match(/^(\d+)\s*([smhd])?$/);if(!e)return null;const i=parseInt(e[1],10);if(!Number.isFinite(i)||i<=0)return null;const s=e[2]||"m";return"s"===s?1e3*i:"m"===s?6e4*i:"h"===s?36e5*i:"d"===s?864e5*i:null}_createPresetTimer(t,e=null,i={}){const s=this._parseDurationInputToMs(t);if(!s)return;const r=i.label||(()=>{const e="string"==typeof t?t.trim().toLowerCase():t;if("string"==typeof e&&e.endsWith("s")){return`${parseInt(e.slice(0,-1),10)}s ${this._localize("timer")}`}if("string"==typeof e&&e.endsWith("h")){return`${parseInt(e.slice(0,-1),10)}${this._localize("h")} ${this._localize("timer")}`}if("string"==typeof e&&e.endsWith("d")){return`${parseInt(e.slice(0,-1),10)}${this._localize("d")} ${this._localize("timer")}`}const i="string"==typeof e&&e.endsWith("m")?parseInt(e.slice(0,-1),10):parseInt(e,10);return!isNaN(i)&&i>0?this._formatTimerLabel(60*i):this._formatTimerLabel(Math.round(s/1e3))})();let n=e;n||!0!==this._config.auto_voice_pe||(n=this._getDefaultVoicePETargetEntity()),n||(n=this._config.default_timer_entity);const o=!0===this._config.auto_voice_pe,a=this._config?.voice_pe_control_entity?String(this._config.voice_pe_control_entity).trim():"",l=o&&!!a;if(o&&!a&&this._toast("Voice PE control entity is not set. Please configure it in the card editor."),l){const t=!(!i?.voice_pe_name||!String(i.voice_pe_name).trim())?String(i.voice_pe_name).trim():"";return this._publishTimerEvent("started",{source:"voice_pe",source_entity:n,label:r}),this._sendVoicePEStart(s,t,n),void this.requestUpdate()}const c=Date.now(),d={id:i.id||`preset-${c}`,kind:"active",label:r,name:r,source:"local",source_entity:n||"local",start_ts:c,end_ts:c+s,state:"active",supports:{pause:!0,cancel:!0,snooze:!0,extend:!0},pinned_id:i.pinned_id,expired_subtitle:i.expired_subtitle??this._config.expired_subtitle,...void 0!==i.audio_enabled?{audio_enabled:i.audio_enabled}:{},...void 0!==i.audio_file_url?{audio_file_url:i.audio_file_url}:{},...void 0!==i.audio_repeat_count?{audio_repeat_count:i.audio_repeat_count}:{},...void 0!==i.audio_play_until_dismissed?{audio_play_until_dismissed:i.audio_play_until_dismissed}:{},icon:i.icon||this._config.default_timer_icon||"mdi:timer-outline",color:i.color||this._config.default_timer_color||"var(--primary-color)",end:c+s,duration:s,paused:!1,idle:!1,finished:!1};if(n&&(n.startsWith("input_text.")||n.startsWith("text."))){if(d.source="helper",d.source_entity=n,resolvedTargetEntity){if(this._getVoicePEControlEntity(resolvedTargetEntity))return this._publishTimerEvent("started",{source:"voice_pe",source_entity:resolvedTargetEntity,label:d.label}),this._sendVoicePEStart(s,"",resolvedTargetEntity),void this.requestUpdate()}this._mutateHelper(resolvedTargetEntity,t=>{t.timers.push(d)}),this._publishTimerEvent("created",d)}else"mqtt"===this._config.storage?(d.source="mqtt",d.source_entity=this._config.mqtt.sensor_entity,this._addTimerToStorage(d),this._publishTimerEvent("created",d)):(d.source="local",d.source_entity="mqtt"===this._config.storage?this._config.mqtt.sensor_entity:"local",this._addTimerToStorage(d),this._publishTimerEvent("created",d));this._publishTimerEvent("started",d),this.requestUpdate()}_formatTimerLabel(t){if(t<=0)return this._localize("timer");const e=this._localize("timer"),i=this._localize("h"),s=this._localize("m"),r=this._localize("s"),n=this._localize("d");if(t<60)return`${t}${r} ${e}`;const o=Math.floor(t/ut),a=t%ut;if(o>0&&0===a)return`${o}${n} ${e}`;const l=Math.floor(a/dt),c=Math.floor(a%dt/60),d=a%60,u=[];return o&&u.push(`${o}${n}`),l&&u.push(`${l}${i}`),c&&u.push(`${c}${s}`),d&&u.length<3&&u.push(`${d}${r}`),`${u.join("")} ${e}`}_formatDurationDisplay(t){if(t<=0)return`0${this._localize("s")}`;const e=Math.floor(t/1e3);if(e<60)return`${e}${this._localize("s")}`;const i=Math.floor(e/60),s=e%60;if(e<3600)return`${i}${this._localize("m")}${s?s+this._localize("s"):""}`;const r=i%60;return`${Math.floor(i/60)}${this._localize("h")}${r?r+this._localize("m"):""}`}_renderTimerNameSelector(t,e){const i=this._config.timer_name_presets||[];if(0===i.length)return H`<input id="${t}" class="text-input" placeholder="${e}" style="margin-top: 12px;" />`;const s=this._lastSelectedName[t],r=s&&!i.includes(s);return H`
+ */const s=globalThis;class i extends y$1{constructor(){super(...arguments),this.renderOptions={host:this},this._$Do=void 0;}createRenderRoot(){const t=super.createRenderRoot();return this.renderOptions.renderBefore??=t.firstChild,t}update(t){const r=this.render();this.hasUpdated||(this.renderOptions.isConnected=this.isConnected),super.update(t),this._$Do=D(r,this.renderRoot,this.renderOptions);}connectedCallback(){super.connectedCallback(),this._$Do?.setConnected(true);}disconnectedCallback(){super.disconnectedCallback(),this._$Do?.setConnected(false);}render(){return E}}i._$litElement$=true,i["finalized"]=true,s.litElementHydrateSupport?.({LitElement:i});const o=s.litElementPolyfillSupport;o?.({LitElement:i});(s.litElementVersions??=[]).push("4.2.2");
+
+/*
+ * Simple Timer Card
+ *
+ * A versatile and highly customizable timer card for Home Assistant Lovelace, offering multiple display styles and support for various timer sources.
+ *
+ * Author: eyalgal
+ * License: MIT
+ * Version: 2.1.1
+ * For more information, visit: https:
+ */
+
+
+const cardVersion="2.1.1";
+
+const DAY_IN_MS = 86400000;
+const YEAR_IN_MS = 365 * DAY_IN_MS;
+const HOUR_IN_SECONDS = 3600;
+const MINUTE_IN_SECONDS = 60;
+const DAY_IN_SECONDS = 86400;
+
+const TRANSLATIONS = {
+  en: {
+    no_timers: "No Timers",
+    click_to_start: "Click to start",
+    no_active_timers: "No Active Timers",
+    active_timers: "Active Timers",
+    add: "Add",
+    custom: "Custom",
+    cancel: "Cancel",
+    save: "Save",
+    start: "Start",
+    snooze: "Snooze",
+    dismiss: "Dismiss",
+    ready: "Ready",
+    paused: "Paused",
+    times_up: "Time's up!",
+    timer: "Timer",
+    hour_ago: "hour ago",
+    hours_ago: "hours ago",
+    minute_ago: "minute ago",
+    minutes_ago: "minutes ago",
+    second_ago: "second ago",
+    seconds_ago: "seconds ago",
+    h: "h", m: "m", s: "s", d: "d",
+    w_short: "w", mo_short: "mo", y_short: "y",
+    day: "day", days: "days", week: "week", weeks: "weeks",
+    month: "month", months: "months", year: "year", years: "years",
+    hour: "hour", hours: "hours", minute: "minute", minutes: "minutes",
+    second: "second", seconds: "seconds",
+  },
+  de: {
+    no_timers: "Keine Timer",
+    click_to_start: "Zum Starten klicken",
+    no_active_timers: "Keine aktiven Timer",
+    active_timers: "Aktive Timer",
+    add: "Hinzufügen",
+    custom: "Benutzerdefiniert",
+    cancel: "Abbrechen",
+    save: "Speichern",
+    start: "Starten",
+    snooze: "Schlummern",
+    dismiss: "Verwerfen",
+    ready: "Bereit",
+    paused: "Pausiert",
+    times_up: "Zeit abgelaufen!",
+    timer: "Timer",
+    hour_ago: "Stunde her",
+    hours_ago: "Stunden her",
+    minute_ago: "Minute her",
+    minutes_ago: "Minuten her",
+    second_ago: "Sekunde her",
+    seconds_ago: "Sekunden her",
+    h: "h", m: "m", s: "s", d: "T",
+    w_short: "W", mo_short: "Mo", y_short: "J",
+    day: "Tag", days: "Tage", week: "Woche", weeks: "Wochen",
+    month: "Monat", months: "Monate", year: "Jahr", years: "Jahre",
+    hour: "Stunde", hours: "Stunden", minute: "Minute", minutes: "Minuten",
+    second: "Sekunde", seconds: "Sekunden",
+  },
+  es: {
+    no_timers: "Sin Temporizadores",
+    click_to_start: "Clic para iniciar",
+    no_active_timers: "Sin Temporizadores Activos",
+    active_timers: "Temporizadores Activos",
+    add: "Añadir",
+    custom: "Personalizado",
+    cancel: "Cancelar",
+    save: "Guardar",
+    start: "Iniciar",
+    snooze: "Posponer",
+    dismiss: "Descartar",
+    ready: "Listo",
+    paused: "Pausado",
+    times_up: "¡Se acabó el tiempo!",
+    timer: "Temporizador",
+    hour_ago: "hora atrás",
+    hours_ago: "horas atrás",
+    minute_ago: "minuto atrás",
+    minutes_ago: "minutos atrás",
+    second_ago: "segundo atrás",
+    seconds_ago: "segundos atrás",
+    h: "h", m: "m", s: "s", d: "d",
+    w_short: "sem", mo_short: "mes", y_short: "a",
+    day: "día", days: "días", week: "semana", weeks: "semanas",
+    month: "mes", months: "meses", year: "año", years: "años",
+    hour: "hora", hours: "horas", minute: "minuto", minutes: "minutos",
+    second: "segundo", seconds: "segundos",
+  },
+  da: {
+    no_timers: "Ingen timere",
+    click_to_start: "Tryk for at starte",
+    no_active_timers: "Ingen aktive timere",
+    active_timers: "Aktive Timere",
+    add: "Tilføj",
+    custom: "Tilpasset",
+    cancel: "Annuller",
+    save: "Gem",
+    start: "Start",
+    snooze: "Snooze",
+    dismiss: "Afvis",
+    ready: "Klar",
+    paused: "På pause",
+    times_up: "Tid udløbet!",
+    timer: "Timer",
+    hour_ago: "time siden",
+    hours_ago: "timer siden",
+    minute_ago: "minut siden",
+    minutes_ago: "minutter siden",
+    second_ago: "sekund siden",
+    seconds_ago: "sekunder siden",
+    h: "t", m: "m", s: "s", d: "d",
+    w_short: "u", mo_short: "må", y_short: "å",
+    day: "dag", days: "dage", week: "uge", weeks: "uger",
+    month: "måned", months: "måneder", year: "år", years: "år",
+    hour: "time", hours: "timer", minute: "minut", minutes: "minutter",
+    second: "sekund", seconds: "sekunder",
+  }
+};
+
+console.info(
+  `%c SIMPLE-TIMER-CARD %c v${cardVersion} `,
+  "color: white; background: #4285f4; font-weight: 700;",
+  "color: #4285f4; background: white; font-weight: 700;"
+);
+
+class SimpleTimerCard extends i {
+  static get properties() {
+    return {
+      hass: {},
+      _config: {},
+      _timers: { state: true },
+      _ui: { state: true },
+      _customSecs: { state: true },
+      _activeSecs: { state: true },
+      _editingTimerId: { state: true },
+      _editDuration: { state: true },
+    };
+  }
+
+  static getStubConfig() {
+    return { type: "custom:simple-timer-card" };
+  }
+
+  _sanitizeText(text) {
+    if (!text || typeof text !== "string") return "";
+    const div = document.createElement("div");
+    div.textContent = text;
+    return div.textContent;
+  }
+
+  _localize(key) {
+    const lang = this._config?.language || "en";
+    return TRANSLATIONS[lang]?.[key] || TRANSLATIONS["en"][key] || key;
+  }
+
+  _validateAudioUrl(url) {
+    if (!url || typeof url !== "string") return false;
+    try {
+      const parsed = new URL(url, window.location.origin);
+      return ["https:", "http:", "file:"].includes(parsed.protocol) || url.startsWith("/local/") || url.startsWith("/hacsfiles/");
+    } catch {
+      return false;
+    }
+  }
+
+  _validateStoredTimerData(data) {
+    if (!data || typeof data !== "object") return false;
+    if (!Array.isArray(data.timers)) return false;
+    for (const timer of data.timers) {
+      if (!timer || typeof timer !== "object") return false;
+      if (!timer.id || typeof timer.id !== "string") return false;
+      if (timer.label && typeof timer.label !== "string") return false;
+      if (timer.duration && typeof timer.duration !== "number") return false;
+      if (timer.end && typeof timer.end !== "number") return false;
+    }
+    return true;
+  }
+
+  _validateTimerInput(duration, label) {
+    const MAX_DURATION_MS = 24 * 60 * 60 * 1000 * 365;
+    const MAX_LABEL_LENGTH = 100;
+    if (duration && (typeof duration !== "number" || duration <= 0 || duration > MAX_DURATION_MS)) return { valid: false, error: "Invalid duration" };
+    if (label && (typeof label !== "string" || label.length > MAX_LABEL_LENGTH)) return { valid: false, error: "Invalid label" };
+    return { valid: true };
+  }
+
+  constructor() {
+    super();
+    this._timers = [];
+    this._timerInterval = null;
+    this._dismissed = new Set();
+    this._ringingTimers = new Set();
+    this._activeAudioInstances = new Map();
+    this._lastActionTime = new Map();
+    this._expirationTimes = new Map();
+    this._lastCleanupTime = 0;
+    this._ui = {
+      noTimerHorizontalOpen: false,
+      noTimerVerticalOpen: false,
+      activeFillOpen: false,
+      activeBarOpen: false,
+    };
+    this._customSecs = { horizontal: 15 * 60, vertical: 15 * 60 };
+    this._activeSecs = { fill: 10 * 60, bar: 10 * 60 };
+    this._showingCustomName = {};
+    this._lastSelectedName = {};
+    this._storageNamespace = "default";
+    this._editingTimerId = null;
+    this._editDuration = { h: 0, m: 0, s: 0 };
+  }
+
+  _isActionThrottled(actionType, timerId = "global", throttleMs = 1000) {
+    const key = `${actionType}-${timerId}`;
+    const now = Date.now();
+    const lastTime = this._lastActionTime.get(key) || 0;
+    if (now - lastTime < throttleMs) return true;
+    this._lastActionTime.set(key, now);
+    return false;
+  }
+  _normalizeStringList(value, fallback = []) {
+    if (Array.isArray(value)) return value.map(v => String(v).trim()).filter(Boolean);
+    if (typeof value === "string") return value.split(",").map(v => v.trim()).filter(Boolean);
+    return fallback;
+  }
+
+  _normalizeNumberList(value, fallback = []) {
+    if (Array.isArray(value)) {
+      return value.map(v => (typeof v === "number" ? v : parseFloat(String(v).trim()))).filter(v => Number.isFinite(v));
+    }
+    if (typeof value === "string") {
+      return value.split(",").map(v => parseFloat(v.trim())).filter(v => Number.isFinite(v));
+    }
+    if (typeof value === "number" && Number.isFinite(value)) return [value];
+    return fallback;
+  }
+
+  _normalizePresetList(value) {
+    const raw = Array.isArray(value) ? value : (typeof value === "string" ? value.split(",") : (typeof value === "number" ? [value] : []));
+    const out = [];
+    for (const item of raw) {
+      if (item === null || item === undefined) continue;
+      if (typeof item === "number" && Number.isFinite(item)) { out.push(item); continue; }
+      const s = String(item).trim();
+      if (!s) continue;
+      const n = Number(s);
+      if (Number.isFinite(n) && /^-?\d+(?:\.\d+)?$/.test(s)) out.push(n);
+      else out.push(s);
+    }
+    return out;
+  }
+
+  _normalizeConfigTypes(cfg) {
+    const c = { ...(cfg || {}) };
+
+    if (typeof c.entities === "string") c.entities = [c.entities];
+    if (!Array.isArray(c.entities)) c.entities = [];
+
+    c.timer_name_presets = this._normalizeStringList(c.timer_name_presets, Array.isArray(c.timer_name_presets) ? c.timer_name_presets : []);
+    c.timer_presets = this._normalizePresetList(c.timer_presets);
+    c.minute_buttons = this._normalizeNumberList(c.minute_buttons, Array.isArray(c.minute_buttons) ? c.minute_buttons : []);
+    c.time_format_units = this._normalizeStringList(c.time_format_units, Array.isArray(c.time_format_units) ? c.time_format_units : []);
+    if (!Array.isArray(c.pinned_timers)) c.pinned_timers = [];
+	delete c.alexa_audio_enabled;
+    delete c.alexa_audio_file_url;
+    delete c.alexa_audio_repeat_count;
+    delete c.alexa_audio_play_until_dismissed;
+	return c;
+  }
+
+  setConfig(config) {
+    config = this._normalizeConfigTypes(config);
+    const isMqtt = config.default_timer_entity && config.default_timer_entity.startsWith("sensor.");
+    const autoStorage = isMqtt ? "mqtt" : "local";
+    const mqttSensorEntity = isMqtt ? config.default_timer_entity : null;
+    const mqttConfig = {
+      topic: "simple_timer_card/timers",
+      state_topic: "simple_timer_card/timers/state",
+      events_topic: "simple_timer_card/events",
+      sensor_entity: mqttSensorEntity,
+      ...config.mqtt,
+    };
+    const layout = (config.layout || "horizontal").toLowerCase() === "vertical" ? "vertical" : "horizontal";
+    const validStyles = ["fill_vertical", "fill_horizontal", "bar_vertical", "bar_horizontal", "circle"];
+    const style = validStyles.includes((config.style || "").toLowerCase()) ? (config.style || "").toLowerCase() : "bar_horizontal";
+    const progressModeOptions = ["drain", "fill", "milestones"];
+    const progressMode = progressModeOptions.includes(config.progress_mode) ? config.progress_mode : "drain";
+    this._storageNamespace = config.storage_namespace || config.default_timer_entity || "default";
+    const defaultUnits = ["days", "hours", "minutes", "seconds"];
+    let timeUnits = defaultUnits;
+    if (Array.isArray(config.time_format_units)) {
+      timeUnits = config.time_format_units.map((u) => String(u).toLowerCase()).filter((u) => ["years","months","weeks","days","hours","minutes","seconds"].includes(u));
+      if (timeUnits.length === 0) timeUnits = defaultUnits;
+    } else if (typeof config.time_format_units === "string") {
+      timeUnits = config.time_format_units.split(",").map((u) => u.trim().toLowerCase()).filter((u) => ["years","months","weeks","days","hours","minutes","seconds"].includes(u));
+      if (timeUnits.length === 0) timeUnits = defaultUnits;
+    }
+    this._config = {
+      layout,
+      style,
+      language: "en",
+      snooze_duration: 5,
+      timer_presets: [5, 15, 30],
+      timer_name_presets: [],
+      pinned_timers: [],
+      show_timer_presets: true,
+      show_active_header: true,
+      minute_buttons: [1, 5, 10],
+      default_timer_icon: "mdi:timer-outline",
+      default_timer_color: "var(--primary-color)",
+      default_timer_entity: null,
+      auto_voice_pe: false,
+      expire_action: "keep",
+      expire_keep_for: 120,
+      auto_dismiss_writable: false,
+      audio_enabled: false,
+      audio_file_url: "",
+      audio_repeat_count: 1,
+      audio_play_until_dismissed: false,
+      audio_completion_delay: 4,
+	  expired_subtitle: null,
+      keep_timer_visible_when_idle: false,
+      progress_mode: progressMode,
+      default_new_timer_duration_mins: 15,
+      time_format: "hms",
+      time_format_units: timeUnits,
+      milestone_unit: "auto",
+      milestone_pulse: true,
+      ...config,
+      entities: config.entities || [],
+      storage: autoStorage,
+      layout,
+      style,
+      mqtt: mqttConfig,
+      time_format_units: timeUnits,
+    };
+    const defaultDurationSecs = (parseInt(this._config.default_new_timer_duration_mins, 10) || 15) * 60;
+    this._customSecs = { horizontal: defaultDurationSecs, vertical: defaultDurationSecs };
+    this._activeSecs = { fill: defaultDurationSecs, bar: defaultDurationSecs };
+    if (typeof this._config.timer_name_presets === "string") {
+      this._config.timer_name_presets = this._config.timer_name_presets.split(",").map((name) => name.trim()).filter((name) => name);
+    }
+  }
+
+  connectedCallback() {
+    super.connectedCallback();
+    this._startTimerUpdates();
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this._stopTimerUpdates();
+    for (const timerId of this._activeAudioInstances.keys()) this._stopAudioForTimer(timerId);
+    this._activeAudioInstances.clear();
+    this._ringingTimers.clear();
+    this._lastActionTime.clear();
+    this._expirationTimes.clear();
+    this._dismissed.clear();
+  }
+
+  _startTimerUpdates() {
+    this._stopTimerUpdates();
+    this._updateTimers();
+    this._timerInterval = setInterval(() => this._updateTimers(), 250);
+  }
+
+  _stopTimerUpdates() {
+    if (this._timerInterval) {
+      clearInterval(this._timerInterval);
+      this._timerInterval = null;
+    }
+  }
+
+  _getStorageKey() {
+    return `simple-timer-card-${this._storageNamespace}`;
+  }
+
+  _loadTimersFromStorage_local() {
+    try {
+      const stored = localStorage.getItem(this._getStorageKey());
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (this._validateStoredTimerData(parsed)) return parsed.timers;
+        localStorage.removeItem(this._getStorageKey());
+      }
+    } catch (e) {
+      try { localStorage.removeItem(this._getStorageKey()); } catch (_) {}
+    }
+    return [];
+  }
+
+  _saveTimersToStorage_local(timers) {
+    try {
+      const data = { timers: timers || [], version: 1, lastUpdated: Date.now() };
+      localStorage.setItem(this._getStorageKey(), JSON.stringify(data));
+    } catch (e) {}
+  }
+
+  _updateTimerInStorage_local(timerId, updates) {
+    const timers = this._loadTimersFromStorage_local();
+    const index = timers.findIndex((t) => t.id === timerId);
+    if (index !== -1) {
+      timers[index] = { ...timers[index], ...updates };
+      this._saveTimersToStorage_local(timers);
+    }
+  }
+
+  _removeTimerFromStorage_local(timerId) {
+    const timers = this._loadTimersFromStorage_local().filter((t) => t.id !== timerId);
+    this._saveTimersToStorage_local(timers);
+  }
+
+  _loadTimersFromStorage_mqtt() {
+    try {
+      const sensor = this._config?.mqtt?.sensor_entity;
+      if (!sensor) return [];
+      const entity = this.hass?.states?.[sensor];
+      const timers = entity?.attributes?.timers;
+      return Array.isArray(timers) ? timers : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  _saveTimersToStorage_mqtt(timers) {
+    try {
+      const payload = { timers: timers || [], version: 1, lastUpdated: Date.now() };
+      this.hass.callService("mqtt", "publish", {
+        topic: this._config?.mqtt?.topic,
+        payload: JSON.stringify(payload),
+        retain: true,
+      });
+      this.hass.callService("mqtt", "publish", {
+        topic: this._config?.mqtt?.state_topic,
+        payload: JSON.stringify({ version: payload.version, t: payload.lastUpdated }),
+        retain: true,
+      });
+    } catch (e) {}
+  }
+
+  _updateTimerInStorage_mqtt(timerId, updates) {
+    const timers = this._loadTimersFromStorage_mqtt();
+    const index = timers.findIndex((t) => t.id === timerId);
+    if (index !== -1) {
+      timers[index] = { ...timers[index], ...updates };
+      this._saveTimersToStorage_mqtt(timers);
+    }
+  }
+
+  _removeTimerFromStorage_mqtt(timerId) {
+    const timers = this._loadTimersFromStorage_mqtt().filter((t) => t.id !== timerId);
+    this._saveTimersToStorage_mqtt(timers);
+  }
+
+  _loadTimersFromStorage(sourceHint = null) {
+    const storage = sourceHint || this._config.storage;
+    const timers =
+      storage === "mqtt"
+        ? this._loadTimersFromStorage_mqtt()
+        : (storage === "local" ? this._loadTimersFromStorage_local() : []);
+    if (!Array.isArray(timers)) return [];
+    return timers.map((t) => {
+      if (!t || typeof t !== "object") return t;
+      const hasOtherAudioFields =
+        t.audio_file_url !== undefined ||
+        t.audio_repeat_count !== undefined ||
+        t.audio_play_until_dismissed !== undefined;
+      if (t.audio_enabled === false && !hasOtherAudioFields) {
+        const c = { ...t };
+        delete c.audio_enabled;
+        return c;
+      }
+      return t;
+    });
+  }
+
+  _saveTimersToStorage(timers, sourceHint = null) {
+    const storage = sourceHint || this._config.storage;
+    if (storage === "mqtt") return this._saveTimersToStorage_mqtt(timers);
+    if (storage === "local") return this._saveTimersToStorage_local(timers);
+  }
+
+  _updateTimerInStorage(timerId, updates, sourceHint = null) {
+    const storage = sourceHint || this._config.storage;
+    if (storage === "mqtt") return this._updateTimerInStorage_mqtt(timerId, updates);
+    if (storage === "local") return this._updateTimerInStorage_local(timerId, updates);
+  }
+
+  _removeTimerFromStorage(timerId, sourceHint = null) {
+    const storage = sourceHint || this._config.storage;
+    if (storage === "mqtt") return this._removeTimerFromStorage_mqtt(timerId);
+    if (storage === "local") return this._removeTimerFromStorage_local(timerId);
+  }
+
+  _addTimerToStorage(timer) {
+    const storage = timer.source || this._config.storage;
+    const timers = this._loadTimersFromStorage(storage);
+    timers.push(timer);
+    this._saveTimersToStorage(timers, storage);
+  }
+
+  _detectMode(entityId, entityState, entityConf) {
+    if (!entityState) return null;
+    if (entityId.startsWith("timer.")) return "timer";
+    if (entityId.startsWith("input_text.") || entityId.startsWith("text.")) return "helper";
+    const attrs = entityState.attributes || {};
+    if (
+      attrs.alarms_brief != null ||
+      attrs.sorted_active != null ||
+      attrs.sorted_paused != null ||
+      attrs.sorted_all != null ||
+      attrs.next_timer != null ||
+      attrs.timers != null ||
+
+      ((entityId.includes("next_timer") || entityId.endsWith("_next_timer")) &&
+        (attrs.total_active != null || attrs.total_all != null || attrs.status != null || attrs.timer != null || attrs.dismissed != null))
+    ) return "alexa";
+    if (attrs.device_class === "timestamp") return "timestamp";
+    const guessAttr = entityConf?.minutes_attr;
+    if (guessAttr && (attrs[guessAttr] ?? null) !== null) return "minutes_attr";
+    if (attrs.start_time) return "timestamp";
+    const stateVal = entityState.state;
+    if (stateVal && stateVal !== "unknown" && stateVal !== "unavailable") {
+      if (isNaN(stateVal) && !isNaN(Date.parse(stateVal))) return "timestamp";
+    }
+    return null;
+  }
+
+  _toMs(v) {
+    if (v == null) return null;
+    if (typeof v === "number") {
+      if (v < 1000) return v * 1000;
+      if (v > 1e12) return Math.max(0, v - Date.now());
+      return v;
+    }
+    if (typeof v === "string") {
+      const n = Number(v);
+      if (!Number.isNaN(n)) return this._toMs(n);
+      const m = /^P(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)$/i.exec(v.trim());
+      if (m) {
+        const h = parseInt(m[1] || "0", 10);
+        const min = parseInt(m[2] || "0", 10);
+        const s = parseInt(m[3] || "0", 10);
+        return ((h * 3600) + (min * 60) + s) * 1000;
+      }
+    }
+    return null;
+  }
+
+  _parseAlexa(entityId, entityState, entityConf) {
+    const attrs = entityState.attributes;
+
+    let active = attrs.sorted_active;
+    let paused = attrs.sorted_paused;
+    let all = attrs.sorted_all;
+
+    if ((active == null && paused == null && all == null) && attrs.timers != null) {
+      all = attrs.timers;
+    }
+    if (active == null && attrs.next_timer != null) {
+      active = [attrs.next_timer];
+    }
+
+    const safeParse = (x) => {
+      if (Array.isArray(x)) return x;
+      if (typeof x === "string") { try { return JSON.parse(x); } catch { return []; } }
+      return Array.isArray(x) ? x : [];
+    };
+
+    active = safeParse(active);
+    paused = safeParse(paused);
+    all = safeParse(all);
+
+    if (active.length === 0 && paused.length === 0 && attrs.alarms_brief) {
+      const brief = attrs.alarms_brief;
+      const briefActive = Array.isArray(brief.active) ? brief.active : [];
+
+      let anchorTime = Date.now();
+      if (attrs.process_timestamp) {
+        anchorTime = new Date(attrs.process_timestamp).getTime();
+      } else if (entityState.last_updated) {
+        anchorTime = new Date(entityState.last_updated).getTime();
+      }
+
+      return briefActive.map(t => {
+        const isPaused = (t.status === "PAUSED");
+        const remaining = t.remainingTime || 0;
+
+        const validAnchor = (attrs.process_timestamp || entityState.last_updated)
+          ? anchorTime
+          : (t.lastUpdatedDate || Date.now());
+
+        const end = isPaused ? remaining : (validAnchor + remaining);
+
+        let totalDuration = t.originalDuration;
+
+        if (!totalDuration) {
+          if (isPaused) {
+             totalDuration = remaining;
+          } else {
+             const startTime = t.lastUpdatedDate || validAnchor;
+             const elapsed = Math.max(0, validAnchor - startTime);
+             totalDuration = elapsed + remaining;
+          }
+        }
+
+        let label;
+        if (t.timerLabel) {
+          label = this._sanitizeText(t.timerLabel);
+        } else {
+          const cleanedFriendlyName = this._cleanFriendlyName(attrs.friendly_name);
+          const baseName = entityConf?.name || cleanedFriendlyName || (isPaused ? "Alexa Timer (Paused)" : "Alexa Timer");
+          label = this._sanitizeText(baseName);
+        }
+
+        return {
+          id: t.id,
+          source: "alexa",
+          source_entity: entityId,
+          label,
+          icon: entityConf?.icon || (isPaused ? "mdi:timer-pause" : "mdi:timer"),
+          color: entityConf?.color || (isPaused ? "var(--warning-color)" : "var(--primary-color)"),
+          end: end,
+          duration: totalDuration,
+          paused: isPaused,
+        };
+      });
+    }
+
+    const normDuration = (t) =>
+      (typeof t?.originalDurationInMillis === "number" && t.originalDurationInMillis) ||
+      (typeof t?.originalDurationInSeconds === "number" && t.originalDurationInSeconds * 1000) ||
+      this._toMs(t?.originalDuration) || null;
+
+    const mk = (id, t, pausedFlag) => {
+      const remainingMs = pausedFlag ? this._toMs(t?.remainingTime) : null;
+      const end = pausedFlag ? (remainingMs ?? 0) : Number(t?.triggerTime || 0);
+      let label;
+      if (t?.timerLabel) {
+        label = this._sanitizeText(t.timerLabel);
+      } else {
+        const cleanedFriendlyName = this._cleanFriendlyName(entityState.attributes.friendly_name);
+        const baseName = entityConf?.name || cleanedFriendlyName || (pausedFlag ? "Alexa Timer (Paused)" : "Alexa Timer");
+        const originalDuration = normDuration(t);
+        const displayTime = originalDuration > 0 ? this._formatDurationDisplay(originalDuration) : "0m";
+        if (baseName !== "Alexa Timer" && baseName !== "Alexa Timer (Paused)") {
+          label = this._sanitizeText(`${baseName} - ${displayTime}`);
+        } else {
+          label = this._sanitizeText(baseName);
+        }
+      }
+      const hasCustomIcon = !!entityConf?.icon;
+      const hasCustomColor = !!entityConf?.color;
+      return {
+        id,
+        source: "alexa",
+        source_entity: entityId,
+        label,
+        icon: hasCustomIcon ? entityConf.icon : (pausedFlag ? "mdi:timer-pause" : "mdi:timer"),
+        color: hasCustomColor ? entityConf.color : (pausedFlag ? "var(--warning-color)" : "var(--primary-color)"),
+        end,
+        duration: normDuration(t),
+        paused: !!pausedFlag,
+      };
+    };
+
+    const mapTimerList = (list, isPaused) => {
+      if (!Array.isArray(list)) return [];
+      return list.map(item => {
+        let id, t;
+        if (Array.isArray(item)) { [id, t] = item; }
+        else { t = item; id = t.id; }
+        return mk(id, t, isPaused);
+      });
+    };
+
+    const activeTimers = mapTimerList(active, false);
+    let pausedTimers = mapTimerList(paused, true);
+
+    if (pausedTimers.length === 0 && all.length > 0) {
+      pausedTimers = mapTimerList(all, true).filter(pt => pt && String(pt.status).toUpperCase() === "PAUSED");
+    }
+    return [...activeTimers, ...pausedTimers];
+  }
+
+  _parseHelper(entityId, entityState, entityConf) {
+    try {
+      const data = JSON.parse(entityState.state || "{}");
+      if (!this._validateStoredTimerData(data)) return [];
+      if (data?.timers?.map) {
+        return data.timers.map((timer) => ({
+          ...timer,
+          source: "helper",
+          source_entity: entityId,
+          label: this._sanitizeText(timer.label || entityConf?.name || this._localize("timer")),
+          icon: timer.icon || entityConf?.icon || "mdi:timer-outline",
+          color: timer.color || entityConf?.color || "var(--primary-color)",
+        }));
+      }
+      if (data?.timer && typeof data.timer === "object") {
+        const singleTimer = data.timer;
+        return [{
+          end: singleTimer.e,
+          duration: singleTimer.d,
+          id: `single-timer-${entityId}`,
+          label: this._sanitizeText(entityConf?.name || entityState?.attributes?.friendly_name || this._localize("timer")),
+          paused: false,
+          source: "helper",
+          source_entity: entityId,
+          icon: entityConf?.icon || "mdi:timer-outline",
+          color: entityConf?.color || "var(--primary-color)",
+        }];
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  _parseTimestamp(entityId, entityState, entityConf) {
+    const s = entityState.state;
+    if (!s || s === "unknown" || s === "unavailable") return [];
+    const endMs = Date.parse(s);
+    if (isNaN(endMs)) return [];
+    let duration = null;
+    if (entityConf?.start_time_entity) {
+      const startEntityState = this.hass.states[entityConf.start_time_entity];
+      if (startEntityState && startEntityState.state && startEntityState.state !== "unknown" && startEntityState.state !== "unavailable") {
+        const startMs = Date.parse(startEntityState.state);
+        if (!isNaN(startMs) && endMs > startMs) duration = endMs - startMs;
+      }
+    } else {
+      const startTimeAttr = entityConf?.start_time_attr || "start_time";
+      const startTimeVal = entityState.attributes[startTimeAttr];
+      if (startTimeVal) {
+        const startMs = Date.parse(startTimeVal);
+        if (!isNaN(startMs) && endMs > startMs) duration = endMs - startMs;
+      }
+    }
+    return [{
+      id: `${entityId}-${endMs}`,
+      source: "timestamp",
+      source_entity: entityId,
+      label: entityConf?.name || entityState.attributes.friendly_name || this._localize("timer"),
+      icon: entityConf?.icon || "mdi:timer-sand",
+      color: entityConf?.color || "var(--primary-color)",
+      end: endMs,
+      duration: duration
+    }];
+  }
+
+  _parseMinutesAttr(entityId, entityState, entityConf) {
+    const attrName = entityConf?.minutes_attr || "Minutes to arrival";
+    const minutes = Number(entityState?.attributes?.[attrName]);
+    if (!isFinite(minutes)) return [];
+    const endMs = Date.now() + Math.max(0, minutes) * 60000;
+    return [{
+      id:`${entityId}-eta-${Math.floor(endMs/1000)}`,
+      source:"minutes_attr",
+      source_entity:entityId,
+      label:entityConf?.name||entityState.attributes.friendly_name||"ETA",
+      icon:entityConf?.icon || "mdi:timer-outline",
+      color:entityConf?.color || "var(--primary-color)",
+      end: endMs,
+      duration: minutes * 60000
+    }];
+  }
+
+  _parseTimer(entityId, entityState, entityConf) {
+    const state = entityState.state;
+    const attrs = entityState.attributes;
+    if (!["active", "paused", "idle", "finished"].includes(state)) return [];
+    let endMs = null;
+    let duration = null;
+    let remainingMs = null;
+    if (attrs.duration) duration = this._parseHMSToMs(attrs.duration);
+    if (state === "idle") {
+      const entityIcon = attrs.icon;
+      const defaultIcon = entityIcon || "mdi:play";
+      return [{
+        id: entityId, source: "timer", source_entity: entityId,
+        label: entityConf?.name || entityState.attributes.friendly_name || this._localize("timer"),
+        icon: entityConf?.icon || defaultIcon,
+        color: entityConf?.color || "var(--primary-color)",
+        end: null, duration, paused: false, idle: true
+      }];
+    }
+    if (state === "finished") {
+      const finishedAt = attrs.finishes_at ? Date.parse(attrs.finishes_at) : Date.now();
+      const entityIcon = attrs.icon;
+      const defaultIcon = entityIcon || "mdi:timer-check";
+      return [{
+        id: entityId, source: "timer", source_entity: entityId,
+        label: entityConf?.name || entityState.attributes.friendly_name || this._localize("timer"),
+        icon: entityConf?.icon || defaultIcon,
+        color: entityConf?.color || "var(--success-color)",
+        end: finishedAt, duration, paused: false, finished: true, finishedAt
+      }];
+    }
+    if (state === "paused") {
+      if (attrs.remaining && attrs.remaining !== "0:00:00") {
+        remainingMs = this._parseHMSToMs(attrs.remaining);
+        endMs = remainingMs;
+      }
+    } else if (state === "active") {
+      if (attrs.finishes_at) endMs = Date.parse(attrs.finishes_at);
+      else if (attrs.remaining && attrs.remaining !== "0:00:00") {
+        remainingMs = this._parseHMSToMs(attrs.remaining);
+        if (remainingMs > 0) endMs = Date.now() + remainingMs;
+      }
+    }
+    if (!endMs && state !== "idle" && state !== "finished") return [];
+    const entityIcon = attrs.icon;
+    const defaultIcon = entityIcon || (state === "paused" ? "mdi:timer-pause" : "mdi:timer");
+    return [{
+      id: entityId, source: "timer", source_entity: entityId,
+      label: entityConf?.name || entityState.attributes.friendly_name || this._localize("timer"),
+      icon: entityConf?.icon || defaultIcon,
+      color: entityConf?.color || (state === "paused" ? "var(--warning-color)" : "var(--primary-color)"),
+      end: endMs, duration, paused: state === "paused", idle: state === "idle", finished: state === "finished"
+    }];
+  }
+
+  _parseVoicePE(entityId, entityState, entityConf) {
+    const state = entityState.state;
+    const attrs = entityState.attributes || {};
+    if (!["active", "paused", "idle", "finished"].includes(state)) return [];
+
+    const controlEntity = (attrs.control_entity && String(attrs.control_entity).trim()) ? String(attrs.control_entity).trim() : null;
+
+
+    const timerIdRaw =
+      attrs.timer_id ??
+      attrs.timerId ??
+      attrs.id ??
+      attrs.timer ??
+      attrs.voice_pe_timer_id ??
+      attrs.vpe_timer_id ??
+      attrs.uuid ??
+      null;
+
+    const timerId = (timerIdRaw && String(timerIdRaw).trim()) ? String(timerIdRaw).trim() : null;
+
+    const duration = attrs.duration ? this._parseHMSToMs(attrs.duration) : null;
+    const remainingFromAttrs = attrs.remaining ? this._parseHMSToMs(attrs.remaining) : null;
+
+    const isLocalControllable = !!(controlEntity && timerId);
+
+
+    const label =
+      (attrs.display_name && String(attrs.display_name).trim()) ? String(attrs.display_name).trim() :
+      (attrs.friendly_name && String(attrs.friendly_name).trim()) ? String(attrs.friendly_name).trim() :
+      (entityConf?.name && String(entityConf.name).trim()) ? String(entityConf.name).trim() :
+      this._localize("timer");
+
+
+    const base = {
+      id: timerId ? `vpe-${timerId}` : entityId,
+      source: "voice_pe",
+      source_entity: entityId,
+      label,
+      name: label,
+      duration,
+      voice_pe_timer_id: timerId,
+      control_entity: controlEntity,
+
+      supports: isLocalControllable
+        ? { pause: true, cancel: true, snooze: false, extend: false }
+        : { pause: false, cancel: false, snooze: false, extend: false },
+    };
+
+
+    if (state === "idle") {
+      const entityIcon = attrs.icon;
+      const defaultIcon = entityIcon || "mdi:play";
+      return [{
+        ...base,
+        icon: entityConf?.icon || defaultIcon,
+        color: entityConf?.color || "var(--primary-color)",
+        end: null,
+        paused: false,
+        idle: true,
+        finished: false,
+        state: "idle",
+      }];
+    }
+
+
+    if (state === "finished") {
+      const finishedAt = attrs.finishes_at ? Date.parse(attrs.finishes_at) : Date.now();
+      const entityIcon = attrs.icon;
+      const defaultIcon = entityIcon || "mdi:timer-check";
+      return [{
+        ...base,
+        icon: entityConf?.icon || defaultIcon,
+        color: entityConf?.color || "var(--success-color)",
+        end: finishedAt,
+        paused: false,
+        idle: false,
+        finished: true,
+        finishedAt,
+        state: "finished",
+      }];
+    }
+
+
+    let endMs = null;
+    let remainingMs = null;
+
+    if (state === "paused") {
+      if (remainingFromAttrs && remainingFromAttrs > 0) {
+        remainingMs = remainingFromAttrs;
+        endMs = remainingMs;
+      }
+    } else if (state === "active") {
+      if (attrs.finishes_at) {
+        endMs = Date.parse(attrs.finishes_at);
+      } else if (remainingFromAttrs && remainingFromAttrs > 0) {
+        remainingMs = remainingFromAttrs;
+        endMs = Date.now() + remainingMs;
+      }
+    }
+
+    if (!endMs) return [];
+
+    const entityIcon = attrs.icon;
+    const defaultIcon = entityIcon || (state === "paused" ? "mdi:timer-pause" : "mdi:timer");
+
+    return [{
+      ...base,
+      icon: entityConf?.icon || defaultIcon,
+      color: entityConf?.color || (state === "paused" ? "var(--warning-color)" : "var(--primary-color)"),
+      end: endMs,
+      paused: state === "paused",
+      idle: false,
+      finished: false,
+      state,
+    }];
+  }
+
+  _parseHMSToMs(timeStr) {
+    if (!timeStr) return 0;
+    const parts = timeStr.split(":").map((p) => parseInt(p, 10));
+    if (parts.length === 3) return (parts[0]*3600 + parts[1]*60 + parts[2]) * 1000;
+    if (parts.length === 2) return (parts[0]*60 + parts[1]) * 1000;
+    return 0;
+  }
+
+
+  _isLocalVoicePETimer(timer) {
+    return timer?.source === "voice_pe"
+      && timer?.control_entity
+      && String(timer.control_entity).trim()
+      && timer?.voice_pe_timer_id
+      && String(timer.voice_pe_timer_id).trim()
+      && timer.supports?.pause === true;
+  }
+
+  async _sendVoicePECommand(controlEntity, command) {
+    if (!this.hass) return;
+    if (!controlEntity || !command) return;
+
+    const entityId = String(controlEntity).trim();
+    const domain = entityId.split(".")[0];
+    if (domain !== "text" && domain !== "input_text") {
+      this._toast("Invalid control entity for Voice PE timers.");
+      return;
+    }
+
+    await this.hass.callService(domain, "set_value", {
+      entity_id: entityId,
+      value: String(command),
+    });
+  }
+
+  _getVoicePEControlEntity(preferredTimerEntityId) {
+    try {
+      const st = preferredTimerEntityId ? this.hass?.states?.[preferredTimerEntityId] : null;
+      const fromAttr = st?.attributes?.control_entity ? String(st.attributes.control_entity).trim() : "";
+      if (fromAttr) return fromAttr;
+    } catch (_) {}
+
+    const fromCfg = this._config?.voice_pe_control_entity ? String(this._config.voice_pe_control_entity).trim() : "";
+    if (fromCfg) return fromCfg;
+
+    try {
+      const states = this.hass?.states || {};
+      const candidates = Object.keys(states)
+        .filter((id) => (id.startsWith("text.") || id.startsWith("input_text.")) && id.toLowerCase().includes("voice_pe_timer_command"))
+        .sort((a, b) => a.localeCompare(b));
+      return candidates.length ? candidates[0] : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+
+  async _sendVoicePEStart(durationMs, name, targetEntityId) {
+    const seconds = Math.max(1, Math.ceil(durationMs / 1000));
+    const controlEntity = this._getVoicePEControlEntity(targetEntityId);
+
+    if (!controlEntity) {
+      this._toast("Voice PE control entity is missing.");
+      return;
+    }
+
+    let cmd = `start:${seconds}`;
+    const cleanName = name && String(name).trim() ? String(name).trim().replace(/:/g, " ") : "";
+    if (cleanName) cmd = `${cmd}:${cleanName}`;
+
+    await this._sendVoicePECommand(controlEntity, cmd);
+  }
+
+
+  _updateTimers() {
+    if (!this.hass) return;
+    this._ensureAutoVoicePEEntities();
+    const collected = [];
+    for (const entityConfig of this._config.entities) {
+      const entityId = typeof entityConfig === "string" ? entityConfig : entityConfig.entity;
+      const conf = typeof entityConfig === "string" ? {} : entityConfig;
+      const st = this.hass.states[entityId];
+      if (!st) continue;
+      let mode = conf.mode;
+      if (!mode || mode === "auto") {
+        mode = this._detectMode(entityId, st, conf);
+        if (!mode) continue;
+      }
+      try {
+        if (mode === "alexa") collected.push(...this._parseAlexa(entityId, st, conf));
+        else if (mode === "helper") collected.push(...this._parseHelper(entityId, st, conf));
+        else if (mode === "timer") collected.push(...this._parseTimer(entityId, st, conf));
+        else if (mode === "voice_pe") collected.push(...this._parseVoicePE(entityId, st, conf));
+        else if (mode === "minutes_attr") collected.push(...this._parseMinutesAttr(entityId, st, conf));
+        else if (mode === "timestamp") collected.push(...this._parseTimestamp(entityId, st, conf));
+      } catch (e) {}
+    }
+    if (this._config.storage === "local" || this._config.storage === "mqtt") {
+      collected.push(...this._loadTimersFromStorage());
+    }
+    const filtered = collected.filter((t) => !(this._dismissed.has(`${t.source_entity}:${t.id}`)));
+    const now = Date.now();
+    this._timers = filtered.map((t) => {
+      const now3 = now;
+      const durationMs = typeof t.duration === "number" ? t.duration : 0;
+
+      const endTs = (typeof t.end_ts === "number")
+        ? t.end_ts
+        : (!t.paused && typeof t.end === "number" ? t.end : null);
+
+      const startTs = (typeof t.start_ts === "number")
+        ? t.start_ts
+        : (endTs && durationMs ? (endTs - durationMs) : null);
+
+      let remainingMs;
+      if (t.kind === "template") remainingMs = durationMs;
+      else if (t.idle) remainingMs = durationMs;
+      else if (t.finished) remainingMs = 0;
+      else if (t.paused) remainingMs = (typeof t.remaining_ms === "number" ? t.remaining_ms : (typeof t.end === "number" ? t.end : 0));
+      else if (endTs) remainingMs = Math.max(0, endTs - now3);
+      else remainingMs = 0;
+
+      const state =
+        t.state ||
+        (t.finished ? "finished" : (t.idle ? "idle" : (t.paused ? "paused" : (remainingMs <= 0 ? "expired" : "active"))));
+
+      const supports =
+        t.supports || {
+          pause: ["helper", "local", "mqtt", "timer"].includes(t.source),
+          cancel: ["helper", "local", "mqtt", "timer", "alexa"].includes(t.source),
+          snooze: ["helper", "local", "mqtt", "timer", "alexa"].includes(t.source),
+          extend: ["helper", "local", "mqtt", "timer"].includes(t.source),
+        };
+
+      const percent = durationMs && remainingMs >= 0
+        ? Math.max(0, Math.min(100, ((durationMs - remainingMs) / durationMs) * 100))
+        : 0;
+
+      return {
+        ...t,
+        name: t.name || t.label,
+        duration_ms: durationMs,
+        start_ts: startTs,
+        end_ts: endTs,
+        remaining_ms: remainingMs,
+        state,
+        supports,
+
+        remaining: remainingMs,
+        percent,
+      };
+    }).sort((a, b) => {
+      if (a.finished && !b.finished) return 1;
+      if (!a.finished && b.finished) return -1;
+      const ar0 = Number(a.remaining_ms ?? a.remaining ?? 0);
+      const br0 = Number(b.remaining_ms ?? b.remaining ?? 0);
+      const ar = isFinite(ar0) ? ar0 : Number.MAX_SAFE_INTEGER;
+      const br = isFinite(br0) ? br0 : Number.MAX_SAFE_INTEGER;
+      return ar - br;
+    });
+    for (const timer of this._timers) {
+      const wasRinging = this._ringingTimers.has(timer.id);
+      if (timer.source === "timer" && timer.idle && wasRinging) {
+        timer.idle = false;
+        timer.remaining = 0;
+      }
+      const isNowRinging = timer.remaining <= 0 && !timer.paused && !timer.idle;
+      if (isNowRinging && !wasRinging) {
+        this._ringingTimers.add(timer.id);
+        this._playAudioNotification(timer.id, timer);
+        this._publishTimerEvent("expired", timer);
+      } else if (!isNowRinging && wasRinging) {
+        this._ringingTimers.delete(timer.id);
+        this._stopAudioForTimer(timer.id);
+      }
+    }
+    const ids = new Set(this._timers.map((t) => t.id));
+    for (const r of this._ringingTimers) {
+      if (!ids.has(r)) {
+        this._ringingTimers.delete(r);
+        this._stopAudioForTimer(r);
+      }
+    }
+    const now2 = Date.now();
+    const audioDelay = (this._config.audio_completion_delay || 4) * 1000;
+    for (const timer of [...this._timers]) {
+      if (timer.idle || timer.remaining > 0 || timer.paused) continue;
+      const action = this._config.expire_action;
+      if (action === "dismiss") continue;
+      if (action === "keep") {
+        const isWritable = ["helper", "local", "mqtt"].includes(timer.source);
+        let expiredAt;
+        if (isWritable) {
+          if (!timer.expiredAt) {
+            timer.expiredAt = now2;
+            this._updateTimerInStorage(timer.id, { expiredAt: now2 }, timer.source);
+          }
+          expiredAt = timer.expiredAt;
+        } else {
+          if (!this._expirationTimes.has(timer.id)) this._expirationTimes.set(timer.id, now2);
+          expiredAt = this._expirationTimes.get(timer.id);
+        }
+        const keepMs = (parseInt(this._config.expire_keep_for, 10) || 120) * 1000;
+        if (now2 - expiredAt >= keepMs) {
+          if (!timer._isBeingRemoved) {
+            timer._isBeingRemoved = true;
+            this._handleDismiss(timer);
+            if (!isWritable) this._expirationTimes.delete(timer.id);
+          }
+        }
+        continue;
+      }
+      if (action === "remove") {
+        const entityConf=this._getEntityConfig(timer.source_entity);
+        let isAudioEnabled;
+        if (timer && (timer.audio_enabled===true || timer.audio_enabled===false)) isAudioEnabled=timer.audio_enabled===true;
+        else if (entityConf && entityConf.audio_enabled!==undefined) isAudioEnabled=entityConf.audio_enabled===true;
+        else isAudioEnabled=this._config.audio_enabled===true;
+        if (!timer._isBeingRemoved) {
+          timer._isBeingRemoved = true;
+          const dismissAction = () => this._handleDismiss(timer);
+          if (isAudioEnabled) setTimeout(dismissAction, audioDelay);
+          else dismissAction();
+        }
+      }
+    }
+    const currentIds = new Set(this._timers.map((t) => t.id));
+    for (const id of this._expirationTimes.keys()) {
+      if (!currentIds.has(id)) this._expirationTimes.delete(id);
+    }
+    for (const [timerId, audioData] of this._activeAudioInstances.entries()) {
+      if (!this._ringingTimers.has(timerId)) this._stopAudioForTimer(timerId);
+    }
+    if (!this._lastCleanupTime || Date.now() - this._lastCleanupTime > 10000) {
+      this._cleanupThrottleMap();
+      this._lastCleanupTime = Date.now();
+    }
+  }
+
+  _playAudioNotification(timerId,timer){
+    const entityId = timer?.source_entity || timer?.entity_id || timer?.id || null;
+    const entityConf = this._getEntityConfig(entityId);
+
+    const timerHasOverride =
+      timer && (
+        timer.audio_enabled === true ||
+        timer.audio_enabled === false ||
+        timer.audio_file_url !== undefined ||
+        timer.audio_repeat_count !== undefined ||
+        timer.audio_play_until_dismissed !== undefined
+      );
+
+    const entityHasOverride =
+      entityConf && (
+        entityConf.audio_enabled !== undefined ||
+        entityConf.audio_file_url !== undefined ||
+        entityConf.audio_repeat_count !== undefined ||
+        entityConf.audio_play_until_dismissed !== undefined
+      );
+
+    let audioEnabled, audioFileUrl, audioRepeatCount, audioPlayUntilDismissed;
+
+    if (timerHasOverride) {
+      if (timer.audio_enabled === false) audioEnabled = false;
+      else audioEnabled = timer.audio_enabled === true;
+      audioFileUrl = timer.audio_file_url;
+      audioRepeatCount = timer.audio_repeat_count;
+      audioPlayUntilDismissed = timer.audio_play_until_dismissed;
+    } else if (entityHasOverride) {
+      audioEnabled = entityConf.audio_enabled;
+      audioFileUrl = entityConf.audio_file_url;
+      audioRepeatCount = entityConf.audio_repeat_count;
+      audioPlayUntilDismissed = entityConf.audio_play_until_dismissed;
+    } else {
+      audioEnabled = this._config.audio_enabled;
+      audioFileUrl = this._config.audio_file_url;
+      audioRepeatCount = this._config.audio_repeat_count;
+      audioPlayUntilDismissed = this._config.audio_play_until_dismissed;
+    }
+if (!audioEnabled || !audioFileUrl || !this._validateAudioUrl(audioFileUrl)) return;
+    this._stopAudioForTimer(timerId);
+    try {
+      const audio = new Audio(audioFileUrl);
+      let playCount = 0;
+      const maxPlays = audioPlayUntilDismissed ? Infinity : Math.max(1, Math.min(10, audioRepeatCount || 1));
+      const playNext = () => {
+        if (this._ringingTimers.has(timerId) && playCount < maxPlays) {
+          playCount++;
+          audio.currentTime = 0;
+          audio.play().catch(() => {});
+        } else {
+          this._stopAudioForTimer(timerId);
+        }
+      };
+      const audioData = { audio, playNext };
+      audio.addEventListener("ended", playNext);
+      audio.addEventListener("error", () => this._stopAudioForTimer(timerId));
+      this._activeAudioInstances.set(timerId, audioData);
+      playNext();
+    } catch (e) {}
+  }
+
+  _stopAudioForTimer(timerId) {
+    const audioData = this._activeAudioInstances.get(timerId);
+    if (audioData) {
+      const { audio, playNext } = audioData;
+      audio.removeEventListener("ended", playNext);
+      audio.pause();
+      audio.currentTime = 0;
+      audio.src = "";
+      this._activeAudioInstances.delete(timerId);
+    }
+  }
+
+  _cleanupThrottleMap() {
+    const now = Date.now();
+    const CLEANUP_THRESHOLD = 60000;
+    for (const [key, time] of this._lastActionTime.entries()) {
+      if (now - time > CLEANUP_THRESHOLD) this._lastActionTime.delete(key);
+    }
+  }
+
+
+  _discoverVoicePEEntities() {
+    try {
+      const states = this.hass?.states || {};
+      const out = [];
+      for (const [entityId, st] of Object.entries(states)) {
+        if (!entityId || !st) continue;
+        const state = st.state;
+        if (!["active", "paused", "idle", "finished"].includes(state)) continue;
+        const attrs = st.attributes || {};
+        const controlEntity = attrs.control_entity ? String(attrs.control_entity).trim() : "";
+        if (!controlEntity) continue;
+
+        out.push(entityId);
+      }
+      out.sort((a, b) => a.localeCompare(b));
+      return out;
+    } catch (_) {
+      return [];
+    }
+  }
+
+  _getDefaultVoicePETargetEntity() {
+
+    try {
+      const cfg = Array.isArray(this._config?.entities) ? this._config.entities : [];
+      for (const entityConf of cfg) {
+        const entityId = typeof entityConf === "string" ? entityConf : entityConf?.entity;
+        const mode = typeof entityConf === "string" ? null : entityConf?.mode;
+        if (!entityId) continue;
+        if (mode === "voice_pe" || (entityId.startsWith("sensor.") && String(entityId).toLowerCase().includes("vpe_timer"))) {
+          return entityId;
+        }
+        const st = this.hass?.states?.[entityId];
+        const controlEntity = st?.attributes?.control_entity ? String(st.attributes.control_entity).trim() : "";
+        if (controlEntity) return entityId;
+      }
+    } catch (_) {}
+
+    const discovered = this._discoverVoicePEEntities();
+    return discovered.length ? discovered[0] : null;
+  }
+
+  _ensureAutoVoicePEEntities() {
+    if (this._autoVoicePEInjected) return;
+    if (this._config?.auto_voice_pe !== true) return;
+
+    const cfgEntities = Array.isArray(this._config?.entities) ? this._config.entities : [];
+    if (cfgEntities.length > 0) {
+      this._autoVoicePEInjected = true;
+      return;
+    }
+
+    const discovered = this._discoverVoicePEEntities();
+    if (!discovered.length) return;
+
+    this._config.entities = discovered.map((e) => ({ entity: e, mode: "voice_pe" }));
+    this._autoVoicePEInjected = true;
+  }
+
+  _publishTimerEvent(event, timer) {
+    if (this._config.storage === "mqtt" || this._config.default_timer_entity?.startsWith("sensor.")) {
+      const payload = {
+        id: timer.id,
+        label: timer.label,
+        name: timer.name,
+        source: timer.source,
+        source_entity: timer.source_entity,
+        icon: timer.icon,
+        color: timer.color,
+        voice_pe_timer_id: timer.voice_pe_timer_id,
+        control_entity: timer.control_entity,
+        timestamp: Date.now(),
+        event: event,
+        duration: timer.duration,
+        remaining: timer.remaining
+      };
+
+      if (timer?.pinned_id) payload.pinned_id = timer.pinned_id;
+
+
+      if (timer?.source === "voice_pe") {
+        payload.state = timer.state;
+        payload.start_ts = timer.start_ts;
+        payload.end_ts = timer.end_ts;
+        payload.duration_ms = timer.duration_ms ?? timer.duration;
+        payload.remaining_ms = timer.remaining_ms ?? timer.remaining;
+      }
+
+      this.hass.callService("mqtt", "publish", {
+        topic: `${this._config?.mqtt?.events_topic || "simple_timer_card/events"}/${event}`,
+        payload: JSON.stringify(payload),
+        retain: false,
+      });
+    }
+  }
+
+
+  _getEntityConfig(entityId) {
+    if (!entityId || !this._config.entities) return null;
+    for (const entityConf of this._config.entities) {
+      const confEntityId = typeof entityConf === "string" ? entityConf : entityConf?.entity;
+      if (confEntityId === entityId) return typeof entityConf === "string" ? {} : entityConf;
+    }
+    return null;
+  }
+
+  _parseDuration(durationStr) {
+    if (!durationStr) return 0;
+    if (/^\d{1,2}:\d{2}:\d{2}$/.test(durationStr)) return this._parseHMSToMs(durationStr);
+    if (/^\d{1,2}:\d{2}$/.test(durationStr)) {
+      const parts = durationStr.split(":").map((p) => parseInt(p, 10));
+      return (parts[0] * 60 + parts[1]) * 1000;
+    }
+    let totalSeconds = 0;
+    const hourMatch = durationStr.match(/(\d+)\s*h/);
+    const minuteMatch = durationStr.match(/(\d+)\s*m/);
+    const secondMatch = durationStr.match(/(\d+)\s*s/);
+    const numberOnlyMatch = durationStr.match(/^\d+$/);
+    if (hourMatch) totalSeconds += parseInt(hourMatch[1]) * 3600;
+    if (minuteMatch) totalSeconds += parseInt(minuteMatch[1]) * 60;
+    if (secondMatch) totalSeconds += parseInt(secondMatch[1]);
+    if (!hourMatch && !minuteMatch && !secondMatch && numberOnlyMatch) totalSeconds = parseInt(numberOnlyMatch[0]) * 60;
+    return totalSeconds * 1000;
+  }
+
+  _mutateHelper(entityId, mutator) {
+    const state = this.hass.states[entityId]?.state ?? '{"timers":[]}';
+    let data;
+    try {
+      data = JSON.parse(state);
+      if (!this._validateStoredTimerData(data)) data = { timers: [] };
+    } catch {
+      data = { timers: [] };
+    }
+    if (!Array.isArray(data.timers)) data.timers = [];
+    mutator(data);
+    const domain = entityId.split(".")[0];
+    this.hass.callService(domain, "set_value", { entity_id: entityId, value: JSON.stringify({ ...data, version: 1 }) });
+  }
+
+  _handleCreateTimer(e) {
+    const form = e.target;
+    const durationStr = form.querySelector('ha-textfield[name="duration"]')?.value?.trim() ?? "";
+    const label = form.querySelector('ha-textfield[name="label"]')?.value?.trim() ?? "";
+    const targetEntity = form.querySelector('[name="target_entity"]')?.value ?? "";
+    const durationMs = this._parseDuration(durationStr);
+    let resolvedTargetEntity = targetEntity;
+    if (!resolvedTargetEntity) resolvedTargetEntity = this._config.default_timer_entity || "";
+    if (this._config.auto_voice_pe === true) {
+      const vpeEntity = this._getDefaultVoicePETargetEntity();
+      if (vpeEntity) resolvedTargetEntity = vpeEntity;
+    }
+    if (durationMs <= 0) return;
+    const validation = this._validateTimerInput(durationMs, label);
+    if (!validation.valid) return;
+    const endTime = Date.now() + durationMs;
+    const newTimer = {
+      id: `custom-${Date.now()}`,
+      label: this._sanitizeText(label || this._localize("timer")),
+      icon: this._config.default_timer_icon || "mdi:timer-outline",
+      color: this._config.default_timer_color || "var(--primary-color)",
+      end: endTime,
+      duration: durationMs,
+      source: "helper",
+      paused: false,
+    };
+    if (resolvedTargetEntity) {
+      const ce = this._getVoicePEControlEntity(resolvedTargetEntity);
+      if (ce) {
+        this._publishTimerEvent("started", { source: "voice_pe", source_entity: resolvedTargetEntity, label: newTimer.label });
+        this._sendVoicePEStart(durationMs, "", resolvedTargetEntity);
+        this.requestUpdate();
+        return;
+      }
+    }
+    if (!resolvedTargetEntity) {
+      const now = Date.now();
+      const t = {
+        id: newTimer.id,
+        kind: "active",
+        label: newTimer.label,
+        name: newTimer.label,
+        source: this._config.storage === "mqtt" ? "mqtt" : "local",
+        source_entity: this._config.storage === "mqtt" ? this._config.mqtt?.sensor_entity : "local",
+        start_ts: now,
+        end_ts: now + durationMs,
+        state: "active",
+        supports: { pause: true, cancel: true, snooze: true, extend: true },
+        icon: newTimer.icon,
+        color: newTimer.color,
+        end: now + durationMs,
+        duration: durationMs,
+        paused: false,
+        idle: false,
+        finished: false,
+      };
+      this._addTimerToStorage(t);
+      this._publishTimerEvent("started", t);
+      this.requestUpdate();
+      return;
+    }
+    this._mutateHelper(resolvedTargetEntity, (data) => { data.timers.push(newTimer); });
+    this._publishTimerEvent("started", newTimer);
+  }
+  _parseDurationInputToMs(input) {
+    if (input == null) return null;
+    if (typeof input === "number") {
+      if (!Number.isFinite(input) || input <= 0) return null;
+      return Math.round(input * 60000);
+    }
+    const raw = String(input).trim().toLowerCase();
+    const m = raw.match(/^(\d+)\s*([smhd])?$/);
+    if (!m) return null;
+    const value = parseInt(m[1], 10);
+    if (!Number.isFinite(value) || value <= 0) return null;
+    const unit = m[2] || "m";
+    if (unit === "s") return value * 1000;
+    if (unit === "m") return value * 60000;
+    if (unit === "h") return value * 3600000;
+    if (unit === "d") return value * 86400000;
+    return null;
+  }
+
+  _createPresetTimer(preset, entity = null, overrides = {}) {
+    const durationMs = this._parseDurationInputToMs(preset);
+    if (!durationMs) return;
+
+    const label = overrides.label || (() => {
+      const raw = typeof preset === "string" ? preset.trim().toLowerCase() : preset;
+      if (typeof raw === "string" && raw.endsWith("s")) {
+        const seconds = parseInt(raw.slice(0, -1), 10);
+        return `${seconds}s ${this._localize("timer")}`;
+      }
+      if (typeof raw === "string" && raw.endsWith("h")) {
+        const hours = parseInt(raw.slice(0, -1), 10);
+        return `${hours}${this._localize("h")} ${this._localize("timer")}`;
+      }
+      if (typeof raw === "string" && raw.endsWith("d")) {
+        const days = parseInt(raw.slice(0, -1), 10);
+        return `${days}${this._localize("d")} ${this._localize("timer")}`;
+      }
+      const minutes = typeof raw === "string" && raw.endsWith("m") ? parseInt(raw.slice(0, -1), 10) : parseInt(raw, 10);
+      if (!isNaN(minutes) && minutes > 0) return this._formatTimerLabel(minutes * 60);
+      return this._formatTimerLabel(Math.round(durationMs / 1000));
+    })();
+
+    let targetEntity = entity;
+    if (!targetEntity && this._config.auto_voice_pe === true) {
+      targetEntity = this._getDefaultVoicePETargetEntity();
+    }
+    if (!targetEntity) targetEntity = this._config.default_timer_entity;
+    const voicePEEnabled = this._config.auto_voice_pe === true;
+    const controlEntityFromCfg = this._config?.voice_pe_control_entity ? String(this._config.voice_pe_control_entity).trim() : "";
+    const canStartVoicePE = voicePEEnabled && !!controlEntityFromCfg;
+
+    if (voicePEEnabled && !controlEntityFromCfg) {
+      this._toast("Voice PE control entity is not set. Please configure it in the card editor.");
+    }
+
+    if (canStartVoicePE) {
+      const userProvidedName = !!(overrides?.voice_pe_name && String(overrides.voice_pe_name).trim());
+      const nameForCommand = userProvidedName ? String(overrides.voice_pe_name).trim() : "";
+      this._publishTimerEvent("started", { source: "voice_pe", source_entity: targetEntity, label });
+      this._sendVoicePEStart(durationMs, nameForCommand, targetEntity);
+      this.requestUpdate();
+      return;
+    }
+
+    const now = Date.now();
+    const newTimer = {
+      id: overrides.id || `preset-${now}`,
+      kind: "active",
+      label,
+      name: label,
+      source: "local",
+      source_entity: targetEntity || "local",
+      start_ts: now,
+      end_ts: now + durationMs,
+      state: "active",
+      supports: { pause: true, cancel: true, snooze: true, extend: true },
+
+      pinned_id: overrides.pinned_id,
+      expired_subtitle: overrides.expired_subtitle ?? this._config.expired_subtitle,
+      ...(overrides.audio_enabled !== undefined ? { audio_enabled: overrides.audio_enabled } : {}),
+      ...(overrides.audio_file_url !== undefined ? { audio_file_url: overrides.audio_file_url } : {}),
+      ...(overrides.audio_repeat_count !== undefined ? { audio_repeat_count: overrides.audio_repeat_count } : {}),
+      ...(overrides.audio_play_until_dismissed !== undefined ? { audio_play_until_dismissed: overrides.audio_play_until_dismissed } : {}),
+
+      icon: overrides.icon || this._config.default_timer_icon || "mdi:timer-outline",
+      color: overrides.color || this._config.default_timer_color || "var(--primary-color)",
+      end: now + durationMs,
+      duration: durationMs,
+      paused: false,
+      idle: false,
+      finished: false,
+    };
+
+    if (targetEntity && (targetEntity.startsWith("input_text.") || targetEntity.startsWith("text."))) {
+      newTimer.source = "helper";
+      newTimer.source_entity = targetEntity;
+      if (resolvedTargetEntity) {
+      const ce = this._getVoicePEControlEntity(resolvedTargetEntity);
+      if (ce) {
+        this._publishTimerEvent("started", { source: "voice_pe", source_entity: resolvedTargetEntity, label: newTimer.label });
+        this._sendVoicePEStart(durationMs, "", resolvedTargetEntity);
+        this.requestUpdate();
+        return;
+      }
+    }
+    this._mutateHelper(resolvedTargetEntity, (data) => { data.timers.push(newTimer); });
+      this._publishTimerEvent("created", newTimer);
+    } else if (this._config.storage === "mqtt") {
+      newTimer.source = "mqtt";
+      newTimer.source_entity = this._config.mqtt.sensor_entity;
+      this._addTimerToStorage(newTimer);
+      this._publishTimerEvent("created", newTimer);
+    } else {
+      newTimer.source = "local";
+      newTimer.source_entity = this._config.storage === "mqtt" ? this._config.mqtt.sensor_entity : "local";
+      this._addTimerToStorage(newTimer);
+      this._publishTimerEvent("created", newTimer);
+    }
+    this._publishTimerEvent("started", newTimer);
+    this.requestUpdate();
+  }
+  _formatTimerLabel(totalSeconds) {
+    if (totalSeconds <= 0) return this._localize("timer");
+    const t = this._localize("timer");
+    const h = this._localize("h");
+    const m = this._localize("m");
+    const s = this._localize("s");
+    const d = this._localize("d");
+    if (totalSeconds < 60) return `${totalSeconds}${s} ${t}`;
+    const days = Math.floor(totalSeconds / DAY_IN_SECONDS);
+    const remainderAfterDays = totalSeconds % DAY_IN_SECONDS;
+    if (days > 0 && remainderAfterDays === 0) return `${days}${d} ${t}`;
+    const hours = Math.floor(remainderAfterDays / HOUR_IN_SECONDS);
+    const minutes = Math.floor((remainderAfterDays % HOUR_IN_SECONDS) / MINUTE_IN_SECONDS);
+    const seconds = remainderAfterDays % MINUTE_IN_SECONDS;
+    const parts = [];
+    if (days) parts.push(`${days}${d}`);
+    if (hours) parts.push(`${hours}${h}`);
+    if (minutes) parts.push(`${minutes}${m}`);
+    if (seconds && parts.length < 3) parts.push(`${seconds}${s}`);
+    return `${parts.join("")} ${t}`;
+  }
+
+  _formatDurationDisplay(ms) {
+    if (ms <= 0) return `0${this._localize("s")}`;
+    const totalSeconds = Math.floor(ms / 1000);
+    if (totalSeconds < 60) return `${totalSeconds}${this._localize("s")}`;
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    if (totalSeconds < 3600) return `${minutes}${this._localize("m")}${seconds ? seconds + this._localize("s") : ""}`;
+    const hours = Math.floor(minutes / 60);
+    const remMin = minutes % 60;
+    return `${hours}${this._localize("h")}${remMin ? remMin + this._localize("m") : ""}`;
+  }
+
+  _renderTimerNameSelector(inputId, placeholder) {
+    const presets = this._config.timer_name_presets || [];
+    if (presets.length === 0) {
+      return b`<input id="${inputId}" class="text-input" placeholder="${placeholder}" style="margin-top: 12px;" />`;
+    }
+    const customValue = this._lastSelectedName[inputId];
+    const isCustomValue = customValue && !presets.includes(customValue);
+    return b`
       <div class="name-selector">
-        <div class="name-chips" style="display: ${this._showingCustomName[t]?"none":"flex"};">
-          ${i.map(e=>H`
-            <button class="btn btn-preset ${this._lastSelectedName[t]===e?"selected":""}"
-                    @click=${i=>this._setTimerName(t,e,i)}>
-              ${this._sanitizeText(e)}
+        <div class="name-chips" style="display: ${this._showingCustomName[inputId] ? "none" : "flex"};">
+          ${presets.map(name => b`
+            <button class="btn btn-preset ${this._lastSelectedName[inputId] === name ? "selected" : ""}"
+                    @click=${(e) => this._setTimerName(inputId, name, e)}>
+              ${this._sanitizeText(name)}
             </button>
           `)}
-          ${r?H`
+          ${isCustomValue ? b`
             <button class="btn btn-preset selected"
-                    @click=${e=>this._editCustomValue(t,e)}>
-              ${this._sanitizeText(s)}
+                    @click=${(e) => this._editCustomValue(inputId, e)}>
+              ${this._sanitizeText(customValue)}
             </button>
-          `:H`
+          ` : b`
             <button class="btn btn-ghost"
-                    @click=${e=>this._showCustomNameInput(t,e)}>
+                    @click=${(e) => this._showCustomNameInput(inputId, e)}>
               ${this._localize("custom")}
             </button>
           `}
         </div>
-        <input id="${t}" class="text-input" placeholder="${e}"
-               style="display: ${this._showingCustomName[t]?"block":"none"};"
-               @blur=${e=>this._handleCustomInputBlur(t,e)}
-               @keypress=${e=>"Enter"===e.key&&this._handleCustomInputBlur(t,e)} />
+        <input id="${inputId}" class="text-input" placeholder="${placeholder}"
+               style="display: ${this._showingCustomName[inputId] ? "block" : "none"};"
+               @blur=${(e) => this._handleCustomInputBlur(inputId, e)}
+               @keypress=${(e) => e.key === "Enter" && this._handleCustomInputBlur(inputId, e)} />
       </div>
-    `}_setTimerName(t,e,i){i?.stopPropagation();const s=this.shadowRoot?.getElementById(t);s&&(s.value=e,this._lastSelectedName[t]=e,this._showingCustomName[t]=!1,this.requestUpdate())}_showCustomNameInput(t,e){e?.stopPropagation();const i=this.shadowRoot?.getElementById(t);i&&(i.value="",this._showingCustomName[t]=!0,this.requestUpdate(),setTimeout(()=>i.focus(),10))}_editCustomValue(t,e){e?.stopPropagation();const i=this.shadowRoot?.getElementById(t);i&&(i.value=this._lastSelectedName[t]||"",this._showingCustomName[t]=!0,this.requestUpdate(),setTimeout(()=>{i.focus(),i.select()},10))}_handleCustomInputBlur(t,e){const i=e.target.value.trim();i?(this._lastSelectedName[t]=i,this._showingCustomName[t]=!1):(this._showingCustomName[t]=!1,this._lastSelectedName[t]=null),this.requestUpdate()}_cleanFriendlyName(t){return t?t.replace(/\s*next\s+timer\s*/i,"").trim():t}_handleStart(t){if("template"!==t?.kind)if("timer"===t.source)if(this._publishTimerEvent("started",t),t.duration){const e=Math.ceil(t.duration/1e3),i=this._formatDurationForService(e);this.hass.callService("timer","start",{entity_id:t.source_entity,duration:i})}else this.hass.callService("timer","start",{entity_id:t.source_entity});else this._toast("This timer can't be started from here.");else{if(this._isActionThrottled("start_template",t.pinned_id||t.id,500))return;this._createPresetTimer(t.template_preset??t.duration_input??t.preset??t.duration,null,(()=>{const e={label:t.label||t.name,voice_pe_name:t.label||t.name,icon:t.icon,color:t.color,expired_subtitle:t.expired_subtitle,pinned_id:t.pinned_id||t.id};return!0!==t.audio_enabled&&!1!==t.audio_enabled||(e.audio_enabled=t.audio_enabled),t.audio_file_url&&(e.audio_file_url=t.audio_file_url),void 0!==t.audio_repeat_count&&(e.audio_repeat_count=t.audio_repeat_count),!0!==t.audio_play_until_dismissed&&!1!==t.audio_play_until_dismissed||(e.audio_play_until_dismissed=t.audio_play_until_dismissed),e})())}}_handleCancel(t){if(!this._isActionThrottled("cancel",t.id)){if(this._ringingTimers.delete(t.id),"voice_pe"===t.source)return this._isLocalVoicePETimer(t)?(this._publishTimerEvent("cancelled",t),void this._sendVoicePECommand(t.control_entity,`cancel:${String(t.voice_pe_timer_id).trim()}`)):void this._toast("This timer is read only.");this._publishTimerEvent("cancelled",t),"helper"===t.source?this._mutateHelper(t.source_entity,e=>{e.timers=e.timers.filter(e=>e.id!==t.id)}):["local","mqtt"].includes(t.source)?(this._removeTimerFromStorage(t.id,t.source),this.requestUpdate()):"timer"===t.source?this.hass.callService("timer","cancel",{entity_id:t.source_entity}):this._toast("This timer can't be cancelled from here.")}}_handlePause(t){if("voice_pe"===t.source)return this._isLocalVoicePETimer(t)?(this._publishTimerEvent("paused",t),void this._sendVoicePECommand(t.control_entity,`pause:${String(t.voice_pe_timer_id).trim()}`)):void this._toast("This timer is read only.");if(this._publishTimerEvent("paused",t),"helper"===t.source){const e=t.remaining;this._mutateHelper(t.source_entity,i=>{const s=i.timers.findIndex(e=>e.id===t.id);-1!==s&&(i.timers[s].paused=!0,i.timers[s].end=e)})}else if(["local","mqtt"].includes(t.source)){const e=t.remaining;this._updateTimerInStorage(t.id,{paused:!0,end:e},t.source),this.requestUpdate()}else"timer"===t.source?this.hass.callService("timer","pause",{entity_id:t.source_entity}):this._toast("This timer can't be paused from here.")}_handleResume(t){if("voice_pe"===t.source)return this._isLocalVoicePETimer(t)?(this._publishTimerEvent("resumed",t),void this._sendVoicePECommand(t.control_entity,`resume:${String(t.voice_pe_timer_id).trim()}`)):void this._toast("This timer is read only.");if(this._publishTimerEvent("resumed",t),"helper"===t.source){const e=Date.now()+t.remaining;this._mutateHelper(t.source_entity,i=>{const s=i.timers.findIndex(e=>e.id===t.id);-1!==s&&(i.timers[s].paused=!1,i.timers[s].end=e)})}else if(["local","mqtt"].includes(t.source)){const e=Date.now()+t.remaining;this._updateTimerInStorage(t.id,{paused:!1,end:e},t.source),this.requestUpdate()}else"timer"===t.source?this.hass.callService("timer","start",{entity_id:t.source_entity}):this._toast("This timer can't be resumed from here.")}_togglePause(t,e){e?.stopPropagation?.(),["helper","local","mqtt","timer"].includes(t.source)&&(t.paused?this._handleResume(t):this._handlePause(t))}_handleDismiss(t){this._ringingTimers.delete(t.id),this._stopAudioForTimer(t.id),"helper"===t.source?this._mutateHelper(t.source_entity,e=>{e.timers=e.timers.filter(e=>e.id!==t.id)}):["local","mqtt"].includes(t.source)?(this._removeTimerFromStorage(t.id,t.source),this.requestUpdate()):"timer"===t.source?this.hass.callService("timer","finish",{entity_id:t.source_entity}):(this._dismissed.add(`${t.source_entity}:${t.id}`),this.requestUpdate())}_handleSnooze(t){if(this._isActionThrottled("snooze",t.id))return;this._ringingTimers.delete(t.id),this._stopAudioForTimer(t.id),this._publishTimerEvent("snoozed",t);const e=Number(this._config.snooze_duration??5);if(!Number.isFinite(e)||e<=0)return void this._toast("Invalid snooze_duration setting.");const i=6e4*e,s=Date.now()+i;if("helper"===t.source){const e=Date.now();this._mutateHelper(t.source_entity,r=>{const n=r.timers.findIndex(e=>e.id===t.id);-1!==n&&(r.timers[n].start_ts=e,r.timers[n].end_ts=s,r.timers[n].end=s,r.timers[n].duration=i,r.timers[n].paused=!1,r.timers[n].state="active")})}else if(["local","mqtt"].includes(t.source)){const e=Date.now();this._updateTimerInStorage(t.id,{start_ts:e,end_ts:s,end:s,duration:i,paused:!1,state:"active"},t.source),this.requestUpdate()}else if("timer"===t.source){const i=this._formatDurationForService(60*e);this.hass.callService("timer","start",{entity_id:t.source_entity,duration:i})}else this._toast("Only helper, local, MQTT, and timer entities can be snoozed here.")}_formatTimeAgo(t){if(t<1e3)return null;const e=Math.floor(t/1e3),i=Math.floor(e/60),s=Math.floor(i/60);return s>0?1===s?`1 ${this._localize("hour_ago")}`:`${s} ${this._localize("hours_ago")}`:i>0?1===i?`1 ${this._localize("minute_ago")}`:`${i} ${this._localize("minutes_ago")}`:1===e?`1 ${this._localize("second_ago")}`:`${e} ${this._localize("seconds_ago")}`}_formatClock(t,e=!1){if(t<=0)return"00:00";const i=Math.floor(t/ut),s=t%ut,r=Math.floor(s/dt),n=Math.floor(s%dt/60),o=s%60,a=(t,e=2)=>String(t).padStart(e,"0");if(e)return i>0?`${a(i)}:${a(r)}:${a(n)}:${a(o)}`:r>0?`${a(r)}:${a(n)}:${a(o)}`:`${a(n)}:${a(o)}`;const l=24*i+r;return l>0?`${a(l)}:${a(n)}:${a(o)}`:`${a(n)}:${a(o)}`}_getUnitLabel(t,e,i){if("compact"===i)return"year"===t||"years"===t?this._localize("y_short"):"month"===t||"months"===t?this._localize("mo_short"):"week"===t||"weeks"===t?this._localize("w_short"):"day"===t||"days"===t?this._localize("d"):"hour"===t||"hours"===t?this._localize("h"):"minute"===t||"minutes"===t?this._localize("m"):this._localize("s");return`${e} ${this._localize(t)}`}_formatDuration(t,e="seconds"){let i;if("ms"===e){if(t<=0)return"00:00";i=Math.ceil(t/1e3)}else{if(t<=0)return"00:00";i=Math.floor(t)}return this._formatClock(i,!1)}_formatDurationHM(t){const e=Math.ceil(t/1e3);if(e<=0)return"00";const i=Math.floor(e/3600),s=Math.floor(e%3600/60),r=t=>String(t).padStart(2,"0");return i>0?`${r(i)}:${r(s)}`:`${r(s)}`}_formatDurationSS(t){return t<=0?"0":`${Math.ceil(t/1e3)}`}_formatDurationDHMS(t){return this._formatClock(Math.ceil(t/1e3),!0)}_formatHumanUnits(t,e){const i=this._config.time_format_units&&this._config.time_format_units.length?this._config.time_format_units:["days","hours","minutes","seconds"],s={years:ct,months:2592e6,weeks:6048e5,days:lt,hours:36e5,minutes:6e4,seconds:1e3};let r=t;const n=[];for(const t of i){const o=s[t];if(!o)continue;const a=Math.floor(r/o);if(a>0||t===i[i.length-1]&&0===n.length){r-=a*o;const i=1===a?t.slice(0,-1):t,s=this._getUnitLabel(i,a,"natural"===e?"short":e);n.push("compact"===e?`${a}${s}`:`${s}`)}}return"compact"===e?n.join(" "):n.join(", ")}_formatTimeString(t){const e=this._config.time_format;return"dhms"===e?this._formatDurationDHMS(t.remaining):"hm"===e?this._formatDurationHM(t.remaining):"ss"===e?this._formatDurationSS(t.remaining):"human_compact"===e?this._formatHumanUnits(t.remaining,"compact"):"human_short"===e?this._formatHumanUnits(t.remaining,"short"):"human_natural"===e?this._formatHumanUnits(t.remaining,"natural"):this._formatDurationHMS(t.remaining)}_formatDurationHMS(t){return this._formatClock(Math.ceil(t/1e3),!1)}_formatDurationForService(t){t=Math.max(0,Math.floor(t));const e=Math.floor(t/3600),i=Math.floor(t%3600/60),s=t%60,r=t=>String(t).padStart(2,"0");return`${r(e)}:${r(i)}:${r(s)}`}_toggleCustom(t){const e=`noTimer${t.charAt(0).toUpperCase()+t.slice(1)}Open`;this._ui[e]=!this._ui[e],this.requestUpdate()}_parseAdjustmentToSeconds(t){let e=0;if("string"==typeof t&&t.toLowerCase().endsWith("s")){const i=parseInt(t.slice(0,-1),10);isNaN(i)||(e=i)}else{const i=parseInt(t,10);isNaN(i)||(e=60*i)}return e}_adjust(t,e,i=1){const s=this._parseAdjustmentToSeconds(e);this._customSecs={...this._customSecs,[t]:Math.max(0,this._customSecs[t]+i*s)}}_createAndSaveTimer(t,e){if(this._isActionThrottled("create_timer","global",500))return;if(t<=0)return;if(!this._validateTimerInput(1e3*t,e).valid)return;const i=e&&e.trim()?this._sanitizeText(e.trim()):this._formatTimerLabel(t),s={id:`custom-${Date.now()}`,label:i,icon:this._config.default_timer_icon||"mdi:timer-outline",color:this._config.default_timer_color||"var(--primary-color)",end:Date.now()+1e3*t,duration:1e3*t,paused:!1};let r=this._config.default_timer_entity;if(!0===this._config.auto_voice_pe){const t=this._getDefaultVoicePETargetEntity();t&&(r=t)}if(!!this._getVoicePEControlEntity(r)){const i=!(!e||!String(e).trim())?String(e).trim():"";return this._sendVoicePEStart(1e3*t,i,r),void this.requestUpdate()}if(r&&(r.startsWith("input_text.")||r.startsWith("text."))){if(s.source="helper",s.source_entity=r,resolvedTargetEntity){if(this._getVoicePEControlEntity(resolvedTargetEntity))return this._publishTimerEvent("started",{source:"voice_pe",source_entity:resolvedTargetEntity,label:s.label}),this._sendVoicePEStart(durationMs,"",resolvedTargetEntity),void this.requestUpdate()}this._mutateHelper(resolvedTargetEntity,t=>{t.timers.push(s)}),this._publishTimerEvent("started",s)}else s.source=this._config.storage,s.source_entity="mqtt"===this._config.storage?this._config.mqtt.sensor_entity:"local",this._addTimerToStorage(s),this._publishTimerEvent("started",s)}_startFromCustom(t,e){const i=this._customSecs[t],s="horizontal"===t?"nt-h-name":"nt-v-name";let r=e||this._lastSelectedName[s]||"";const n=this.shadowRoot?.getElementById(s);n&&n.value&&(r=n.value.trim()),this._createAndSaveTimer(i,r);const o=60*(parseInt(this._config.default_new_timer_duration_mins,10)||15);this._customSecs={...this._customSecs,[t]:o};const a=`noTimer${t.charAt(0).toUpperCase()+t.slice(1)}Open`;this._ui[a]=!1,this._showingCustomName[s]=!1,this._lastSelectedName[s]=null,n&&(n.value=""),this.requestUpdate()}_startActive(t,e){const i=this._activeSecs[t],s="bar"===t?"add-bar-name":"add-fill-name";let r=e||this._lastSelectedName[s]||"";const n=this.shadowRoot?.getElementById(s);n&&n.value&&(r=n.value.trim()),this._createAndSaveTimer(i,r);const o=60*(parseInt(this._config.default_new_timer_duration_mins,10)||15);this._activeSecs={...this._activeSecs,[t]:o};const a=`active${t.charAt(0).toUpperCase()+t.slice(1)}Open`;this._ui[a]=!1,this._showingCustomName[s]=!1,this._lastSelectedName[s]=null,n&&(n.value=""),this.requestUpdate()}_toggleActivePicker(t){const e=`active${t.charAt(0).toUpperCase()+t.slice(1)}Open`;this._ui[e]=!this._ui[e],this.requestUpdate()}_adjustActive(t,e,i=1){const s=this._parseAdjustmentToSeconds(e);this._activeSecs={...this._activeSecs,[t]:Math.max(0,this._activeSecs[t]+i*s)}}_pickAutoMilestoneUnit(t){return!t||t<=0?"seconds":t>=ct?"years":t>=2592e6?"months":t>=6048e5?"weeks":t>=lt?"days":t>=36e5?"hours":t>=6e4?"minutes":"seconds"}_renderMilestoneSegments(t,e){if("milestones"!==this._config.progress_mode)return null;if(!["bar_horizontal","bar_vertical"].includes(this._config.style))return null;const i=(this._config.milestone_unit||"auto").toLowerCase(),s="auto"===i?this._pickAutoMilestoneUnit(t.duration):i;if("none"===s)return null;const r={years:ct,months:2592e6,weeks:6048e5,days:lt,hours:36e5,minutes:6e4,seconds:1e3}[s];if(!r||!t.duration||t.duration<=0)return null;const n=Math.min(100,Math.max(1,Math.ceil(t.duration/r)));if(!n||n<=1)return null;const o=e/100*n,a=Math.floor(o),l=Math.min(n-1,Math.max(0,a)),c=!0===t.idle;return H`
-      <div class="milestone-track ${c?"idle":""}">
-        ${Array.from({length:n}).map((e,i)=>{if(c)return H`<div class="segment idle"></div>`;const s=i<a,r=!t.paused&&!t.idle&&!1!==this._config.milestone_pulse,n=["segment",s?"completed":"",i===l&&r?"active":"",i>a?"inactive":"","drain"===this._config.progress_mode?"drain":"fill"].join(" ");return H`<div class="${n}"></div>`})}
+    `;
+  }
+
+  _setTimerName(inputId, name, e) {
+    e?.stopPropagation();
+    const input = this.shadowRoot?.getElementById(inputId);
+    if (input) {
+      input.value = name;
+      this._lastSelectedName[inputId] = name;
+      this._showingCustomName[inputId] = false;
+      this.requestUpdate();
+    }
+  }
+
+  _showCustomNameInput(inputId, e) {
+    e?.stopPropagation();
+    const input = this.shadowRoot?.getElementById(inputId);
+    if (input) {
+      input.value = "";
+      this._showingCustomName[inputId] = true;
+      this.requestUpdate();
+      setTimeout(() => input.focus(), 10);
+    }
+  }
+
+  _editCustomValue(inputId, e) {
+    e?.stopPropagation();
+    const input = this.shadowRoot?.getElementById(inputId);
+    if (input) {
+      input.value = this._lastSelectedName[inputId] || "";
+      this._showingCustomName[inputId] = true;
+      this.requestUpdate();
+      setTimeout(() => { input.focus(); input.select(); }, 10);
+    }
+  }
+
+  _handleCustomInputBlur(inputId, e) {
+    const input = e.target;
+    const value = input.value.trim();
+    if (value) {
+      this._lastSelectedName[inputId] = value;
+      this._showingCustomName[inputId] = false;
+    } else {
+      this._showingCustomName[inputId] = false;
+      this._lastSelectedName[inputId] = null;
+    }
+    this.requestUpdate();
+  }
+
+  _cleanFriendlyName(friendlyName) {
+    if (!friendlyName) return friendlyName;
+    return friendlyName.replace(/\s*next\s+timer\s*/i, "").trim();
+  }
+
+  _handleStart(timer) {
+    if (timer?.kind === "template") {
+      if (this._isActionThrottled("start_template", timer.pinned_id || timer.id, 500)) return;
+      this._createPresetTimer(
+        timer.template_preset ?? timer.duration_input ?? timer.preset ?? timer.duration,
+        null,
+        (() => {
+          const overrides = {
+            label: timer.label || timer.name,
+            voice_pe_name: timer.label || timer.name,
+            icon: timer.icon,
+            color: timer.color,
+            expired_subtitle: timer.expired_subtitle,
+            pinned_id: timer.pinned_id || timer.id,
+          };
+          if (timer.audio_enabled === true || timer.audio_enabled === false) overrides.audio_enabled = timer.audio_enabled;
+          if (timer.audio_file_url) overrides.audio_file_url = timer.audio_file_url;
+          if (timer.audio_repeat_count !== undefined) overrides.audio_repeat_count = timer.audio_repeat_count;
+          if (timer.audio_play_until_dismissed === true || timer.audio_play_until_dismissed === false) overrides.audio_play_until_dismissed = timer.audio_play_until_dismissed;
+          return overrides;
+        })()
+      );
+      return;
+    }
+
+    if (timer.source === "timer") {
+      this._publishTimerEvent("started", timer);
+      if (timer.duration) {
+        const totalSeconds = Math.ceil(timer.duration / 1000);
+        const serviceDuration = this._formatDurationForService(totalSeconds);
+        this.hass.callService("timer", "start", { entity_id: timer.source_entity, duration: serviceDuration });
+      } else {
+        this.hass.callService("timer", "start", { entity_id: timer.source_entity });
+      }
+    } else {
+      this._toast("This timer can't be started from here.");
+    }
+  }
+
+  _handleCancel(timer) {
+    if (this._isActionThrottled("cancel", timer.id)) return;
+    this._ringingTimers.delete(timer.id);
+
+    if (timer.source === "voice_pe") {
+      if (!this._isLocalVoicePETimer(timer)) {
+        this._toast("This timer is read only.");
+        return;
+      }
+      this._publishTimerEvent("cancelled", timer);
+      this._sendVoicePECommand(timer.control_entity, `cancel:${String(timer.voice_pe_timer_id).trim()}`);
+      return;
+    }
+
+    this._publishTimerEvent("cancelled", timer);
+    if (timer.source === "helper") {
+      this._mutateHelper(timer.source_entity, (data) => { data.timers = data.timers.filter((t) => t.id !== timer.id); });
+    } else if (["local", "mqtt"].includes(timer.source)) {
+      this._removeTimerFromStorage(timer.id, timer.source);
+      this.requestUpdate();
+    } else if (timer.source === "timer") {
+      this.hass.callService("timer", "cancel", { entity_id: timer.source_entity });
+    } else {
+      this._toast("This timer can't be cancelled from here.");
+    }
+  }
+
+  _handlePause(timer) {
+    if (timer.source === "voice_pe") {
+      if (!this._isLocalVoicePETimer(timer)) {
+        this._toast("This timer is read only.");
+        return;
+      }
+      this._publishTimerEvent("paused", timer);
+      this._sendVoicePECommand(timer.control_entity, `pause:${String(timer.voice_pe_timer_id).trim()}`);
+      return;
+    }
+
+    this._publishTimerEvent("paused", timer);
+    if (timer.source === "helper") {
+      const remaining = timer.remaining;
+      this._mutateHelper(timer.source_entity, (data) => {
+        const idx = data.timers.findIndex((t) => t.id === timer.id);
+        if (idx !== -1) { data.timers[idx].paused = true; data.timers[idx].end = remaining; }
+      });
+    } else if (["local", "mqtt"].includes(timer.source)) {
+      const remaining = timer.remaining;
+      this._updateTimerInStorage(timer.id, { paused: true, end: remaining }, timer.source);
+      this.requestUpdate();
+    } else if (timer.source === "timer") {
+      this.hass.callService("timer", "pause", { entity_id: timer.source_entity });
+    } else {
+      this._toast("This timer can't be paused from here.");
+    }
+  }
+
+  _handleResume(timer) {
+    if (timer.source === "voice_pe") {
+      if (!this._isLocalVoicePETimer(timer)) {
+        this._toast("This timer is read only.");
+        return;
+      }
+      this._publishTimerEvent("resumed", timer);
+      this._sendVoicePECommand(timer.control_entity, `resume:${String(timer.voice_pe_timer_id).trim()}`);
+      return;
+    }
+
+    this._publishTimerEvent("resumed", timer);
+    if (timer.source === "helper") {
+      const newEndTime = Date.now() + timer.remaining;
+      this._mutateHelper(timer.source_entity, (data) => {
+        const idx = data.timers.findIndex((t) => t.id === timer.id);
+        if (idx !== -1) { data.timers[idx].paused = false; data.timers[idx].end = newEndTime; }
+      });
+    } else if (["local", "mqtt"].includes(timer.source)) {
+      const newEndTime = Date.now() + timer.remaining;
+      this._updateTimerInStorage(timer.id, { paused: false, end: newEndTime }, timer.source);
+      this.requestUpdate();
+    } else if (timer.source === "timer") {
+      this.hass.callService("timer", "start", { entity_id: timer.source_entity });
+    } else {
+      this._toast("This timer can't be resumed from here.");
+    }
+  }
+
+  _togglePause(t, e) {
+    e?.stopPropagation?.();
+    if (!["helper", "local", "mqtt", "timer"].includes(t.source)) return;
+    t.paused ? this._handleResume(t) : this._handlePause(t);
+  }
+
+  _handleDismiss(timer) {
+    this._ringingTimers.delete(timer.id);
+    this._stopAudioForTimer(timer.id);
+    if (timer.source === "helper") {
+      this._mutateHelper(timer.source_entity, (data) => { data.timers = data.timers.filter((t) => t.id !== timer.id); });
+    } else if (["local", "mqtt"].includes(timer.source)) {
+      this._removeTimerFromStorage(timer.id, timer.source); this.requestUpdate();
+    } else if (timer.source === "timer") {
+      this.hass.callService("timer", "finish", { entity_id: timer.source_entity });
+    } else {
+      this._dismissed.add(`${timer.source_entity}:${timer.id}`);
+      this.requestUpdate();
+    }
+  }
+
+  _handleSnooze(timer) {
+    if (this._isActionThrottled("snooze", timer.id)) return;
+    this._ringingTimers.delete(timer.id);
+    this._stopAudioForTimer(timer.id);
+    this._publishTimerEvent("snoozed", timer);
+    const snoozeMinutes = Number(this._config.snooze_duration ?? 5);
+    if (!Number.isFinite(snoozeMinutes) || snoozeMinutes <= 0) {
+      this._toast("Invalid snooze_duration setting.");
+      return;
+    }
+    const newDurationMs = snoozeMinutes * 60000;
+    const newEndTime = Date.now() + newDurationMs;
+    if (timer.source === "helper") {
+      const now = Date.now();
+      this._mutateHelper(timer.source_entity, (data) => {
+        const idx = data.timers.findIndex((t) => t.id === timer.id);
+        if (idx !== -1) {
+          data.timers[idx].start_ts = now;
+          data.timers[idx].end_ts = newEndTime;
+          data.timers[idx].end = newEndTime;
+          data.timers[idx].duration = newDurationMs;
+          data.timers[idx].paused = false;
+          data.timers[idx].state = "active";
+        }
+      });
+    } else if (["local", "mqtt"].includes(timer.source)) {
+      const now = Date.now();
+      this._updateTimerInStorage(
+        timer.id,
+        {
+          start_ts: now,
+          end_ts: newEndTime,
+          end: newEndTime,
+          duration: newDurationMs,
+          paused: false,
+          state: "active",
+        },
+        timer.source
+      );
+      this.requestUpdate();
+    } else if (timer.source === "timer") {
+      const serviceDuration = this._formatDurationForService(snoozeMinutes * 60);
+      this.hass.callService("timer", "start", { entity_id: timer.source_entity, duration: serviceDuration });
+    } else {
+      this._toast("Only helper, local, MQTT, and timer entities can be snoozed here.");
+    }
+  }
+
+  _formatTimeAgo(ms) {
+    if (ms < 1000) return null;
+    const seconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    if (hours > 0) return hours === 1 ? `1 ${this._localize("hour_ago")}` : `${hours} ${this._localize("hours_ago")}`;
+    if (minutes > 0) return minutes === 1 ? `1 ${this._localize("minute_ago")}` : `${minutes} ${this._localize("minutes_ago")}`;
+    return seconds === 1 ? `1 ${this._localize("second_ago")}` : `${seconds} ${this._localize("seconds_ago")}`;
+  }
+
+  _formatClock(totalSeconds, includeDays = false) {
+    if (totalSeconds <= 0) return "00:00";
+
+    const days = Math.floor(totalSeconds / DAY_IN_SECONDS);
+    const remAfterDays = totalSeconds % DAY_IN_SECONDS;
+    const hours = Math.floor(remAfterDays / HOUR_IN_SECONDS);
+    const minutes = Math.floor((remAfterDays % HOUR_IN_SECONDS) / MINUTE_IN_SECONDS);
+    const seconds = remAfterDays % MINUTE_IN_SECONDS;
+    const pad = (n, len=2) => String(n).padStart(len, "0");
+
+    if (includeDays) {
+      if (days > 0) return `${pad(days)}:${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+      if (hours > 0) return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+      return `${pad(minutes)}:${pad(seconds)}`;
+    }
+
+    const totalHours = days * 24 + hours;
+    if (totalHours > 0) {
+        return `${pad(totalHours)}:${pad(minutes)}:${pad(seconds)}`;
+    }
+    return `${pad(minutes)}:${pad(seconds)}`;
+  }
+
+  _getUnitLabel(key, count, style) {
+    if (style === "compact") {
+      if (key === "year" || key === "years") return this._localize("y_short");
+      if (key === "month" || key === "months") return this._localize("mo_short");
+      if (key === "week" || key === "weeks") return this._localize("w_short");
+      if (key === "day" || key === "days") return this._localize("d");
+      if (key === "hour" || key === "hours") return this._localize("h");
+      if (key === "minute" || key === "minutes") return this._localize("m");
+      return this._localize("s");
+    }
+
+    const translatedLabel = this._localize(key);
+    return `${count} ${translatedLabel}`;
+  }
+
+  _formatDuration(value, unit = "seconds") {
+    let totalSeconds;
+    if (unit === "ms") {
+      if (value <= 0) return "00:00";
+      totalSeconds = Math.ceil(value / 1000);
+    } else {
+      if (value <= 0) return "00:00";
+      totalSeconds = Math.floor(value);
+    }
+    return this._formatClock(totalSeconds, false);
+  }
+
+  _formatDurationHM(ms) {
+    const totalSeconds = Math.ceil(ms / 1000);
+    if (totalSeconds <= 0) return "00";
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const pad = (n) => String(n).padStart(2, "0");
+    if (hours > 0) return `${pad(hours)}:${pad(minutes)}`;
+    return `${pad(minutes)}`;
+  }
+
+  _formatDurationSS(ms) {
+    if (ms <= 0) return "0";
+    return `${Math.ceil(ms / 1000)}`;
+  }
+
+  _formatDurationDHMS(ms) {
+    return this._formatClock(Math.ceil(ms / 1000), true);
+  }
+
+  _formatHumanUnits(ms, style) {
+    const unitOrder = this._config.time_format_units && this._config.time_format_units.length
+      ? this._config.time_format_units
+      : ["days", "hours", "minutes", "seconds"];
+    const map = {
+      years: YEAR_IN_MS,
+      months: 30 * DAY_IN_MS,
+      weeks: 7 * DAY_IN_MS,
+      days: DAY_IN_MS,
+      hours: 3600 * 1000,
+      minutes: 60 * 1000,
+      seconds: 1000,
+    };
+    let remaining = ms;
+    const parts = [];
+    for (const u of unitOrder) {
+      const msPer = map[u];
+      if (!msPer) continue;
+      const count = Math.floor(remaining / msPer);
+      if (count > 0 || (u === unitOrder[unitOrder.length - 1] && parts.length === 0)) {
+        remaining -= count * msPer;
+        const unitKey = count === 1 ? u.slice(0, -1) : u;
+        const label = this._getUnitLabel(unitKey, count, style === "natural" ? "short" : style);
+        parts.push(style === "compact" ? `${count}${label}` : `${label}`);
+      }
+    }
+    if (style === "compact") return parts.join(" ");
+    return parts.join(", ");
+  }
+
+  _formatTimeString(t) {
+    const tf = this._config.time_format;
+    if (tf === "dhms") return this._formatDurationDHMS(t.remaining);
+    if (tf === "hm") return this._formatDurationHM(t.remaining);
+    if (tf === "ss") return this._formatDurationSS(t.remaining);
+    if (tf === "human_compact") return this._formatHumanUnits(t.remaining, "compact");
+    if (tf === "human_short") return this._formatHumanUnits(t.remaining, "short");
+    if (tf === "human_natural") return this._formatHumanUnits(t.remaining, "natural");
+    return this._formatDurationHMS(t.remaining);
+  }
+
+  _formatDurationHMS(ms) {
+    return this._formatClock(Math.ceil(ms / 1000), false);
+  }
+
+  _formatDurationForService(totalSeconds) {
+    totalSeconds = Math.max(0, Math.floor(totalSeconds));
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = totalSeconds % 60;
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${pad(h)}:${pad(m)}:${pad(s)}`;
+  }
+
+  _toggleCustom(which) {
+    const openKey = `noTimer${which.charAt(0).toUpperCase() + which.slice(1)}Open`;
+    this._ui[openKey] = !this._ui[openKey];
+    this.requestUpdate();
+  }
+
+  _parseAdjustmentToSeconds(value) {
+    let seconds = 0;
+    if (typeof value === "string" && value.toLowerCase().endsWith("s")) {
+      const parsedSeconds = parseInt(value.slice(0, -1), 10);
+      if (!isNaN(parsedSeconds)) seconds = parsedSeconds;
+    } else {
+      const parsedMinutes = parseInt(value, 10);
+      if (!isNaN(parsedMinutes)) seconds = parsedMinutes * 60;
+    }
+    return seconds;
+  }
+
+  _adjust(which, value, sign = 1) {
+    const delta = this._parseAdjustmentToSeconds(value);
+    this._customSecs = { ...this._customSecs, [which]: Math.max(0, this._customSecs[which] + sign * delta) };
+  }
+
+  _createAndSaveTimer(secs, label) {
+    if (this._isActionThrottled("create_timer", "global", 500)) return;
+    if (secs <= 0) return;
+    const validation = this._validateTimerInput(secs * 1000, label);
+    if (!validation.valid) return;
+    const finalLabel = label && label.trim() ? this._sanitizeText(label.trim()) : this._formatTimerLabel(secs);
+    const newTimer = {
+      id: `custom-${Date.now()}`,
+      label: finalLabel,
+      icon: this._config.default_timer_icon || "mdi:timer-outline",
+      color: this._config.default_timer_color || "var(--primary-color)",
+      end: Date.now() + secs * 1000,
+      duration: secs * 1000,
+      paused: false,
+    };
+    let targetEntity = this._config.default_timer_entity;
+    if (this._config.auto_voice_pe === true) {
+      const vpeEntity = this._getDefaultVoicePETargetEntity();
+      if (vpeEntity) targetEntity = vpeEntity;
+    }
+    const hasVoicePEControl = !!this._getVoicePEControlEntity(targetEntity);
+    if (hasVoicePEControl) {
+
+      const userProvidedName = !!(label && String(label).trim());
+      const nameForCommand = userProvidedName ? String(label).trim() : "";
+      this._sendVoicePEStart(secs * 1000, nameForCommand, targetEntity);
+      this.requestUpdate();
+      return;
+    }
+
+    if (targetEntity && (targetEntity.startsWith("input_text.") || targetEntity.startsWith("text."))) {
+      newTimer.source = "helper";
+      newTimer.source_entity = targetEntity;
+      if (resolvedTargetEntity) {
+      const ce = this._getVoicePEControlEntity(resolvedTargetEntity);
+      if (ce) {
+        this._publishTimerEvent("started", { source: "voice_pe", source_entity: resolvedTargetEntity, label: newTimer.label });
+        this._sendVoicePEStart(durationMs, "", resolvedTargetEntity);
+        this.requestUpdate();
+        return;
+      }
+    }
+    this._mutateHelper(resolvedTargetEntity, (data) => { data.timers.push(newTimer); });
+      this._publishTimerEvent("started", newTimer);
+    } else {
+      newTimer.source = this._config.storage;
+      newTimer.source_entity = this._config.storage === "mqtt" ? this._config.mqtt.sensor_entity : "local";
+      this._addTimerToStorage(newTimer);
+      this._publishTimerEvent("started", newTimer);
+    }
+  }
+
+  _startFromCustom(which, label) {
+    const secs = this._customSecs[which];
+    const inputId = which === "horizontal" ? "nt-h-name" : "nt-v-name";
+    let finalLabel = label || this._lastSelectedName[inputId] || "";
+    const input = this.shadowRoot?.getElementById(inputId);
+    if (input && input.value) finalLabel = input.value.trim();
+    this._createAndSaveTimer(secs, finalLabel);
+    const defaultDurationSecs = (parseInt(this._config.default_new_timer_duration_mins, 10) || 15) * 60;
+    this._customSecs = { ...this._customSecs, [which]: defaultDurationSecs };
+    const openKey = `noTimer${which.charAt(0).toUpperCase() + which.slice(1)}Open`;
+    this._ui[openKey] = false;
+    this._showingCustomName[inputId] = false;
+    this._lastSelectedName[inputId] = null;
+    if (input) input.value = "";
+    this.requestUpdate();
+  }
+
+  _startActive(which, label) {
+    const secs = this._activeSecs[which];
+    const inputId = which === "bar" ? "add-bar-name" : "add-fill-name";
+    let finalLabel = label || this._lastSelectedName[inputId] || "";
+    const input = this.shadowRoot?.getElementById(inputId);
+    if (input && input.value) finalLabel = input.value.trim();
+    this._createAndSaveTimer(secs, finalLabel);
+    const defaultDurationSecs = (parseInt(this._config.default_new_timer_duration_mins, 10) || 15) * 60;
+    this._activeSecs = { ...this._activeSecs, [which]: defaultDurationSecs };
+    const openKey = `active${which.charAt(0).toUpperCase() + which.slice(1)}Open`;
+    this._ui[openKey] = false;
+    this._showingCustomName[inputId] = false;
+    this._lastSelectedName[inputId] = null;
+    if (input) input.value = "";
+    this.requestUpdate();
+  }
+
+  _toggleActivePicker(which) {
+    const openKey = `active${which.charAt(0).toUpperCase() + which.slice(1)}Open`;
+    this._ui[openKey] = !this._ui[openKey];
+    this.requestUpdate();
+  }
+
+  _adjustActive(which, value, sign = 1) {
+    const delta = this._parseAdjustmentToSeconds(value);
+    this._activeSecs = { ...this._activeSecs, [which]: Math.max(0, this._activeSecs[which] + sign * delta) };
+  }
+
+  _pickAutoMilestoneUnit(duration) {
+    if (!duration || duration <= 0) return "seconds";
+    if (duration >= YEAR_IN_MS) return "years";
+    if (duration >= 30 * DAY_IN_MS) return "months";
+    if (duration >= 7 * DAY_IN_MS) return "weeks";
+    if (duration >= DAY_IN_MS) return "days";
+    if (duration >= 3600 * 1000) return "hours";
+    if (duration >= 60 * 1000) return "minutes";
+    return "seconds";
+  }
+
+  _renderMilestoneSegments(t, pct) {
+    if (this._config.progress_mode !== "milestones") return null;
+    if (!["bar_horizontal", "bar_vertical"].includes(this._config.style)) return null;
+    const cfgUnit = (this._config.milestone_unit || "auto").toLowerCase();
+    const effectiveUnit = cfgUnit === "auto" ? this._pickAutoMilestoneUnit(t.duration) : cfgUnit;
+    if (effectiveUnit === "none") return null;
+    const unitMsMap = {
+      years: YEAR_IN_MS,
+      months: 30 * DAY_IN_MS,
+      weeks: 7 * DAY_IN_MS,
+      days: DAY_IN_MS,
+      hours: 3600 * 1000,
+      minutes: 60 * 1000,
+      seconds: 1000
+    };
+    const unitMs = unitMsMap[effectiveUnit];
+    if (!unitMs || !t.duration || t.duration <= 0) return null;
+    const segments = Math.min(100, Math.max(1, Math.ceil(t.duration / unitMs)));
+    if (!segments || segments <= 1) return null;
+    const filledRaw = pct / 100 * segments;
+    const completed = Math.floor(filledRaw);
+    const activeIndex = Math.min(segments - 1, Math.max(0, completed));
+    const idle = t.idle === true;
+    return b`
+      <div class="milestone-track ${idle ? "idle" : ""}">
+        ${Array.from({ length: segments }).map((_, idx) => {
+          if (idle) {
+            return b`<div class="segment idle"></div>`;
+          }
+          const isCompleted = idx < completed;
+          const shouldPulse = !t.paused && !t.idle && this._config.milestone_pulse !== false;
+          const isActive = idx === activeIndex && shouldPulse;
+          const isInactive = idx > completed;
+          const cls = [
+            "segment",
+            isCompleted ? "completed" : "",
+            isActive ? "active" : "",
+            isInactive ? "inactive" : "",
+            this._config.progress_mode === "drain" ? "drain" : "fill"
+          ].join(" ");
+          return b`<div class="${cls}"></div>`;
+        })}
       </div>
-    `}_renderProgressTrack(t,e,i,s){const r=this._renderMilestoneSegments(t,i);return r||H`
+    `;
+  }
+
+  _renderProgressTrack(t, style, pct, pctLeft) {
+    const milestoneTrack = this._renderMilestoneSegments(t, pct);
+    if (milestoneTrack) return milestoneTrack;
+    return b`
       <div class="track">
-        <div class="fill" style="width:${"drain"===this._config.progress_mode?s:i}%"></div>
+        <div class="fill" style="width:${this._config.progress_mode === "drain" ? pctLeft : pct}%"></div>
       </div>
-    `}_openTimerEditor(t){if("timer"!==t.source)return;const e=t.duration||0,i=Math.floor(e/1e3);this._editDuration={h:Math.floor(i/3600),m:Math.floor(i%3600/60),s:i%60},this._editingTimerId=t.id,this.requestUpdate()}_cancelEdit(){this._editingTimerId=null,this.requestUpdate()}_adjustEditTotal(t){let e=3600*this._editDuration.h+60*this._editDuration.m+this._editDuration.s;e+=t,e<0&&(e=0),this._editDuration={h:Math.floor(e/3600),m:Math.floor(e%3600/60),s:e%60},this.requestUpdate()}async _saveTimerConfig(t){const{h:e,m:i,s:s}=this._editDuration,r=`${String(e).padStart(2,"0")}:${String(i).padStart(2,"0")}:${String(s).padStart(2,"0")}`,n=this.hass.states[t.source_entity],o=n.attributes.friendly_name||t.source_entity;try{await this.hass.callWS({type:"timer/update",timer_id:t.source_entity.replace("timer.",""),duration:r,name:o,icon:n.attributes.icon||""})}catch(t){throw console.error("Error updating timer",t),this._toast(`Error: ${t.message}`),t}}async _startEditTimer(t){try{await this._saveTimerConfig(t);const{h:e,m:i,s:s}=this._editDuration,r=`${String(e).padStart(2,"0")}:${String(i).padStart(2,"0")}:${String(s).padStart(2,"0")}`;this.hass.callService("timer","start",{entity_id:t.source_entity,duration:r}),this._editingTimerId=null,this.requestUpdate()}catch(t){}}async _saveAndClose(t){await this._saveTimerConfig(t),this._editingTimerId=null,this.requestUpdate()}_renderInlineEditor(t,e){const i="circle"===e,s=e.startsWith("fill_")?"card item editor-row":i?"item vtile editor-row":"item bar editor-row",r=this._config.minute_buttons?.length?this._config.minute_buttons:[1,5,10],n=3600*this._editDuration.h+60*this._editDuration.m+this._editDuration.s,o=t.source_entity?this.hass.states[t.source_entity]:null,a=o?.attributes?.friendly_name||t.label||t.source_entity||"",l=t=>r.map(e=>{const i=this._parseAdjustmentToSeconds(e),s=t<0,r=!s||n>=i,o="string"==typeof e&&e.toLowerCase().endsWith("s")?e.toLowerCase():`${e}${this._localize("m")}`;return H`
-        <button class="btn btn-ghost ${r?"":"disabled"}"
-                @click=${()=>r&&this._adjustEditTotal(t*i)}>
-          ${s?"-":"+"}${o}
+    `;
+  }
+
+  _openTimerEditor(t) {
+    if (t.source !== "timer") return;
+    const ms = t.duration || 0;
+    const totalSeconds = Math.floor(ms / 1000);
+    this._editDuration = {
+      h: Math.floor(totalSeconds / 3600),
+      m: Math.floor((totalSeconds % 3600) / 60),
+      s: totalSeconds % 60
+    };
+    this._editingTimerId = t.id;
+    this.requestUpdate();
+  }
+
+  _cancelEdit() {
+    this._editingTimerId = null;
+    this.requestUpdate();
+  }
+
+  _adjustEditTotal(deltaSeconds) {
+    let total = this._editDuration.h * 3600 + this._editDuration.m * 60 + this._editDuration.s;
+    total += deltaSeconds;
+    if (total < 0) total = 0;
+    this._editDuration = {
+        h: Math.floor(total / 3600),
+        m: Math.floor((total % 3600) / 60),
+        s: total % 60
+    };
+    this.requestUpdate();
+  }
+
+  async _saveTimerConfig(t) {
+    const { h, m, s } = this._editDuration;
+    const durationStr = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    const stateObj = this.hass.states[t.source_entity];
+    const name = stateObj.attributes.friendly_name || t.source_entity;
+
+    try {
+        await this.hass.callWS({
+            type: "timer/update",
+            timer_id: t.source_entity.replace("timer.", ""),
+            duration: durationStr,
+            name: name,
+            icon: stateObj.attributes.icon || ""
+        });
+    } catch(e) {
+        console.error("Error updating timer", e);
+        this._toast(`Error: ${e.message}`);
+        throw e;
+    }
+  }
+
+  async _startEditTimer(t) {
+    try {
+        await this._saveTimerConfig(t);
+
+        const { h, m, s } = this._editDuration;
+        const durationStr = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        this.hass.callService("timer", "start", {
+            entity_id: t.source_entity,
+            duration: durationStr
+        });
+        this._editingTimerId = null;
+        this.requestUpdate();
+    } catch (e) {
+    }
+  }
+
+  async _saveAndClose(t) {
+      await this._saveTimerConfig(t);
+      this._editingTimerId = null;
+      this.requestUpdate();
+  }
+
+  _renderInlineEditor(t, style) {
+    const isCircle = style === "circle";
+    const baseClasses = style.startsWith("fill_")
+      ? "card item editor-row"
+      : (isCircle ? "item vtile editor-row" : "item bar editor-row");
+
+    const minuteButtons = this._config.minute_buttons?.length
+      ? this._config.minute_buttons
+      : [1, 5, 10];
+
+    const totalSeconds = this._editDuration.h * 3600 + this._editDuration.m * 60 + this._editDuration.s;
+    const stateObj = t.source_entity ? this.hass.states[t.source_entity] : null;
+    const timerName = stateObj?.attributes?.friendly_name || t.label || t.source_entity || "";
+
+    const renderAdjustButtons = (sign) => minuteButtons.map((val) => {
+      const delta = this._parseAdjustmentToSeconds(val);
+      const isNegative = sign < 0;
+      const isClickable = !isNegative || totalSeconds >= delta;
+      const displayLabel = (typeof val === "string" && val.toLowerCase().endsWith("s"))
+        ? val.toLowerCase()
+        : `${val}${this._localize("m")}`;
+
+      return b`
+        <button class="btn btn-ghost ${isClickable ? "" : "disabled"}"
+                @click=${() => isClickable && this._adjustEditTotal(sign * delta)}>
+          ${isNegative ? "-" : "+"}${displayLabel}
         </button>
-      `});return H`
-      <li class="${s}" style="--tcolor:${t.color||"var(--primary-color)"}; cursor: default;">
+      `;
+    });
+
+    return b`
+      <li class="${baseClasses}" style="--tcolor:${t.color || "var(--primary-color)"}; cursor: default;">
         <div class="editor-container">
           <div class="buttons-grid">
-            ${l(1)}
+            ${renderAdjustButtons(1)}
           </div>
 
-          <div class="display">${this._formatDuration(n,"seconds")}</div>
+          <div class="display">${this._formatDuration(totalSeconds, "seconds")}</div>
 
           <div class="buttons-grid">
-            ${l(-1)}
+            ${renderAdjustButtons(-1)}
           </div>
 
           <input class="text-input" placeholder="Timer Name (Optional)" readonly style="margin-top: 12px;"
-                 .value=${this._sanitizeText(a)} />
+                 .value=${this._sanitizeText(timerName)} />
 
           <div class="picker-actions">
-            <button class="btn btn-ghost" @click=${()=>this._cancelEdit()}>${this._localize("cancel")}</button>
-            <button class="btn btn-ghost" @click=${()=>this._saveAndClose(t)}>${this._localize("save")}</button>
-            <button class="btn btn-primary" @click=${()=>this._startEditTimer(t)}>${this._localize("start")}</button>
+            <button class="btn btn-ghost" @click=${() => this._cancelEdit()}>${this._localize("cancel")}</button>
+            <button class="btn btn-ghost" @click=${() => this._saveAndClose(t)}>${this._localize("save")}</button>
+            <button class="btn btn-primary" @click=${() => this._startEditTimer(t)}>${this._localize("start")}</button>
           </div>
         </div>
       </li>
-    `}_renderItem(t,e){if(this._editingTimerId===t.id)return this._renderInlineEditor(t,e);const i=this._getTimerRenderState(t,e),{isPaused:s,isIdle:r,isFinished:n,color:o,icon:a,ring:l,pct:c,pctLeft:d,isCircleStyle:u,isFillStyle:h,supportsPause:m,supportsManualControls:_,timeStr:p,circleValues:g,supportsReadOnlyDismiss:f}=i,v=h?"card item":u?"item vtile":"item bar",y=h?"card item finished":u?"item vtile":"card item bar",b=!t.idle&&!t.paused&&!t.finished,$="timer"===t.source&&!b;if(l)return u?H`
-          <li class="${y}" style="--tcolor:${o}">
+    `;
+  }
+
+  _renderItem(t, style) {
+    if (this._editingTimerId === t.id) {
+        return this._renderInlineEditor(t, style);
+    }
+    const state = this._getTimerRenderState(t, style);
+    const { isPaused, isIdle, isFinished, color, icon, ring, pct, pctLeft, isCircleStyle, isFillStyle, supportsPause, supportsManualControls, timeStr, circleValues, supportsReadOnlyDismiss } = state;
+    const baseClasses = isFillStyle ? "card item" : (isCircleStyle ? "item vtile" : "item bar");
+    const finishedClasses = isFillStyle ? "card item finished" : (isCircleStyle ? "item vtile" : "card item bar");
+
+    const isRunning = !t.idle && !t.paused && !t.finished;
+    const canEdit = t.source === "timer" && !isRunning;
+
+    if (ring) {
+      if (isCircleStyle) {
+        return b`
+          <li class="${finishedClasses}" style="--tcolor:${color}">
             <div class="vcol">
               <div class="vcircle-wrap">
                 <svg class="vcircle" width="64" height="64" viewBox="0 0 64" aria-hidden="true">
-                  <circle class="vc-track ${"drain"===this._config.progress_mode?"vc-track-drain":""}" style="stroke: var(--tcolor, var(--primary-color)); stroke-opacity: 0.22;"
-                          cx="32" cy="32" r="${g.radius}"></circle>
-                  <circle class="vc-prog ${"drain"===this._config.progress_mode?"vc-prog-drain done":"done"}"
-                          cx="32" cy="32" r="${g.radius}"
-                    stroke-dasharray="${g.circumference} ${g.circumference}"
-                    style="stroke: var(--tcolor, var(--primary-color)); stroke-dashoffset: ${"drain"===this._config.progress_mode?g.circumference:"0"};
+                  <circle class="vc-track ${this._config.progress_mode === "drain" ? "vc-track-drain" : ""}" style="stroke: var(--tcolor, var(--primary-color)); stroke-opacity: 0.22;"
+                          cx="32" cy="32" r="${circleValues.radius}"></circle>
+                  <circle class="vc-prog ${this._config.progress_mode === "drain" ? "vc-prog-drain done" : "done"}"
+                          cx="32" cy="32" r="${circleValues.radius}"
+                    stroke-dasharray="${circleValues.circumference} ${circleValues.circumference}"
+                    style="stroke: var(--tcolor, var(--primary-color)); stroke-dashoffset: ${this._config.progress_mode === "drain" ? circleValues.circumference : "0"};
                             transition: stroke-dashoffset 0.25s;"></circle>
                 </svg>
-                <div class="icon-wrap xl"><ha-icon .icon=${a}></ha-icon></div>
+                <div class="icon-wrap xl"><ha-icon .icon=${icon}></ha-icon></div>
               </div>
               <div class="vtitle">${t.label}</div>
-              <div class="vstatus up">${p}</div>
+              <div class="vstatus up">${timeStr}</div>
               <div class="vactions">
-                ${_?H`
-                  <button class="chip" @click=${()=>this._handleSnooze(t)}>${this._localize("snooze")}</button>
-                  <button class="chip" @click=${()=>this._handleDismiss(t)}>${this._localize("dismiss")}</button>
-                `:f?H`
-                  <button class="chip" @click=${()=>this._handleDismiss(t)}>${this._localize("dismiss")}</button>
-                `:""}
+                ${supportsManualControls ? b`
+                  <button class="chip" @click=${() => this._handleSnooze(t)}>${this._localize("snooze")}</button>
+                  <button class="chip" @click=${() => this._handleDismiss(t)}>${this._localize("dismiss")}</button>
+                ` : supportsReadOnlyDismiss ? b`
+                  <button class="chip" @click=${() => this._handleDismiss(t)}>${this._localize("dismiss")}</button>
+                ` : ""}
               </div>
             </div>
           </li>
-        `:H`
-        <li class="${y}" style="--tcolor:${o}">
-          ${h?H`<div class="progress-fill" style="width:100%"></div>`:""}
-          <div class="${h?"card-content":"row"}">
-            <div class="icon-wrap"><ha-icon .icon=${a}></ha-icon></div>
+        `;
+      }
+      return b`
+        <li class="${finishedClasses}" style="--tcolor:${color}">
+          ${isFillStyle ? b`<div class="progress-fill" style="width:100%"></div>` : ""}
+          <div class="${isFillStyle ? "card-content" : "row"}">
+            <div class="icon-wrap"><ha-icon .icon=${icon}></ha-icon></div>
             <div class="info">
               <div class="title">${t.label}</div>
-              <div class="status up">${p}</div>
+              <div class="status up">${timeStr}</div>
             </div>
-            ${_?H`
+            ${supportsManualControls ? b`
               <div class="chips">
-                <button class="chip" @click=${()=>this._handleSnooze(t)}>${this._localize("snooze")}</button>
-                <button class="chip" @click=${()=>this._handleDismiss(t)}>${this._localize("dismiss")}</button>
+                <button class="chip" @click=${() => this._handleSnooze(t)}>${this._localize("snooze")}</button>
+                <button class="chip" @click=${() => this._handleDismiss(t)}>${this._localize("dismiss")}</button>
               </div>
-            `:f?H`
+            ` : supportsReadOnlyDismiss ? b`
               <div class="chips">
-                <button class="chip" @click=${()=>this._handleDismiss(t)}>${this._localize("dismiss")}</button>
+                <button class="chip" @click=${() => this._handleDismiss(t)}>${this._localize("dismiss")}</button>
               </div>
-            `:""}
+            `: ""}
           </div>
         </li>
-      `;const x=$?()=>this._openTimerEditor(t):null,w=$?"cursor: pointer;":"",T="drain"===this._config.progress_mode?d:c;return h?H`
-        <li class="${v}" style="--tcolor:${o}; ${w}" @click=${x}>
-          <div class="progress-fill" style="${`width:${T}%;`}"></div>
+      `;
+    }
+
+    const clickHandler = canEdit ? () => this._openTimerEditor(t) : null;
+    const rowStyle = canEdit ? "cursor: pointer;" : "";
+
+    const fillPct = this._config.progress_mode === "drain" ? pctLeft : pct;
+    const fillInlineStyle = `width:${fillPct}%;`;
+
+    if (isFillStyle) {
+      return b`
+        <li class="${baseClasses}" style="--tcolor:${color}; ${rowStyle}" @click=${clickHandler}>
+          <div class="progress-fill" style="${fillInlineStyle}"></div>
           <div class="card-content">
-            <div class="icon-wrap"><ha-icon .icon=${a}></ha-icon></div>
+            <div class="icon-wrap"><ha-icon .icon=${icon}></ha-icon></div>
             <div class="info">
               <div class="title">${t.label}</div>
-              <div class="status">${p}</div>
+              <div class="status">${timeStr}</div>
             </div>
-            <div class="actions" @click=${t=>t.stopPropagation()}>
-              ${r&&_?H`
-                <button class="action-btn" title="${this._localize("start")}" @click=${()=>this._handleStart(t)}>
+            <div class="actions" @click=${(e) => e.stopPropagation()}>
+              ${isIdle && supportsManualControls ? b`
+                <button class="action-btn" title="${this._localize("start")}" @click=${() => this._handleStart(t)}>
                   <ha-icon icon="mdi:play"></ha-icon>
                 </button>
-              `:m&&!l&&_?H`
-                <button class="action-btn" title="${t.paused?"Resume":"Pause"}" @click=${()=>t.paused?this._handleResume(t):this._handlePause(t)}>
-                  <ha-icon icon=${t.paused?"mdi:play":"mdi:pause"}></ha-icon>
+              ` : supportsPause && !ring && supportsManualControls ? b`
+                <button class="action-btn" title="${t.paused ? "Resume" : "Pause"}" @click=${() => t.paused ? this._handleResume(t) : this._handlePause(t)}>
+                  <ha-icon icon=${t.paused ? "mdi:play" : "mdi:pause"}></ha-icon>
                 </button>
-              `:""}
-              ${_&&!r?H`<button class="action-btn" title="${this._localize("cancel")}" @click=${()=>this._handleCancel(t)}><ha-icon icon="mdi:close"></ha-icon></button>`:""}
+              ` : ""}
+              ${supportsManualControls && !isIdle ? b`<button class="action-btn" title="${this._localize("cancel")}" @click=${() => this._handleCancel(t)}><ha-icon icon="mdi:close"></ha-icon></button>` : ""}
             </div>
           </div>
         </li>
-      `:u?H`
-        <li class="${v}" style="--tcolor:${o}; ${w}" @click=${x}>
-          ${_&&!r?H`
+      `;
+    } else if (isCircleStyle) {
+      return b`
+        <li class="${baseClasses}" style="--tcolor:${color}; ${rowStyle}" @click=${clickHandler}>
+          ${supportsManualControls && !isIdle ? b`
             <button class="vtile-close" title="${this._localize("cancel")}"
-              @click=${e=>{e.stopPropagation(),this._handleCancel(t)}}>
+              @click=${(e)=>{ e.stopPropagation(); this._handleCancel(t); }}>
               <ha-icon icon="mdi:close"></ha-icon>
             </button>
-          `:""}
+          ` : ""}
           <div class="vcol">
             <div class="vcircle-wrap"
-                 title="${r?"Start":t.paused?"Resume":"Pause"}"
-                 @click=${e=>{e.stopPropagation(),r&&_?this._handleStart(t):m&&_&&this._togglePause(t,e)}}>
+                 title="${isIdle ? "Start" : (t.paused ? "Resume" : "Pause")}"
+                 @click=${(e)=> {
+                   e.stopPropagation();
+                   if (isIdle && supportsManualControls) this._handleStart(t);
+                   else if (supportsPause && supportsManualControls) this._togglePause(t, e);
+                 }}>
               <svg class="vcircle" width="64" height="64" viewBox="0 0 64" aria-hidden="true">
-                <circle class="vc-track ${"drain"===this._config.progress_mode?"vc-track-drain":""}" style="stroke: var(--tcolor, var(--primary-color)); stroke-opacity: 0.22;"
-                        cx="32" cy="32" r="${g.radius}"></circle>
-                <circle class="vc-prog ${"drain"===this._config.progress_mode?"vc-prog-drain":""}"
-                        cx="32" cy="32" r="${g.radius}"
-                  stroke-dasharray="${g.circumference} ${g.circumference}"
-                  style="stroke: var(--tcolor, var(--primary-color)); stroke-dashoffset: ${g.strokeDashoffset}; transition: stroke-dashoffset 0.25s;"></circle>
+                <circle class="vc-track ${this._config.progress_mode === "drain" ? "vc-track-drain" : ""}" style="stroke: var(--tcolor, var(--primary-color)); stroke-opacity: 0.22;"
+                        cx="32" cy="32" r="${circleValues.radius}"></circle>
+                <circle class="vc-prog ${this._config.progress_mode === "drain" ? "vc-prog-drain" : ""}"
+                        cx="32" cy="32" r="${circleValues.radius}"
+                  stroke-dasharray="${circleValues.circumference} ${circleValues.circumference}"
+                  style="stroke: var(--tcolor, var(--primary-color)); stroke-dashoffset: ${circleValues.strokeDashoffset}; transition: stroke-dashoffset 0.25s;"></circle>
               </svg>
-              <div class="icon-wrap xl"><ha-icon .icon=${a}></ha-icon></div>
+              <div class="icon-wrap xl"><ha-icon .icon=${icon}></ha-icon></div>
             </div>
             <div class="vtitle">${t.label}</div>
-            <div class="vstatus">${p}</div>
+            <div class="vstatus">${timeStr}</div>
           </div>
         </li>
-      `:H`
-        <li class="${v}" style="--tcolor:${o}; ${w}" @click=${x}>
+      `;
+    } else {
+      return b`
+        <li class="${baseClasses}" style="--tcolor:${color}; ${rowStyle}" @click=${clickHandler}>
           <div class="row">
-            <div class="icon-wrap"><ha-icon .icon=${a}></ha-icon></div>
+            <div class="icon-wrap"><ha-icon .icon=${icon}></ha-icon></div>
             <div class="info">
               <div class="top">
                 <div class="title">${t.label}</div>
-                <div class="status">${p}</div>
+                <div class="status">${timeStr}</div>
               </div>
-              ${this._renderProgressTrack(t,e,c,d)}
+              ${this._renderProgressTrack(t, style, pct, pctLeft)}
             </div>
-            <div class="actions" @click=${t=>t.stopPropagation()}>
-              ${r&&_?H`
-                <button class="action-btn" title="${this._localize("start")}" @click=${()=>this._handleStart(t)}>
+            <div class="actions" @click=${(e) => e.stopPropagation()}>
+              ${isIdle && supportsManualControls ? b`
+                <button class="action-btn" title="${this._localize("start")}" @click=${() => this._handleStart(t)}>
                   <ha-icon icon="mdi:play"></ha-icon>
                 </button>
-              `:m&&!l&&_?H`
-                <button class="action-btn" title="${t.paused?"Resume":"Pause"}" @click=${()=>t.paused?this._handleResume(t):this._handlePause(t)}>
-                  <ha-icon icon=${t.paused?"mdi:play":"mdi:pause"}></ha-icon>
+              ` : supportsPause && !ring && supportsManualControls ? b`
+                <button class="action-btn" title="${t.paused ? "Resume" : "Pause"}" @click=${() => t.paused ? this._handleResume(t) : this._handlePause(t)}>
+                  <ha-icon icon=${t.paused ? "mdi:play" : "mdi:pause"}></ha-icon>
                 </button>
-              `:""}
-              ${_&&!r?H`<button class="action-btn" title="${this._localize("cancel")}" @click=${()=>this._handleCancel(t)}><ha-icon icon="mdi:close"></ha-icon></button>`:""}
+              ` : ""}
+              ${supportsManualControls && !isIdle ? b`<button class="action-btn" title="${this._localize("cancel")}" @click=${() => this._handleCancel(t)}><ha-icon icon="mdi:close"></ha-icon></button>` : ""}
             </div>
           </div>
         </li>
-      `}_calculateCircleValues(t=28,e=0,i="fill"){const s=2*t*Math.PI;return{radius:t,circumference:s,strokeDashoffset:"drain"===i?e/100*s:s-e/100*s}}_getTimerRenderState(t,e){const i=t.paused,s=t.idle,r=t.finished,n=i?"var(--warning-color)":r?"var(--success-color)":t.color||"var(--primary-color)",o=s?t.icon||"mdi:timer-outline":i?"mdi:timer-pause":r?"mdi:timer-check":t.icon||"mdi:timer-outline",a=t.remaining<=0&&!s&&!r,l="number"==typeof t.percent?Math.max(0,Math.min(100,t.percent)):0,c=100-l,d="circle"===e,u=e.startsWith("fill_"),h=["helper","local","mqtt","timer"].includes(t.source)||"voice_pe"===t.source&&!!(t.control_entity&&String(t.control_entity).trim()&&t.voice_pe_timer_id&&String(t.voice_pe_timer_id).trim()),m=this._getEntityConfig(t.source_entity),_=!0===m?.hide_timer_actions,p="timer"===t.source,g=(["local","mqtt","timer","helper"].includes(t.source)||"template"===t.kind||"template"===t.source)&&!(p&&_)||"voice_pe"===t.source&&!(!t.control_entity||!String(t.control_entity).trim()),f=a&&["timestamp","minutes_attr","alexa"].includes(t.source);let v,y;if(s)v=t.duration?this._formatDuration(t.duration,"ms"):this._localize("ready");else if(i)v=`${this._formatDuration(t.remaining,"ms")} (${this._localize("paused")})`;else if(r){const e=Date.now(),i=e-(t.finishedAt||t.end||e),s=this._formatTimeAgo(i),r=t.expired_subtitle||m?.expired_subtitle||this._config.expired_subtitle||this._localize("times_up");v=s?`${r} - ${s}`:r}else v=a?t.expired_subtitle||m?.expired_subtitle||this._config.expired_subtitle||this._localize("times_up"):this._formatTimeString(t);if(d){const t="drain"===this._config.progress_mode?"drain":"fill";y=this._calculateCircleValues(28,l,t)}return{isPaused:i,isIdle:s,isFinished:r,color:n,icon:o,ring:a,pct:l,pctLeft:c,isCircleStyle:d,isFillStyle:u,supportsPause:h,supportsManualControls:g,timeStr:v,circleValues:y,supportsReadOnlyDismiss:f}}_renderMinuteButtons(t,e,i){const s=this._config.minute_buttons?.length?this._config.minute_buttons:[1,5,10],r=["horizontal","vertical"].includes(t)?"custom":"active",n="horizontal"===t?"horizontal":"vertical"===t?"vertical":"fill"===t?"fill":"bar",o=this[`_${r}Secs`][n];return s.map(t=>{const s=this._parseAdjustmentToSeconds(t),r=i<0,a=!r||o>=s,l="string"==typeof t&&t.toLowerCase().endsWith("s")?t.toLowerCase():`${t}${this._localize("m")}`;return H`
-        <button class="btn btn-ghost ${a?"":"disabled"}"
-                @click=${()=>a&&e(n,t,i)}>
-          ${r?"-":"+"}${l}
+      `;
+    }
+  }
+
+  _calculateCircleValues(radius = 28, pct = 0, mode = "fill") {
+    const circumference = radius * 2 * Math.PI;
+    const strokeDashoffset = mode === "drain"
+      ? (pct / 100) * circumference
+      : circumference - (pct / 100) * circumference;
+    return { radius, circumference, strokeDashoffset };
+  }
+
+  _getTimerRenderState(t, style) {
+    const isPaused = t.paused;
+    const isIdle = t.idle;
+    const isFinished = t.finished;
+    const color = isPaused ? "var(--warning-color)" : (isFinished ? "var(--success-color)" : (t.color || "var(--primary-color)"));
+    const icon = isIdle ? (t.icon || "mdi:timer-outline") : (isPaused ? "mdi:timer-pause" : (isFinished ? "mdi:timer-check" : (t.icon || "mdi:timer-outline")));
+    const ring = t.remaining <= 0 && !isIdle && !isFinished;
+    const pct = typeof t.percent === "number" ? Math.max(0, Math.min(100, t.percent)) : 0;
+    const pctLeft = 100 - pct;
+    const isCircleStyle = style === "circle";
+    const isFillStyle = style.startsWith("fill_");
+    const supportsPause = ["helper", "local", "mqtt", "timer"].includes(t.source) || (t.source === "voice_pe" && !!(t.control_entity && String(t.control_entity).trim() && t.voice_pe_timer_id && String(t.voice_pe_timer_id).trim()));
+    const entityConf = this._getEntityConfig(t.source_entity);
+    const hideTimerActions = entityConf?.hide_timer_actions === true;
+    const isTimerSource = t.source === "timer";
+    const supportsManualControls = (((["local", "mqtt", "timer", "helper"].includes(t.source)) || t.kind === "template" || t.source === "template") && !(isTimerSource && hideTimerActions)) || (t.source === "voice_pe" && !!(t.control_entity && String(t.control_entity).trim()));
+    const supportsReadOnlyDismiss = ring && ["timestamp", "minutes_attr", "alexa"].includes(t.source);
+    let timeStr;
+    if (isIdle) timeStr = t.duration ? this._formatDuration(t.duration, "ms") : this._localize("ready");
+    else if (isPaused) timeStr = `${this._formatDuration(t.remaining, "ms")} (${this._localize("paused")})`;
+    else if (isFinished) {
+      const now = Date.now();
+      const elapsedSinceFinish = now - (t.finishedAt || t.end || now);
+      const elapsedStr = this._formatTimeAgo(elapsedSinceFinish);
+      const expiredMessage = t.expired_subtitle || entityConf?.expired_subtitle || this._config.expired_subtitle || this._localize("times_up");
+      timeStr = elapsedStr ? `${expiredMessage} - ${elapsedStr}` : expiredMessage;
+    } else if (ring) {
+      timeStr = t.expired_subtitle || entityConf?.expired_subtitle || this._config.expired_subtitle || this._localize("times_up");
+    } else {
+      timeStr = this._formatTimeString(t);
+    }
+    let circleValues;
+    if (isCircleStyle) {
+      const progressMode = this._config.progress_mode === "drain" ? "drain" : "fill";
+      circleValues = this._calculateCircleValues(28, pct, progressMode);
+    }
+    return {
+      isPaused, isIdle, isFinished, color, icon, ring, pct, pctLeft,
+      isCircleStyle, isFillStyle,
+      supportsPause, supportsManualControls, timeStr,
+      circleValues, supportsReadOnlyDismiss
+    };
+  }
+
+  _renderMinuteButtons(which, adjustFunction, sign) {
+    const minuteButtons = this._config.minute_buttons?.length ? this._config.minute_buttons : [1, 5, 10];
+    const target = ["horizontal", "vertical"].includes(which) ? "custom" : "active";
+    const whichKey = which === "horizontal" ? "horizontal" : (which === "vertical" ? "vertical" : (which === "fill" ? "fill" : "bar"));
+    const currentSecs = this[`_${target}Secs`][whichKey];
+    return minuteButtons.map(val => {
+      const delta = this._parseAdjustmentToSeconds(val);
+      const isNegative = sign < 0;
+      const isClickable = !isNegative || (currentSecs >= delta);
+      const displayLabel = typeof val === "string" && val.toLowerCase().endsWith("s") ? val.toLowerCase() : `${val}${this._localize("m")}`;
+      return b`
+        <button class="btn btn-ghost ${isClickable ? "" : "disabled"}"
+                @click=${() => isClickable && adjustFunction(whichKey, val, sign)}>
+          ${isNegative ? "-" : "+"}${displayLabel}
         </button>
-      `})}_renderItemVertical(t,e){if(this._editingTimerId===t.id)return this._renderInlineEditor(t,e);const i=this._getTimerRenderState(t,e),{isPaused:s,isIdle:r,isFinished:n,color:o,icon:a,ring:l,pct:c,pctLeft:d,isCircleStyle:u,isFillStyle:h,supportsPause:m,supportsManualControls:_,timeStr:p,circleValues:g,supportsReadOnlyDismiss:f}=i,v=e.startsWith("fill_")?"card item vtile":"item vtile",y=!t.idle&&!t.paused&&!t.finished,b="timer"===t.source&&!y,$=b?()=>this._openTimerEditor(t):null,x=b?"cursor: pointer;":"",w=`width:${"drain"===this._config.progress_mode?d:c}%;`;return l?H`
-        <li class="${v}" style="--tcolor:${o}">
-          ${e.startsWith("fill_")?H`<div class="progress-fill" style="width:100%"></div>`:""}
+      `;
+    });
+  }
+
+  _renderItemVertical(t, style) {
+    if (this._editingTimerId === t.id) {
+        return this._renderInlineEditor(t, style);
+    }
+    const state = this._getTimerRenderState(t, style);
+    const { isPaused, isIdle, isFinished, color, icon, ring, pct, pctLeft, isCircleStyle, isFillStyle, supportsPause, supportsManualControls, timeStr, circleValues, supportsReadOnlyDismiss } = state;
+    const baseClasses = style.startsWith("fill_") ? "card item vtile" : "item vtile";
+
+    const isRunning = !t.idle && !t.paused && !t.finished;
+    const canEdit = t.source === "timer" && !isRunning;
+    const clickHandler = canEdit ? () => this._openTimerEditor(t) : null;
+    const rowStyle = canEdit ? "cursor: pointer;" : "";
+
+    const fillPct = this._config.progress_mode === "drain" ? pctLeft : pct;
+    const fillInlineStyle = `width:${fillPct}%;`;
+
+    if (ring) {
+      return b`
+        <li class="${baseClasses}" style="--tcolor:${color}">
+          ${style.startsWith("fill_") ? b`<div class="progress-fill" style="width:100%"></div>` : ""}
           <div class="vcol">
-            <div class="icon-wrap large"><ha-icon .icon=${a}></ha-icon></div>
+            <div class="icon-wrap large"><ha-icon .icon=${icon}></ha-icon></div>
             <div class="vtitle">${t.label}</div>
-            <div class="vstatus up">${p}</div>
+            <div class="vstatus up">${timeStr}</div>
             <div class="vactions-center">
-              ${_?H`
-                <button class="chip" @click=${()=>this._handleSnooze(t)}>${this._localize("snooze")}</button>
-                <button class="chip" @click=${()=>this._handleDismiss(t)}>${this._localize("dismiss")}</button>
-              `:f?H`
-                <button class="chip" @click=${()=>this._handleDismiss(t)}>${this._localize("dismiss")}</button>
-              `:""}
+              ${supportsManualControls ? b`
+                <button class="chip" @click=${() => this._handleSnooze(t)}>${this._localize("snooze")}</button>
+                <button class="chip" @click=${() => this._handleDismiss(t)}>${this._localize("dismiss")}</button>
+              ` : supportsReadOnlyDismiss ? b`
+                <button class="chip" @click=${() => this._handleDismiss(t)}>${this._localize("dismiss")}</button>
+              ` : ""}
             </div>
           </div>
         </li>
-      `:"circle"===e?H`
-        <li class="${v}" style="--tcolor:${o}; ${x}" @click=${$}>
-          ${_&&!r?H`
+      `;
+    }
+
+    if (style === "circle") {
+      return b`
+        <li class="${baseClasses}" style="--tcolor:${color}; ${rowStyle}" @click=${clickHandler}>
+          ${supportsManualControls && !isIdle ? b`
             <button class="vtile-close" title="${this._localize("cancel")}"
-              @click=${e=>{e.stopPropagation(),this._handleCancel(t)}}>
+              @click=${(e)=>{ e.stopPropagation(); this._handleCancel(t); }}>
               <ha-icon icon="mdi:close"></ha-icon>
             </button>
-          `:""}
+          ` : ""}
           <div class="vcol">
             <div class="vcircle-wrap"
-                 title="${r?"Start":t.paused?"Resume":"Pause"}"
-                 @click=${e=>{e.stopPropagation(),b?this._openTimerEditor(t):r&&_?this._handleStart(t):m&&_&&this._togglePause(t,e)}}>
+                 title="${isIdle ? "Start" : (t.paused ? "Resume" : "Pause")}"
+                 @click=${(e)=> {
+                   e.stopPropagation();
+                   if (canEdit) {
+                     this._openTimerEditor(t);
+                     return;
+                   }
+                   if (isIdle && supportsManualControls) this._handleStart(t);
+                   else if (supportsPause && supportsManualControls) this._togglePause(t, e);
+                 }}>
               <svg class="vcircle" width="64" height="64" viewBox="0 0 64" aria-hidden="true">
-                <circle class="vc-track ${"drain"===this._config.progress_mode?"vc-track-drain":""}"
-                        cx="32" cy="32" r="${g.radius}"></circle>
-                <circle class="vc-prog ${"drain"===this._config.progress_mode?"vc-prog-drain":""}"
-                        cx="32" cy="32" r="${g.radius}"
-                  stroke-dasharray="${g.circumference} ${g.circumference}"
-                  style="stroke-dashoffset: ${g.strokeDashoffset}; transition: stroke-dashoffset 0.25s;"></circle>
+                <circle class="vc-track ${this._config.progress_mode === "drain" ? "vc-track-drain" : ""}"
+                        cx="32" cy="32" r="${circleValues.radius}"></circle>
+                <circle class="vc-prog ${this._config.progress_mode === "drain" ? "vc-prog-drain" : ""}"
+                        cx="32" cy="32" r="${circleValues.radius}"
+                  stroke-dasharray="${circleValues.circumference} ${circleValues.circumference}"
+                  style="stroke-dashoffset: ${circleValues.strokeDashoffset}; transition: stroke-dashoffset 0.25s;"></circle>
               </svg>
-              <div class="icon-wrap xl"><ha-icon .icon=${a}></ha-icon></div>
+              <div class="icon-wrap xl"><ha-icon .icon=${icon}></ha-icon></div>
             </div>
             <div class="vtitle">${t.label}</div>
-            <div class="vstatus">${p}</div>
+            <div class="vstatus">${timeStr}</div>
           </div>
         </li>
-      `:H`
-      <li class="${v}" style="--tcolor:${o}; ${x}" @click=${$}>
-        ${e.startsWith("fill_")?H`<div class="progress-fill" style="${w}"></div>`:""}
+      `;
+    }
+
+    return b`
+      <li class="${baseClasses}" style="--tcolor:${color}; ${rowStyle}" @click=${clickHandler}>
+        ${style.startsWith("fill_") ? b`<div class="progress-fill" style="${fillInlineStyle}"></div>` : ""}
         <div class="vcol">
-          <div class="icon-wrap large"><ha-icon .icon=${a}></ha-icon></div>
+          <div class="icon-wrap large"><ha-icon .icon=${icon}></ha-icon></div>
           <div class="vtitle">${t.label}</div>
-          <div class="vstatus">${p}</div>
-          ${e.startsWith("bar_")?H`
-            <div class="vprogressbar" @click=${t=>t.stopPropagation()}>
-              ${r&&_?H`
-                <button class="action-btn" title="${this._localize("start")}" @click=${()=>this._handleStart(t)}>
+          <div class="vstatus">${timeStr}</div>
+          ${style.startsWith("bar_") ? b`
+            <div class="vprogressbar" @click=${(e) => e.stopPropagation()}>
+              ${isIdle && supportsManualControls ? b`
+                <button class="action-btn" title="${this._localize("start")}" @click=${() => this._handleStart(t)}>
                   <ha-icon icon="mdi:play"></ha-icon>
                 </button>
-              `:m&&_?H`
+              ` : supportsPause && supportsManualControls ? b`
                 <button class="action-btn"
-                  title="${t.paused?"Resume":"Pause"}"
-                  @click=${()=>t.paused?this._handleResume(t):this._handlePause(t)}>
-                  <ha-icon icon=${t.paused?"mdi:play":"mdi:pause"}></ha-icon>
+                  title="${t.paused ? "Resume" : "Pause"}"
+                  @click=${() => t.paused ? this._handleResume(t) : this._handlePause(t)}>
+                  <ha-icon icon=${t.paused ? "mdi:play" : "mdi:pause"}></ha-icon>
                 </button>
-              `:""}
-              ${this._renderMilestoneSegments(t,c)||H`
+              ` : ""}
+              ${this._renderMilestoneSegments(t, pct) || b`
                 <div class="vtrack small">
-                  <div class="vfill" style="width:${"drain"===this._config.progress_mode?d:c}%"></div>
+                  <div class="vfill" style="width:${this._config.progress_mode === "drain" ? pctLeft : pct}%"></div>
                 </div>
               `}
-              ${_&&!r?H`
-                <button class="action-btn" title="${this._localize("cancel")}" @click=${()=>this._handleCancel(t)}>
+              ${supportsManualControls && !isIdle ? b`
+                <button class="action-btn" title="${this._localize("cancel")}" @click=${() => this._handleCancel(t)}>
                   <ha-icon icon="mdi:close"></ha-icon>
                 </button>
-              `:""}
+              ` : ""}
             </div>
-          `:H`
+          ` : b`
 
-            <div class="vactions" @click=${t=>t.stopPropagation()}>
-              ${r&&_?H`
-                <button class="action-btn" title="${this._localize("start")}" @click=${()=>this._handleStart(t)}>
+            <div class="vactions" @click=${(e) => e.stopPropagation()}>
+              ${isIdle && supportsManualControls ? b`
+                <button class="action-btn" title="${this._localize("start")}" @click=${() => this._handleStart(t)}>
                   <ha-icon icon="mdi:play"></ha-icon>
                 </button>
-              `:m&&_?H`
+              ` : supportsPause && supportsManualControls ? b`
                 <button class="action-btn"
-                  title="${t.paused?"Resume":"Pause"}"
-                  @click=${()=>t.paused?this._handleResume(t):this._handlePause(t)}>
-                  <ha-icon icon=${t.paused?"mdi:play":"mdi:pause"}></ha-icon>
+                  title="${t.paused ? "Resume" : "Pause"}"
+                  @click=${() => t.paused ? this._handleResume(t) : this._handlePause(t)}>
+                  <ha-icon icon=${t.paused ? "mdi:play" : "mdi:pause"}></ha-icon>
                 </button>
-              `:""}
-              ${_&&!r?H`
-                <button class="action-btn" title="${this._localize("cancel")}" @click=${()=>this._handleCancel(t)}>
+              ` : ""}
+              ${supportsManualControls && !isIdle ? b`
+                <button class="action-btn" title="${this._localize("cancel")}" @click=${() => this._handleCancel(t)}>
                   <ha-icon icon="mdi:close"></ha-icon>
                 </button>
-              `:""}
+              ` : ""}
             </div>
           `}
         </div>
       </li>
-    `}_getPinnedTimers(){const t=Array.isArray(this._config?.pinned_timers)?this._config.pinned_timers:[];return 0===t.length?[]:t.map((t,e)=>{const i=t&&"object"==typeof t?t.duration??t.preset??t.minutes??t.secs:t,s=this._parseDurationInputToMs(i);if(!s)return null;const r=t&&"object"==typeof t&&t.name?t.name:`#${e+1}`,n=t&&"object"==typeof t&&t.icon?t.icon:this._config.default_timer_icon||"mdi:timer-outline",o=t&&"object"==typeof t&&t.color?t.color:this._config.default_timer_color||"var(--primary-color)";return{id:`pinned-${e}`,pinned_id:t&&"object"==typeof t&&t.id?t.id:`pinned-${e}`,kind:"template",name:r,label:r,source:"template",source_entity:null,start_ts:null,end_ts:null,state:"idle",supports:{pause:!1,cancel:!1,snooze:!1,extend:!1},template_preset:i,duration_input:i,icon:n,color:o,expired_subtitle:t&&"object"==typeof t&&t.expired_subtitle?t.expired_subtitle:this._config.expired_subtitle||"",audio_enabled:!(!t||"object"!=typeof t||!0!==t.audio_enabled)||void 0,audio_file_url:t&&"object"==typeof t&&t.audio_file_url?t.audio_file_url:void 0,audio_repeat_count:t&&"object"==typeof t&&null!=t.audio_repeat_count?t.audio_repeat_count:void 0,audio_play_until_dismissed:!(!t||"object"!=typeof t||!0!==t.audio_play_until_dismissed)||void 0,duration:s,end:s,paused:!1,idle:!0,finished:!1,duration_ms:s,remaining_ms:s,remaining:s,percent:0}}).filter(Boolean)}render(){if(!this._config)return H``;const t=!1===this._config.show_timer_presets?[]:this._config.timer_presets?.length?this._config.timer_presets:[5,15,30],e=this._timers.filter(t=>{if(t.idle&&"voice_pe"===t.source)return!1;if(t.idle&&"timer"===t.source){const e=this._getEntityConfig(t.source_entity);if(!(!0===e?.keep_timer_visible_when_idle))return!1}return!0}),i=this._getPinnedTimers().filter(t=>!e.some(e=>e.pinned_id&&t.pinned_id&&e.pinned_id===t.pinned_id)),s=[...i,...e].sort((t,e)=>{if(t.finished&&!e.finished)return 1;if(!t.finished&&e.finished)return-1;const i=Number(t.remaining_ms??t.remaining??0),s=Number(e.remaining_ms??e.remaining??0);return(isFinite(i)?i:Number.MAX_SAFE_INTEGER)-(isFinite(s)?s:Number.MAX_SAFE_INTEGER)}),r=this._config.layout,n=this._config.style,o=["fill_vertical","bar_vertical","circle"].includes((this._config.style||"").toLowerCase())?"vertical":"horizontal",a=!1!==this._config.show_timer_presets&&!1!==this._config.show_active_header,l="horizontal"===r?H`
-      <div class="card nt-h ${this._ui.noTimerHorizontalOpen?"expanded":""}">
+    `;
+  }
+
+  _getPinnedTimers() {
+    const pinned = Array.isArray(this._config?.pinned_timers) ? this._config.pinned_timers : [];
+    if (pinned.length === 0) return [];
+    return pinned.map((p, idx) => {
+      const durationInput = (p && typeof p === "object") ? (p.duration ?? p.preset ?? p.minutes ?? p.secs) : p;
+      const durationMs = this._parseDurationInputToMs(durationInput);
+      if (!durationMs) return null;
+      const label = (p && typeof p === "object" && p.name) ? p.name : `#${idx + 1}`;
+      const icon = (p && typeof p === "object" && p.icon) ? p.icon : (this._config.default_timer_icon || "mdi:timer-outline");
+      const color = (p && typeof p === "object" && p.color) ? p.color : (this._config.default_timer_color || "var(--primary-color)");
+      return {
+        id: `pinned-${idx}`,
+        pinned_id: (p && typeof p === "object" && p.id) ? p.id : `pinned-${idx}`,
+        kind: "template",
+        name: label,
+        label,
+        source: "template",
+        source_entity: null,
+        start_ts: null,
+        end_ts: null,
+        state: "idle",
+        supports: { pause: false, cancel: false, snooze: false, extend: false },
+
+        template_preset: durationInput,
+        duration_input: durationInput,
+
+        icon,
+        color,
+        expired_subtitle: (p && typeof p === "object" && p.expired_subtitle) ? p.expired_subtitle : (this._config.expired_subtitle || ""),
+        audio_enabled: (p && typeof p === "object" && p.audio_enabled === true) ? true : undefined,
+        audio_file_url: (p && typeof p === "object" && p.audio_file_url) ? p.audio_file_url : undefined,
+        audio_repeat_count: (p && typeof p === "object" && p.audio_repeat_count != null) ? p.audio_repeat_count : undefined,
+        audio_play_until_dismissed: (p && typeof p === "object" && p.audio_play_until_dismissed === true) ? true : undefined,
+
+        duration: durationMs,
+        end: durationMs,
+        paused: false,
+        idle: true,
+        finished: false,
+        duration_ms: durationMs,
+        remaining_ms: durationMs,
+        remaining: durationMs,
+        percent: 0,
+      };
+    }).filter(Boolean);
+  }
+
+  render() {
+    if (!this._config) return b``;
+    const presets = this._config.show_timer_presets === false ? [] : (this._config.timer_presets?.length ? this._config.timer_presets : [5, 15, 30]);
+    const activeTimers = this._timers.filter(t => {
+      if (t.idle && t.source === "voice_pe") return false;
+      if (t.idle && t.source === "timer") {
+        const entityConfig = this._getEntityConfig(t.source_entity);
+        const keepVisible = entityConfig?.keep_timer_visible_when_idle === true;
+        if (!keepVisible) return false;
+      }
+      return true;
+    });
+
+    const pinnedTimers = this._getPinnedTimers().filter(pt => !activeTimers.some(t => t.pinned_id && pt.pinned_id && t.pinned_id === pt.pinned_id));
+
+    const timers = [...pinnedTimers, ...activeTimers].sort((a, b) => {
+      if (a.finished && !b.finished) return 1;
+      if (!a.finished && b.finished) return -1;
+      const ar0 = Number(a.remaining_ms ?? a.remaining ?? 0);
+      const br0 = Number(b.remaining_ms ?? b.remaining ?? 0);
+      const ar = isFinite(ar0) ? ar0 : Number.MAX_SAFE_INTEGER;
+      const br = isFinite(br0) ? br0 : Number.MAX_SAFE_INTEGER;
+      return ar - br;
+    });
+    const layout = this._config.layout;
+    const style = this._config.style;
+    const activeTimersLayout = ["fill_vertical", "bar_vertical", "circle"].includes((this._config.style || "").toLowerCase()) ? "vertical" : "horizontal";
+    const showPresetsInActive = this._config.show_timer_presets !== false && this._config.show_active_header !== false;
+
+    const noTimerCard = layout === "horizontal" ? b`
+      <div class="card nt-h ${this._ui.noTimerHorizontalOpen ? "expanded" : ""}">
         <div class="row">
-          <div class="card-content" @click=${!1===this._config.show_timer_presets?()=>this._toggleCustom("horizontal"):null}>
+          <div class="card-content" @click=${this._config.show_timer_presets === false ? () => this._toggleCustom("horizontal") : null}>
             <div class="icon-wrap"><ha-icon icon="mdi:timer-off"></ha-icon></div>
             <div>
               <p class="nt-title">${this._localize("no_timers")}</p>
@@ -316,133 +2844,165 @@ const x=globalThis,w=t=>t,T=x.trustedTypes,S=T?T.createPolicy("lit-html",{create
             </div>
           </div>
           <div style="display:flex; gap:8px;">
-            ${t.map(t=>{const e="string"==typeof t&&t.toLowerCase().endsWith("s")?t.toLowerCase():`${t}${this._localize("m")}`;return H`<button class="btn btn-preset" @click=${()=>this._createPresetTimer(t)}>${e}</button>`})}
-            ${!1===this._config.show_timer_presets?H`
-              <button class="btn btn-ghost" @click=${()=>this._toggleCustom("horizontal")}><ha-icon icon="mdi:plus" style="--mdc-icon-size:16px;"></ha-icon> ${this._localize("add")}</button>
-            `:H`
-              <button class="btn btn-ghost" @click=${()=>this._toggleCustom("horizontal")}>${this._localize("custom")}</button>
+            ${presets.map((preset) => {
+              const label = typeof preset === "string" && preset.toLowerCase().endsWith("s")
+                ? preset.toLowerCase()
+                : `${preset}${this._localize("m")}`;
+              return b`<button class="btn btn-preset" @click=${() => this._createPresetTimer(preset)}>${label}</button>`;
+            })}
+            ${this._config.show_timer_presets === false ? b`
+              <button class="btn btn-ghost" @click=${() => this._toggleCustom("horizontal")}><ha-icon icon="mdi:plus" style="--mdc-icon-size:16px;"></ha-icon> ${this._localize("add")}</button>
+            ` : b`
+              <button class="btn btn-ghost" @click=${() => this._toggleCustom("horizontal")}>${this._localize("custom")}</button>
             `}
           </div>
         </div>
         <div class="picker">
           <div class="buttons-grid">
-            ${this._renderMinuteButtons("horizontal",(t,e,i)=>this._adjust(t,e,i),1)}
+            ${this._renderMinuteButtons("horizontal", (which, m, sign) => this._adjust(which, m, sign), 1)}
           </div>
-          <div class="display">${this._formatDuration(this._customSecs.horizontal,"seconds")}</div>
+          <div class="display">${this._formatDuration(this._customSecs.horizontal, "seconds")}</div>
           <div class="buttons-grid">
-            ${this._renderMinuteButtons("horizontal",(t,e,i)=>this._adjust(t,e,i),-1)}
+            ${this._renderMinuteButtons("horizontal", (which, m, sign) => this._adjust(which, m, sign), -1)}
           </div>
-          ${this._renderTimerNameSelector("nt-h-name","Timer Name (Optional)")}
+          ${this._renderTimerNameSelector("nt-h-name", "Timer Name (Optional)")}
 
           <div class="picker-actions">
-            <button class="btn btn-ghost" @click=${()=>this._ui.noTimerHorizontalOpen=!1}>${this._localize("cancel")}</button>
-            <button class="btn btn-primary" @click=${()=>this._startFromCustom("horizontal")}>${this._localize("start")}</button>
+            <button class="btn btn-ghost" @click=${() => (this._ui.noTimerHorizontalOpen = false)}>${this._localize("cancel")}</button>
+            <button class="btn btn-primary" @click=${() => this._startFromCustom("horizontal")}>${this._localize("start")}</button>
           </div>
         </div>
       </div>
-    `:H`
-      <div class="card nt-v ${this._ui.noTimerVerticalOpen?"expanded":""}">
+    ` : b`
+      <div class="card nt-v ${this._ui.noTimerVerticalOpen ? "expanded" : ""}">
         <div class="col">
-          <div class="card-content" style="flex-direction:column;justify-content:center;gap:8px;flex:1;" @click=${!1===this._config.show_timer_presets?()=>this._toggleCustom("vertical"):null}>
+          <div class="card-content" style="flex-direction:column;justify-content:center;gap:8px;flex:1;" @click=${this._config.show_timer_presets === false ? () => this._toggleCustom("vertical") : null}>
             <div class="icon-wrap"><ha-icon icon="mdi:timer-off"></ha-icon></div>
             <p class="nt-title">${this._localize("no_active_timers")}</p>
           </div>
           <div style="display:flex; gap:8px; margin-bottom:8px;">
-            ${t.map(t=>{const e="string"==typeof t&&t.toLowerCase().endsWith("s")?t.toLowerCase():`${t}${this._localize("m")}`;return H`<button class="btn btn-preset" @click=${()=>this._createPresetTimer(t)}>${e}</button>`})}
-            ${!1===this._config.show_timer_presets?H`
-              <button class="btn btn-ghost" @click=${()=>this._toggleCustom("vertical")}><ha-icon icon="mdi:plus" style="--mdc-icon-size:16px;"></ha-icon> ${this._localize("add")}</button>
-            `:H`
-              <button class="btn btn-ghost" @click=${()=>this._toggleCustom("vertical")}>${this._localize("custom")}</button>
+            ${presets.map((preset) => {
+              const label = typeof preset === "string" && preset.toLowerCase().endsWith("s")
+                ? preset.toLowerCase()
+                : `${preset}${this._localize("m")}`;
+              return b`<button class="btn btn-preset" @click=${() => this._createPresetTimer(preset)}>${label}</button>`;
+            })}
+            ${this._config.show_timer_presets === false ? b`
+              <button class="btn btn-ghost" @click=${() => this._toggleCustom("vertical")}><ha-icon icon="mdi:plus" style="--mdc-icon-size:16px;"></ha-icon> ${this._localize("add")}</button>
+            ` : b`
+              <button class="btn btn-ghost" @click=${() => this._toggleCustom("vertical")}>${this._localize("custom")}</button>
             `}
           </div>
         </div>
         <div class="picker">
           <div class="buttons-grid">
-            ${this._renderMinuteButtons("vertical",(t,e,i)=>this._adjust(t,e,i),1)}
+            ${this._renderMinuteButtons("vertical", (which, m, sign) => this._adjust(which, m, sign), 1)}
           </div>
-          <div class="display">${this._formatDuration(this._customSecs.vertical,"seconds")}</div>
+          <div class="display">${this._formatDuration(this._customSecs.vertical, "seconds")}</div>
           <div class="buttons-grid">
-            ${this._renderMinuteButtons("vertical",(t,e,i)=>this._adjust(t,e,i),-1)}
+            ${this._renderMinuteButtons("vertical", (which, m, sign) => this._adjust(which, m, sign), -1)}
           </div>
-          ${this._renderTimerNameSelector("nt-v-name","Timer Name (Optional)")}
+          ${this._renderTimerNameSelector("nt-v-name", "Timer Name (Optional)")}
           <div class="picker-actions">
-            <button class="btn btn-ghost" @click=${()=>this._ui.noTimerVerticalOpen=!1}>${this._localize("cancel")}</button>
-            <button class="btn btn-primary" @click=${()=>this._startFromCustom("vertical")}>${this._localize("start")}</button>
+            <button class="btn btn-ghost" @click=${() => (this._ui.noTimerVerticalOpen = false)}>${this._localize("cancel")}</button>
+            <button class="btn btn-primary" @click=${() => this._startFromCustom("vertical")}>${this._localize("start")}</button>
           </div>
         </div>
       </div>
-    `,c="vertical"===o?this._renderItemVertical.bind(this):this._renderItem.bind(this),d="vertical"===o||"circle"===n,u=d&&s.length>1?2:1,h=d?`list vgrid cols-${u}`:"list",m=n.startsWith("fill_")?H`
-      <div class="card ${this._ui.activeFillOpen?"card-show":""}">
-        ${!1!==this._config.show_active_header?H`
+    `;
+    const renderFn = activeTimersLayout === "vertical"
+      ? this._renderItemVertical.bind(this)
+      : this._renderItem.bind(this);
+    const useGrid = (activeTimersLayout === "vertical") || (style === "circle");
+    const cols = (useGrid && timers.length > 1) ? 2 : 1;
+    const listClass = useGrid ? `list vgrid cols-${cols}` : "list";
+    const activeCard = style.startsWith("fill_") ? b`
+      <div class="card ${this._ui.activeFillOpen ? "card-show" : ""}">
+        ${this._config.show_active_header !== false ? b`
           <div class="active-head">
             <h4>${this._localize("active_timers")}</h4>
-            ${a?H`
+            ${showPresetsInActive ? b`
               <div class="header-actions">
-                ${t.map(t=>{const e="string"==typeof t&&t.toLowerCase().endsWith("s")?t.toLowerCase():`${t}${this._localize("m")}`;return H`<button class="btn btn-preset" @click=${()=>this._createPresetTimer(t)}>${e}</button>`})}
-                <button class="btn btn-ghost" @click=${()=>this._toggleActivePicker("fill")}>${this._localize("custom")}</button>
+                ${presets.map((preset) => {
+                  const label = typeof preset === "string" && preset.toLowerCase().endsWith("s")
+                    ? preset.toLowerCase()
+                    : `${preset}${this._localize("m")}`;
+                  return b`<button class="btn btn-preset" @click=${() => this._createPresetTimer(preset)}>${label}</button>`;
+                })}
+                <button class="btn btn-ghost" @click=${() => this._toggleActivePicker("fill")}>${this._localize("custom")}</button>
               </div>
-            `:H`
-              <button class="btn btn-add" @click=${()=>this._toggleActivePicker("fill")}><ha-icon icon="mdi:plus" style="--mdc-icon-size:16px;"></ha-icon> ${this._localize("add")}</button>
+            ` : b`
+              <button class="btn btn-add" @click=${() => this._toggleActivePicker("fill")}><ha-icon icon="mdi:plus" style="--mdc-icon-size:16px;"></ha-icon> ${this._localize("add")}</button>
             `}
           </div>
-        `:""}
+        ` : ""}
         <div class="active-picker">
           <div class="buttons-grid">
-            ${this._renderMinuteButtons("fill",(t,e,i)=>this._adjustActive(t,e,i),1)}
+            ${this._renderMinuteButtons("fill", (which, m, sign) => this._adjustActive(which, m, sign), 1)}
           </div>
-          <div class="display">${this._formatDuration(this._activeSecs.fill,"seconds")}</div>
+          <div class="display">${this._formatDuration(this._activeSecs.fill, "seconds")}</div>
           <div class="buttons-grid">
-            ${this._renderMinuteButtons("fill",(t,e,i)=>this._adjustActive(t,e,i),-1)}
+            ${this._renderMinuteButtons("fill", (which, m, sign) => this._adjustActive(which, m, sign), -1)}
           </div>
-          ${this._renderTimerNameSelector("add-fill-name","Timer Name (Optional)")}
+          ${this._renderTimerNameSelector("add-fill-name", "Timer Name (Optional)")}
           <div class="picker-actions">
-            <button class="btn btn-ghost" @click=${()=>this._ui.activeFillOpen=!1}>${this._localize("cancel")}</button>
-            <button class="btn btn-primary" @click=${()=>this._startActive("fill")}>${this._localize("start")}</button>
+            <button class="btn btn-ghost" @click=${() => (this._ui.activeFillOpen = false)}>${this._localize("cancel")}</button>
+            <button class="btn btn-primary" @click=${() => this._startActive("fill")}>${this._localize("start")}</button>
           </div>
         </div>
-        <ul class="${h}">
-          ${s.map(t=>c(t,n))}
+        <ul class="${listClass}">
+          ${timers.map((t) => renderFn(t, style))}
         </ul>
       </div>
-    `:H`
-      <div class="card ${this._ui.activeBarOpen?"card-show":""}">
-        ${!1!==this._config.show_active_header?H`
+    ` : b`
+      <div class="card ${this._ui.activeBarOpen ? "card-show" : ""}">
+        ${this._config.show_active_header !== false ? b`
           <div class="active-head">
             <h4>${this._localize("active_timers")}</h4>
-            ${a?H`
+            ${showPresetsInActive ? b`
               <div class="header-actions">
-                ${t.map(t=>{const e="string"==typeof t&&t.toLowerCase().endsWith("s")?t.toLowerCase():`${t}${this._localize("m")}`;return H`<button class="btn btn-preset" @click=${()=>this._createPresetTimer(t)}>${e}</button>`})}
-                <button class="btn btn-ghost" @click=${()=>this._toggleActivePicker("bar")}>${this._localize("custom")}</button>
+                ${presets.map((preset) => {
+                  const label = typeof preset === "string" && preset.toLowerCase().endsWith("s")
+                    ? preset.toLowerCase()
+                    : `${preset}${this._localize("m")}`;
+                  return b`<button class="btn btn-preset" @click=${() => this._createPresetTimer(preset)}>${label}</button>`;
+                })}
+                <button class="btn btn-ghost" @click=${() => this._toggleActivePicker("bar")}>${this._localize("custom")}</button>
               </div>
-            `:H`
-              <button class="btn btn-add" @click=${()=>this._toggleActivePicker("bar")}><ha-icon icon="mdi:plus" style="--mdc-icon-size:16px;"></ha-icon> ${this._localize("add")}</button>
+            ` : b`
+              <button class="btn btn-add" @click=${() => this._toggleActivePicker("bar")}><ha-icon icon="mdi:plus" style="--mdc-icon-size:16px;"></ha-icon> ${this._localize("add")}</button>
             `}
           </div>
-        `:""}
+        ` : ""}
         <div class="active-picker">
           <div class="buttons-grid">
-            ${this._renderMinuteButtons("bar",(t,e,i)=>this._adjustActive(t,e,i),1)}
+            ${this._renderMinuteButtons("bar", (which, m, sign) => this._adjustActive(which, m, sign), 1)}
           </div>
-          <div class="display">${this._formatDuration(this._activeSecs.bar,"seconds")}</div>
+          <div class="display">${this._formatDuration(this._activeSecs.bar, "seconds")}</div>
           <div class="buttons-grid">
-            ${this._renderMinuteButtons("bar",(t,e,i)=>this._adjustActive(t,e,i),-1)}
+            ${this._renderMinuteButtons("bar", (which, m, sign) => this._adjustActive(which, m, sign), -1)}
           </div>
-          ${this._renderTimerNameSelector("add-bar-name","Timer Name (Optional)")}
+          ${this._renderTimerNameSelector("add-bar-name", "Timer Name (Optional)")}
           <div class="picker-actions">
-            <button class="btn btn-ghost" @click=${()=>this._ui.activeBarOpen=!1}>${this._localize("cancel")}</button>
-            <button class="btn btn-primary" @click=${()=>this._startActive("bar")}>${this._localize("start")}</button>
+            <button class="btn btn-ghost" @click=${() => (this._ui.activeBarOpen = false)}>${this._localize("cancel")}</button>
+            <button class="btn btn-primary" @click=${() => this._startActive("bar")}>${this._localize("start")}</button>
           </div>
         </div>
-        <ul class="${h}">
-          ${s.map(t=>c(t,n))}
+        <ul class="${listClass}">
+          ${timers.map((t) => renderFn(t, style))}
         </ul>
       </div>
-    `;return H`
+    `;
+    return b`
       <ha-card>
-        ${this._config.title?H`<div class="card-header"><span>${this._config.title}</span></div>`:""}
-        ${0===s.length?H`<div class="grid"><div>${l}</div></div>`:H`<div class="grid"><div>${m}</div></div>`}
+        ${this._config.title ? b`<div class="card-header"><span>${this._config.title}</span></div>` : ""}
+        ${timers.length === 0 ? b`<div class="grid"><div>${noTimerCard}</div></div>` : b`<div class="grid"><div>${activeCard}</div></div>`}
       </ha-card>
-    `}static get styles(){return n`
+    `;
+  }
+
+  static get styles() {
+    return i$3`
       :host { --stc-chip-radius: 9999px; }
       ha-card { border-radius: var(--ha-card-border-radius, 12px); overflow: hidden; padding: 0; background: var(--ha-card-background, var(--card-background-color)); }
       .grid { display: grid; grid-template-columns: 1fr; gap: 12px; padding: 0; margin: -1px 0; }
@@ -544,24 +3104,425 @@ const x=globalThis,w=t=>t,T=x.trustedTypes,S=T?T.createPolicy("lit-html",{create
       .time-val { font-size: 2em; font-weight: bold; margin: 4px 0; min-width: 45px; text-align: center; }
       .colon { font-size: 2em; font-weight: bold; margin-top: -15px; }
       .time-label { font-size: 0.75em; color: var(--secondary-text-color); }
-    `}_toast(t){const e=new CustomEvent("hass-notification",{detail:{message:t},bubbles:!0,composed:!0});this.dispatchEvent(e)}}class _t extends ot{static get properties(){return{hass:{},_config:{},_expandedSections:{state:!0}}}constructor(){super(),this._debounceTimeout=null,this._emitTimeout=null,this._expandedSections={basics:!0,layout:!1,presets:!1,pinned:!1,storage:!1,entities:!0}}disconnectedCallback(){super.disconnectedCallback(),this._debounceTimeout&&(clearTimeout(this._debounceTimeout),this._debounceTimeout=null),this._emitTimeout&&(clearTimeout(this._emitTimeout),this._emitTimeout=null)}setConfig(t){const e={...t||{}};"string"==typeof e.timer_name_presets&&(e.timer_name_presets=e.timer_name_presets.split(",").map(t=>t.trim()).filter(Boolean)),"string"==typeof e.timer_presets&&(e.timer_presets=e.timer_presets.split(",").map(t=>t.trim()).filter(Boolean)),"string"==typeof e.minute_buttons&&(e.minute_buttons=e.minute_buttons.split(",").map(t=>t.trim()).filter(Boolean)),"string"==typeof e.time_format_units&&(e.time_format_units=e.time_format_units.split(",").map(t=>t.trim()).filter(Boolean)),this._config={...e},this._expandedSections||(this._expandedSections={basic:!0,time:!1,general:!1,presets:!1,pinned:!1,storage:!1,audio:!1,entities:!0}),this.requestUpdate()}_valueChanged(t){if(!this._config||!this.hass)return;const e=t.target,i=e.configValue??e.dataset?.configValue??e.getAttribute?.("configValue");if(!i)return;const s=void 0!==e.checked;let r=s?e.checked:e.value;if("timer_presets"===i&&"string"==typeof r&&(r=r.split(",").map(t=>t.trim()).filter(t=>t).map(t=>{if(t.toLowerCase().endsWith("s")){const e=parseInt(t.slice(0,-1),10);if(!isNaN(e)&&e>0)return`${e}s`}const e=parseInt(t,10);return!isNaN(e)&&e>0?e:null}).filter(t=>null!==t),0===r.length&&(r=[5,15,30])),"minute_buttons"===i&&"string"==typeof r&&(r=r.split(",").map(t=>t.trim()).filter(t=>t).map(t=>{if(t.toLowerCase().endsWith("s")){const e=parseInt(t.slice(0,-1),10);if(!isNaN(e)&&e>0)return`${e}s`}const e=parseInt(t,10);return!isNaN(e)&&e>0?e:null}).filter(t=>null!==t),0===r.length&&(r=[1,5,10])),"timer_name_presets"===i&&"string"==typeof r&&(r=r.split(",").map(t=>t.trim()).filter(t=>t)),"time_format_units"===i&&"string"==typeof r&&(r=r.split(",").map(t=>t.trim().toLowerCase()).filter(t=>["years","months","weeks","days","hours","minutes","seconds"].includes(t)),0===r.length&&(r=["days","hours","minutes","seconds"])),"auto_voice_pe"===i&&!0!==r){const t={...this._config};return delete t.auto_voice_pe,delete t.voice_pe_control_entity,this._config=t,void this._emitChange()}s?this._updateConfig({[i]:r},!0):this._updateConfig({[i]:r})}_detailValueChanged(t){if(!this._config||!this.hass)return;const e=t.target,i=e.configValue??e.dataset?.configValue??e.getAttribute?.("configValue");i&&this._updateConfig({[i]:t.detail.value})}_selectChanged(t){if(!this._config||!this.hass)return;const e=t.target,i=e.configValue??e.dataset?.configValue??e.getAttribute?.("configValue");if(!i)return;t.stopPropagation();const s=void 0!==t.detail?.value?t.detail.value:e.value;if("string"==typeof s&&""!==s)if("style"===i){const t=s.toLowerCase(),e=["fill_vertical","fill_horizontal","bar_vertical","bar_horizontal","circle"].includes(t)?t:"bar_horizontal";this._updateConfig({style:e},!0)}else if("progress_mode"===i){const t=["drain","fill","milestones"];this._updateConfig({progress_mode:t.includes(s)?s:"drain"},!0)}else if("time_format"===i){const t=["hms","hm","ss","dhms","human_compact","human_short","human_natural","standard"],e="standard"===s?"hms":s;this._updateConfig({time_format:t.includes(e)?e:"hms"},!0)}else if("milestone_unit"===i){const t=["auto","none","years","months","weeks","days","hours","minutes","seconds"];this._updateConfig({milestone_unit:t.includes(s)?s:"auto"},!0)}else this._updateConfig({[i]:s},!0)}_entityValueChanged(t,e){if(!this._config||!this.hass)return;if(t.stopPropagation&&t.stopPropagation(),e<0||e>=(this._config.entities||[]).length)return;const i=t.target,s=i.configValue??i.dataset?.configValue??i.getAttribute?.("configValue");if(!s)return;let r;if(void 0!==i.checked)r=i.checked;else if(t.detail&&void 0!==t.detail.value)r=t.detail.value;else{if(void 0===i.value)return;r=i.value}const n={...this._config},o=[...n.entities||[]];let a;a="string"==typeof o[e]?{entity:o[e]}:o[e]&&"object"==typeof o[e]?{...o[e]}:{entity:""},""===r||null==r?delete a[s]:a[s]=r,1===Object.keys(a).length&&a.entity?o[e]=a.entity:Object.keys(a).length>0?o[e]=a:o[e]="",n.entities=o,this._updateConfig(n,!0)}_addPinnedTimer(){const t=Array.isArray(this._config.pinned_timers)?[...this._config.pinned_timers]:[];t.push({name:"",duration:"5m"}),this._config={...this._config,pinned_timers:t},this._emitChange()}_removePinnedTimer(t){const e=Array.isArray(this._config.pinned_timers)?[...this._config.pinned_timers]:[];e.splice(t,1),this._config={...this._config,pinned_timers:e},this._emitChange()}_pinnedTimerValueChanged(t,e){if(!this._config||!this.hass)return;const i=t.target,s=i.configValue??i.dataset?.configValue??i.getAttribute?.("configValue");if(!s)return;let r=void 0!==i.checked?i.checked:void 0!==i.value?i.value:t?.detail?.value;if("audio_repeat_count"===s){const t=parseInt(r,10);r=Number.isFinite(t)&&t>0?t:1}const n=Array.isArray(this._config.pinned_timers)?[...this._config.pinned_timers]:[],o=n[e]&&"object"==typeof n[e]?{...n[e]}:{};o[s]=r,n[e]=o,this._config={...this._config,pinned_timers:n},this._emitChange()}_addEntity(){if(!this._config)return;const t={...this._config},e=[...t.entities||[]];e.push(""),t.entities=e,this._updateConfig(t,!0)}_removeEntity(t){if(!this._config||t<0||t>=(this._config.entities||[]).length)return;const e={...this._config},i=[...e.entities];i.splice(t,1),e.entities=i,this._updateConfig(e,!0)}_updateConfig(t,e=!1){this._config&&("object"==typeof t&&null!==t&&(void 0!==t.entities?this._config=t:this._config={...this._config,...t}),e?this._emitChange():(this._emitTimeout&&clearTimeout(this._emitTimeout),this._emitTimeout=setTimeout(()=>{this._emitChange(),this._emitTimeout=null},50)))}_emitChange(){if(this._config)try{const t=this._removeDefaultValues(this._config),e=new CustomEvent("config-changed",{detail:{config:t},bubbles:!0,composed:!0});this.dispatchEvent(e)}catch(t){}}_removeDefaultValues(t){const e={layout:"horizontal",style:"bar_horizontal",progress_mode:"drain",show_timer_presets:!0,timer_presets:[5,15,30],timer_name_presets:[],snooze_duration:5,show_active_header:!0,minute_buttons:[1,5,10],default_new_timer_duration_mins:15,time_format:"hms",time_format_units:["days","hours","minutes","seconds"],expire_action:"keep",expire_keep_for:120,auto_dismiss_writable:!1,audio_enabled:!1,audio_file_url:"",audio_repeat_count:1,audio_play_until_dismissed:!1,audio_completion_delay:4,expired_subtitle:null,default_timer_icon:"mdi:timer-outline",default_timer_color:"var(--primary-color)",default_timer_entity:null,keep_timer_visible_when_idle:!1,language:"en",milestone_unit:"auto",milestone_pulse:!0},i={...t||{}};delete i.alexa_audio_enabled,delete i.alexa_audio_file_url,delete i.alexa_audio_repeat_count,delete i.alexa_audio_play_until_dismissed;const s=t=>Array.isArray(t)?t.map(t=>String(t).trim()).filter(Boolean):"string"==typeof t?t.split(",").map(t=>t.trim()).filter(Boolean):[];if("string"==typeof i.entities&&(i.entities=[i.entities]),Array.isArray(i.entities)||delete i.entities,Array.isArray(i.entities)&&0===i.entities.filter(t=>String(t||"").trim()).length&&delete i.entities,Array.isArray(i.pinned_timers)&&0!==i.pinned_timers.length||delete i.pinned_timers,void 0!==i.timer_name_presets&&(i.timer_name_presets=s(i.timer_name_presets)),void 0!==i.time_format_units&&(i.time_format_units=s(i.time_format_units)),void 0!==i.timer_presets){const t=Array.isArray(i.timer_presets)?i.timer_presets:"string"==typeof i.timer_presets?i.timer_presets.split(","):[];i.timer_presets=t.map(t=>"number"==typeof t?t:String(t).trim()).filter(t=>""!==t)}if(void 0!==i.minute_buttons){const t=Array.isArray(i.minute_buttons)?i.minute_buttons:"string"==typeof i.minute_buttons?i.minute_buttons.split(","):[];i.minute_buttons=t.map(t=>Number(String(t).trim())).filter(t=>Number.isFinite(t))}const r=t=>{""!==i[t]&&null!==i[t]&&void 0!==i[t]||delete i[t],Array.isArray(i[t])&&0===i[t].length&&delete i[t]};r("audio_file_url"),r("expired_subtitle"),r("title"),r("default_timer_entity"),i.audio_enabled||(delete i.audio_file_url,delete i.audio_repeat_count,delete i.audio_play_until_dismissed,delete i.audio_completion_delay),!1===i.show_timer_presets&&(delete i.timer_presets,delete i.timer_name_presets);const n=(t,e)=>Array.isArray(t)&&Array.isArray(e)&&t.length===e.length&&t.every((t,i)=>t===e[i]);for(const[t,s]of Object.entries(e)){if(!(t in i))continue;const e=i[t];Array.isArray(s)?n(e,s)&&delete i[t]:e===s&&delete i[t]}return i.mqtt&&"object"==typeof i.mqtt&&0===Object.keys(i.mqtt).length&&delete i.mqtt,i}async firstUpdated(){["ha-entity-picker","ha-select","ha-textfield","ha-icon-picker","ha-form","mwc-list-item"].forEach(t=>{customElements.whenDefined(t).then(()=>this.requestUpdate()).catch(()=>{})}),this._ensureEntityPickerLoaded(),this.requestUpdate()}_ensureEntityPickerLoaded(){if(!customElements.get("ha-entity-picker"))try{const t=document.createElement("ha-form");t.style.display="none",t.schema=[{name:"e",selector:{entity:{}}}],t.data={},t.hass=this.hass,this.shadowRoot?.appendChild(t),setTimeout(()=>t.remove(),0)}catch(t){}}_getDisplayStyleValue(){return this._config.style||"bar_horizontal"}_detectMode(t,e,i){if(!e)return null;if(t.startsWith("timer."))return"timer";if(t.startsWith("input_text.")||t.startsWith("text."))return"helper";const s=e.attributes||{};if(null!=s.alarms_brief||null!=s.sorted_active||null!=s.sorted_paused||null!=s.sorted_all||null!=s.next_timer||null!=s.timers||(t.includes("next_timer")||t.endsWith("_next_timer"))&&(null!=s.total_active||null!=s.total_all||null!=s.status||null!=s.timer||null!=s.dismissed))return"alexa";if("timestamp"===s.device_class)return"timestamp";const r=i?.minutes_attr;if(r&&null!==(s[r]??null))return"minutes_attr";if(s.start_time)return"timestamp";const n=e.state;return n&&"unknown"!==n&&"unavailable"!==n&&isNaN(n)&&!isNaN(Date.parse(n))?"timestamp":null}_toggleSection(t){this._expandedSections={...this._expandedSections||{},[t]:!this._expandedSections?.[t]}}render(){if(!this.hass||!this._config)return H``;const t=!!customElements.get("ha-entity-picker"),e=this._config.default_timer_entity?.startsWith("sensor.")?"mqtt":"local",i="milestones"===this._config.progress_mode,s=(t,e,i)=>H`
+    `;
+  }
+
+  _toast(msg) {
+    const ev = new CustomEvent("hass-notification", { detail: { message: msg }, bubbles: true, composed: true });
+    this.dispatchEvent(ev);
+  }
+}
+
+class SimpleTimerCardEditor extends i {
+  static get properties() { return { hass: {}, _config: {}, _expandedSections: { state: true } }; }
+
+  constructor() {
+    super();
+    this._debounceTimeout = null;
+    this._emitTimeout = null;
+    this._expandedSections = {
+      basics: true,
+      layout: false,
+      presets: false,
+      pinned: false,
+      storage: false,
+      entities: true,
+    };
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    if (this._debounceTimeout) { clearTimeout(this._debounceTimeout); this._debounceTimeout = null; }
+    if (this._emitTimeout) { clearTimeout(this._emitTimeout); this._emitTimeout = null; }
+  }
+
+  setConfig(config) {
+    const c = { ...(config || {}) };
+    if (typeof c.timer_name_presets === "string") c.timer_name_presets = c.timer_name_presets.split(",").map(s => s.trim()).filter(Boolean);
+    if (typeof c.timer_presets === "string") c.timer_presets = c.timer_presets.split(",").map(s => s.trim()).filter(Boolean);
+    if (typeof c.minute_buttons === "string") c.minute_buttons = c.minute_buttons.split(",").map(s => s.trim()).filter(Boolean);
+    if (typeof c.time_format_units === "string") c.time_format_units = c.time_format_units.split(",").map(s => s.trim()).filter(Boolean);
+    this._config = { ...c };
+    if (!this._expandedSections) {
+      this._expandedSections = { basic: true, time: false, general: false, presets: false, pinned: false, storage: false, audio: false, entities: true };
+    }
+    this.requestUpdate();
+  }
+
+  _valueChanged(ev) {
+    if (!this._config || !this.hass) return;
+    const target = ev.target;
+    const key = target.configValue ?? target.dataset?.configValue ?? target.getAttribute?.("configValue");
+    if (!key) return;
+    const hasChecked = target.checked !== undefined;
+    let value = hasChecked ? target.checked : target.value;
+    if (key === "timer_presets" && typeof value === "string") {
+      value = value.split(",").map(v => v.trim()).filter(v => v).map(v => {
+        if (v.toLowerCase().endsWith("s")) {
+          const seconds = parseInt(v.slice(0, -1), 10);
+          if (!isNaN(seconds) && seconds > 0) return `${seconds}s`;
+        }
+        const minutes = parseInt(v, 10);
+        if (!isNaN(minutes) && minutes > 0) return minutes;
+        return null;
+      }).filter(v => v !== null);
+      if (value.length === 0) value = [5, 15, 30];
+    }
+    if (key === "minute_buttons" && typeof value === "string") {
+      value = value.split(",").map(v => v.trim()).filter(v => v).map(v => {
+        if (v.toLowerCase().endsWith("s")) {
+          const seconds = parseInt(v.slice(0, -1), 10);
+          if (!isNaN(seconds) && seconds > 0) return `${seconds}s`;
+        }
+        const minutes = parseInt(v, 10);
+        if (!isNaN(minutes) && minutes > 0) return minutes;
+        return null;
+      }).filter(v => v !== null);
+      if (value.length === 0) value = [1, 5, 10];
+    }
+    if (key === "timer_name_presets" && typeof value === "string") {
+      value = value.split(",").map(name => name.trim()).filter(name => name);
+    }
+    if (key === "time_format_units" && typeof value === "string") {
+      value = value.split(",").map(u => u.trim().toLowerCase()).filter(u => ["years","months","weeks","days","hours","minutes","seconds"].includes(u));
+      if (value.length === 0) value = ["days","hours","minutes","seconds"];
+    }
+    if (key === "auto_voice_pe" && value !== true) {
+      const next = { ...this._config };
+      delete next.auto_voice_pe;
+      delete next.voice_pe_control_entity;
+      this._config = next;
+      this._emitChange();
+      return;
+    }
+    if (hasChecked) this._updateConfig({ [key]: value }, true);
+    else this._updateConfig({ [key]: value });
+  }
+
+  _detailValueChanged(ev) {
+    if (!this._config || !this.hass) return;
+    const target = ev.target;
+    const key = target.configValue ?? target.dataset?.configValue ?? target.getAttribute?.("configValue");
+    if (!key) return;
+    this._updateConfig({ [key]: ev.detail.value });
+  }
+
+  _selectChanged(ev) {
+    if (!this._config || !this.hass) return;
+    const target = ev.target;
+    const key = target.configValue ?? target.dataset?.configValue ?? target.getAttribute?.("configValue");
+    if (!key) return;
+    ev.stopPropagation();
+    const value = ev.detail?.value !== undefined ? ev.detail.value : target.value;
+    if (typeof value !== "string" || value === "") return;
+    if (key === "style") {
+      const styleValue = value.toLowerCase();
+      const validStyles = ["fill_vertical", "fill_horizontal", "bar_vertical", "bar_horizontal", "circle"];
+      const normalizedStyle = validStyles.includes(styleValue) ? styleValue : "bar_horizontal";
+      this._updateConfig({ style: normalizedStyle }, true);
+    } else if (key === "progress_mode") {
+      const modes = ["drain", "fill", "milestones"];
+      this._updateConfig({ progress_mode: modes.includes(value) ? value : "drain" }, true);
+    } else if (key === "time_format") {
+      const formats = ["hms","hm","ss","dhms","human_compact","human_short","human_natural","standard"];
+      const mapped = value === "standard" ? "hms" : value;
+      this._updateConfig({ time_format: formats.includes(mapped) ? mapped : "hms" }, true);
+    } else if (key === "milestone_unit") {
+      const opts = ["auto","none","years","months","weeks","days","hours","minutes","seconds"];
+      this._updateConfig({ milestone_unit: opts.includes(value) ? value : "auto" }, true);
+    } else {
+      this._updateConfig({ [key]: value }, true);
+    }
+  }
+
+  _entityValueChanged(e, index) {
+    if (!this._config || !this.hass) return;
+    if (e.stopPropagation) e.stopPropagation();
+    if (index < 0 || index >= (this._config.entities || []).length) return;
+    const target = e.target;
+    const key = target.configValue ?? target.dataset?.configValue ?? target.getAttribute?.("configValue");
+    if (!key) return;
+    let value;
+    if (target.checked !== undefined) value = target.checked;
+    else if (e.detail && e.detail.value !== undefined) value = e.detail.value;
+    else if (target.value !== undefined) value = target.value;
+    else return;
+    const newConfig = { ...this._config };
+    const entities = [...(newConfig.entities || [])];
+    let entityConf;
+    if (typeof entities[index] === "string") entityConf = { entity: entities[index] };
+    else if (entities[index] && typeof entities[index] === "object") entityConf = { ...entities[index] };
+    else entityConf = { entity: "" };
+    if (value === "" || value === undefined || value === null) delete entityConf[key];
+    else entityConf[key] = value;
+    if (Object.keys(entityConf).length === 1 && entityConf.entity) entities[index] = entityConf.entity;
+    else if (Object.keys(entityConf).length > 0) entities[index] = entityConf;
+    else entities[index] = "";
+    newConfig.entities = entities;
+    this._updateConfig(newConfig, true);
+  }
+
+_addPinnedTimer() {
+  const pinned = Array.isArray(this._config.pinned_timers) ? [...this._config.pinned_timers] : [];
+  pinned.push({ name: "", duration: "5m" });
+  this._config = { ...this._config, pinned_timers: pinned };
+  this._emitChange();
+}
+
+_removePinnedTimer(index) {
+  const pinned = Array.isArray(this._config.pinned_timers) ? [...this._config.pinned_timers] : [];
+  pinned.splice(index, 1);
+  this._config = { ...this._config, pinned_timers: pinned };
+  this._emitChange();
+}
+
+_pinnedTimerValueChanged(ev, index) {
+  if (!this._config || !this.hass) return;
+  const target = ev.target;
+  const key = target.configValue ?? target.dataset?.configValue ?? target.getAttribute?.("configValue");
+  if (!key) return;
+
+  let value = target.checked !== undefined ? target.checked : (target.value !== undefined ? target.value : ev?.detail?.value);
+  if (key === "audio_repeat_count") {
+    const n = parseInt(value, 10);
+    value = Number.isFinite(n) && n > 0 ? n : 1;
+  }
+
+  const pinned = Array.isArray(this._config.pinned_timers) ? [...this._config.pinned_timers] : [];
+  const cur = (pinned[index] && typeof pinned[index] === "object") ? { ...pinned[index] } : {};
+  cur[key] = value;
+
+  pinned[index] = cur;
+  this._config = { ...this._config, pinned_timers: pinned };
+  this._emitChange();
+}
+
+  _addEntity() {
+    if (!this._config) return;
+    const newConfig = { ...this._config };
+    const entities = [...(newConfig.entities || [])];
+    entities.push("");
+    newConfig.entities = entities;
+    this._updateConfig(newConfig, true);
+  }
+
+  _removeEntity(i) {
+    if (!this._config || i < 0 || i >= (this._config.entities || []).length) return;
+    const newConfig = { ...this._config };
+    const entities = [...newConfig.entities];
+    entities.splice(i, 1);
+    newConfig.entities = entities;
+    this._updateConfig(newConfig, true);
+  }
+
+  _updateConfig(changes, immediate = false) {
+    if (!this._config) return;
+    if (typeof changes === "object" && changes !== null) {
+      if (changes.entities !== undefined) this._config = changes;
+      else this._config = { ...this._config, ...changes };
+    }
+    if (immediate) this._emitChange();
+    else {
+      if (this._emitTimeout) clearTimeout(this._emitTimeout);
+      this._emitTimeout = setTimeout(() => { this._emitChange(); this._emitTimeout = null; }, 50);
+    }
+  }
+
+  _emitChange() {
+    if (!this._config) return;
+    try {
+      const cleanedConfig = this._removeDefaultValues(this._config);
+      const event = new CustomEvent("config-changed", { detail: { config: cleanedConfig }, bubbles: true, composed: true });
+      this.dispatchEvent(event);
+    } catch (error) {}
+  }
+
+  _removeDefaultValues(config) {
+    const defaults = {
+      layout: "horizontal",
+      style: "bar_horizontal",
+      progress_mode: "drain",
+      show_timer_presets: true,
+      timer_presets: [5, 15, 30],
+      timer_name_presets: [],
+      snooze_duration: 5,
+      show_active_header: true,
+      minute_buttons: [1, 5, 10],
+      default_new_timer_duration_mins: 15,
+      time_format: "hms",
+      time_format_units: ["days","hours","minutes","seconds"],
+      expire_action: "keep",
+      expire_keep_for: 120,
+      auto_dismiss_writable: false,
+      audio_enabled: false,
+      audio_file_url: "",
+      audio_repeat_count: 1,
+      audio_play_until_dismissed: false,
+      audio_completion_delay: 4,
+      expired_subtitle: null,
+      default_timer_icon: "mdi:timer-outline",
+      default_timer_color: "var(--primary-color)",
+      default_timer_entity: null,
+      keep_timer_visible_when_idle: false,
+      language: "en",
+      milestone_unit: "auto",
+      milestone_pulse: true,
+    };
+
+    const cleaned = { ...(config || {}) };
+
+    delete cleaned.alexa_audio_enabled;
+    delete cleaned.alexa_audio_file_url;
+    delete cleaned.alexa_audio_repeat_count;
+    delete cleaned.alexa_audio_play_until_dismissed;
+
+    const normCsv = (v) => {
+      if (Array.isArray(v)) return v.map((x) => String(x).trim()).filter(Boolean);
+      if (typeof v === "string") return v.split(",").map((x) => x.trim()).filter(Boolean);
+      return [];
+    };
+
+    if (typeof cleaned.entities === "string") cleaned.entities = [cleaned.entities];
+    if (!Array.isArray(cleaned.entities)) delete cleaned.entities;
+    if (Array.isArray(cleaned.entities) && cleaned.entities.filter((e) => String(e || "").trim()).length === 0) delete cleaned.entities;
+
+    if (!Array.isArray(cleaned.pinned_timers) || cleaned.pinned_timers.length === 0) delete cleaned.pinned_timers;
+
+    if (cleaned.timer_name_presets !== undefined) cleaned.timer_name_presets = normCsv(cleaned.timer_name_presets);
+    if (cleaned.time_format_units !== undefined) cleaned.time_format_units = normCsv(cleaned.time_format_units);
+
+    if (cleaned.timer_presets !== undefined) {
+      const raw = Array.isArray(cleaned.timer_presets) ? cleaned.timer_presets : (typeof cleaned.timer_presets === "string" ? cleaned.timer_presets.split(",") : []);
+      cleaned.timer_presets = raw.map((x) => (typeof x === "number" ? x : String(x).trim())).filter((x) => x !== "");
+    }
+
+    if (cleaned.minute_buttons !== undefined) {
+      const raw = Array.isArray(cleaned.minute_buttons) ? cleaned.minute_buttons : (typeof cleaned.minute_buttons === "string" ? cleaned.minute_buttons.split(",") : []);
+      cleaned.minute_buttons = raw.map((x) => Number(String(x).trim())).filter((x) => Number.isFinite(x));
+    }
+
+    const stripIfEmpty = (k) => {
+      if (cleaned[k] === "" || cleaned[k] === null || cleaned[k] === undefined) delete cleaned[k];
+      if (Array.isArray(cleaned[k]) && cleaned[k].length === 0) delete cleaned[k];
+    };
+
+    stripIfEmpty("audio_file_url");
+    stripIfEmpty("expired_subtitle");
+    stripIfEmpty("title");
+    stripIfEmpty("default_timer_entity");
+
+    if (!cleaned.audio_enabled) {
+      delete cleaned.audio_file_url;
+      delete cleaned.audio_repeat_count;
+      delete cleaned.audio_play_until_dismissed;
+      delete cleaned.audio_completion_delay;
+    }
+
+    if (cleaned.show_timer_presets === false) {
+      delete cleaned.timer_presets;
+      delete cleaned.timer_name_presets;
+    }
+
+    const isEqualArray = (a, b) => Array.isArray(a) && Array.isArray(b) && a.length === b.length && a.every((v, i) => v === b[i]);
+
+    for (const [key, def] of Object.entries(defaults)) {
+      if (!(key in cleaned)) continue;
+      const val = cleaned[key];
+      if (Array.isArray(def)) {
+        if (isEqualArray(val, def)) delete cleaned[key];
+      } else if (val === def) {
+        delete cleaned[key];
+      }
+    }
+
+    if (cleaned.mqtt && typeof cleaned.mqtt === "object") {
+      if (Object.keys(cleaned.mqtt).length === 0) delete cleaned.mqtt;
+    }
+
+    return cleaned;
+  }
+
+
+  async firstUpdated() {
+    const tags = ["ha-entity-picker","ha-select","ha-textfield","ha-icon-picker","ha-form","mwc-list-item"];
+    tags.forEach((t) => { customElements.whenDefined(t).then(() => this.requestUpdate()).catch(() => {}); });
+    this._ensureEntityPickerLoaded();
+    this.requestUpdate();
+  }
+
+  _ensureEntityPickerLoaded() {
+    if (customElements.get("ha-entity-picker")) return;
+    try {
+      const loader = document.createElement("ha-form");
+      loader.style.display = "none";
+      loader.schema = [{ name: "e", selector: { entity: {} } }];
+      loader.data = {};
+      loader.hass = this.hass;
+      this.shadowRoot?.appendChild(loader);
+      setTimeout(() => loader.remove(), 0);
+    } catch (_) {}
+  }
+
+  _getDisplayStyleValue() {
+    return this._config.style || "bar_horizontal";
+  }
+
+  _detectMode(entityId, entityState, entityConf) {
+    if (!entityState) return null;
+    if (entityId.startsWith("timer.")) return "timer";
+    if (entityId.startsWith("input_text.") || entityId.startsWith("text.")) return "helper";
+    const attrs = entityState.attributes || {};
+    if (
+      attrs.alarms_brief != null ||
+      attrs.sorted_active != null ||
+      attrs.sorted_paused != null ||
+      attrs.sorted_all != null ||
+      attrs.next_timer != null ||
+      attrs.timers != null ||
+      ((entityId.includes("next_timer") || entityId.endsWith("_next_timer")) &&
+        (attrs.total_active != null || attrs.total_all != null || attrs.status != null || attrs.timer != null || attrs.dismissed != null))
+    ) return "alexa";
+    if (attrs.device_class === "timestamp") return "timestamp";
+    const guessAttr = entityConf?.minutes_attr;
+    if (guessAttr && (attrs[guessAttr] ?? null) !== null) return "minutes_attr";
+    if (attrs.start_time) return "timestamp";
+    const stateVal = entityState.state;
+    if (stateVal && stateVal !== "unknown" && stateVal !== "unavailable") {
+      if (isNaN(stateVal) && !isNaN(Date.parse(stateVal))) return "timestamp";
+    }
+    return null;
+  }
+
+  _toggleSection(key) {
+    this._expandedSections = { ...(this._expandedSections || {}), [key]: !this._expandedSections?.[key] };
+  }
+
+  render() {
+    if (!this.hass || !this._config) return b``;
+    const entityPickerReady = !!customElements.get("ha-entity-picker");
+    const storageType = this._config.default_timer_entity?.startsWith("sensor.") ? "mqtt" : "local";
+    const showMilestonesSection = this._config.progress_mode === "milestones";
+
+    const section = (key, title, content) => b`
       <div class="section">
-        <div class="section-header" @click=${()=>this._toggleSection(t)}>
-          <span class="section-title">${e}</span>
-          <ha-icon icon=${this._expandedSections?.[t]?"mdi:chevron-up":"mdi:chevron-down"}></ha-icon>
+        <div class="section-header" @click=${() => this._toggleSection(key)}>
+          <span class="section-title">${title}</span>
+          <ha-icon icon=${this._expandedSections?.[key] ? "mdi:chevron-up" : "mdi:chevron-down"}></ha-icon>
         </div>
-        ${this._expandedSections?.[t]?H`<div class="section-content">${i}</div>`:""}
+        ${this._expandedSections?.[key] ? b`<div class="section-content">${content}</div>` : ""}
       </div>
-    `,r=H`
-      <ha-textfield label="Title (Optional)" .value=${this._config.title||""} .configValue=${"title"} @input=${this._valueChanged}></ha-textfield>
+    `;
+
+    const basicContent = b`
+      <ha-textfield label="Title (Optional)" .value=${this._config.title || ""} .configValue=${"title"} @input=${this._valueChanged}></ha-textfield>
 
       <div class="side-by-side">
-        <ha-select label="Layout" .value=${this._config.layout||"horizontal"} .configValue=${"layout"} @selected=${this._selectChanged} @closed=${t=>{t.stopPropagation(),this._selectChanged(t)}}>
+        <ha-select label="Layout" .value=${this._config.layout || "horizontal"} .configValue=${"layout"} @selected=${this._selectChanged} @closed=${(e) => { e.stopPropagation(); this._selectChanged(e); }}>
           <mwc-list-item value="horizontal">Horizontal</mwc-list-item>
           <mwc-list-item value="vertical">Vertical</mwc-list-item>
         </ha-select>
 
-        <ha-select label="Style" .value=${this._getDisplayStyleValue()} .configValue=${"style"} @selected=${this._selectChanged} @closed=${t=>{t.stopPropagation(),this._selectChanged(t)}}>
+        <ha-select label="Style" .value=${this._getDisplayStyleValue()} .configValue=${"style"} @selected=${this._selectChanged} @closed=${(e) => { e.stopPropagation(); this._selectChanged(e); }}>
           <mwc-list-item value="fill_vertical">Background fill (vertical)</mwc-list-item>
           <mwc-list-item value="fill_horizontal">Background fill (horizontal)</mwc-list-item>
           <mwc-list-item value="bar_vertical">Progress bar (vertical)</mwc-list-item>
@@ -571,21 +3532,23 @@ const x=globalThis,w=t=>t,T=x.trustedTypes,S=T?T.createPolicy("lit-html",{create
       </div>
 
       <div class="side-by-side">
-        <ha-select label="Progress Mode" .value=${this._config.progress_mode||"drain"} .configValue=${"progress_mode"} @selected=${this._selectChanged} @closed=${t=>{t.stopPropagation(),this._selectChanged(t)}}>
+        <ha-select label="Progress Mode" .value=${this._config.progress_mode || "drain"} .configValue=${"progress_mode"} @selected=${this._selectChanged} @closed=${(e) => { e.stopPropagation(); this._selectChanged(e); }}>
           <mwc-list-item value="drain">Drain</mwc-list-item>
           <mwc-list-item value="fill">Fill</mwc-list-item>
           <mwc-list-item value="milestones">Milestones (bar styles only)</mwc-list-item>
         </ha-select>
 
-        <ha-select label="Language" .value=${this._config.language||"en"} .configValue=${"language"} @selected=${this._selectChanged} @closed=${t=>{t.stopPropagation(),this._selectChanged(t)}}>
+        <ha-select label="Language" .value=${this._config.language || "en"} .configValue=${"language"} @selected=${this._selectChanged} @closed=${(e) => { e.stopPropagation(); this._selectChanged(e); }}>
           <mwc-list-item value="en">English</mwc-list-item>
           <mwc-list-item value="de">Deutsch</mwc-list-item>
           <mwc-list-item value="es">Español</mwc-list-item>
 		  <mwc-list-item value="da">Dansk</mwc-list-item>
         </ha-select>
       </div>
-    `,n=H`
-      <ha-select label="Time format" .value=${this._config.time_format||"hms"} .configValue=${"time_format"} @selected=${this._selectChanged} @closed=${t=>{t.stopPropagation(),this._selectChanged(t)}}>
+    `;
+
+    const timeContent = b`
+      <ha-select label="Time format" .value=${this._config.time_format || "hms"} .configValue=${"time_format"} @selected=${this._selectChanged} @closed=${(e)=>{e.stopPropagation();this._selectChanged(e); }}>
         <mwc-list-item value="hms">HH:MM:SS</mwc-list-item>
         <mwc-list-item value="hm">HH:MM</mwc-list-item>
         <mwc-list-item value="ss">Seconds only</mwc-list-item>
@@ -595,12 +3558,12 @@ const x=globalThis,w=t=>t,T=x.trustedTypes,S=T?T.createPolicy("lit-html",{create
         <mwc-list-item value="human_natural">Unit style, natural language</mwc-list-item>
       </ha-select>
 
-      <ha-textfield label="Unit order (comma-separated)" helper="years,months,weeks,days,hours,minutes,seconds" .value=${(this._config.time_format_units||["days","hours","minutes","seconds"]).join(",")} .configValue=${"time_format_units"} @input=${this._valueChanged}></ha-textfield>
+      <ha-textfield label="Unit order (comma-separated)" helper="years,months,weeks,days,hours,minutes,seconds" .value=${(this._config.time_format_units || ["days","hours","minutes","seconds"]).join(",")} .configValue=${"time_format_units"} @input=${this._valueChanged}></ha-textfield>
 
-      ${i?H`
+      ${showMilestonesSection ? b`
         <div class="subsection-title">Progress milestones</div>
         <div class="side-by-side" style="align-items:flex-start;">
-          <ha-select label="Milestone unit" .value=${this._config.milestone_unit||"auto"} .configValue=${"milestone_unit"} @selected=${this._selectChanged} @closed=${t=>{t.stopPropagation(),this._selectChanged(t)}}>
+          <ha-select label="Milestone unit" .value=${this._config.milestone_unit || "auto"} .configValue=${"milestone_unit"} @selected=${this._selectChanged} @closed=${(e)=>{e.stopPropagation();this._selectChanged(e); }}>
             <mwc-list-item value="auto">Auto (default)</mwc-list-item>
             <mwc-list-item value="none">None</mwc-list-item>
             <mwc-list-item value="years">Years</mwc-list-item>
@@ -612,51 +3575,57 @@ const x=globalThis,w=t=>t,T=x.trustedTypes,S=T?T.createPolicy("lit-html",{create
             <mwc-list-item value="seconds">Seconds</mwc-list-item>
           </ha-select>
           <ha-formfield label="Pulse active milestone">
-            <ha-switch .checked=${!1!==this._config.milestone_pulse} .configValue=${"milestone_pulse"} @change=${this._valueChanged}></ha-switch>
+            <ha-switch .checked=${this._config.milestone_pulse !== false} .configValue=${"milestone_pulse"} @change=${this._valueChanged}></ha-switch>
           </ha-formfield>
         </div>
-      `:""}
-    `,o=H`
+      ` : ""}
+    `;
+
+    const generalContent = b`
       <ha-formfield label="Show 'Active Timers' header">
-        <ha-switch .checked=${!1!==this._config.show_active_header} .configValue=${"show_active_header"} @change=${this._valueChanged}></ha-switch>
+        <ha-switch .checked=${this._config.show_active_header !== false} .configValue=${"show_active_header"} @change=${this._valueChanged}></ha-switch>
       </ha-formfield>
 
       <div class="side-by-side">
-        <ha-textfield label="Default Duration (minutes)" type="number" .value=${this._config.default_new_timer_duration_mins??15} .configValue=${"default_new_timer_duration_mins"} @input=${this._valueChanged}></ha-textfield>
-        <ha-textfield label="Snooze Duration (minutes)" type="number" .value=${this._config.snooze_duration??5} .configValue=${"snooze_duration"} @input=${this._valueChanged}></ha-textfield>
+        <ha-textfield label="Default Duration (minutes)" type="number" .value=${this._config.default_new_timer_duration_mins ?? 15} .configValue=${"default_new_timer_duration_mins"} @input=${this._valueChanged}></ha-textfield>
+        <ha-textfield label="Snooze Duration (minutes)" type="number" .value=${this._config.snooze_duration ?? 5} .configValue=${"snooze_duration"} @input=${this._valueChanged}></ha-textfield>
       </div>
 
       <div class="side-by-side">
-        <ha-select label="When timer reaches 0" .value=${this._config.expire_action||"keep"} .configValue=${"expire_action"} @selected=${this._selectChanged} @closed=${t=>{t.stopPropagation(),this._selectChanged(t)}}>
+        <ha-select label="When timer reaches 0" .value=${this._config.expire_action || "keep"} .configValue=${"expire_action"} @selected=${this._selectChanged} @closed=${(e) => { e.stopPropagation(); this._selectChanged(e); }}>
           <mwc-list-item value="keep">Keep visible</mwc-list-item>
           <mwc-list-item value="dismiss">Dismiss</mwc-list-item>
           <mwc-list-item value="remove">Remove</mwc-list-item>
         </ha-select>
-        <ha-textfield label="Keep-visible duration (seconds)" type="number" .value=${this._config.expire_keep_for??120} .configValue=${"expire_keep_for"} @input=${this._valueChanged}></ha-textfield>
+        <ha-textfield label="Keep-visible duration (seconds)" type="number" .value=${this._config.expire_keep_for ?? 120} .configValue=${"expire_keep_for"} @input=${this._valueChanged}></ha-textfield>
       </div>
 
       <ha-formfield label="Auto-dismiss helper timers at 0">
-        <ha-switch .checked=${!0===this._config.auto_dismiss_writable} .configValue=${"auto_dismiss_writable"} @change=${this._valueChanged}></ha-switch>
+        <ha-switch .checked=${this._config.auto_dismiss_writable === true} .configValue=${"auto_dismiss_writable"} @change=${this._valueChanged}></ha-switch>
       </ha-formfield>
 
       <div class="side-by-side">
-        <ha-icon-picker label="Default timer icon" .value=${this._config.default_timer_icon||"mdi:timer-outline"} .configValue=${"default_timer_icon"} @value-changed=${this._detailValueChanged}></ha-icon-picker>
-        <ha-textfield label="Default timer color" .value=${this._config.default_timer_color||"var(--primary-color)"} .configValue=${"default_timer_color"} @input=${this._valueChanged}></ha-textfield>
+        <ha-icon-picker label="Default timer icon" .value=${this._config.default_timer_icon || "mdi:timer-outline"} .configValue=${"default_timer_icon"} @value-changed=${this._detailValueChanged}></ha-icon-picker>
+        <ha-textfield label="Default timer color" .value=${this._config.default_timer_color || "var(--primary-color)"} .configValue=${"default_timer_color"} @input=${this._valueChanged}></ha-textfield>
       </div>
 
-      <ha-textfield label="Timer expired message" .value=${this._config.expired_subtitle||""} .configValue=${"expired_subtitle"} @input=${this._valueChanged} placeholder="Time's up!"></ha-textfield>
-    `,a=H`
+      <ha-textfield label="Timer expired message" .value=${this._config.expired_subtitle || ""} .configValue=${"expired_subtitle"} @input=${this._valueChanged} placeholder="Time's up!"></ha-textfield>
+    `;
+
+    const presetsContent = b`
       <ha-formfield label="Show timer preset buttons">
-        <ha-switch .checked=${!1!==this._config.show_timer_presets} .configValue=${"show_timer_presets"} @change=${this._valueChanged}></ha-switch>
+        <ha-switch .checked=${this._config.show_timer_presets !== false} .configValue=${"show_timer_presets"} @change=${this._valueChanged}></ha-switch>
       </ha-formfield>
 
-      ${!1!==this._config.show_timer_presets?H`
-        <ha-textfield label="Timer presets (minutes or secs, e.g. 5, 90s)" .value=${(this._config.timer_presets||[5,15,30]).join(", ")} .configValue=${"timer_presets"} @input=${this._valueChanged}></ha-textfield>
-        <ha-textfield label="Timer name presets (comma-separated)" .value=${(this._config.timer_name_presets||[]).join(", ")} .configValue=${"timer_name_presets"} @input=${this._valueChanged}></ha-textfield>
-      `:""}
+      ${this._config.show_timer_presets !== false ? b`
+        <ha-textfield label="Timer presets (minutes or secs, e.g. 5, 90s)" .value=${(this._config.timer_presets || [5, 15, 30]).join(", ")} .configValue=${"timer_presets"} @input=${this._valueChanged}></ha-textfield>
+        <ha-textfield label="Timer name presets (comma-separated)" .value=${(this._config.timer_name_presets || []).join(", ")} .configValue=${"timer_name_presets"} @input=${this._valueChanged}></ha-textfield>
+      ` : ""}
 
-      <ha-textfield label="Minute adjustment buttons (comma-separated)" .value=${(this._config.minute_buttons||[1,5,10]).join(", ")} .configValue=${"minute_buttons"} @input=${this._valueChanged}></ha-textfield>
-    `,l=H`
+      <ha-textfield label="Minute adjustment buttons (comma-separated)" .value=${(this._config.minute_buttons || [1, 5, 10]).join(", ")} .configValue=${"minute_buttons"} @input=${this._valueChanged}></ha-textfield>
+    `;
+
+    const pinnedContent = b`
   <div class="entities-header">
     <h3>Pinned timers</h3>
     <button class="add-entity-button" @click=${this._addPinnedTimer} title="Add pinned timer">
@@ -664,22 +3633,24 @@ const x=globalThis,w=t=>t,T=x.trustedTypes,S=T?T.createPolicy("lit-html",{create
     </button>
   </div>
 
-  ${0===(Array.isArray(this._config.pinned_timers)?this._config.pinned_timers:[]).length?H`<div class="no-entities">No pinned timers configured. Click the + button above to add one.</div>`:(this._config.pinned_timers||[]).map((t,e)=>H`
+  ${(Array.isArray(this._config.pinned_timers) ? this._config.pinned_timers : []).length === 0
+    ? b`<div class="no-entities">No pinned timers configured. Click the + button above to add one.</div>`
+    : (this._config.pinned_timers || []).map((t, index) => b`
         <div class="entity-editor">
           <div class="entity-options" style="width:100%;">
             <div class="side-by-side">
               <ha-textfield
                 label="Name"
-                .value=${t?.name||""}
+                .value=${t?.name || ""}
                 .configValue=${"name"}
-                @input=${t=>this._pinnedTimerValueChanged(t,e)}
+                @input=${(e) => this._pinnedTimerValueChanged(e, index)}
               ></ha-textfield>
 
               <ha-textfield
                 label="Duration"
-                .value=${t?.duration??t?.preset??"5m"}
+                .value=${t?.duration ?? t?.preset ?? "5m"}
                 .configValue=${"duration"}
-                @input=${t=>this._pinnedTimerValueChanged(t,e)}
+                @input=${(e) => this._pinnedTimerValueChanged(e, index)}
                 helper-text="Examples: 5m, 90s, 1h"
               ></ha-textfield>
             </div>
@@ -687,41 +3658,41 @@ const x=globalThis,w=t=>t,T=x.trustedTypes,S=T?T.createPolicy("lit-html",{create
             <div class="side-by-side">
               <ha-icon-picker
                 label="Icon"
-                .value=${t?.icon||""}
+                .value=${t?.icon || ""}
                 .configValue=${"icon"}
-                @value-changed=${t=>{t.target.configValue="icon",this._pinnedTimerValueChanged(t,e)}}
+                @value-changed=${(e) => { e.target.configValue = "icon"; this._pinnedTimerValueChanged(e, index); }}
               ></ha-icon-picker>
 
               <ha-textfield
                 label="Color"
-                .value=${t?.color||""}
+                .value=${t?.color || ""}
                 .configValue=${"color"}
-                @input=${t=>this._pinnedTimerValueChanged(t,e)}
+                @input=${(e) => this._pinnedTimerValueChanged(e, index)}
               ></ha-textfield>
             </div>
 
             <ha-textfield
               label="Expired message"
-              .value=${t?.expired_subtitle||""}
+              .value=${t?.expired_subtitle || ""}
               .configValue=${"expired_subtitle"}
-              @input=${t=>this._pinnedTimerValueChanged(t,e)}
+              @input=${(e) => this._pinnedTimerValueChanged(e, index)}
             ></ha-textfield>
 
             <ha-formfield label="Enable specific audio">
               <ha-switch
-                .checked=${!0===t?.audio_enabled}
+                .checked=${t?.audio_enabled === true}
                 .configValue=${"audio_enabled"}
-                @change=${t=>this._pinnedTimerValueChanged(t,e)}
+                @change=${(e) => this._pinnedTimerValueChanged(e, index)}
               ></ha-switch>
             </ha-formfield>
 
-            ${t?.audio_enabled?H`
+            ${t?.audio_enabled ? b`
               <div class="side-by-side">
                 <ha-textfield
                   label="Audio file URL"
-                  .value=${t?.audio_file_url||""}
+                  .value=${t?.audio_file_url || ""}
                   .configValue=${"audio_file_url"}
-                  @input=${t=>this._pinnedTimerValueChanged(t,e)}
+                  @input=${(e) => this._pinnedTimerValueChanged(e, index)}
                 ></ha-textfield>
 
                 <ha-textfield
@@ -729,99 +3700,116 @@ const x=globalThis,w=t=>t,T=x.trustedTypes,S=T?T.createPolicy("lit-html",{create
                   type="number"
                   min="1"
                   max="10"
-                  .value=${t?.audio_repeat_count??1}
+                  .value=${t?.audio_repeat_count ?? 1}
                   .configValue=${"audio_repeat_count"}
-                  @input=${t=>this._pinnedTimerValueChanged(t,e)}
+                  @input=${(e) => this._pinnedTimerValueChanged(e, index)}
                 ></ha-textfield>
               </div>
 
               <ha-formfield label="Play until dismissed or snoozed">
                 <ha-switch
-                  .checked=${!0===t?.audio_play_until_dismissed}
+                  .checked=${t?.audio_play_until_dismissed === true}
                   .configValue=${"audio_play_until_dismissed"}
-                  @change=${t=>this._pinnedTimerValueChanged(t,e)}
+                  @change=${(e) => this._pinnedTimerValueChanged(e, index)}
                 ></ha-switch>
               </ha-formfield>
-            `:""}
+            ` : ""}
           </div>
 
-          <button class="remove-entity" @click=${()=>this._removePinnedTimer(e)} title="Remove pinned timer">
+          <button class="remove-entity" @click=${() => this._removePinnedTimer(index)} title="Remove pinned timer">
             <ha-icon icon="mdi:delete"></ha-icon>
           </button>
         </div>
       `)}
-`,c=H`
+`;
+
+const storageContent = b`
       <ha-entity-picker
         .hass=${this.hass}
-        .value=${this._config.default_timer_entity||""}
+        .value=${this._config.default_timer_entity || ""}
         .configValue=${"default_timer_entity"}
         @value-changed=${this._detailValueChanged}
         label="Default Timer Storage (Optional)"
         help-text="Select a helper (input_text) or an MQTT sensor to store timers."
         allow-custom-entity
-        .includeDomains=${["input_text","text","sensor"]}
+        .includeDomains=${["input_text", "text", "sensor"]}
       ></ha-entity-picker>
       <ha-formfield label="Auto use Voice PE (if available)">
-        <ha-switch .checked=${!0===this._config.auto_voice_pe} .configValue=${"auto_voice_pe"} @change=${this._valueChanged}></ha-switch>
+        <ha-switch .checked=${this._config.auto_voice_pe === true} .configValue=${"auto_voice_pe"} @change=${this._valueChanged}></ha-switch>
       </ha-formfield>
 
-      ${!0===this._config.auto_voice_pe?H`
+      ${this._config.auto_voice_pe === true
+        ? b`
             <ha-entity-picker
               .hass=${this.hass}
-              .value=${this._config.voice_pe_control_entity||""}
+              .value=${this._config.voice_pe_control_entity || ""}
               .configValue=${"voice_pe_control_entity"}
-              .includeDomains=${["text","input_text"]}
+              .includeDomains=${["text", "input_text"]}
               allow-custom-entity
               label="Voice PE control entity"
               @value-changed=${this._valueChanged}
             ></ha-entity-picker>
-          `:""}
+          `
+        : ""}
 
       <div class="storage-info">
-        <span class="storage-label">Storage type: <strong>${this._getStorageDisplayName(e)}</strong></span>
-        <small class="storage-description">${this._getStorageDescription(e)}</small>
+        <span class="storage-label">Storage type: <strong>${this._getStorageDisplayName(storageType)}</strong></span>
+        <small class="storage-description">${this._getStorageDescription(storageType)}</small>
       </div>
-    `,d=H`
+    `;
+
+    const audioContent = b`
       <ha-formfield label="Enable audio notifications">
-        <ha-switch .checked=${!0===this._config.audio_enabled} .configValue=${"audio_enabled"} @change=${this._valueChanged}></ha-switch>
+        <ha-switch .checked=${this._config.audio_enabled === true} .configValue=${"audio_enabled"} @change=${this._valueChanged}></ha-switch>
       </ha-formfield>
-      ${this._config.audio_enabled?H`
-        <ha-textfield label="Audio file URL or path" .value=${this._config.audio_file_url||""} .configValue=${"audio_file_url"} @input=${this._valueChanged}></ha-textfield>
-        <ha-textfield label="Audio completion delay (seconds)" type="number" min="1" max="30" .value=${this._config.audio_completion_delay??4} .configValue=${"audio_completion_delay"} @input=${this._valueChanged}></ha-textfield>
-        <ha-textfield label="Number of times to play" type="number" min="1" max="10" .value=${this._config.audio_repeat_count??1} .configValue=${"audio_repeat_count"} @input=${this._valueChanged}></ha-textfield>
+      ${this._config.audio_enabled ? b`
+        <ha-textfield label="Audio file URL or path" .value=${this._config.audio_file_url || ""} .configValue=${"audio_file_url"} @input=${this._valueChanged}></ha-textfield>
+        <ha-textfield label="Audio completion delay (seconds)" type="number" min="1" max="30" .value=${this._config.audio_completion_delay ?? 4} .configValue=${"audio_completion_delay"} @input=${this._valueChanged}></ha-textfield>
+        <ha-textfield label="Number of times to play" type="number" min="1" max="10" .value=${this._config.audio_repeat_count ?? 1} .configValue=${"audio_repeat_count"} @input=${this._valueChanged}></ha-textfield>
         <ha-formfield label="Play audio until timer is dismissed or snoozed">
-          <ha-switch .checked=${!0===this._config.audio_play_until_dismissed} .configValue=${"audio_play_until_dismissed"} @change=${this._valueChanged}></ha-switch>
+          <ha-switch .checked=${this._config.audio_play_until_dismissed === true} .configValue=${"audio_play_until_dismissed"} @change=${this._valueChanged}></ha-switch>
         </ha-formfield>
-      `:""}
-    `,u=H`
+      ` : ""}
+    `;
+
+    const entitiesContent = b`
       <div class="entities-header">
         <h3>Entities</h3>
         <button class="add-entity-button" @click=${this._addEntity} title="Add timer entity"><ha-icon icon="mdi:plus"></ha-icon></button>
       </div>
 
-      ${0===(this._config.entities||[]).length?H`<div class="no-entities">No entities configured. Click the + button above to add timer entities.</div>`:(this._config.entities||[]).map((e,i)=>{const s="string"==typeof e?e:e?.entity||"",r="string"==typeof e?{}:e||{},n=this.hass.states[s],o=this._detectMode(s,n,r),a=!r.mode||"auto"===r.mode,l="timestamp"===r.mode||a&&"timestamp"===o;return H`
+      ${(this._config.entities || []).length === 0
+        ? b`<div class="no-entities">No entities configured. Click the + button above to add timer entities.</div>`
+        : (this._config.entities || []).map((entityConf, index) => {
+            const entityId = typeof entityConf === "string" ? entityConf : (entityConf?.entity || "");
+            const conf = typeof entityConf === "string" ? {} : (entityConf || {});
+            const st = this.hass.states[entityId];
+            const detectedMode = this._detectMode(entityId, st, conf);
+            const isAuto = !conf.mode || conf.mode === "auto";
+            const isTimestampMode = conf.mode === "timestamp" || (isAuto && detectedMode === "timestamp");
+            return b`
               <div class="entity-editor">
-                ${t?H`
+                ${entityPickerReady ? b`
                   <ha-entity-picker
                     .hass=${this.hass}
-                    .value=${s}
+                    .value=${entityId}
                     .configValue=${"entity"}
                     allow-custom-entity
-                    @value-changed=${t=>this._entityValueChanged(t,i)}
+                    @value-changed=${(e) => this._entityValueChanged(e, index)}
                   ></ha-entity-picker>
-                `:H`
+                ` : b`
                   <ha-textfield
                     label="Entity (type while picker loads)"
-                    .value=${s}
+                    .value=${entityId}
                     .configValue=${"entity"}
-                    @input=${t=>this._entityValueChanged(t,i)}
+                    @input=${(e) => this._entityValueChanged(e, index)}
                   ></ha-textfield>
                 `}
                 <div class="entity-options">
                   <div class="side-by-side" style="align-items:flex-start;">
                     <div style="flex:1;">
-                      <ha-select label="Mode" .value=${r.mode||"auto"} .configValue=${"mode"}
-                        @selected=${t=>{t.stopPropagation(),this._entityValueChanged(t,i)}} @closed=${t=>{t.stopPropagation(),this._entityValueChanged(t,i)}}>
+                      <ha-select label="Mode" .value=${conf.mode || "auto"} .configValue=${"mode"}
+                        @selected=${(e) => { e.stopPropagation(); this._entityValueChanged(e, index); }} @closed=${(e) => { e.stopPropagation(); this._entityValueChanged(e, index); }}>
                         <mwc-list-item value="auto">Auto (Default)</mwc-list-item>
                         <mwc-list-item value="alexa">Alexa</mwc-list-item>
                         <mwc-list-item value="timer">Timer</mwc-list-item>
@@ -830,81 +3818,107 @@ const x=globalThis,w=t=>t,T=x.trustedTypes,S=T?T.createPolicy("lit-html",{create
                         <mwc-list-item value="timestamp">Timestamp sensor</mwc-list-item>
                         <mwc-list-item value="minutes_attr">Minutes attribute</mwc-list-item>
                       </ha-select>
-                      ${a&&o?H`
+                      ${isAuto && detectedMode ? b`
                         <div class="helper-text">
-                          Detected mode: <strong>${"unknown"===o?"Unknown":o.charAt(0).toUpperCase()+o.slice(1)}</strong>
+                          Detected mode: <strong>${detectedMode === "unknown" ? "Unknown" : detectedMode.charAt(0).toUpperCase() + detectedMode.slice(1)}</strong>
                         </div>
-                      `:""}
+                      ` : ""}
                     </div>
 
-                    ${"minutes_attr"===r.mode?H`
-                      <ha-textfield label="Minutes attribute" .value=${r.minutes_attr||""} .configValue=${"minutes_attr"} @input=${t=>this._entityValueChanged(t,i)}></ha-textfield>
-                    `:""}
+                    ${conf.mode === "minutes_attr" ? b`
+                      <ha-textfield label="Minutes attribute" .value=${conf.minutes_attr || ""} .configValue=${"minutes_attr"} @input=${(e) => this._entityValueChanged(e, index)}></ha-textfield>
+                    ` : ""}
 
-                    ${l?H`
+                    ${isTimestampMode ? b`
                       <ha-entity-picker
                           .hass=${this.hass}
-                          .value=${r.start_time_entity||""}
+                          .value=${conf.start_time_entity || ""}
                           .configValue=${"start_time_entity"}
-                          @value-changed=${t=>this._entityValueChanged(t,i)}
+                          @value-changed=${(e) => this._entityValueChanged(e, index)}
                           label="Start time entity"
                           allow-custom-entity
                       ></ha-entity-picker>
-                    `:""}
+                    ` : ""}
                   </div>
 
-                  ${l?H`
+                  ${isTimestampMode ? b`
                     <ha-textfield
                       label="Start time attribute (Optional)"
-                      .value=${r.start_time_attr||""}
+                      .value=${conf.start_time_attr || ""}
                       .configValue=${"start_time_attr"}
-                      @input=${t=>this._entityValueChanged(t,i)}
+                      @input=${(e) => this._entityValueChanged(e, index)}
                       helper-text="Attribute on this entity containing the start timestamp (e.g., 'last_triggered')."
                     ></ha-textfield>
-                  `:""}
+                  ` : ""}
 
                   <div class="side-by-side">
-                    <ha-textfield label="Name Override" .value=${r.name||""} .configValue=${"name"} @input=${t=>this._entityValueChanged(t,i)}></ha-textfield>
-                    <ha-icon-picker label="Icon Override" .value=${r.icon||""} .configValue=${"icon"} @value-changed=${t=>this._entityValueChanged(t,i)}></ha-icon-picker>
-                    <ha-textfield label="Color Override" .value=${r.color||""} .configValue=${"color"} @input=${t=>this._entityValueChanged(t,i)}></ha-textfield>
+                    <ha-textfield label="Name Override" .value=${conf.name || ""} .configValue=${"name"} @input=${(e) => this._entityValueChanged(e, index)}></ha-textfield>
+                    <ha-icon-picker label="Icon Override" .value=${conf.icon || ""} .configValue=${"icon"} @value-changed=${(e) => this._entityValueChanged(e, index)}></ha-icon-picker>
+                    <ha-textfield label="Color Override" .value=${conf.color || ""} .configValue=${"color"} @input=${(e) => this._entityValueChanged(e, index)}></ha-textfield>
                   </div>
 
-                  <ha-textfield label="Expired message override" .value=${r.expired_subtitle||""} .configValue=${"expired_subtitle"} @input=${t=>this._entityValueChanged(t,i)}></ha-textfield>
+                  <ha-textfield label="Expired message override" .value=${conf.expired_subtitle || ""} .configValue=${"expired_subtitle"} @input=${(e) => this._entityValueChanged(e, index)}></ha-textfield>
 
                   <ha-formfield label="Enable entity-specific audio">
-                    <ha-switch .checked=${!0===r.audio_enabled} .configValue=${"audio_enabled"} @change=${t=>this._entityValueChanged(t,i)}></ha-switch>
+                    <ha-switch .checked=${conf.audio_enabled === true} .configValue=${"audio_enabled"} @change=${(e) => this._entityValueChanged(e, index)}></ha-switch>
                   </ha-formfield>
 
-                  ${r.audio_enabled?H`
+                  ${conf.audio_enabled ? b`
                     <div class="side-by-side">
-                      <ha-textfield label="Audio file URL" .value=${r.audio_file_url||""} .configValue=${"audio_file_url"} @input=${t=>this._entityValueChanged(t,i)}></ha-textfield>
-                      <ha-textfield label="Audio repeat count" type="number" min="1" max="10" .value=${r.audio_repeat_count??1} .configValue=${"audio_repeat_count"} @input=${t=>this._entityValueChanged(t,i)}></ha-textfield>
+                      <ha-textfield label="Audio file URL" .value=${conf.audio_file_url || ""} .configValue=${"audio_file_url"} @input=${(e) => this._entityValueChanged(e, index)}></ha-textfield>
+                      <ha-textfield label="Audio repeat count" type="number" min="1" max="10" .value=${conf.audio_repeat_count ?? 1} .configValue=${"audio_repeat_count"} @input=${(e) => this._entityValueChanged(e, index)}></ha-textfield>
                     </div>
-                  `:""}
+                  ` : ""}
 
-                  ${"timer"===r.mode||a&&"timer"===o?H`
+                  ${(conf.mode === "timer" || (isAuto && detectedMode === "timer")) ? b`
                     <ha-formfield label="Keep visible when idle">
-                      <ha-switch .checked=${!0===r.keep_timer_visible_when_idle} .configValue=${"keep_timer_visible_when_idle"} @change=${t=>this._entityValueChanged(t,i)}></ha-switch>
+                      <ha-switch .checked=${conf.keep_timer_visible_when_idle === true} .configValue=${"keep_timer_visible_when_idle"} @change=${(e) => this._entityValueChanged(e, index)}></ha-switch>
                     </ha-formfield>
                     <ha-formfield label="Hide action buttons">
-                      <ha-switch .checked=${!0===r.hide_timer_actions} .configValue=${"hide_timer_actions"} @change=${t=>this._entityValueChanged(t,i)}></ha-switch>
+                      <ha-switch .checked=${conf.hide_timer_actions === true} .configValue=${"hide_timer_actions"} @change=${(e) => this._entityValueChanged(e, index)}></ha-switch>
                     </ha-formfield>
-                  `:""}
+                  ` : ""}
                 </div>
 
-                <button class="remove-entity" @click=${()=>this._removeEntity(i)} title="Remove entity"><ha-icon icon="mdi:delete"></ha-icon></button>
+                <button class="remove-entity" @click=${() => this._removeEntity(index)} title="Remove entity"><ha-icon icon="mdi:delete"></ha-icon></button>
               </div>
-            `})}
-    `;return H`
+            `;
+          })
+      }
+    `;
+
+    return b`
       <div class="card-config">
-        ${s("basics","Basics",H`${r}<div class="divider"></div>${n}<div class="divider"></div>${d}`)}
-        ${s("layout","Layout",o)}
-        ${s("presets","Presets",a)}
-        ${s("pinned","Pinned timers",l)}
-        ${s("storage","Storage",c)}
-        ${s("entities","Entities",u)}
+        ${section("basics", "Basics", b`${basicContent}<div class="divider"></div>${timeContent}<div class="divider"></div>${audioContent}`)}
+        ${section("layout", "Layout", generalContent)}
+        ${section("presets", "Presets", presetsContent)}
+        ${section("pinned", "Pinned timers", pinnedContent)}
+        ${section("storage", "Storage", storageContent)}
+        ${section("entities", "Entities", entitiesContent)}
       </div>
-    `}_getStorageDisplayName(t){switch(t){case"local":return"Local Browser Storage";case"helper":return"Helper Entities";case"mqtt":return"MQTT";default:return"Unknown"}}_getStorageDescription(t){switch(t){case"local":return"Timers are stored locally in your browser and persist across sessions.";case"helper":return"Timers are stored in Home Assistant helper entities (input_text/text).";case"mqtt":return"Timers are stored via MQTT for cross-device sync. Select your MQTT sensor in 'Default Timer Storage'.";default:return""}}static get styles(){return n`
+    `;
+  }
+
+  _getStorageDisplayName(storage) {
+    switch (storage) {
+      case "local": return "Local Browser Storage";
+      case "helper": return "Helper Entities";
+      case "mqtt": return "MQTT";
+      default: return "Unknown";
+    }
+  }
+
+  _getStorageDescription(storage) {
+    switch (storage) {
+      case "local": return "Timers are stored locally in your browser and persist across sessions.";
+      case "helper": return "Timers are stored in Home Assistant helper entities (input_text/text).";
+      case "mqtt": return "Timers are stored via MQTT for cross-device sync. Select your MQTT sensor in 'Default Timer Storage'.";
+      default: return "";
+    }
+  }
+
+  static get styles() {
+    return i$3`
       .card-config { display: flex; flex-direction: column; gap: 4px; }
 
       .section { background: var(--card-background-color); border-radius: 8px; overflow: visible; margin-bottom: 4px; }
@@ -936,4 +3950,49 @@ const x=globalThis,w=t=>t,T=x.trustedTypes,S=T?T.createPolicy("lit-html",{create
       .remove-entity { position: absolute; top: 6px; right: 6px; background: var(--error-color, #f44336); border: none; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; }
 
       .helper-text { font-size: 11px; color: var(--secondary-text-color); margin-top: 4px; margin-left: 4px; }
-    `}}customElements.get("simple-timer-card")||customElements.define("simple-timer-card",mt);const pt=()=>{customElements.get("simple-timer-card-editor")||customElements.define("simple-timer-card-editor",_t)};pt(),window.addEventListener("location-changed",()=>{setTimeout(pt,100)}),mt.getConfigElement=function(){if(pt(),customElements.get("simple-timer-card-editor"))return document.createElement("simple-timer-card-editor");const t=document.createElement("div");t.innerHTML="Loading editor...";const e=setInterval(()=>{if(customElements.get("simple-timer-card-editor")){clearInterval(e);const i=document.createElement("simple-timer-card-editor");t.replaceWith(i),t._config&&i.setConfig(t._config),t._hass&&(i.hass=t._hass)}},100),i=t.setConfig;return t.setConfig=function(e){t._config=e,i&&i.call(t,e)},Object.defineProperty(t,"hass",{set:function(e){t._hass=e},get:function(){return t._hass}}),t},setTimeout(()=>{window.customCards=window.customCards||[],window.customCards.push({type:"simple-timer-card",name:"Simple Timer Card",preview:!0,description:"Pick a layout (horizontal/vertical) and a style (progress bar/background fill). Uses HA theme & native elements.",editor:"simple-timer-card-editor"})},0);
+    `;
+  }
+}
+
+if (!customElements.get("simple-timer-card")) customElements.define("simple-timer-card", SimpleTimerCard);
+const stcRegisterEditor = () => { if (!customElements.get("simple-timer-card-editor"))
+customElements.define("simple-timer-card-editor", SimpleTimerCardEditor); };
+stcRegisterEditor();
+window.addEventListener("location-changed", () => { setTimeout(stcRegisterEditor, 100); });
+
+SimpleTimerCard.getConfigElement = function () {
+  stcRegisterEditor();
+  if (customElements.get("simple-timer-card-editor")) return document.createElement("simple-timer-card-editor");
+  const placeholder = document.createElement("div");
+  placeholder.innerHTML = "Loading editor...";
+  const checkInterval = setInterval(() => {
+    if (customElements.get("simple-timer-card-editor")) {
+      clearInterval(checkInterval);
+      const editor = document.createElement("simple-timer-card-editor");
+      placeholder.replaceWith(editor);
+      if (placeholder._config) editor.setConfig(placeholder._config);
+      if (placeholder._hass) editor.hass = placeholder._hass;
+    }
+  }, 100);
+  const originalSetConfig = placeholder.setConfig;
+  placeholder.setConfig = function (config) {
+    placeholder._config = config;
+    if (originalSetConfig) originalSetConfig.call(placeholder, config);
+  };
+  Object.defineProperty(placeholder, "hass", {
+    set: function (hass) { placeholder._hass = hass; },
+    get: function () { return placeholder._hass; }
+  });
+  return placeholder;
+};
+
+setTimeout(() => {
+  window.customCards = window.customCards || [];
+  window.customCards.push({
+    type: "simple-timer-card",
+    name: "Simple Timer Card",
+    preview: true,
+    description: "Pick a layout (horizontal/vertical) and a style (progress bar/background fill). Uses HA theme & native elements.",
+    editor: "simple-timer-card-editor",
+  });
+}, 0);

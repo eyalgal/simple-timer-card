@@ -9,6 +9,6 @@ export default {
   },
   plugins: [
     resolve(),
-    terser()
+    // terser()
   ]
 };
