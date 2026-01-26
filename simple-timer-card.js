@@ -2745,7 +2745,7 @@ if (!audioEnabled || !audioFileUrl || !this._validateAudioUrl(audioFileUrl)) ret
       const now = Date.now();
       return {
         id: `pinned-${idx}`,
-        pinned_id: `pinned-${idx}`,
+        pinned_id: (p && typeof p === "object" && p.id) ? p.id : `pinned-${idx}`,
         kind: "template",
         name: label,
         label,
