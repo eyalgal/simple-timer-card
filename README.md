@@ -21,7 +21,7 @@ A versatile and highly customizable timer card for Home Assistant Lovelace, offe
 ## **✨ Features**
 
 * **Alexa Integration:** Works great with [alexa_media_player](https://github.com/alandtse/alexa_media_player). Auto-detects Alexa timer entities (legacy + new attribute structures). Per-entity audio overrides apply here too.
-* **Voice PE Integration:** Mirror Voice PE timers via template sensors - [setup guide](voice-pe.md). Advanced UI-controlled local timers (start/pause/resume/cancel): [ESPHome walkthrough](voice-pe-esphome.md).
+* **Voice PE Integration:** Mirror Voice PE timers via template sensors - [setup guide](voice-pe/voice-pe.md). Advanced UI-controlled local timers (start/pause/resume/cancel): [ESPHome walkthrough](voice-pe/voice-pe-esphome.md).
 * **Flexible Display Styles:** Choose from five distinct timer display styles: `fill_horizontal`, `fill_vertical`, `bar_horizontal`, `bar_vertical`, or `circle`.
 * **Progress Animation Modes:** Circle and bar styles support `drain` (shrinks/empties), `fill` (grows), and `milestones` (segmented progress by time units) animations for visual preference.
 * **Dual Layout Control:** Separate `layout` (for no-timers state) and `style` (for active timers) options allow any combination.
@@ -39,7 +39,7 @@ A versatile and highly customizable timer card for Home Assistant Lovelace, offe
 * **Customizable Appearance:** Adjust colors, icons, and styling to match your Home Assistant theme.
 * **Native Theme Integration:** Automatically uses Home Assistant theme colors and native UI elements.
 * **Visual Progress Indicators:** Clear visual feedback showing timer progress and status.
-* **Language Support:** Added support for multiple languages. Currently supports English (`en`), German (`de`), and Spanish (`es`).
+* **Language Support:** Added support for multiple languages. Currently supports English (`en`), German (`de`), Spanish (`es`), and Danish (`de`).
 * **🔒 Security Features:** Built-in XSS protection, input validation, rate limiting, and secure audio URL handling.
 
 ## **🔒 Security**
@@ -97,7 +97,7 @@ type: custom:simple-timer-card
 | `layout`                 | `string`  | `horizontal`            | Card layout for no-timers state. Can be `horizontal` or `vertical`                                |
 | `style`                  | `string`  | `bar_horizontal`        | Timer display style. Can be `fill_vertical`, `fill_horizontal`, `bar_vertical`, `bar_horizontal` (default), or `circle` |
 | `title`                  | `string`  | `null`                  | Optional title for the card                                                                        |
-| `language`               | `string`  | `en`                    | Language for UI text. Supports `en` (English), `de` (German), `es` (Spanish).                     |
+| `language`               | `string`  | `en`                    | Language for UI text. Supports `en` (English), `de` (German), `es` (Spanish), `da` (Danish).                     |
 | `entities`               | `array`   | `[]`                    | Optional. Array of timer entities to display                                                      |
 | `pinned_timers`          | `array`   | `[]`                    | Optional. Array of pinned timers (one-tap timers)                                                  |
 | `progress_mode`          | `string`  | `drain`                 | Progress animation mode: `drain` (shrinks as time counts down), `fill` (grows as time elapses), or `milestones` (segmented progress by time units). Applies to `circle`, `bar_horizontal`, and `bar_vertical` styles. **Note:** `circle_mode` is deprecated in favor of `progress_mode` |
@@ -140,9 +140,9 @@ Each entity in the `entities` array can be either a simple string (entity ID) or
 ### **Voice PE integration (quick note)**
 
 The Voice PE integration is documented in:
-- [voice-pe.md](voice-pe.md) (recommended: Home Assistant template sensors + card setup)
-- [voice-pe-esphome-readonly.md](voice-pe-esphome-readonly.md) (ESPHome mirror-only / read-only implementation)
-- [voice-pe-esphome.md](voice-pe-esphome.md) (ESPHome advanced implementation: local UI-controlled timers + mirroring)
+- [voice-pe.md](voice-pe/voice-pe.md) (recommended: Home Assistant template sensors + card setup)
+- [voice-pe-esphome-readonly.md](voice-pe/voice-pe-esphome-readonly.md) (ESPHome mirror-only / read-only implementation)
+- [voice-pe-esphome.md](voice-pe/voice-pe-esphome.md) (ESPHome advanced implementation: local UI-controlled timers + mirroring)
 
 **Advanced local control:** If your template sensors expose:
 - `timer_id` (a string like `local:...`)
