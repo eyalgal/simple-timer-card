@@ -278,7 +278,7 @@ class SimpleTimerCard extends LitElement {
 
     c.timer_name_presets = this._normalizeStringList(c.timer_name_presets, Array.isArray(c.timer_name_presets) ? c.timer_name_presets : []);
     c.timer_presets = this._normalizePresetList(c.timer_presets);
-    c.minute_buttons = this._normalizeNumberList(c.minute_buttons, Array.isArray(c.minute_buttons) ? c.minute_buttons : []);
+    c.minute_buttons = this._normalizePresetList(c.minute_buttons, Array.isArray(c.minute_buttons) ? c.minute_buttons : []);
     c.time_format_units = this._normalizeStringList(c.time_format_units, Array.isArray(c.time_format_units) ? c.time_format_units : []);
     if (!Array.isArray(c.pinned_timers)) c.pinned_timers = [];
 	delete c.alexa_audio_enabled;
