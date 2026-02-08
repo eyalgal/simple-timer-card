@@ -31,17 +31,52 @@ const t=globalThis,i$1=t=>t,s$1=t.trustedTypes,e=s$1?s$1.createPolicy("lit-html"
  *
  * Author: eyalgal
  * License: MIT
- * Version: 2.1.1
+ * Version: 2.2.0
  * For more information, visit: https:
  */
 
 
-const cardVersion="2.1.1";
+const cardVersion="2.2.0";
 
 const DAY_IN_MS = 86400000;
 const YEAR_IN_MS = 365 * DAY_IN_MS;
 const HOUR_IN_SECONDS = 3600;
 const MINUTE_IN_SECONDS = 60;
+
+function _cleanUndefined(obj) {
+  if (!obj || typeof obj !== "object") return obj;
+  for (const k of Object.keys(obj)) {
+    if (obj[k] === undefined) delete obj[k];
+  }
+  return obj;
+}
+
+function _remainingMsFromStoredTimer(t, nowTs = Date.now()) {
+  if (!t || typeof t !== "object") return 0;
+  if (t.paused) {
+    const r = Number(t.remaining_ms);
+    return Number.isFinite(r) ? Math.max(0, r) : 0;
+  }
+  const endTs = Number(t.end_ts);
+  return Number.isFinite(endTs) ? Math.max(0, endTs - nowTs) : 0;
+}
+
+function _pauseUpdatesFromTimer(timer, nowTs = Date.now()) {
+  const remaining = Number(timer?.remaining);
+  const remainingMs = Number.isFinite(remaining) ? Math.max(0, remaining) : _remainingMsFromStoredTimer(timer, nowTs);
+  return { paused: true, remaining_ms: remainingMs, end_ts: null, state: "paused" };
+}
+
+function _resumeUpdatesFromTimer(timer, nowTs = Date.now()) {
+  const remaining = Number(timer?.remaining);
+  const remainingMs = Number.isFinite(remaining) ? Math.max(0, remaining) : _remainingMsFromStoredTimer(timer, nowTs);
+  const durationMs = Number(timer?.duration_ms ?? timer?.duration ?? 0);
+  const elapsed = durationMs > 0 ? Math.max(0, durationMs - remainingMs) : 0;
+  const startTs = nowTs - elapsed;
+  const endTs = nowTs + remainingMs;
+  return { paused: false, start_ts: startTs, end_ts: endTs, remaining_ms: undefined, state: "active" };
+}
+
 const DAY_IN_SECONDS = 86400;
 
 const TRANSLATIONS = {
@@ -215,9 +250,14 @@ class SimpleTimerCard extends i {
     for (const timer of data.timers) {
       if (!timer || typeof timer !== "object") return false;
       if (!timer.id || typeof timer.id !== "string") return false;
-      if (timer.label && typeof timer.label !== "string") return false;
-      if (timer.duration && typeof timer.duration !== "number") return false;
-      if (timer.end && typeof timer.end !== "number") return false;
+      if (timer.label != null && typeof timer.label !== "string") return false;
+      if (timer.duration != null && typeof timer.duration !== "number") return false;
+
+      if (timer.start_ts != null && typeof timer.start_ts !== "number") return false;
+      if (timer.end_ts != null && typeof timer.end_ts !== "number") return false;
+      if (timer.remaining_ms != null && typeof timer.remaining_ms !== "number") return false;
+      if (timer.start != null && typeof timer.start !== "number" && typeof timer.start !== "string") return false;
+      if (timer.end != null && typeof timer.end !== "number") return false;
     }
     return true;
   }
@@ -240,6 +280,7 @@ class SimpleTimerCard extends i {
     this._lastActionTime = new Map();
     this._expirationTimes = new Map();
     this._lastCleanupTime = 0;
+    this._mqttShadow = null;
     this._ui = {
       noTimerHorizontalOpen: false,
       noTimerVerticalOpen: false,
@@ -251,6 +292,7 @@ class SimpleTimerCard extends i {
     this._showingCustomName = {};
     this._lastSelectedName = {};
     this._storageNamespace = "default";
+    this._cardInstanceKey = Math.random().toString(36).slice(2, 10);
     this._editingTimerId = null;
     this._editDuration = { h: 0, m: 0, s: 0 };
   }
@@ -303,7 +345,7 @@ class SimpleTimerCard extends i {
 
     c.timer_name_presets = this._normalizeStringList(c.timer_name_presets, Array.isArray(c.timer_name_presets) ? c.timer_name_presets : []);
     c.timer_presets = this._normalizePresetList(c.timer_presets);
-    c.minute_buttons = this._normalizeNumberList(c.minute_buttons, Array.isArray(c.minute_buttons) ? c.minute_buttons : []);
+    c.minute_buttons = this._normalizePresetList(c.minute_buttons);
     c.time_format_units = this._normalizeStringList(c.time_format_units, Array.isArray(c.time_format_units) ? c.time_format_units : []);
     if (!Array.isArray(c.pinned_timers)) c.pinned_timers = [];
 	delete c.alexa_audio_enabled;
@@ -315,14 +357,18 @@ class SimpleTimerCard extends i {
 
   setConfig(config) {
     config = this._normalizeConfigTypes(config);
-    const isMqtt = config.default_timer_entity && config.default_timer_entity.startsWith("sensor.");
-    const autoStorage = isMqtt ? "mqtt" : "local";
-    const mqttSensorEntity = isMqtt ? config.default_timer_entity : null;
+    const compat = (config.compatibility_mode || config.compat_mode || "2.1.1");
+    config.compatibility_mode = compat;
+    const requestedStorage = (config.storage || "").toLowerCase();
+    const hasMqttConfig = !!(config.mqtt && (config.mqtt.topic || config.mqtt.sensor_entity || config.mqtt.state_topic || config.mqtt.events_topic));
+    const isMqtt = requestedStorage === "mqtt" || hasMqttConfig;
+    const autoStorage = requestedStorage === "local" || requestedStorage === "mqtt" ? requestedStorage : (isMqtt ? "mqtt" : "local");
+
     const mqttConfig = {
       topic: "simple_timer_card/timers",
       state_topic: "simple_timer_card/timers/state",
       events_topic: "simple_timer_card/events",
-      sensor_entity: mqttSensorEntity,
+      sensor_entity: null,
       ...config.mqtt,
     };
     const layout = (config.layout || "horizontal").toLowerCase() === "vertical" ? "vertical" : "horizontal";
@@ -348,9 +394,15 @@ class SimpleTimerCard extends i {
       timer_presets: [5, 15, 30],
       timer_name_presets: [],
       pinned_timers: [],
+      pinned_timers_position: "inline",
+      sort_by: "time_left",
+      sort_order: "asc",
       show_timer_presets: true,
       show_active_header: true,
       minute_buttons: [1, 5, 10],
+      pinned_timers_position: "inline",
+      sort_by: "time_left",
+      sort_order: "asc",
       default_timer_icon: "mdi:timer-outline",
       default_timer_color: "var(--primary-color)",
       default_timer_entity: null,
@@ -420,6 +472,27 @@ class SimpleTimerCard extends i {
     return `simple-timer-card-${this._storageNamespace}`;
   }
 
+  _getStorageAdapter(storage) {
+    if (storage === "mqtt") {
+      return {
+        load: () => this._loadTimersFromStorage_mqtt(),
+        save: (timers) => this._saveTimersToStorage_mqtt(timers),
+        update: (timerId, updates) => this._updateTimerInStorage_mqtt(timerId, updates),
+        remove: (timerId) => this._removeTimerFromStorage_mqtt(timerId),
+      };
+    }
+    if (storage === "local") {
+      return {
+        load: () => this._loadTimersFromStorage_local(),
+        save: (timers) => this._saveTimersToStorage_local(timers),
+        update: (timerId, updates) => this._updateTimerInStorage_local(timerId, updates),
+        remove: (timerId) => this._removeTimerFromStorage_local(timerId),
+      };
+    }
+    return null;
+  }
+
+
   _loadTimersFromStorage_local() {
     try {
       const stored = localStorage.getItem(this._getStorageKey());
@@ -436,7 +509,7 @@ class SimpleTimerCard extends i {
 
   _saveTimersToStorage_local(timers) {
     try {
-      const data = { timers: timers || [], version: 1, lastUpdated: Date.now() };
+      const data = { timers: timers || [], version: 2, lastUpdated: Date.now() };
       localStorage.setItem(this._getStorageKey(), JSON.stringify(data));
     } catch (e) {}
   }
@@ -445,7 +518,7 @@ class SimpleTimerCard extends i {
     const timers = this._loadTimersFromStorage_local();
     const index = timers.findIndex((t) => t.id === timerId);
     if (index !== -1) {
-      timers[index] = { ...timers[index], ...updates };
+      timers[index] = _cleanUndefined({ ...timers[index], ...updates });
       this._saveTimersToStorage_local(timers);
     }
   }
@@ -455,31 +528,91 @@ class SimpleTimerCard extends i {
     this._saveTimersToStorage_local(timers);
   }
 
-  _loadTimersFromStorage_mqtt() {
+
+  _mqttCacheKey() {
+    const topic = this._config?.mqtt?.topic || "";
+    return topic ? `simple_timer_card_mqtt_${topic}` : "simple_timer_card_mqtt";
+  }
+
+  _readMqttCache() {
     try {
-      const sensor = this._config?.mqtt?.sensor_entity;
-      if (!sensor) return [];
-      const entity = this.hass?.states?.[sensor];
-      const timers = entity?.attributes?.timers;
-      return Array.isArray(timers) ? timers : [];
+      const raw = localStorage.getItem(this._mqttCacheKey());
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+      if (parsed && Array.isArray(parsed.timers)) return parsed.timers;
+      return [];
     } catch (e) {
       return [];
     }
   }
 
+  _writeMqttCache(timers) {
+    try {
+      localStorage.setItem(this._mqttCacheKey(), JSON.stringify({ timers: Array.isArray(timers) ? timers : [] }));
+    } catch (e) {}
+  }
+
+  _loadTimersFromStorage_mqtt() {
+    try {
+      const cached = this._readMqttCache();
+      const sensor = this._config?.mqtt?.sensor_entity;
+      if (!sensor) return Array.isArray(this._mqttShadow?.timers) ? this._mqttShadow.timers : cached;
+      const entity = this.hass?.states?.[sensor];
+      const timers = entity?.attributes?.timers;
+
+      if (Array.isArray(timers)) {
+        this._writeMqttCache(timers);
+        if (this._mqttShadow?.lastUpdated && entity?.attributes?.lastUpdated && entity.attributes.lastUpdated >= this._mqttShadow.lastUpdated) {
+          this._mqttShadow = null;
+        } else if (this._mqttShadow?.timers) {
+          const hasAllShadow = this._mqttShadow.timers.every((t) => t?.id && timers.some((x) => x?.id === t.id));
+          if (hasAllShadow) this._mqttShadow = null;
+        }
+        return timers;
+      }
+
+      return Array.isArray(this._mqttShadow?.timers) ? this._mqttShadow.timers : cached;
+    } catch (e) {
+      const cached = this._readMqttCache();
+      return Array.isArray(this._mqttShadow?.timers) ? this._mqttShadow.timers : cached;
+    }
+  }
+
   _saveTimersToStorage_mqtt(timers) {
     try {
-      const payload = { timers: timers || [], version: 1, lastUpdated: Date.now() };
-      this.hass.callService("mqtt", "publish", {
-        topic: this._config?.mqtt?.topic,
-        payload: JSON.stringify(payload),
-        retain: true,
-      });
-      this.hass.callService("mqtt", "publish", {
-        topic: this._config?.mqtt?.state_topic,
-        payload: JSON.stringify({ version: payload.version, t: payload.lastUpdated }),
-        retain: true,
-      });
+      const timersArr = Array.isArray(timers) ? timers : [];
+      const lastUpdated = Date.now();
+      this._mqttShadow = { timers: timersArr, lastUpdated };
+      this._writeMqttCache(timersArr);
+
+      const topic = this._config?.mqtt?.topic;
+      if (topic) {
+        const compat = (this._config?.compatibility_mode || "2.1.1");
+        if (compat && compat !== "latest") {
+          const payloadObj = { timers: timersArr, version: 1, lastUpdated };
+          this.hass.callService("mqtt", "publish", {
+            topic,
+            payload: JSON.stringify(payloadObj),
+            retain: true,
+          });
+        } else {
+          this.hass.callService("mqtt", "publish", {
+            topic,
+            payload: JSON.stringify(timersArr),
+            retain: true,
+          });
+        }
+      }
+
+      const stateTopic = this._config?.mqtt?.state_topic;
+      if (stateTopic) {
+        this.hass.callService("mqtt", "publish", {
+          topic: stateTopic,
+          payload: JSON.stringify({ version: (this._config?.compatibility_mode && this._config.compatibility_mode !== "latest") ? 1 : 2, t: lastUpdated }),
+          retain: true,
+        });
+      }
     } catch (e) {}
   }
 
@@ -487,7 +620,7 @@ class SimpleTimerCard extends i {
     const timers = this._loadTimersFromStorage_mqtt();
     const index = timers.findIndex((t) => t.id === timerId);
     if (index !== -1) {
-      timers[index] = { ...timers[index], ...updates };
+      timers[index] = _cleanUndefined({ ...timers[index], ...updates });
       this._saveTimersToStorage_mqtt(timers);
     }
   }
@@ -499,24 +632,66 @@ class SimpleTimerCard extends i {
 
   _loadTimersFromStorage(sourceHint = null) {
     const storage = sourceHint || this._config.storage;
-    const timers =
-      storage === "mqtt"
-        ? this._loadTimersFromStorage_mqtt()
-        : (storage === "local" ? this._loadTimersFromStorage_local() : []);
-    if (!Array.isArray(timers)) return [];
-    return timers.map((t) => {
+    const adapter = this._getStorageAdapter(storage);
+    const rawTimers = adapter ? adapter.load() : [];
+    if (!Array.isArray(rawTimers)) return [];
+
+    let changed = false;
+    const timers = rawTimers.map((t) => {
       if (!t || typeof t !== "object") return t;
+      const c = { ...t };
       const hasOtherAudioFields =
-        t.audio_file_url !== undefined ||
-        t.audio_repeat_count !== undefined ||
-        t.audio_play_until_dismissed !== undefined;
-      if (t.audio_enabled === false && !hasOtherAudioFields) {
-        const c = { ...t };
+        c.audio_file_url !== undefined ||
+        c.audio_repeat_count !== undefined ||
+        c.audio_play_until_dismissed !== undefined;
+      if (c.audio_enabled === false && !hasOtherAudioFields) {
         delete c.audio_enabled;
-        return c;
+        changed = true;
       }
-      return t;
+      if (typeof c.start_ts !== "number") {
+        if (typeof c.start === "number") {
+          c.start_ts = c.start;
+          changed = true;
+        } else if (typeof c.start === "string") {
+          const parsed = Date.parse(c.start);
+          if (!isNaN(parsed)) {
+            c.start_ts = parsed;
+            changed = true;
+          }
+        }
+      }
+
+      if (c.paused) {
+        if (typeof c.remaining_ms !== "number") {
+          if (typeof c.end === "number") {
+            c.remaining_ms = c.end;
+            changed = true;
+          }
+        }
+        if (c.end_ts != null) {
+          c.end_ts = null;
+          changed = true;
+        }
+      } else {
+        if (typeof c.end_ts !== "number") {
+          if (typeof c.end === "number") {
+            c.end_ts = c.end;
+            changed = true;
+          }
+        }
+        if (c.remaining_ms != null) {
+          delete c.remaining_ms;
+          changed = true;
+        }
+      }
+      if (c.start != null) { delete c.start; changed = true; }
+      if (c.end != null) { delete c.end; changed = true; }
+
+      return c;
     });
+
+    if (changed) this._saveTimersToStorage(timers, storage);
+    return timers;
   }
 
   _saveTimersToStorage(timers, sourceHint = null) {
@@ -1080,6 +1255,14 @@ class SimpleTimerCard extends i {
         else if (mode === "timestamp") collected.push(...this._parseTimestamp(entityId, st, conf));
       } catch (e) {}
     }
+
+    const defaultEntity = this._config.default_timer_entity;
+    if (defaultEntity && (defaultEntity.startsWith("input_text.") || defaultEntity.startsWith("text."))) {
+      const stDefault = this.hass.states[defaultEntity];
+      if (stDefault) {
+        try { collected.push(...this._parseHelper(defaultEntity, stDefault, { mode: "helper" })); } catch (e) {}
+      }
+    }
     if (this._config.storage === "local" || this._config.storage === "mqtt") {
       collected.push(...this._loadTimersFromStorage());
     }
@@ -1441,9 +1624,36 @@ if (!audioEnabled || !audioFileUrl || !this._validateAudioUrl(audioFileUrl)) ret
       data = { timers: [] };
     }
     if (!Array.isArray(data.timers)) data.timers = [];
+
+    data.timers = data.timers.map((t) => {
+      if (!t || typeof t !== "object") return t;
+      const c = { ...t };
+
+      if (typeof c.start_ts !== "number") {
+        if (typeof c.start === "number") c.start_ts = c.start;
+        else if (typeof c.start === "string") {
+          const parsed = Date.parse(c.start);
+          if (!isNaN(parsed)) c.start_ts = parsed;
+        }
+      }
+
+      if (c.paused) {
+        if (typeof c.remaining_ms !== "number" && typeof c.end === "number") c.remaining_ms = c.end;
+        c.end_ts = null;
+      } else {
+        if (typeof c.end_ts !== "number" && typeof c.end === "number") c.end_ts = c.end;
+        if (c.remaining_ms != null) delete c.remaining_ms;
+      }
+
+      if (c.start != null) delete c.start;
+      if (c.end != null) delete c.end;
+
+      return c;
+    });
+
     mutator(data);
     const domain = entityId.split(".")[0];
-    this.hass.callService(domain, "set_value", { entity_id: entityId, value: JSON.stringify({ ...data, version: 1 }) });
+    this.hass.callService(domain, "set_value", { entity_id: entityId, value: JSON.stringify({ ...data, version: 2 }) });
   }
 
   _handleCreateTimer(e) {
@@ -1461,13 +1671,15 @@ if (!audioEnabled || !audioFileUrl || !this._validateAudioUrl(audioFileUrl)) ret
     if (durationMs <= 0) return;
     const validation = this._validateTimerInput(durationMs, label);
     if (!validation.valid) return;
-    const endTime = Date.now() + durationMs;
+    const now = Date.now();
+    const endTime = now + durationMs;
     const newTimer = {
-      id: `custom-${Date.now()}`,
+      id: `custom-${now}`,
       label: this._sanitizeText(label || this._localize("timer")),
       icon: this._config.default_timer_icon || "mdi:timer-outline",
       color: this._config.default_timer_color || "var(--primary-color)",
-      end: endTime,
+      start_ts: now,
+      end_ts: endTime,
       duration: durationMs,
       source: "helper",
       paused: false,
@@ -1496,7 +1708,6 @@ if (!audioEnabled || !audioFileUrl || !this._validateAudioUrl(audioFileUrl)) ret
         supports: { pause: true, cancel: true, snooze: true, extend: true },
         icon: newTimer.icon,
         color: newTimer.color,
-        end: now + durationMs,
         duration: durationMs,
         paused: false,
         idle: false,
@@ -1596,7 +1807,6 @@ if (!audioEnabled || !audioFileUrl || !this._validateAudioUrl(audioFileUrl)) ret
 
       icon: overrides.icon || this._config.default_timer_icon || "mdi:timer-outline",
       color: overrides.color || this._config.default_timer_color || "var(--primary-color)",
-      end: now + durationMs,
       duration: durationMs,
       paused: false,
       idle: false,
@@ -1831,14 +2041,25 @@ if (!audioEnabled || !audioFileUrl || !this._validateAudioUrl(audioFileUrl)) ret
 
     this._publishTimerEvent("paused", timer);
     if (timer.source === "helper") {
-      const remaining = timer.remaining;
+      const now = Date.now();
+      const updates = _pauseUpdatesFromTimer(timer, now);
       this._mutateHelper(timer.source_entity, (data) => {
         const idx = data.timers.findIndex((t) => t.id === timer.id);
-        if (idx !== -1) { data.timers[idx].paused = true; data.timers[idx].end = remaining; }
+        if (idx !== -1) {
+          data.timers[idx].paused = true;
+          data.timers[idx].remaining_ms = updates.remaining_ms;
+          data.timers[idx].end_ts = null;
+          data.timers[idx].state = "paused";
+        }
       });
     } else if (["local", "mqtt"].includes(timer.source)) {
-      const remaining = timer.remaining;
-      this._updateTimerInStorage(timer.id, { paused: true, end: remaining }, timer.source);
+      const now = Date.now();
+      const updates = _pauseUpdatesFromTimer(timer, now);
+      this._updateTimerInStorage(
+        timer.id,
+        { paused: true, remaining_ms: updates.remaining_ms, end_ts: null, state: "paused" },
+        timer.source
+      );
       this.requestUpdate();
     } else if (timer.source === "timer") {
       this.hass.callService("timer", "pause", { entity_id: timer.source_entity });
@@ -1860,14 +2081,26 @@ if (!audioEnabled || !audioFileUrl || !this._validateAudioUrl(audioFileUrl)) ret
 
     this._publishTimerEvent("resumed", timer);
     if (timer.source === "helper") {
-      const newEndTime = Date.now() + timer.remaining;
+      const now = Date.now();
+      const updates = _resumeUpdatesFromTimer(timer, now);
       this._mutateHelper(timer.source_entity, (data) => {
         const idx = data.timers.findIndex((t) => t.id === timer.id);
-        if (idx !== -1) { data.timers[idx].paused = false; data.timers[idx].end = newEndTime; }
+        if (idx !== -1) {
+          data.timers[idx].paused = false;
+          data.timers[idx].start_ts = updates.start_ts;
+          data.timers[idx].end_ts = updates.end_ts;
+          data.timers[idx].state = "active";
+          if (data.timers[idx].remaining_ms != null) delete data.timers[idx].remaining_ms;
+        }
       });
     } else if (["local", "mqtt"].includes(timer.source)) {
-      const newEndTime = Date.now() + timer.remaining;
-      this._updateTimerInStorage(timer.id, { paused: false, end: newEndTime }, timer.source);
+      const now = Date.now();
+      const updates = _resumeUpdatesFromTimer(timer, now);
+      this._updateTimerInStorage(
+        timer.id,
+        updates,
+        timer.source
+      );
       this.requestUpdate();
     } else if (timer.source === "timer") {
       this.hass.callService("timer", "start", { entity_id: timer.source_entity });
@@ -1916,7 +2149,6 @@ if (!audioEnabled || !audioFileUrl || !this._validateAudioUrl(audioFileUrl)) ret
         if (idx !== -1) {
           data.timers[idx].start_ts = now;
           data.timers[idx].end_ts = newEndTime;
-          data.timers[idx].end = newEndTime;
           data.timers[idx].duration = newDurationMs;
           data.timers[idx].paused = false;
           data.timers[idx].state = "active";
@@ -1929,7 +2161,6 @@ if (!audioEnabled || !audioFileUrl || !this._validateAudioUrl(audioFileUrl)) ret
         {
           start_ts: now,
           end_ts: newEndTime,
-          end: newEndTime,
           duration: newDurationMs,
           paused: false,
           state: "active",
@@ -2098,59 +2329,99 @@ if (!audioEnabled || !audioFileUrl || !this._validateAudioUrl(audioFileUrl)) ret
 
   _adjust(which, value, sign = 1) {
     const delta = this._parseAdjustmentToSeconds(value);
-    this._customSecs = { ...this._customSecs, [which]: Math.max(0, this._customSecs[which] + sign * delta) };
+    if (!Number.isFinite(delta)) return;
+    const base = Number(this._customSecs?.[which] ?? 0);
+    const next = base + sign * delta;
+    this._customSecs = { ...this._customSecs, [which]: Math.max(0, Number.isFinite(next) ? next : 0) };
   }
+
 
   _createAndSaveTimer(secs, label) {
     if (this._isActionThrottled("create_timer", "global", 500)) return;
-    if (secs <= 0) return;
-    const validation = this._validateTimerInput(secs * 1000, label);
+    const secsNum = Number(secs);
+    if (!Number.isFinite(secsNum) || secsNum <= 0) return;
+
+    const durationMs = secsNum * 1000;
+    const validation = this._validateTimerInput(durationMs, label);
     if (!validation.valid) return;
-    const finalLabel = label && label.trim() ? this._sanitizeText(label.trim()) : this._formatTimerLabel(secs);
-    const newTimer = {
-      id: `custom-${Date.now()}`,
-      label: finalLabel,
-      icon: this._config.default_timer_icon || "mdi:timer-outline",
-      color: this._config.default_timer_color || "var(--primary-color)",
-      end: Date.now() + secs * 1000,
-      duration: secs * 1000,
-      paused: false,
-    };
-    let targetEntity = this._config.default_timer_entity;
+
+    const finalLabel = label && String(label).trim()
+      ? this._sanitizeText(String(label).trim())
+      : this._formatTimerLabel(secsNum);
+
+    let targetEntity = this._config.default_timer_entity || "";
     if (this._config.auto_voice_pe === true) {
       const vpeEntity = this._getDefaultVoicePETargetEntity();
       if (vpeEntity) targetEntity = vpeEntity;
     }
-    const hasVoicePEControl = !!this._getVoicePEControlEntity(targetEntity);
-    if (hasVoicePEControl) {
 
-      const userProvidedName = !!(label && String(label).trim());
-      const nameForCommand = userProvidedName ? String(label).trim() : "";
-      this._sendVoicePEStart(secs * 1000, nameForCommand, targetEntity);
-      this.requestUpdate();
-      return;
-    }
+    if (targetEntity) {
+      const voicePEEnabled = this._config.auto_voice_pe === true;
+      const controlEntityFromCfg = this._config?.voice_pe_control_entity ? String(this._config.voice_pe_control_entity).trim() : "";
+      const canStartVoicePE = voicePEEnabled && !!controlEntityFromCfg;
 
-    if (targetEntity && (targetEntity.startsWith("input_text.") || targetEntity.startsWith("text."))) {
-      newTimer.source = "helper";
-      newTimer.source_entity = targetEntity;
-      if (resolvedTargetEntity) {
-      const ce = this._getVoicePEControlEntity(resolvedTargetEntity);
-      if (ce) {
-        this._publishTimerEvent("started", { source: "voice_pe", source_entity: resolvedTargetEntity, label: newTimer.label });
-        this._sendVoicePEStart(durationMs, "", resolvedTargetEntity);
+      if (voicePEEnabled && !controlEntityFromCfg) {
+        this._toast("Voice PE control entity is not set. Please configure it in the card editor.");
+      }
+
+      if (canStartVoicePE) {
+        this._publishTimerEvent("started", { source: "voice_pe", source_entity: targetEntity, label: finalLabel });
+        const userProvidedName = !!(label && String(label).trim());
+        const nameForCommand = userProvidedName ? String(label).trim() : "";
+        this._sendVoicePEStart(durationMs, nameForCommand, targetEntity);
         this.requestUpdate();
         return;
       }
     }
-    this._mutateHelper(resolvedTargetEntity, (data) => { data.timers.push(newTimer); });
+
+
+
+    if (targetEntity && (targetEntity.startsWith("input_text.") || targetEntity.startsWith("text."))) {
+      const now = Date.now();
+      const newTimer = {
+        id: `custom-${now}`,
+        kind: "active",
+        state: "active",
+        label: finalLabel,
+        name: finalLabel,
+        icon: this._config.default_timer_icon || "mdi:timer-outline",
+        color: this._config.default_timer_color || "var(--primary-color)",
+        source: "helper",
+        source_entity: targetEntity,
+        start_ts: now,
+        end_ts: now + durationMs,
+        duration: durationMs,
+        supports: { pause: true, cancel: true, snooze: true, extend: true },
+      };
+      this._mutateHelper(targetEntity, (data) => { data.timers.push(newTimer); });
       this._publishTimerEvent("started", newTimer);
-    } else {
-      newTimer.source = this._config.storage;
-      newTimer.source_entity = this._config.storage === "mqtt" ? this._config.mqtt.sensor_entity : "local";
-      this._addTimerToStorage(newTimer);
-      this._publishTimerEvent("started", newTimer);
+      this.requestUpdate();
+      return;
     }
+
+
+    const now = Date.now();
+    const t = {
+      id: `custom-${now}`,
+      kind: "active",
+      label: finalLabel,
+      name: finalLabel,
+      source: this._config.storage === "mqtt" ? "mqtt" : "local",
+      source_entity: this._config.storage === "mqtt" ? this._config.mqtt?.sensor_entity : "local",
+      start_ts: now,
+      end_ts: now + durationMs,
+      state: "active",
+      supports: { pause: true, cancel: true, snooze: true, extend: true },
+      icon: this._config.default_timer_icon || "mdi:timer-outline",
+      color: this._config.default_timer_color || "var(--primary-color)",
+      duration: durationMs,
+      paused: false,
+      idle: false,
+      finished: false,
+    };
+    this._addTimerToStorage(t);
+    this._publishTimerEvent("started", t);
+    this.requestUpdate();
   }
 
   _startFromCustom(which, label) {
@@ -2584,7 +2855,7 @@ if (!audioEnabled || !audioFileUrl || !this._validateAudioUrl(audioFileUrl)) ret
     else if (isPaused) timeStr = `${this._formatDuration(t.remaining, "ms")} (${this._localize("paused")})`;
     else if (isFinished) {
       const now = Date.now();
-      const elapsedSinceFinish = now - (t.finishedAt || t.end || now);
+      const elapsedSinceFinish = now - (t.finishedAt || t.end_ts || now);
       const elapsedStr = this._formatTimeAgo(elapsedSinceFinish);
       const expiredMessage = t.expired_subtitle || entityConf?.expired_subtitle || this._config.expired_subtitle || this._localize("times_up");
       timeStr = elapsedStr ? `${expiredMessage} - ${elapsedStr}` : expiredMessage;
@@ -2760,6 +3031,7 @@ if (!audioEnabled || !audioFileUrl || !this._validateAudioUrl(audioFileUrl)) ret
   _getPinnedTimers() {
     const pinned = Array.isArray(this._config?.pinned_timers) ? this._config.pinned_timers : [];
     if (pinned.length === 0) return [];
+    const ns = this._storageNamespace || "default";
     return pinned.map((p, idx) => {
       const durationInput = (p && typeof p === "object") ? (p.duration ?? p.preset ?? p.minutes ?? p.secs) : p;
       const durationMs = this._parseDurationInputToMs(durationInput);
@@ -2767,9 +3039,14 @@ if (!audioEnabled || !audioFileUrl || !this._validateAudioUrl(audioFileUrl)) ret
       const label = (p && typeof p === "object" && p.name) ? p.name : `#${idx + 1}`;
       const icon = (p && typeof p === "object" && p.icon) ? p.icon : (this._config.default_timer_icon || "mdi:timer-outline");
       const color = (p && typeof p === "object" && p.color) ? p.color : (this._config.default_timer_color || "var(--primary-color)");
+      const userId = (p && typeof p === "object" && p.id) ? String(p.id) : null;
+      const basePinnedId = userId || `pinned-${idx}`;
+      const pinnedId = userId ? `${ns}:${basePinnedId}` : `${ns}:${this._cardInstanceKey}:${basePinnedId}`;
+      const templateId = `template:${pinnedId}`;
+
       return {
-        id: `pinned-${idx}`,
-        pinned_id: (p && typeof p === "object" && p.id) ? p.id : `pinned-${idx}`,
+        id: templateId,
+        pinned_id: pinnedId,
         kind: "template",
         name: label,
         label,
@@ -2804,6 +3081,42 @@ if (!audioEnabled || !audioFileUrl || !this._validateAudioUrl(audioFileUrl)) ret
     }).filter(Boolean);
   }
 
+
+  _compareTimersForDisplay(a, b) {
+    if (a.finished && !b.finished) return 1;
+    if (!a.finished && b.finished) return -1;
+
+    const sortBy = (this._config?.sort_by || "time_left");
+    const sortOrder = (this._config?.sort_order || "asc");
+    const dir = sortOrder === "desc" ? -1 : 1;
+
+    const nameA = String(a.name || a.label || "").toLowerCase();
+    const nameB = String(b.name || b.label || "").toLowerCase();
+
+    if (sortBy === "name") {
+      const c = nameA.localeCompare(nameB);
+      if (c !== 0) return c * dir;
+    }
+
+    const ar0 = Number(a.remaining_ms ?? a.remaining ?? 0);
+    const br0 = Number(b.remaining_ms ?? b.remaining ?? 0);
+    const ar = isFinite(ar0) ? ar0 : Number.MAX_SAFE_INTEGER;
+    const br = isFinite(br0) ? br0 : Number.MAX_SAFE_INTEGER;
+    const diff = ar - br;
+    if (diff !== 0) return diff * dir;
+
+    if (sortBy !== "name") {
+      const c2 = nameA.localeCompare(nameB);
+      if (c2 !== 0) return c2;
+    }
+    return 0;
+  }
+
+  _sortTimersForDisplay(list) {
+    return [...(list || [])].sort((a, b) => this._compareTimersForDisplay(a, b));
+  }
+
+
   render() {
     if (!this._config) return b``;
     const presets = this._config.show_timer_presets === false ? [] : (this._config.timer_presets?.length ? this._config.timer_presets : [5, 15, 30]);
@@ -2817,18 +3130,21 @@ if (!audioEnabled || !audioFileUrl || !this._validateAudioUrl(audioFileUrl)) ret
       return true;
     });
 
-    const pinnedTimers = this._getPinnedTimers().filter(pt => !activeTimers.some(t => t.pinned_id && pt.pinned_id && t.pinned_id === pt.pinned_id));
+    const pinnedTimersRaw = this._getPinnedTimers().filter(pt => !activeTimers.some(t => t.pinned_id && pt.pinned_id && t.pinned_id === pt.pinned_id));
 
-    const timers = [...pinnedTimers, ...activeTimers].sort((a, b) => {
-      if (a.finished && !b.finished) return 1;
-      if (!a.finished && b.finished) return -1;
-      const ar0 = Number(a.remaining_ms ?? a.remaining ?? 0);
-      const br0 = Number(b.remaining_ms ?? b.remaining ?? 0);
-      const ar = isFinite(ar0) ? ar0 : Number.MAX_SAFE_INTEGER;
-      const br = isFinite(br0) ? br0 : Number.MAX_SAFE_INTEGER;
-      return ar - br;
-    });
-    const layout = this._config.layout;
+    const pinnedPosition = (this._config.pinned_timers_position || "inline");
+    const sortedActiveTimers = this._sortTimersForDisplay(activeTimers);
+    const sortedPinnedTimers = this._sortTimersForDisplay(pinnedTimersRaw);
+
+    let timers;
+    if (pinnedPosition === "top") {
+      timers = [...sortedPinnedTimers, ...sortedActiveTimers];
+    } else if (pinnedPosition === "bottom") {
+      timers = [...sortedActiveTimers, ...sortedPinnedTimers];
+    } else {
+      timers = this._sortTimersForDisplay([...sortedPinnedTimers, ...sortedActiveTimers]);
+    }
+const layout = this._config.layout;
     const style = this._config.style;
     const activeTimersLayout = ["fill_vertical", "bar_vertical", "circle"].includes((this._config.style || "").toLowerCase()) ? "vertical" : "horizontal";
     const showPresetsInActive = this._config.show_timer_presets !== false && this._config.show_active_header !== false;
@@ -3348,6 +3664,9 @@ _pinnedTimerValueChanged(ev, index) {
       snooze_duration: 5,
       show_active_header: true,
       minute_buttons: [1, 5, 10],
+      pinned_timers_position: "inline",
+      sort_by: "time_left",
+      sort_order: "asc",
       default_new_timer_duration_mins: 15,
       time_format: "hms",
       time_format_units: ["days","hours","minutes","seconds"],
@@ -3398,7 +3717,19 @@ _pinnedTimerValueChanged(ev, index) {
 
     if (cleaned.minute_buttons !== undefined) {
       const raw = Array.isArray(cleaned.minute_buttons) ? cleaned.minute_buttons : (typeof cleaned.minute_buttons === "string" ? cleaned.minute_buttons.split(",") : []);
-      cleaned.minute_buttons = raw.map((x) => Number(String(x).trim())).filter((x) => Number.isFinite(x));
+      cleaned.minute_buttons = raw.map((v) => {
+        if (v === null || v === undefined) return null;
+        const s = String(v).trim();
+        if (!s) return null;
+        if (s.toLowerCase().endsWith("s")) {
+          const seconds = parseInt(s.slice(0, -1), 10);
+          if (!isNaN(seconds) && seconds > 0) return `${seconds}s`;
+          return null;
+        }
+        const minutes = parseInt(s, 10);
+        if (!isNaN(minutes) && minutes > 0) return minutes;
+        return null;
+      }).filter((x) => x !== null);
     }
 
     const stripIfEmpty = (k) => {
@@ -3530,6 +3861,18 @@ _pinnedTimerValueChanged(ev, index) {
           <mwc-list-item value="circle">Circle</mwc-list-item>
         </ha-select>
       </div>
+      <div class="side-by-side">
+        <ha-select label="Sort by" .value=${this._config.sort_by || "time_left"} .configValue=${"sort_by"} @selected=${this._selectChanged} @closed=${(e) => { e.stopPropagation(); this._selectChanged(e); }}>
+          <mwc-list-item value="time_left">Time left</mwc-list-item>
+          <mwc-list-item value="name">Name</mwc-list-item>
+        </ha-select>
+
+        <ha-select label="Sort order" .value=${this._config.sort_order || "asc"} .configValue=${"sort_order"} @selected=${this._selectChanged} @closed=${(e) => { e.stopPropagation(); this._selectChanged(e); }}>
+          <mwc-list-item value="asc">Ascending</mwc-list-item>
+          <mwc-list-item value="desc">Descending</mwc-list-item>
+        </ha-select>
+      </div>
+
 
       <div class="side-by-side">
         <ha-select label="Progress Mode" .value=${this._config.progress_mode || "drain"} .configValue=${"progress_mode"} @selected=${this._selectChanged} @closed=${(e) => { e.stopPropagation(); this._selectChanged(e); }}>
@@ -3610,7 +3953,7 @@ _pinnedTimerValueChanged(ev, index) {
       </div>
 
       <ha-textfield label="Timer expired message" .value=${this._config.expired_subtitle || ""} .configValue=${"expired_subtitle"} @input=${this._valueChanged} placeholder="Time's up!"></ha-textfield>
-    `;
+`;
 
     const presetsContent = b`
       <ha-formfield label="Show timer preset buttons">
@@ -3623,6 +3966,7 @@ _pinnedTimerValueChanged(ev, index) {
       ` : ""}
 
       <ha-textfield label="Minute adjustment buttons (comma-separated)" .value=${(this._config.minute_buttons || [1, 5, 10]).join(", ")} .configValue=${"minute_buttons"} @input=${this._valueChanged}></ha-textfield>
+
     `;
 
     const pinnedContent = b`
@@ -3632,6 +3976,12 @@ _pinnedTimerValueChanged(ev, index) {
       <ha-icon icon="mdi:plus"></ha-icon>
     </button>
   </div>
+
+  <ha-select label="Pinned timers position" style="margin-bottom: 12px;" .value=${this._config.pinned_timers_position || "inline"} .configValue=${"pinned_timers_position"} @selected=${this._selectChanged} @closed=${(e) => { e.stopPropagation(); this._selectChanged(e); }}>
+    <mwc-list-item value="inline">Mixed with timers</mwc-list-item>
+    <mwc-list-item value="top">Top</mwc-list-item>
+    <mwc-list-item value="bottom">Bottom</mwc-list-item>
+  </ha-select>
 
   ${(Array.isArray(this._config.pinned_timers) ? this._config.pinned_timers : []).length === 0
     ? b`<div class="no-entities">No pinned timers configured. Click the + button above to add one.</div>`
