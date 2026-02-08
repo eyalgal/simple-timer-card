@@ -4,7 +4,7 @@
 [![Community Forum](https://img.shields.io/badge/Community-Forum-5294E2.svg)](https://community.home-assistant.io/t/simple-timer-card-a-clean-way-to-track-timers-in-home-assistant/928813)
 [![Buy Me A Coffee](https://img.shields.io/badge/buy_me_a-coffee-yellow)](https://www.buymeacoffee.com/eyalgal)
 
-<img width="2000" height="720" alt="hero image" src="https://github.com/user-attachments/assets/5aba72e5-dbc8-476c-a3fe-390a8d5a765a" />
+<img width="2000" height="720" alt="hero image" src="assets/readme-hero.png" />
 
 
 A **clean, powerful timer card for Home Assistant** that works seamlessly with native timers, Alexa, Voice PE, helpers, MQTT, and local UI timers.
