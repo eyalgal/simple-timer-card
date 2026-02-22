@@ -31,12 +31,12 @@ const t=globalThis,i$1=t=>t,s$1=t.trustedTypes,e=s$1?s$1.createPolicy("lit-html"
  *
  * Author: eyalgal
  * License: MIT
- * Version: 2.2.0
- * For more information, visit: https:
+ * Version: 2.2.1
+ * For more information, visit: https://github.com/eyalgal/simple-timer-card
  */
 
 
-const cardVersion="2.2.0";
+const cardVersion="2.2.1";
 
 const DAY_IN_MS = 86400000;
 const YEAR_IN_MS = 365 * DAY_IN_MS;
@@ -360,15 +360,28 @@ class SimpleTimerCard extends i {
     const compat = (config.compatibility_mode || config.compat_mode || "2.1.1");
     config.compatibility_mode = compat;
     const requestedStorage = (config.storage || "").toLowerCase();
-    const hasMqttConfig = !!(config.mqtt && (config.mqtt.topic || config.mqtt.sensor_entity || config.mqtt.state_topic || config.mqtt.events_topic));
-    const isMqtt = requestedStorage === "mqtt" || hasMqttConfig;
-    const autoStorage = requestedStorage === "local" || requestedStorage === "mqtt" ? requestedStorage : (isMqtt ? "mqtt" : "local");
-
+    const legacyMqttSensorEntity =
+      typeof config.default_timer_entity === "string" &&
+      config.default_timer_entity.startsWith("sensor.");
+    const hasExplicitMqttConfig = !!(
+      config.mqtt &&
+      (config.mqtt.topic || config.mqtt.sensor_entity || config.mqtt.state_topic || config.mqtt.events_topic)
+    );
+    const legacyWantsMqtt =
+      legacyMqttSensorEntity &&
+      !requestedStorage &&
+      !(config.mqtt && config.mqtt.sensor_entity) &&
+      !hasExplicitMqttConfig;
+    const isMqtt = requestedStorage === "mqtt" || hasExplicitMqttConfig || legacyWantsMqtt;
+    const autoStorage =
+      requestedStorage === "local" || requestedStorage === "mqtt"
+        ? requestedStorage
+        : (isMqtt ? "mqtt" : "local");
     const mqttConfig = {
       topic: "simple_timer_card/timers",
       state_topic: "simple_timer_card/timers/state",
       events_topic: "simple_timer_card/events",
-      sensor_entity: null,
+      sensor_entity: legacyWantsMqtt ? config.default_timer_entity : null,
       ...config.mqtt,
     };
     const layout = (config.layout || "horizontal").toLowerCase() === "vertical" ? "vertical" : "horizontal";
