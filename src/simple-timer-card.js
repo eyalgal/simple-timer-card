@@ -170,6 +170,35 @@ const TRANSLATIONS = {
     month: "måned", months: "måneder", year: "år", years: "år",
     hour: "time", hours: "timer", minute: "minut", minutes: "minutter",
     second: "sekund", seconds: "sekunder",
+  },
+  it: {
+    no_timers: "Nessun timer",
+    click_to_start: "Clicca per avviare",
+    no_active_timers: "Nessun timer attivo",
+    active_timers: "Timer attivi",
+    add: "Aggiungi",
+    custom: "Custom",
+    cancel: "Annulla",
+    save: "Salva",
+    start: "Avvia",
+    snooze: "Rimanda",
+    dismiss: "Silenza",
+    ready: "Pronto",
+    paused: "In pausa",
+    times_up: "Tempo finito!",
+    timer: "Timer",
+    hour_ago: "ora fa",
+    hours_ago: "ore fa",
+    minute_ago: "minuto fa",
+    minutes_ago: "minuti fa",
+    second_ago: "secondo fa",
+    seconds_ago: "secondi fa",
+    h: "h", m: "m", s: "s", d: "g",
+    w_short: "set", mo_short: "mm", y_short: "aa",
+    day: "giorno", days: "giorni", week: "settimana", weeks: "settimane",
+    month: "mese", months: "mesi", year: "anno", years: "anni",
+    hour: "ora", hours: "ore", minute: "minuto", minutes: "minuti",
+    second: "secondo", seconds: "secondi",
   }
 };
 
@@ -3873,7 +3902,8 @@ _pinnedTimerValueChanged(ev, index) {
           <mwc-list-item value="en">English</mwc-list-item>
           <mwc-list-item value="de">Deutsch</mwc-list-item>
           <mwc-list-item value="es">Español</mwc-list-item>
-		  <mwc-list-item value="da">Dansk</mwc-list-item>
+		      <mwc-list-item value="da">Dansk</mwc-list-item>
+          <mwc-list-item value="it">Italiano</mwc-list-item>
         </ha-select>
       </div>
     `;
