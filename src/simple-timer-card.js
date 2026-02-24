@@ -5,13 +5,13 @@
  *
  * Author: eyalgal
  * License: MIT
- * Version: 2.2.1
+ * Version: 2.2.2
  * For more information, visit: https://github.com/eyalgal/simple-timer-card
  */
 
 import { html, LitElement, css } from "lit";
 
-const cardVersion="2.2.1";
+const cardVersion="2.2.2";
 
 const DAY_IN_MS = 86400000;
 const YEAR_IN_MS = 365 * DAY_IN_MS;
@@ -3902,7 +3902,7 @@ _pinnedTimerValueChanged(ev, index) {
           <mwc-list-item value="en">English</mwc-list-item>
           <mwc-list-item value="de">Deutsch</mwc-list-item>
           <mwc-list-item value="es">Español</mwc-list-item>
-		      <mwc-list-item value="da">Dansk</mwc-list-item>
+		  <mwc-list-item value="da">Dansk</mwc-list-item>
           <mwc-list-item value="it">Italiano</mwc-list-item>
         </ha-select>
       </div>
