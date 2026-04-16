@@ -31,12 +31,12 @@ const t=globalThis,i$1=t=>t,s$1=t.trustedTypes,e=s$1?s$1.createPolicy("lit-html"
  *
  * Author: eyalgal
  * License: MIT
- * Version: 2.2.1
+ * Version: 2.2.2
  * For more information, visit: https://github.com/eyalgal/simple-timer-card
  */
 
 
-const cardVersion="2.2.1";
+const cardVersion="2.2.2";
 
 const DAY_IN_MS = 86400000;
 const YEAR_IN_MS = 365 * DAY_IN_MS;
@@ -195,6 +195,35 @@ const TRANSLATIONS = {
     month: "måned", months: "måneder", year: "år", years: "år",
     hour: "time", hours: "timer", minute: "minut", minutes: "minutter",
     second: "sekund", seconds: "sekunder",
+  },
+  it: {
+    no_timers: "Nessun timer",
+    click_to_start: "Clicca per avviare",
+    no_active_timers: "Nessun timer attivo",
+    active_timers: "Timer attivi",
+    add: "Aggiungi",
+    custom: "Personalizzato",
+    cancel: "Annulla",
+    save: "Salva",
+    start: "Avvia",
+    snooze: "Rimanda",
+    dismiss: "Ignora",
+    ready: "Pronto",
+    paused: "In pausa",
+    times_up: "Tempo finito!",
+    timer: "Timer",
+    hour_ago: "ora fa",
+    hours_ago: "ore fa",
+    minute_ago: "minuto fa",
+    minutes_ago: "minuti fa",
+    second_ago: "secondo fa",
+    seconds_ago: "secondi fa",
+    h: "h", m: "m", s: "s", d: "g",
+    w_short: "set", mo_short: "me", y_short: "a",
+    day: "giorno", days: "giorni", week: "settimana", weeks: "settimane",
+    month: "mese", months: "mesi", year: "anno", years: "anni",
+    hour: "ora", hours: "ore", minute: "minuto", minutes: "minuti",
+    second: "secondo", seconds: "secondi",
   }
 };
 
@@ -3914,6 +3943,7 @@ _pinnedTimerValueChanged(ev, index) {
           <mwc-list-item value="de">Deutsch</mwc-list-item>
           <mwc-list-item value="es">Español</mwc-list-item>
 		  <mwc-list-item value="da">Dansk</mwc-list-item>
+		  <mwc-list-item value="it">Italiano</mwc-list-item>
         </ha-select>
       </div>
     `;
