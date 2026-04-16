@@ -20,10 +20,13 @@ The card supports multiple UI languages:
 * German (`de`)
 * Spanish (`es`)
 * Danish (`da`)
+* Italian (`it`)
 
 ```yaml
 language: de
 ```
+
+If no language is set, the card automatically uses your Home Assistant language.
 
 Additional languages are welcome via contributions.
 
@@ -37,7 +40,7 @@ Additional languages are welcome via contributions.
 | `title`    | string | null           | Optional card title                                           |
 | `layout`   | string | horizontal     | Layout when no timers are active (`horizontal` or `vertical`) |
 | `style`    | string | bar_horizontal | Active timer display style                                    |
-| `language` | string | en             | UI language (`en`, `de`, `es`, `da`)                          |
+| `language` | string | auto           | UI language (`en`, `de`, `es`, `da`, `it`). Defaults to HA language |
 
 ---
 
