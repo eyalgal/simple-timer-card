@@ -716,9 +716,11 @@ interval:
           id(publish_display).execute();
 ```
 
-## 8) Mirror Voice PE timers into remote slots (voice_assistant on timer tick)
+## 8) Mirror Voice PE timers into remote slots (voice_assistant timer events)
 
 This mirrors device timers into r1..r3 and adds a sticky finished state if the device reports a timer with total greater than 0 and seconds left equal 0.
+
+The `on_timer_cancelled` and `on_timer_finished` handlers ensure that slots are cleared when a timer is cancelled or finishes. Without these, `on_timer_tick` stops firing when no timers remain, leaving entities stuck with stale data.
 
 ```yaml
 voice_assistant:
@@ -769,6 +771,23 @@ voice_assistant:
         if (n > 1) set_remote(2, timers[1]);
         if (n > 2) set_remote(3, timers[2]);
 
+        id(publish_display).execute();
+
+  on_timer_cancelled:
+    - lambda: |-
+        // on_timer_tick stops firing when no timers remain.
+        // Force-clear all remote slots so entities don't stay stuck.
+        id(r1_present)=false; id(r1_name)=""; id(r1_total)=0; id(r1_left)=0; id(r1_active)=false; id(r1_finished)=false; id(r1_finished_ts)=0;
+        id(r2_present)=false; id(r2_name)=""; id(r2_total)=0; id(r2_left)=0; id(r2_active)=false; id(r2_finished)=false; id(r2_finished_ts)=0;
+        id(r3_present)=false; id(r3_name)=""; id(r3_total)=0; id(r3_left)=0; id(r3_active)=false; id(r3_finished)=false; id(r3_finished_ts)=0;
+        id(publish_display).execute();
+
+  on_timer_finished:
+    - lambda: |-
+        // Same cleanup for finished timers.
+        id(r1_present)=false; id(r1_name)=""; id(r1_total)=0; id(r1_left)=0; id(r1_active)=false; id(r1_finished)=false; id(r1_finished_ts)=0;
+        id(r2_present)=false; id(r2_name)=""; id(r2_total)=0; id(r2_left)=0; id(r2_active)=false; id(r2_finished)=false; id(r2_finished_ts)=0;
+        id(r3_present)=false; id(r3_name)=""; id(r3_total)=0; id(r3_left)=0; id(r3_active)=false; id(r3_finished)=false; id(r3_finished_ts)=0;
         id(publish_display).execute();
 ```
 
