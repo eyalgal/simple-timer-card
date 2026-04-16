@@ -205,7 +205,7 @@ class SimpleTimerCard extends LitElement {
   }
 
   _localize(key) {
-    const lang = this._config?.language || "en";
+    const lang = this._config?.language || this.hass?.language || "en";
     return TRANSLATIONS[lang]?.[key] || TRANSLATIONS["en"][key] || key;
   }
 
@@ -2569,6 +2569,10 @@ if (!audioEnabled || !audioFileUrl || !this._validateAudioUrl(audioFileUrl)) ret
             icon: stateObj.attributes.icon || ""
         });
     } catch(e) {
+        if (e.code === "not_found") {
+            console.warn(`Timer ${t.source_entity} is not registry-managed (likely YAML-defined). Config update skipped.`);
+            return;
+        }
         console.error("Error updating timer", e);
         this._toast(`Error: ${e.message}`);
         throw e;
