@@ -2594,6 +2594,17 @@ if (!audioEnabled || !audioFileUrl || !this._validateAudioUrl(audioFileUrl)) ret
             icon: stateObj.attributes.icon || ""
         });
     } catch(e) {
+        if (this.hass.services?.timer?.set_duration) {
+            try {
+                await this.hass.callService("timer", "set_duration", {
+                    entity_id: t.source_entity,
+                    duration: durationStr
+                });
+                return;
+            } catch(e2) {
+                console.error("Error updating timer via set_duration", e2);
+            }
+        }
         if (e.code === "not_found") {
             console.warn(`Timer ${t.source_entity} is not registry-managed (likely YAML-defined). Config update skipped.`);
             return;
