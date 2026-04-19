@@ -31,12 +31,12 @@ const t=globalThis,i$1=t=>t,s$1=t.trustedTypes,e=s$1?s$1.createPolicy("lit-html"
  *
  * Author: eyalgal
  * License: MIT
- * Version: 2.2.2
+ * Version: 2.2.3
  * For more information, visit: https://github.com/eyalgal/simple-timer-card
  */
 
 
-const cardVersion="2.2.2";
+const cardVersion="2.2.3";
 
 const DAY_IN_MS = 86400000;
 const YEAR_IN_MS = 365 * DAY_IN_MS;
@@ -3586,8 +3586,15 @@ class SimpleTimerCardEditor extends i {
     const key = target.configValue ?? target.dataset?.configValue ?? target.getAttribute?.("configValue");
     if (!key) return;
     ev.stopPropagation();
-    const value = ev.detail?.value !== undefined ? ev.detail.value : target.value;
+    // In HA 2026.2+, ha-select's selected/closed events may fire with ev.detail = { index, ... }
+    // and no `value` field. Read from the currently-selected mwc-list-item first, then fall
+    // back to ev.detail.value and target.value. Only bail if we can't resolve a real value.
+    const selectedValue = target.selected?.value;
+    const value = (typeof selectedValue === "string" && selectedValue !== "")
+      ? selectedValue
+      : (ev.detail?.value !== undefined ? ev.detail.value : target.value);
     if (typeof value !== "string" || value === "") return;
+    if (value === this._config[key]) return;
     if (key === "style") {
       const styleValue = value.toLowerCase();
       const validStyles = ["fill_vertical", "fill_horizontal", "bar_vertical", "bar_horizontal", "circle"];
@@ -3617,6 +3624,7 @@ class SimpleTimerCardEditor extends i {
     if (!key) return;
     let value;
     if (target.checked !== undefined) value = target.checked;
+    else if (typeof target.selected?.value === "string" && target.selected.value !== "") value = target.selected.value;
     else if (e.detail && e.detail.value !== undefined) value = e.detail.value;
     else if (target.value !== undefined) value = target.value;
     else return;
