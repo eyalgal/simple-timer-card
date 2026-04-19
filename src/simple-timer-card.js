@@ -3561,13 +3561,21 @@ class SimpleTimerCardEditor extends LitElement {
     const key = target.configValue ?? target.dataset?.configValue ?? target.getAttribute?.("configValue");
     if (!key) return;
     ev.stopPropagation();
-    // In HA 2026.2+, ha-select's selected/closed events may fire with ev.detail = { index, ... }
-    // and no `value` field. Read from the currently-selected mwc-list-item first, then fall
-    // back to ev.detail.value and target.value. Only bail if we can't resolve a real value.
-    const selectedValue = target.selected?.value;
-    const value = (typeof selectedValue === "string" && selectedValue !== "")
-      ? selectedValue
-      : (ev.detail?.value !== undefined ? ev.detail.value : target.value);
+    // HA 2026.2+ changed ha-select/mwc-select event shape: selected/closed events may
+    // fire with ev.detail = { index, diff } and no `value` field. The most reliable way
+    // to resolve the new value is to look up the item by index in target.items.
+    let value;
+    if (typeof ev.detail?.index === "number" && ev.detail.index >= 0) {
+      const items = target.items || target.querySelectorAll?.("mwc-list-item") || [];
+      value = items[ev.detail.index]?.value;
+    }
+    if (typeof value !== "string" || value === "") {
+      const selectedValue = target.selected?.value;
+      if (typeof selectedValue === "string" && selectedValue !== "") value = selectedValue;
+    }
+    if (typeof value !== "string" || value === "") {
+      value = ev.detail?.value !== undefined ? ev.detail.value : target.value;
+    }
     if (typeof value !== "string" || value === "") return;
     if (value === this._config[key]) return;
     if (key === "style") {
@@ -3599,10 +3607,18 @@ class SimpleTimerCardEditor extends LitElement {
     if (!key) return;
     let value;
     if (target.checked !== undefined) value = target.checked;
-    else if (typeof target.selected?.value === "string" && target.selected.value !== "") value = target.selected.value;
-    else if (e.detail && e.detail.value !== undefined) value = e.detail.value;
-    else if (target.value !== undefined) value = target.value;
-    else return;
+    else {
+      // HA 2026.2+ ha-select event handling - look up by index when available
+      if (typeof e.detail?.index === "number" && e.detail.index >= 0) {
+        const items = target.items || target.querySelectorAll?.("mwc-list-item") || [];
+        const idxValue = items[e.detail.index]?.value;
+        if (typeof idxValue === "string" && idxValue !== "") value = idxValue;
+      }
+      if (value === undefined && typeof target.selected?.value === "string" && target.selected.value !== "") value = target.selected.value;
+      if (value === undefined && e.detail && e.detail.value !== undefined) value = e.detail.value;
+      if (value === undefined && target.value !== undefined) value = target.value;
+      if (value === undefined) return;
+    }
     const newConfig = { ...this._config };
     const entities = [...(newConfig.entities || [])];
     let entityConf;
