@@ -3915,12 +3915,12 @@ _pinnedTimerValueChanged(ev, index) {
       <ha-textfield label="Title (Optional)" .value=${this._config.title || ""} .configValue=${"title"} @input=${this._valueChanged}></ha-textfield>
 
       <div class="side-by-side">
-        <ha-select label="Layout" .value=${this._config.layout || "horizontal"} .configValue=${"layout"} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
+        <ha-select label="Layout" .value=${this._config.layout || "horizontal"} .configValue=${"layout"} .options=${[{value:"horizontal",label:"Horizontal"},{value:"vertical",label:"Vertical"}]} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
           <mwc-list-item value="horizontal">Horizontal</mwc-list-item>
           <mwc-list-item value="vertical">Vertical</mwc-list-item>
         </ha-select>
 
-        <ha-select label="Style" .value=${this._getDisplayStyleValue()} .configValue=${"style"} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
+        <ha-select label="Style" .value=${this._getDisplayStyleValue()} .configValue=${"style"} .options=${[{value:"fill_vertical",label:"Background fill (vertical)"},{value:"fill_horizontal",label:"Background fill (horizontal)"},{value:"bar_vertical",label:"Progress bar (vertical)"},{value:"bar_horizontal",label:"Progress bar (horizontal)"},{value:"circle",label:"Circle"}]} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
           <mwc-list-item value="fill_vertical">Background fill (vertical)</mwc-list-item>
           <mwc-list-item value="fill_horizontal">Background fill (horizontal)</mwc-list-item>
           <mwc-list-item value="bar_vertical">Progress bar (vertical)</mwc-list-item>
@@ -3929,12 +3929,12 @@ _pinnedTimerValueChanged(ev, index) {
         </ha-select>
       </div>
       <div class="side-by-side">
-        <ha-select label="Sort by" .value=${this._config.sort_by || "time_left"} .configValue=${"sort_by"} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
+        <ha-select label="Sort by" .value=${this._config.sort_by || "time_left"} .configValue=${"sort_by"} .options=${[{value:"time_left",label:"Time left"},{value:"name",label:"Name"}]} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
           <mwc-list-item value="time_left">Time left</mwc-list-item>
           <mwc-list-item value="name">Name</mwc-list-item>
         </ha-select>
 
-        <ha-select label="Sort order" .value=${this._config.sort_order || "asc"} .configValue=${"sort_order"} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
+        <ha-select label="Sort order" .value=${this._config.sort_order || "asc"} .configValue=${"sort_order"} .options=${[{value:"asc",label:"Ascending"},{value:"desc",label:"Descending"}]} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
           <mwc-list-item value="asc">Ascending</mwc-list-item>
           <mwc-list-item value="desc">Descending</mwc-list-item>
         </ha-select>
@@ -3942,13 +3942,13 @@ _pinnedTimerValueChanged(ev, index) {
 
 
       <div class="side-by-side">
-        <ha-select label="Progress Mode" .value=${this._config.progress_mode || "drain"} .configValue=${"progress_mode"} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
+        <ha-select label="Progress Mode" .value=${this._config.progress_mode || "drain"} .configValue=${"progress_mode"} .options=${[{value:"drain",label:"Drain"},{value:"fill",label:"Fill"},{value:"milestones",label:"Milestones (bar styles only)"}]} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
           <mwc-list-item value="drain">Drain</mwc-list-item>
           <mwc-list-item value="fill">Fill</mwc-list-item>
           <mwc-list-item value="milestones">Milestones (bar styles only)</mwc-list-item>
         </ha-select>
 
-        <ha-select label="Language" .value=${this._config.language || "en"} .configValue=${"language"} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
+        <ha-select label="Language" .value=${this._config.language || "en"} .configValue=${"language"} .options=${[{value:"en",label:"English"},{value:"de",label:"Deutsch"},{value:"es",label:"Español"},{value:"da",label:"Dansk"},{value:"it",label:"Italiano"}]} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
           <mwc-list-item value="en">English</mwc-list-item>
           <mwc-list-item value="de">Deutsch</mwc-list-item>
           <mwc-list-item value="es">Español</mwc-list-item>
@@ -3959,7 +3959,7 @@ _pinnedTimerValueChanged(ev, index) {
     `;
 
     const timeContent = b`
-      <ha-select label="Time format" .value=${this._config.time_format || "hms"} .configValue=${"time_format"} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
+      <ha-select label="Time format" .value=${this._config.time_format || "hms"} .configValue=${"time_format"} .options=${[{value:"hms",label:"HH:MM:SS"},{value:"hm",label:"HH:MM"},{value:"ss",label:"Seconds only"},{value:"dhms",label:"DD:HH:MM:SS"},{value:"human_compact",label:"Unit style, compact"},{value:"human_short",label:"Unit style, short labels"},{value:"human_natural",label:"Unit style, natural language"}]} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
         <mwc-list-item value="hms">HH:MM:SS</mwc-list-item>
         <mwc-list-item value="hm">HH:MM</mwc-list-item>
         <mwc-list-item value="ss">Seconds only</mwc-list-item>
@@ -3974,7 +3974,7 @@ _pinnedTimerValueChanged(ev, index) {
       ${showMilestonesSection ? b`
         <div class="subsection-title">Progress milestones</div>
         <div class="side-by-side" style="align-items:flex-start;">
-          <ha-select label="Milestone unit" .value=${this._config.milestone_unit || "auto"} .configValue=${"milestone_unit"} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
+          <ha-select label="Milestone unit" .value=${this._config.milestone_unit || "auto"} .configValue=${"milestone_unit"} .options=${[{value:"auto",label:"Auto (default)"},{value:"none",label:"None"},{value:"years",label:"Years"},{value:"months",label:"Months"},{value:"weeks",label:"Weeks"},{value:"days",label:"Days"},{value:"hours",label:"Hours"},{value:"minutes",label:"Minutes"},{value:"seconds",label:"Seconds"}]} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
             <mwc-list-item value="auto">Auto (default)</mwc-list-item>
             <mwc-list-item value="none">None</mwc-list-item>
             <mwc-list-item value="years">Years</mwc-list-item>
@@ -4003,7 +4003,7 @@ _pinnedTimerValueChanged(ev, index) {
       </div>
 
       <div class="side-by-side">
-        <ha-select label="When timer reaches 0" .value=${this._config.expire_action || "keep"} .configValue=${"expire_action"} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
+        <ha-select label="When timer reaches 0" .value=${this._config.expire_action || "keep"} .configValue=${"expire_action"} .options=${[{value:"keep",label:"Keep visible"},{value:"dismiss",label:"Dismiss"},{value:"remove",label:"Remove"}]} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
           <mwc-list-item value="keep">Keep visible</mwc-list-item>
           <mwc-list-item value="dismiss">Dismiss</mwc-list-item>
           <mwc-list-item value="remove">Remove</mwc-list-item>
@@ -4045,7 +4045,7 @@ _pinnedTimerValueChanged(ev, index) {
     </button>
   </div>
 
-  <ha-select label="Pinned timers position" style="margin-bottom: 12px;" .value=${this._config.pinned_timers_position || "inline"} .configValue=${"pinned_timers_position"} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
+  <ha-select label="Pinned timers position" style="margin-bottom: 12px;" .value=${this._config.pinned_timers_position || "inline"} .configValue=${"pinned_timers_position"} .options=${[{value:"inline",label:"Mixed with timers"},{value:"top",label:"Top"},{value:"bottom",label:"Bottom"}]} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
     <mwc-list-item value="inline">Mixed with timers</mwc-list-item>
     <mwc-list-item value="top">Top</mwc-list-item>
     <mwc-list-item value="bottom">Bottom</mwc-list-item>
@@ -4226,7 +4226,7 @@ const storageContent = b`
                 <div class="entity-options">
                   <div class="side-by-side" style="align-items:flex-start;">
                     <div style="flex:1;">
-                      <ha-select label="Mode" .value=${conf.mode || "auto"} .configValue=${"mode"}
+                      <ha-select label="Mode" .value=${conf.mode || "auto"} .configValue=${"mode"} .options=${[{value:"auto",label:"Auto (Default)"},{value:"alexa",label:"Alexa"},{value:"timer",label:"Timer"},{value:"voice_pe",label:"Voice PE"},{value:"helper",label:"Helper (input_text/text)"},{value:"timestamp",label:"Timestamp sensor"},{value:"minutes_attr",label:"Minutes attribute"}]}
                         @selected=${(e) => { e.stopPropagation(); this._entityValueChanged(e, index); }} @closed=${(e) => e.stopPropagation()}>
                         <mwc-list-item value="auto">Auto (Default)</mwc-list-item>
                         <mwc-list-item value="alexa">Alexa</mwc-list-item>
