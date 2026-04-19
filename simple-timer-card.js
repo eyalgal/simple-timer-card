@@ -224,6 +224,35 @@ const TRANSLATIONS = {
     month: "mese", months: "mesi", year: "anno", years: "anni",
     hour: "ora", hours: "ore", minute: "minuto", minutes: "minuti",
     second: "secondo", seconds: "secondi",
+  },
+  fr: {
+    no_timers: "Aucun minuteur",
+    click_to_start: "Cliquez pour démarrer",
+    no_active_timers: "Aucun minuteur actif",
+    active_timers: "Minuteurs actifs",
+    add: "Ajouter",
+    custom: "Personnalisé",
+    cancel: "Annuler",
+    save: "Sauvegarder",
+    start: "Démarrer",
+    snooze: "Répéter",
+    dismiss: "Rejeter",
+    ready: "Prêt",
+    paused: "En pause",
+    times_up: "Le temps est écoulé !",
+    timer: "Minuteur",
+    hour_ago: "heure il y a",
+    hours_ago: "heures il y a",
+    minute_ago: "minute il y a",
+    minutes_ago: "minutes il y a",
+    second_ago: "seconde il y a",
+    seconds_ago: "secondes il y a",
+    h: "h", m: "m", s: "s", d: "j",
+    w_short: "sem", mo_short: "mo", y_short: "a",
+    day: "jour", days: "jours", week: "semaine", weeks: "semaines",
+    month: "mois", months: "mois", year: "année", years: "années",
+    hour: "heure", hours: "heures", minute: "minute", minutes: "minutes",
+    second: "seconde", seconds: "secondes",
   }
 };
 
@@ -3948,12 +3977,13 @@ _pinnedTimerValueChanged(ev, index) {
           <mwc-list-item value="milestones">Milestones (bar styles only)</mwc-list-item>
         </ha-select>
 
-        <ha-select label="Language" .value=${this._config.language || "en"} .configValue=${"language"} .options=${[{value:"en",label:"English"},{value:"de",label:"Deutsch"},{value:"es",label:"Español"},{value:"da",label:"Dansk"},{value:"it",label:"Italiano"}]} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
+        <ha-select label="Language" .value=${this._config.language || "en"} .configValue=${"language"} .options=${[{value:"en",label:"English"},{value:"de",label:"Deutsch"},{value:"es",label:"Español"},{value:"da",label:"Dansk"},{value:"it",label:"Italiano"},{value:"fr",label:"Français"}]} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
           <mwc-list-item value="en">English</mwc-list-item>
           <mwc-list-item value="de">Deutsch</mwc-list-item>
           <mwc-list-item value="es">Español</mwc-list-item>
-		  <mwc-list-item value="da">Dansk</mwc-list-item>
-		  <mwc-list-item value="it">Italiano</mwc-list-item>
+		      <mwc-list-item value="da">Dansk</mwc-list-item>
+		      <mwc-list-item value="it">Italiano</mwc-list-item>
+          <mwc-list-item value="fr">Français</mwc-list-item>
         </ha-select>
       </div>
     `;
