@@ -3586,9 +3586,11 @@ class SimpleTimerCardEditor extends i {
     const key = target.configValue ?? target.dataset?.configValue ?? target.getAttribute?.("configValue");
     if (!key) return;
     ev.stopPropagation();
-    // Read value from target.value which mwc-select updates synchronously on selection.
-    // This works across HA frontend versions (including 2026.2+ changes to event shape).
-    const value = target.value;
+    // HA 2026.2+ ha-select fires `selected` with ev.detail.value but does NOT update
+    // its own .value property first. Older ha-select (mwc-select based) only sets target.value.
+    // Read detail.value first, fall back to target.value. Matches HA's own ha-selector-select.
+    let value = ev?.detail?.value;
+    if (value === undefined || value === null) value = target.value;
     if (typeof value !== "string" || value === "") return;
     if (value === this._config[key]) return;
     if (key === "style") {
@@ -3621,14 +3623,10 @@ class SimpleTimerCardEditor extends i {
     let value;
     if (target.checked !== undefined) value = target.checked;
     else {
-      // HA 2026.2+ ha-select event handling - look up by index when available
-      if (typeof e.detail?.index === "number" && e.detail.index >= 0) {
-        const items = target.items || target.querySelectorAll?.("mwc-list-item") || [];
-        const idxValue = items[e.detail.index]?.value;
-        if (typeof idxValue === "string" && idxValue !== "") value = idxValue;
-      }
+      // HA 2026.2+ ha-select fires `selected` event with ev.detail.value; older mwc-select
+      // only sets target.value. Try detail first, then fall back to target.value.
+      if (e && e.detail && e.detail.value !== undefined && e.detail.value !== null) value = e.detail.value;
       if (value === undefined && typeof target.selected?.value === "string" && target.selected.value !== "") value = target.selected.value;
-      if (value === undefined && e.detail && e.detail.value !== undefined) value = e.detail.value;
       if (value === undefined && target.value !== undefined) value = target.value;
       if (value === undefined) return;
     }
