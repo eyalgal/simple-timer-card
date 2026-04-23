@@ -5,13 +5,13 @@
  *
  * Author: eyalgal
  * License: MIT
- * Version: 2.2.3
+ * Version: 2.2.4
  * For more information, visit: https://github.com/eyalgal/simple-timer-card
  */
 
 import { html, LitElement, css } from "lit";
 
-const cardVersion="2.2.3";
+const cardVersion="2.2.4";
 
 const DAY_IN_MS = 86400000;
 const YEAR_IN_MS = 365 * DAY_IN_MS;
@@ -71,12 +71,12 @@ const TRANSLATIONS = {
     paused: "Paused",
     times_up: "Time's up!",
     timer: "Timer",
-    hour_ago: "hour ago",
-    hours_ago: "hours ago",
-    minute_ago: "minute ago",
-    minutes_ago: "minutes ago",
-    second_ago: "second ago",
-    seconds_ago: "seconds ago",
+    hour_ago: "{n} hour ago",
+    hours_ago: "{n} hours ago",
+    minute_ago: "{n} minute ago",
+    minutes_ago: "{n} minutes ago",
+    second_ago: "{n} second ago",
+    seconds_ago: "{n} seconds ago",
     h: "h", m: "m", s: "s", d: "d",
     w_short: "w", mo_short: "mo", y_short: "y",
     day: "day", days: "days", week: "week", weeks: "weeks",
@@ -100,12 +100,12 @@ const TRANSLATIONS = {
     paused: "Pausiert",
     times_up: "Zeit abgelaufen!",
     timer: "Timer",
-    hour_ago: "Stunde her",
-    hours_ago: "Stunden her",
-    minute_ago: "Minute her",
-    minutes_ago: "Minuten her",
-    second_ago: "Sekunde her",
-    seconds_ago: "Sekunden her",
+    hour_ago: "vor {n} Stunde",
+    hours_ago: "vor {n} Stunden",
+    minute_ago: "vor {n} Minute",
+    minutes_ago: "vor {n} Minuten",
+    second_ago: "vor {n} Sekunde",
+    seconds_ago: "vor {n} Sekunden",
     h: "h", m: "m", s: "s", d: "T",
     w_short: "W", mo_short: "Mo", y_short: "J",
     day: "Tag", days: "Tage", week: "Woche", weeks: "Wochen",
@@ -129,12 +129,12 @@ const TRANSLATIONS = {
     paused: "Pausado",
     times_up: "¡Se acabó el tiempo!",
     timer: "Temporizador",
-    hour_ago: "hora atrás",
-    hours_ago: "horas atrás",
-    minute_ago: "minuto atrás",
-    minutes_ago: "minutos atrás",
-    second_ago: "segundo atrás",
-    seconds_ago: "segundos atrás",
+    hour_ago: "hace {n} hora",
+    hours_ago: "hace {n} horas",
+    minute_ago: "hace {n} minuto",
+    minutes_ago: "hace {n} minutos",
+    second_ago: "hace {n} segundo",
+    seconds_ago: "hace {n} segundos",
     h: "h", m: "m", s: "s", d: "d",
     w_short: "sem", mo_short: "mes", y_short: "a",
     day: "día", days: "días", week: "semana", weeks: "semanas",
@@ -158,12 +158,12 @@ const TRANSLATIONS = {
     paused: "På pause",
     times_up: "Tid udløbet!",
     timer: "Timer",
-    hour_ago: "time siden",
-    hours_ago: "timer siden",
-    minute_ago: "minut siden",
-    minutes_ago: "minutter siden",
-    second_ago: "sekund siden",
-    seconds_ago: "sekunder siden",
+    hour_ago: "for {n} time siden",
+    hours_ago: "for {n} timer siden",
+    minute_ago: "for {n} minut siden",
+    minutes_ago: "for {n} minutter siden",
+    second_ago: "for {n} sekund siden",
+    seconds_ago: "for {n} sekunder siden",
     h: "t", m: "m", s: "s", d: "d",
     w_short: "u", mo_short: "må", y_short: "å",
     day: "dag", days: "dage", week: "uge", weeks: "uger",
@@ -187,12 +187,12 @@ const TRANSLATIONS = {
     paused: "In pausa",
     times_up: "Tempo finito!",
     timer: "Timer",
-    hour_ago: "ora fa",
-    hours_ago: "ore fa",
-    minute_ago: "minuto fa",
-    minutes_ago: "minuti fa",
-    second_ago: "secondo fa",
-    seconds_ago: "secondi fa",
+    hour_ago: "{n} ora fa",
+    hours_ago: "{n} ore fa",
+    minute_ago: "{n} minuto fa",
+    minutes_ago: "{n} minuti fa",
+    second_ago: "{n} secondo fa",
+    seconds_ago: "{n} secondi fa",
     h: "h", m: "m", s: "s", d: "g",
     w_short: "set", mo_short: "me", y_short: "a",
     day: "giorno", days: "giorni", week: "settimana", weeks: "settimane",
@@ -216,12 +216,12 @@ const TRANSLATIONS = {
     paused: "En pause",
     times_up: "Le temps est écoulé !",
     timer: "Minuteur",
-    hour_ago: "heure il y a",
-    hours_ago: "heures il y a",
-    minute_ago: "minute il y a",
-    minutes_ago: "minutes il y a",
-    second_ago: "seconde il y a",
-    seconds_ago: "secondes il y a",
+    hour_ago: "il y a {n} heure",
+    hours_ago: "il y a {n} heures",
+    minute_ago: "il y a {n} minute",
+    minutes_ago: "il y a {n} minutes",
+    second_ago: "il y a {n} seconde",
+    seconds_ago: "il y a {n} secondes",
     h: "h", m: "m", s: "s", d: "j",
     w_short: "sem", mo_short: "mo", y_short: "a",
     day: "jour", days: "jours", week: "semaine", weeks: "semaines",
@@ -2227,9 +2227,10 @@ if (!audioEnabled || !audioFileUrl || !this._validateAudioUrl(audioFileUrl)) ret
     const seconds = Math.floor(ms / 1000);
     const minutes = Math.floor(seconds / 60);
     const hours = Math.floor(minutes / 60);
-    if (hours > 0) return hours === 1 ? `1 ${this._localize("hour_ago")}` : `${hours} ${this._localize("hours_ago")}`;
-    if (minutes > 0) return minutes === 1 ? `1 ${this._localize("minute_ago")}` : `${minutes} ${this._localize("minutes_ago")}`;
-    return seconds === 1 ? `1 ${this._localize("second_ago")}` : `${seconds} ${this._localize("seconds_ago")}`;
+    const fmt = (key, n) => this._localize(key).replace("{n}", n);
+    if (hours > 0) return fmt(hours === 1 ? "hour_ago" : "hours_ago", hours);
+    if (minutes > 0) return fmt(minutes === 1 ? "minute_ago" : "minutes_ago", minutes);
+    return fmt(seconds === 1 ? "second_ago" : "seconds_ago", seconds);
   }
 
   _formatClock(totalSeconds, includeDays = false) {
