@@ -263,7 +263,8 @@ class SimpleTimerCard extends LitElement {
   }
 
   _localize(key) {
-    const lang = this._config?.language || this.hass?.language || "en";
+    const raw = this._config?.language || this.hass?.language || "en";
+    const lang = String(raw).toLowerCase().split(/[-_]/)[0];
     return TRANSLATIONS[lang]?.[key] || TRANSLATIONS["en"][key] || key;
   }
 
@@ -3951,7 +3952,7 @@ _pinnedTimerValueChanged(ev, index) {
           <mwc-list-item value="milestones">Milestones (bar styles only)</mwc-list-item>
         </ha-select>
 
-        <ha-select label="Language" .value=${this._config.language || this.hass?.language || "en"} .configValue=${"language"} .options=${[{value:"en",label:"English"},{value:"de",label:"Deutsch"},{value:"es",label:"Español"},{value:"da",label:"Dansk"},{value:"it",label:"Italiano"},{value:"fr",label:"Français"}]} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
+        <ha-select label="Language" .value=${(String(this._config.language || this.hass?.language || "en").toLowerCase().split(/[-_]/)[0])} .configValue=${"language"} .options=${[{value:"en",label:"English"},{value:"de",label:"Deutsch"},{value:"es",label:"Español"},{value:"da",label:"Dansk"},{value:"it",label:"Italiano"},{value:"fr",label:"Français"}]} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
           <mwc-list-item value="en">English</mwc-list-item>
           <mwc-list-item value="de">Deutsch</mwc-list-item>
           <mwc-list-item value="es">Español</mwc-list-item>
