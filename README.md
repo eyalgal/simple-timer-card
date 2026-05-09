@@ -1,6 +1,7 @@
 # ⏱️ Simple Timer Card for Home Assistant
 
 [![GitHub Release](https://img.shields.io/github/v/release/eyalgal/simple-timer-card)](https://github.com/eyalgal/simple-timer-card/releases)
+[![Downloads](https://img.shields.io/github/downloads/eyalgal/simple-timer-card/total.svg)](https://github.com/eyalgal/simple-timer-card/releases)
 [![Community Forum](https://img.shields.io/badge/Community-Forum-5294E2.svg)](https://community.home-assistant.io/t/simple-timer-card-a-clean-way-to-track-timers-in-home-assistant/928813)
 [![Buy Me A Coffee](https://img.shields.io/badge/buy_me_a-coffee-yellow)](https://www.buymeacoffee.com/eyalgal)
 
