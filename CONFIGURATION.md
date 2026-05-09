@@ -23,6 +23,7 @@ The card supports multiple UI languages:
 * Italian (`it`)
 * French (`fr`)
 * Hebrew (`he`) - right-to-left
+* Polish (`pl`)
 
 ```yaml
 language: de
