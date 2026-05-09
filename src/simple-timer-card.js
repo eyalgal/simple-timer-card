@@ -11,7 +11,7 @@
 
 import { html, LitElement, css } from "lit";
 
-const cardVersion="2.2.4";
+const cardVersion="2.3.0";
 
 const DAY_IN_MS = 86400000;
 const YEAR_IN_MS = 365 * DAY_IN_MS;
@@ -228,6 +228,35 @@ const TRANSLATIONS = {
     month: "mois", months: "mois", year: "année", years: "années",
     hour: "heure", hours: "heures", minute: "minute", minutes: "minutes",
     second: "seconde", seconds: "secondes",
+  },
+  he: {
+    no_timers: "אין טיימרים",
+    click_to_start: "לחץ להתחלה",
+    no_active_timers: "אין טיימרים פעילים",
+    active_timers: "טיימרים פעילים",
+    add: "הוסף",
+    custom: "מותאם אישית",
+    cancel: "ביטול",
+    save: "שמור",
+    start: "התחל",
+    snooze: "נודניק",
+    dismiss: "סגור",
+    ready: "מוכן",
+    paused: "מושהה",
+    times_up: "הזמן נגמר!",
+    timer: "טיימר",
+    hour_ago: "לפני {n} שעה",
+    hours_ago: "לפני {n} שעות",
+    minute_ago: "לפני {n} דקה",
+    minutes_ago: "לפני {n} דקות",
+    second_ago: "לפני {n} שנייה",
+    seconds_ago: "לפני {n} שניות",
+    h: "ש'", m: "ד'", s: "שנ'", d: "י'",
+    w_short: "שב'", mo_short: "חו'", y_short: "שנה",
+    day: "יום", days: "ימים", week: "שבוע", weeks: "שבועות",
+    month: "חודש", months: "חודשים", year: "שנה", years: "שנים",
+    hour: "שעה", hours: "שעות", minute: "דקה", minutes: "דקות",
+    second: "שנייה", seconds: "שניות",
   }
 };
 
@@ -266,6 +295,12 @@ class SimpleTimerCard extends LitElement {
     const raw = this._config?.language || this.hass?.language || "en";
     const lang = String(raw).toLowerCase().split(/[-_]/)[0];
     return TRANSLATIONS[lang]?.[key] || TRANSLATIONS["en"][key] || key;
+  }
+
+  _isRTL() {
+    const raw = this._config?.language || this.hass?.language || "en";
+    const lang = String(raw).toLowerCase().split(/[-_]/)[0];
+    return lang === "he" || lang === "ar" || lang === "fa" || lang === "ur";
   }
 
   _validateAudioUrl(url) {
@@ -3372,7 +3407,7 @@ const layout = this._config.layout;
       </div>
     `;
     return html`
-      <ha-card>
+      <ha-card dir=${this._isRTL() ? "rtl" : "ltr"}>
         ${this._config.title ? html`<div class="card-header"><span>${this._config.title}</span></div>` : ""}
         ${timers.length === 0 ? html`<div class="grid"><div>${noTimerCard}</div></div>` : html`<div class="grid"><div>${activeCard}</div></div>`}
       </ha-card>
@@ -3441,7 +3476,7 @@ const layout = this._config.layout;
       .vgrid.cols-2 { grid-template-columns: 1fr 1fr; }
       .vtile { position: relative; min-height: 120px; display: flex; align-items: center; justify-content: center; box-sizing: border-box; }
       .vtile .vcol { z-index: 1; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; }
-      .vtile-close { position: absolute; top: 4px; right: 4px; border: 0; background: none; padding: 4px; border-radius: 50%; color: var(--secondary-text-color); cursor: pointer; z-index: 3; }
+      .vtile-close { position: absolute; top: 4px; inset-inline-end: 4px; border: 0; background: none; padding: 4px; border-radius: 50%; color: var(--secondary-text-color); cursor: pointer; z-index: 3; }
       .vtile-close:hover { background: color-mix(in srgb, var(--primary-color) 10%, transparent); }
       .icon-wrap.large { width: 36px; height: 36px; flex: 0 0 36px; border-radius: var(--ha-card-border-radius, 50%); background: color-mix(in srgb, var(--tcolor, var(--primary-color)) 18%, var(--ha-card-background, var(--card-background-color))); display: flex; align-items: center; justify-content: center; }
       .vtitle { font-size: 14px; font-weight: 600; line-height: 16px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0; }
@@ -3952,13 +3987,14 @@ _pinnedTimerValueChanged(ev, index) {
           <mwc-list-item value="milestones">Milestones (bar styles only)</mwc-list-item>
         </ha-select>
 
-        <ha-select label="Language" .value=${(String(this._config.language || this.hass?.language || "en").toLowerCase().split(/[-_]/)[0])} .configValue=${"language"} .options=${[{value:"en",label:"English"},{value:"de",label:"Deutsch"},{value:"es",label:"Español"},{value:"da",label:"Dansk"},{value:"it",label:"Italiano"},{value:"fr",label:"Français"}]} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
+        <ha-select label="Language" .value=${(String(this._config.language || this.hass?.language || "en").toLowerCase().split(/[-_]/)[0])} .configValue=${"language"} .options=${[{value:"en",label:"English"},{value:"de",label:"Deutsch"},{value:"es",label:"Español"},{value:"da",label:"Dansk"},{value:"it",label:"Italiano"},{value:"fr",label:"Français"},{value:"he",label:"עברית"}]} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
           <mwc-list-item value="en">English</mwc-list-item>
           <mwc-list-item value="de">Deutsch</mwc-list-item>
           <mwc-list-item value="es">Español</mwc-list-item>
 		      <mwc-list-item value="da">Dansk</mwc-list-item>
 		      <mwc-list-item value="it">Italiano</mwc-list-item>
           <mwc-list-item value="fr">Français</mwc-list-item>
+          <mwc-list-item value="he">עברית</mwc-list-item>
         </ha-select>
       </div>
     `;
@@ -4370,9 +4406,9 @@ const storageContent = html`
 
       .entity-editor { border: 1px solid var(--divider-color); border-radius: 8px; padding: 12px; position: relative; }
       .entity-options { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
-      .remove-entity { position: absolute; top: 6px; right: 6px; background: var(--error-color, #f44336); border: none; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; }
+      .remove-entity { position: absolute; top: 6px; inset-inline-end: 6px; background: var(--error-color, #f44336); border: none; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; }
 
-      .helper-text { font-size: 11px; color: var(--secondary-text-color); margin-top: 4px; margin-left: 4px; }
+      .helper-text { font-size: 11px; color: var(--secondary-text-color); margin-top: 4px; margin-inline-start: 4px; }
     `;
   }
 }

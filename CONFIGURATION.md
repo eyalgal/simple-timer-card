@@ -22,6 +22,7 @@ The card supports multiple UI languages:
 * Danish (`da`)
 * Italian (`it`)
 * French (`fr`)
+* Hebrew (`he`) - right-to-left
 
 ```yaml
 language: de
