@@ -3754,6 +3754,7 @@ _addPinnedTimer() {
   const pinned = Array.isArray(this._config.pinned_timers) ? [...this._config.pinned_timers] : [];
   pinned.push({ name: "", duration: "5m" });
   this._config = { ...this._config, pinned_timers: pinned };
+  this.requestUpdate();
   this._emitChange();
 }
 
@@ -3761,6 +3762,7 @@ _removePinnedTimer(index) {
   const pinned = Array.isArray(this._config.pinned_timers) ? [...this._config.pinned_timers] : [];
   pinned.splice(index, 1);
   this._config = { ...this._config, pinned_timers: pinned };
+  this.requestUpdate();
   this._emitChange();
 }
 
@@ -4542,11 +4544,21 @@ _pinnedTimerValueChanged(ev, index) {
       .row > *,
       .side-by-side > * { flex: 1; min-width: 0; }
 
-      ha-textfield,
-      ha-entity-picker,
-      ha-icon-picker,
-      ha-select,
-      ha-form { width: 100%; display: block; }
+      /* DO NOT force display:block on these. HA's ha-textfield uses
+         :host { display: inline-flex } internally; overriding it breaks its
+         internal layout and collapses the field to 0 height when used as a
+         flex child of .row / .side-by-side. Flex-column parents already
+         stretch their direct children to full width via align-items:stretch. */
+      .panel-body > ha-textfield,
+      .panel-body > ha-entity-picker,
+      .panel-body > ha-icon-picker,
+      .panel-body > ha-select,
+      .panel-body > ha-form,
+      .entity-options > ha-textfield,
+      .entity-options > ha-entity-picker,
+      .entity-options > ha-icon-picker,
+      .entity-options > ha-select,
+      .entity-options > ha-form { width: 100%; }
 
       .toggle-row {
         display: flex;
