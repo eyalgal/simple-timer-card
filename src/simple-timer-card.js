@@ -3925,22 +3925,49 @@ _pinnedTimerValueChanged(ev, index) {
   async firstUpdated() {
     const tags = ["ha-entity-picker","ha-select","ha-textfield","ha-icon-picker","ha-form","mwc-list-item"];
     tags.forEach((t) => { customElements.whenDefined(t).then(() => this.requestUpdate()).catch(() => {}); });
-    this._ensureEntityPickerLoaded();
+    this._ensureHACommonsLoaded();
     this.requestUpdate();
   }
 
-  _ensureEntityPickerLoaded() {
-    if (customElements.get("ha-entity-picker")) return;
+  // Force-load HA's lazy-loaded editor components. In HA 2026.x the main app
+  // doesn't define `ha-textfield`, `ha-entity-picker`, `ha-icon-picker`, etc.
+  // until something on screen actually needs them. A card editor opened from
+  // the dashboard sometimes mounts before HA has had a reason to import those
+  // chunks, so our `<ha-textfield>` / `<ha-icon-picker>` / `<ha-entity-picker>`
+  // tags stay as un-upgraded custom elements (empty inline elements with no
+  // shadow root - no label, no input visible).
+  //
+  // `ha-form` lazy-loads each selector's underlying component on demand. By
+  // mounting a hidden form with text/number/entity/icon selectors we trigger
+  // HA's loader for everything we use in the editor, then remove the form.
+  // Each `whenDefined` in firstUpdated picks up the upgrade and re-renders.
+  _ensureHACommonsLoaded() {
+    const needTextfield = !customElements.get("ha-textfield");
+    const needEntity = !customElements.get("ha-entity-picker");
+    const needIcon = !customElements.get("ha-icon-picker");
+    if (!needTextfield && !needEntity && !needIcon) return;
     try {
       const loader = document.createElement("ha-form");
       loader.style.display = "none";
-      loader.schema = [{ name: "e", selector: { entity: {} } }];
-      loader.data = {};
+      loader.schema = [
+        { name: "_t", selector: { text: {} } },
+        { name: "_n", selector: { number: { min: 0, mode: "box" } } },
+        { name: "_e", selector: { entity: {} } },
+        { name: "_i", selector: { icon: {} } },
+      ];
+      loader.data = { _t: "", _n: 0, _e: "", _i: "" };
       loader.hass = this.hass;
       this.shadowRoot?.appendChild(loader);
-      setTimeout(() => loader.remove(), 0);
+      // Keep the loader briefly so HA can finish dynamic-importing the
+      // components. Removing it immediately is fine - the imports proceed -
+      // but a small delay also makes diagnostics easier.
+      setTimeout(() => { try { loader.remove(); } catch (_) {} }, 0);
     } catch (_) {}
   }
+
+  // Backward-compatible alias - keep in case anything else in the file
+  // references the old name.
+  _ensureEntityPickerLoaded() { this._ensureHACommonsLoaded(); }
 
   _getDisplayStyleValue() {
     return this._config.style || "bar_horizontal";
