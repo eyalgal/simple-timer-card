@@ -10,6 +10,8 @@
  */
 
 import { html, LitElement, css } from "lit";
+import { html as shtml, literal } from "lit/static-html.js";
+import { ifDefined } from "lit/directives/if-defined.js";
 
 const cardVersion="2.3.0";
 
@@ -3923,29 +3925,62 @@ _pinnedTimerValueChanged(ev, index) {
 
 
   async firstUpdated() {
-    const tags = ["ha-entity-picker","ha-select","ha-textfield","ha-icon-picker","ha-form","mwc-list-item"];
+    // Note: ha-input is the new (2026.4+) successor of ha-textfield. ha-textfield
+    // is migrated to use ha-input internally and is scheduled for removal in 2026.5.
+    // We wait for either to be defined so our render() can pick the right tag.
+    const tags = ["ha-entity-picker","ha-select","ha-textfield","ha-input","ha-icon-picker","ha-form","mwc-list-item"];
     tags.forEach((t) => { customElements.whenDefined(t).then(() => this.requestUpdate()).catch(() => {}); });
     this._ensureHACommonsLoaded();
     this.requestUpdate();
   }
 
+  // Choose between ha-input (HA 2026.4+) and ha-textfield (older HA). ha-input
+  // is loaded by ha-form's text/number selectors in 2026.4+; ha-textfield is
+  // loaded by the same selectors on older HA. We pick whichever is currently
+  // upgraded so the visible element always matches a defined custom element.
+  get _tfTag() {
+    if (customElements.get("ha-input")) return literal`ha-input`;
+    return literal`ha-textfield`;
+  }
+
+  // Render a text/number input using the chosen tag. Returns a static-html
+  // template so the tag itself can be interpolated. All call sites in the
+  // editor go through this helper so a single switch flips the entire UI.
+  _tf({ label, value, configValue, type, min, max, step, helper, placeholder, change }) {
+    const tag = this._tfTag;
+    return shtml`<${tag}
+        label=${label ?? ""}
+        .value=${value ?? ""}
+        .configValue=${configValue ?? ""}
+        type=${type ?? "text"}
+        min=${ifDefined(min)}
+        max=${ifDefined(max)}
+        step=${ifDefined(step)}
+        helper=${ifDefined(helper)}
+        placeholder=${ifDefined(placeholder)}
+        @input=${change}
+        @change=${change}
+      ></${tag}>`;
+  }
+
   // Force-load HA's lazy-loaded editor components. In HA 2026.x the main app
-  // doesn't define `ha-textfield`, `ha-entity-picker`, `ha-icon-picker`, etc.
-  // until something on screen actually needs them. A card editor opened from
-  // the dashboard sometimes mounts before HA has had a reason to import those
-  // chunks, so our `<ha-textfield>` / `<ha-icon-picker>` / `<ha-entity-picker>`
-  // tags stay as un-upgraded custom elements (empty inline elements with no
-  // shadow root - no label, no input visible).
+  // doesn't define `ha-textfield` / `ha-input` / `ha-entity-picker` /
+  // `ha-icon-picker` until something on screen actually needs them. A card
+  // editor opened from the dashboard sometimes mounts before HA has had a
+  // reason to import those chunks, so our custom elements stay un-upgraded
+  // (empty inline elements with no shadow root - no label, no input visible).
   //
   // `ha-form` lazy-loads each selector's underlying component on demand. By
   // mounting a hidden form with text/number/entity/icon selectors we trigger
   // HA's loader for everything we use in the editor, then remove the form.
-  // Each `whenDefined` in firstUpdated picks up the upgrade and re-renders.
+  // In HA 2026.4+ the text/number selectors load `ha-input`; in older HA they
+  // load `ha-textfield`. The whenDefined hooks in firstUpdated() catch either
+  // case and re-render.
   _ensureHACommonsLoaded() {
-    const needTextfield = !customElements.get("ha-textfield");
+    const needText = !customElements.get("ha-textfield") && !customElements.get("ha-input");
     const needEntity = !customElements.get("ha-entity-picker");
     const needIcon = !customElements.get("ha-icon-picker");
-    if (!needTextfield && !needEntity && !needIcon) return;
+    if (!needText && !needEntity && !needIcon) return;
     try {
       const loader = document.createElement("ha-form");
       loader.style.display = "none";
@@ -4090,7 +4125,7 @@ _pinnedTimerValueChanged(ev, index) {
     };
 
     const appearanceContent = html`
-      <ha-textfield label="Title" placeholder="Optional" .value=${this._config.title || ""} .configValue=${"title"} @input=${this._valueChanged}></ha-textfield>
+      ${this._tf({ label: "Title", placeholder: "Optional", value: this._config.title, configValue: "title", change: this._valueChanged })}
 
       <div class="row">
         <ha-select label="Layout" naturalMenuWidth fixedMenuPosition .value=${this._config.layout || "horizontal"} .configValue=${"layout"} .options=${SELECT_OPTIONS.layout} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
@@ -4166,7 +4201,7 @@ _pinnedTimerValueChanged(ev, index) {
         <mwc-list-item value="human_natural">Unit style, natural language</mwc-list-item>
       </ha-select>
 
-      <ha-textfield label="Unit order (comma-separated)" helper="years,months,weeks,days,hours,minutes,seconds" .value=${(this._config.time_format_units || ["days","hours","minutes","seconds"]).join(",")} .configValue=${"time_format_units"} @input=${this._valueChanged}></ha-textfield>
+      ${this._tf({ label: "Unit order (comma-separated)", helper: "years,months,weeks,days,hours,minutes,seconds", value: (this._config.time_format_units || ["days","hours","minutes","seconds"]).join(","), configValue: "time_format_units", change: this._valueChanged })}
 
       ${showMilestonesSection ? html`
         <div class="subsection-title">Progress milestones</div>
@@ -4191,16 +4226,16 @@ _pinnedTimerValueChanged(ev, index) {
 
     const defaultsContent = html`
       <div class="row">
-        <ha-textfield label="Default duration (minutes)" type="number" min="0" helper="Starting value when the user opens the custom timer input." .value=${this._config.default_new_timer_duration_mins ?? 15} .configValue=${"default_new_timer_duration_mins"} @input=${this._valueChanged}></ha-textfield>
-        <ha-textfield label="Snooze duration (minutes)" type="number" min="0" .value=${this._config.snooze_duration ?? 5} .configValue=${"snooze_duration"} @input=${this._valueChanged}></ha-textfield>
+        ${this._tf({ label: "Default duration (minutes)", type: "number", min: "0", helper: "Starting value when the user opens the custom timer input.", value: this._config.default_new_timer_duration_mins ?? 15, configValue: "default_new_timer_duration_mins", change: this._valueChanged })}
+        ${this._tf({ label: "Snooze duration (minutes)", type: "number", min: "0", value: this._config.snooze_duration ?? 5, configValue: "snooze_duration", change: this._valueChanged })}
       </div>
 
       <div class="row">
         <ha-icon-picker label="Default timer icon" .value=${this._config.default_timer_icon || "mdi:timer-outline"} .configValue=${"default_timer_icon"} @value-changed=${this._detailValueChanged}></ha-icon-picker>
-        <ha-textfield label="Default timer color" .value=${this._config.default_timer_color || "var(--primary-color)"} .configValue=${"default_timer_color"} @input=${this._valueChanged}></ha-textfield>
+        ${this._tf({ label: "Default timer color", value: this._config.default_timer_color || "var(--primary-color)", configValue: "default_timer_color", change: this._valueChanged })}
       </div>
 
-      <ha-textfield label="Timer expired message" .value=${this._config.expired_subtitle || ""} .configValue=${"expired_subtitle"} @input=${this._valueChanged} placeholder="Time's up!"></ha-textfield>
+      ${this._tf({ label: "Timer expired message", value: this._config.expired_subtitle, configValue: "expired_subtitle", placeholder: "Time's up!", change: this._valueChanged })}
 
       <div class="divider"></div>
 
@@ -4210,7 +4245,7 @@ _pinnedTimerValueChanged(ev, index) {
           <mwc-list-item value="dismiss">Dismiss</mwc-list-item>
           <mwc-list-item value="remove">Remove</mwc-list-item>
         </ha-select>
-        <ha-textfield label="Keep-visible duration (seconds)" type="number" min="0" .value=${this._config.expire_keep_for ?? 120} .configValue=${"expire_keep_for"} @input=${this._valueChanged}></ha-textfield>
+        ${this._tf({ label: "Keep-visible duration (seconds)", type: "number", min: "0", value: this._config.expire_keep_for ?? 120, configValue: "expire_keep_for", change: this._valueChanged })}
       </div>
 
       <label class="toggle-row">
@@ -4232,11 +4267,11 @@ _pinnedTimerValueChanged(ev, index) {
       </label>
 
       ${this._config.show_timer_presets !== false ? html`
-        <ha-textfield label="Timer presets" helper="Minutes or seconds, e.g. 5, 15, 90s" .value=${(this._config.timer_presets || [5, 15, 30]).join(", ")} .configValue=${"timer_presets"} @input=${this._valueChanged}></ha-textfield>
-        <ha-textfield label="Timer name presets" helper="Comma-separated labels shown in the custom-name picker" .value=${(this._config.timer_name_presets || []).join(", ")} .configValue=${"timer_name_presets"} @input=${this._valueChanged}></ha-textfield>
+        ${this._tf({ label: "Timer presets", helper: "Minutes or seconds, e.g. 5, 15, 90s", value: (this._config.timer_presets || [5, 15, 30]).join(", "), configValue: "timer_presets", change: this._valueChanged })}
+        ${this._tf({ label: "Timer name presets", helper: "Comma-separated labels shown in the custom-name picker", value: (this._config.timer_name_presets || []).join(", "), configValue: "timer_name_presets", change: this._valueChanged })}
       ` : ""}
 
-      <ha-textfield label="Minute adjustment buttons" helper="Comma-separated (e.g. 1, 5, 10). Buttons to add/subtract from the custom timer input." .value=${(this._config.minute_buttons || [1, 5, 10]).join(", ")} .configValue=${"minute_buttons"} @input=${this._valueChanged}></ha-textfield>
+      ${this._tf({ label: "Minute adjustment buttons", helper: "Comma-separated (e.g. 1, 5, 10). Buttons to add/subtract from the custom timer input.", value: (this._config.minute_buttons || [1, 5, 10]).join(", "), configValue: "minute_buttons", change: this._valueChanged })}
     `;
 
     const pinnedContent = html`
@@ -4248,16 +4283,16 @@ _pinnedTimerValueChanged(ev, index) {
             <div class="entity-editor">
               <div class="entity-options" style="width:100%;">
                 <div class="row">
-                  <ha-textfield label="Name" .value=${t?.name || ""} .configValue=${"name"} @input=${(e) => this._pinnedTimerValueChanged(e, index)}></ha-textfield>
-                  <ha-textfield label="Duration" helper="Examples: 5m, 90s, 1h" .value=${t?.duration ?? t?.preset ?? "5m"} .configValue=${"duration"} @input=${(e) => this._pinnedTimerValueChanged(e, index)}></ha-textfield>
+                  ${this._tf({ label: "Name", value: t?.name, configValue: "name", change: (e) => this._pinnedTimerValueChanged(e, index) })}
+                  ${this._tf({ label: "Duration", helper: "Examples: 5m, 90s, 1h", value: t?.duration ?? t?.preset ?? "5m", configValue: "duration", change: (e) => this._pinnedTimerValueChanged(e, index) })}
                 </div>
 
                 <div class="row">
                   <ha-icon-picker label="Icon" .value=${t?.icon || ""} .configValue=${"icon"} @value-changed=${(e) => { e.target.configValue = "icon"; this._pinnedTimerValueChanged(e, index); }}></ha-icon-picker>
-                  <ha-textfield label="Color" .value=${t?.color || ""} .configValue=${"color"} @input=${(e) => this._pinnedTimerValueChanged(e, index)}></ha-textfield>
+                  ${this._tf({ label: "Color", value: t?.color, configValue: "color", change: (e) => this._pinnedTimerValueChanged(e, index) })}
                 </div>
 
-                <ha-textfield label="Expired message" .value=${t?.expired_subtitle || ""} .configValue=${"expired_subtitle"} @input=${(e) => this._pinnedTimerValueChanged(e, index)}></ha-textfield>
+                ${this._tf({ label: "Expired message", value: t?.expired_subtitle, configValue: "expired_subtitle", change: (e) => this._pinnedTimerValueChanged(e, index) })}
 
                 <ha-formfield label="Enable specific audio">
                   <ha-switch .checked=${t?.audio_enabled === true} .configValue=${"audio_enabled"} @change=${(e) => this._pinnedTimerValueChanged(e, index)}></ha-switch>
@@ -4265,8 +4300,8 @@ _pinnedTimerValueChanged(ev, index) {
 
                 ${t?.audio_enabled ? html`
                   <div class="row">
-                    <ha-textfield label="Audio file URL" .value=${t?.audio_file_url || ""} .configValue=${"audio_file_url"} @input=${(e) => this._pinnedTimerValueChanged(e, index)}></ha-textfield>
-                    <ha-textfield label="Repeat count" type="number" min="1" max="10" .value=${t?.audio_repeat_count ?? 1} .configValue=${"audio_repeat_count"} @input=${(e) => this._pinnedTimerValueChanged(e, index)}></ha-textfield>
+                    ${this._tf({ label: "Audio file URL", value: t?.audio_file_url, configValue: "audio_file_url", change: (e) => this._pinnedTimerValueChanged(e, index) })}
+                    ${this._tf({ label: "Repeat count", type: "number", min: "1", max: "10", value: t?.audio_repeat_count ?? 1, configValue: "audio_repeat_count", change: (e) => this._pinnedTimerValueChanged(e, index) })}
                   </div>
 
                   <ha-formfield label="Play until dismissed or snoozed">
@@ -4297,10 +4332,10 @@ _pinnedTimerValueChanged(ev, index) {
       </label>
 
       ${this._config.audio_enabled ? html`
-        <ha-textfield label="Audio file URL or path" .value=${this._config.audio_file_url || ""} .configValue=${"audio_file_url"} @input=${this._valueChanged} placeholder="/local/sounds/done.mp3"></ha-textfield>
+        ${this._tf({ label: "Audio file URL or path", value: this._config.audio_file_url, configValue: "audio_file_url", placeholder: "/local/sounds/done.mp3", change: this._valueChanged })}
         <div class="row">
-          <ha-textfield label="Completion delay (seconds)" type="number" min="1" max="30" .value=${this._config.audio_completion_delay ?? 4} .configValue=${"audio_completion_delay"} @input=${this._valueChanged}></ha-textfield>
-          <ha-textfield label="Number of times to play" type="number" min="1" max="10" .value=${this._config.audio_repeat_count ?? 1} .configValue=${"audio_repeat_count"} @input=${this._valueChanged}></ha-textfield>
+          ${this._tf({ label: "Completion delay (seconds)", type: "number", min: "1", max: "30", value: this._config.audio_completion_delay ?? 4, configValue: "audio_completion_delay", change: this._valueChanged })}
+          ${this._tf({ label: "Number of times to play", type: "number", min: "1", max: "10", value: this._config.audio_repeat_count ?? 1, configValue: "audio_repeat_count", change: this._valueChanged })}
         </div>
         <label class="toggle-row">
           <ha-switch .checked=${this._config.audio_play_until_dismissed === true} .configValue=${"audio_play_until_dismissed"} @change=${this._valueChanged}></ha-switch>
@@ -4375,12 +4410,7 @@ _pinnedTimerValueChanged(ev, index) {
                     @value-changed=${(e) => this._entityValueChanged(e, index)}
                   ></ha-entity-picker>
                 ` : html`
-                  <ha-textfield
-                    label="Entity (type while picker loads)"
-                    .value=${entityId}
-                    .configValue=${"entity"}
-                    @input=${(e) => this._entityValueChanged(e, index)}
-                  ></ha-textfield>
+                  ${this._tf({ label: "Entity (type while picker loads)", value: entityId, configValue: "entity", change: (e) => this._entityValueChanged(e, index) })}
                 `}
                 <div class="entity-options">
                   <div class="row" style="align-items:flex-start;">
@@ -4403,7 +4433,7 @@ _pinnedTimerValueChanged(ev, index) {
                     </div>
 
                     ${conf.mode === "minutes_attr" ? html`
-                      <ha-textfield label="Minutes attribute" .value=${conf.minutes_attr || ""} .configValue=${"minutes_attr"} @input=${(e) => this._entityValueChanged(e, index)}></ha-textfield>
+                      ${this._tf({ label: "Minutes attribute", value: conf.minutes_attr, configValue: "minutes_attr", change: (e) => this._entityValueChanged(e, index) })}
                     ` : ""}
 
                     ${isTimestampMode ? html`
@@ -4419,22 +4449,16 @@ _pinnedTimerValueChanged(ev, index) {
                   </div>
 
                   ${isTimestampMode ? html`
-                    <ha-textfield
-                      label="Start time attribute (optional)"
-                      .value=${conf.start_time_attr || ""}
-                      .configValue=${"start_time_attr"}
-                      @input=${(e) => this._entityValueChanged(e, index)}
-                      helper-text="Attribute on this entity containing the start timestamp (e.g., 'last_triggered')."
-                    ></ha-textfield>
+                    ${this._tf({ label: "Start time attribute (optional)", value: conf.start_time_attr, configValue: "start_time_attr", helper: "Attribute on this entity containing the start timestamp (e.g., 'last_triggered').", change: (e) => this._entityValueChanged(e, index) })}
                   ` : ""}
 
                   <div class="row">
-                    <ha-textfield label="Name override" .value=${conf.name || ""} .configValue=${"name"} @input=${(e) => this._entityValueChanged(e, index)}></ha-textfield>
+                    ${this._tf({ label: "Name override", value: conf.name, configValue: "name", change: (e) => this._entityValueChanged(e, index) })}
                     <ha-icon-picker label="Icon override" .value=${conf.icon || ""} .configValue=${"icon"} @value-changed=${(e) => this._entityValueChanged(e, index)}></ha-icon-picker>
-                    <ha-textfield label="Color override" .value=${conf.color || ""} .configValue=${"color"} @input=${(e) => this._entityValueChanged(e, index)}></ha-textfield>
+                    ${this._tf({ label: "Color override", value: conf.color, configValue: "color", change: (e) => this._entityValueChanged(e, index) })}
                   </div>
 
-                  <ha-textfield label="Expired message override" .value=${conf.expired_subtitle || ""} .configValue=${"expired_subtitle"} @input=${(e) => this._entityValueChanged(e, index)}></ha-textfield>
+                  ${this._tf({ label: "Expired message override", value: conf.expired_subtitle, configValue: "expired_subtitle", change: (e) => this._entityValueChanged(e, index) })}
 
                   <ha-formfield label="Enable entity-specific audio">
                     <ha-switch .checked=${conf.audio_enabled === true} .configValue=${"audio_enabled"} @change=${(e) => this._entityValueChanged(e, index)}></ha-switch>
@@ -4442,8 +4466,8 @@ _pinnedTimerValueChanged(ev, index) {
 
                   ${conf.audio_enabled ? html`
                     <div class="row">
-                      <ha-textfield label="Audio file URL" .value=${conf.audio_file_url || ""} .configValue=${"audio_file_url"} @input=${(e) => this._entityValueChanged(e, index)}></ha-textfield>
-                      <ha-textfield label="Audio repeat count" type="number" min="1" max="10" .value=${conf.audio_repeat_count ?? 1} .configValue=${"audio_repeat_count"} @input=${(e) => this._entityValueChanged(e, index)}></ha-textfield>
+                      ${this._tf({ label: "Audio file URL", value: conf.audio_file_url, configValue: "audio_file_url", change: (e) => this._entityValueChanged(e, index) })}
+                      ${this._tf({ label: "Audio repeat count", type: "number", min: "1", max: "10", value: conf.audio_repeat_count ?? 1, configValue: "audio_repeat_count", change: (e) => this._entityValueChanged(e, index) })}
                     </div>
                   ` : ""}
 
@@ -4552,11 +4576,13 @@ _pinnedTimerValueChanged(ev, index) {
          flex child of .row / .side-by-side. Flex-column parents already
          stretch their direct children to full width via align-items:stretch. */
       .panel-body > ha-textfield,
+      .panel-body > ha-input,
       .panel-body > ha-entity-picker,
       .panel-body > ha-icon-picker,
       .panel-body > ha-select,
       .panel-body > ha-form,
       .entity-options > ha-textfield,
+      .entity-options > ha-input,
       .entity-options > ha-entity-picker,
       .entity-options > ha-icon-picker,
       .entity-options > ha-select,
