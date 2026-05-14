@@ -512,7 +512,14 @@ class SimpleTimerCard extends i {
     const style = validStyles.includes((config.style || "").toLowerCase()) ? (config.style || "").toLowerCase() : "bar_horizontal";
     const progressModeOptions = ["drain", "fill", "milestones"];
     const progressMode = progressModeOptions.includes(config.progress_mode) ? config.progress_mode : "drain";
-    this._storageNamespace = config.storage_namespace || config.default_timer_entity || "default";
+    const firstEntityFromList = Array.isArray(config.entities) && config.entities.length
+      ? (typeof config.entities[0] === "string" ? config.entities[0] : config.entities[0]?.entity)
+      : null;
+    this._storageNamespace =
+      config.storage_namespace ||
+      config.default_timer_entity ||
+      firstEntityFromList ||
+      `instance-${this._cardInstanceKey}`;
     const defaultUnits = ["days", "hours", "minutes", "seconds"];
     let timeUnits = defaultUnits;
     if (Array.isArray(config.time_format_units)) {
