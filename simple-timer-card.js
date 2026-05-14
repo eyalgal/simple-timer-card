@@ -311,6 +311,35 @@ const TRANSLATIONS = {
     month: "miesiąc", months: "miesięcy", year: "rok", years: "lat",
     hour: "godzina", hours: "godzin", minute: "minuta", minutes: "minut",
     second: "sekunda", seconds: "sekund",
+  },
+  nl: {
+    no_timers: "Geen timers",
+    click_to_start: "Klik om te starten",
+    no_active_timers: "Geen actieve timers",
+    active_timers: "Actieve timers",
+    add: "Toevoegen",
+    custom: "Aangepast",
+    cancel: "Annuleren",
+    save: "Opslaan",
+    start: "Starten",
+    snooze: "Snoozen",
+    dismiss: "Sluiten",
+    ready: "Klaar",
+    paused: "Gepauzeerd",
+    times_up: "Tijd is om!",
+    timer: "Timer",
+    hour_ago: "{n} uur geleden",
+    hours_ago: "{n} uur geleden",
+    minute_ago: "{n} minuut geleden",
+    minutes_ago: "{n} minuten geleden",
+    second_ago: "{n} seconde geleden",
+    seconds_ago: "{n} seconden geleden",
+    h: "u", m: "m", s: "s", d: "d",
+    w_short: "w", mo_short: "mnd", y_short: "j",
+    day: "dag", days: "dagen", week: "week", weeks: "weken",
+    month: "maand", months: "maanden", year: "jaar", years: "jaren",
+    hour: "uur", hours: "uren", minute: "minuut", minutes: "minuten",
+    second: "seconde", seconds: "seconden",
   }
 };
 
@@ -512,7 +541,14 @@ class SimpleTimerCard extends i {
     const style = validStyles.includes((config.style || "").toLowerCase()) ? (config.style || "").toLowerCase() : "bar_horizontal";
     const progressModeOptions = ["drain", "fill", "milestones"];
     const progressMode = progressModeOptions.includes(config.progress_mode) ? config.progress_mode : "drain";
-    this._storageNamespace = config.storage_namespace || config.default_timer_entity || "default";
+    const firstEntityFromList = Array.isArray(config.entities) && config.entities.length
+      ? (typeof config.entities[0] === "string" ? config.entities[0] : config.entities[0]?.entity)
+      : null;
+    this._storageNamespace =
+      config.storage_namespace ||
+      config.default_timer_entity ||
+      firstEntityFromList ||
+      `instance-${this._cardInstanceKey}`;
     const defaultUnits = ["days", "hours", "minutes", "seconds"];
     let timeUnits = defaultUnits;
     if (Array.isArray(config.time_format_units)) {

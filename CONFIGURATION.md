@@ -24,6 +24,7 @@ The card supports multiple UI languages:
 * French (`fr`)
 * Hebrew (`he`) - right-to-left
 * Polish (`pl`)
+* Dutch (`nl`)
 
 ```yaml
 language: de
@@ -43,7 +44,7 @@ Additional languages are welcome via contributions.
 | `title`    | string | null           | Optional card title                                           |
 | `layout`   | string | horizontal     | Layout when no timers are active (`horizontal` or `vertical`) |
 | `style`    | string | bar_horizontal | Active timer display style                                    |
-| `language` | string | auto           | UI language (`en`, `de`, `es`, `da`, `it`, `fr`). Defaults to HA language |
+| `language` | string | auto           | UI language (`en`, `de`, `es`, `da`, `it`, `fr`, `he`, `pl`, `nl`). Defaults to HA language |
 
 ---
 
