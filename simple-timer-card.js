@@ -49,7 +49,7 @@ const a=Symbol.for(""),o$1=t=>{if(t?.r===a)return t?._$litStatic$},i=(t,...r)=>(
  */
 
 
-const cardVersion="2.4.0";
+const cardVersion="2.4.1";
 
 const DAY_IN_MS = 86400000;
 const YEAR_IN_MS = 365 * DAY_IN_MS;
@@ -1924,6 +1924,13 @@ if (!audioEnabled || !audioFileUrl || !this._validateAudioUrl(audioFileUrl)) ret
     return null;
   }
 
+  _formatPresetLabel(preset) {
+    const raw = String(preset).trim().toLowerCase();
+    const m = raw.match(/^(\d+)\s*([smhd])?$/);
+    if (!m) return String(preset);
+    return `${m[1]}${this._localize(m[2] || "m")}`;
+  }
+
   _createPresetTimer(preset, entity = null, overrides = {}) {
     const durationMs = this._parseDurationInputToMs(preset);
     if (!durationMs) return;
@@ -2827,9 +2834,7 @@ if (!audioEnabled || !audioFileUrl || !this._validateAudioUrl(audioFileUrl)) ret
       const delta = this._parseAdjustmentToSeconds(val);
       const isNegative = sign < 0;
       const isClickable = !isNegative || totalSeconds >= delta;
-      const displayLabel = (typeof val === "string" && val.toLowerCase().endsWith("s"))
-        ? val.toLowerCase()
-        : `${val}${this._localize("m")}`;
+      const displayLabel = this._formatPresetLabel(val);
 
       return b`
         <button class="btn btn-ghost ${isClickable ? "" : "disabled"}"
@@ -3086,7 +3091,7 @@ if (!audioEnabled || !audioFileUrl || !this._validateAudioUrl(audioFileUrl)) ret
       const delta = this._parseAdjustmentToSeconds(val);
       const isNegative = sign < 0;
       const isClickable = !isNegative || (currentSecs >= delta);
-      const displayLabel = typeof val === "string" && val.toLowerCase().endsWith("s") ? val.toLowerCase() : `${val}${this._localize("m")}`;
+      const displayLabel = this._formatPresetLabel(val);
       return b`
         <button class="btn btn-ghost ${isClickable ? "" : "disabled"}"
                 @click=${() => isClickable && adjustFunction(whichKey, val, sign)}>
@@ -3361,9 +3366,7 @@ const layout = this._config.layout;
           </div>
           <div style="display:flex; gap:8px;">
             ${presets.map((preset) => {
-              const label = typeof preset === "string" && preset.toLowerCase().endsWith("s")
-                ? preset.toLowerCase()
-                : `${preset}${this._localize("m")}`;
+              const label = this._formatPresetLabel(preset);
               return b`<button class="btn btn-preset" @click=${() => this._createPresetTimer(preset)}>${label}</button>`;
             })}
             ${this._config.show_timer_presets === false ? b`
@@ -3398,9 +3401,7 @@ const layout = this._config.layout;
           </div>
           <div style="display:flex; gap:8px; margin-bottom:8px;">
             ${presets.map((preset) => {
-              const label = typeof preset === "string" && preset.toLowerCase().endsWith("s")
-                ? preset.toLowerCase()
-                : `${preset}${this._localize("m")}`;
+              const label = this._formatPresetLabel(preset);
               return b`<button class="btn btn-preset" @click=${() => this._createPresetTimer(preset)}>${label}</button>`;
             })}
             ${this._config.show_timer_presets === false ? b`
@@ -3440,9 +3441,7 @@ const layout = this._config.layout;
             ${showPresetsInActive ? b`
               <div class="header-actions">
                 ${presets.map((preset) => {
-                  const label = typeof preset === "string" && preset.toLowerCase().endsWith("s")
-                    ? preset.toLowerCase()
-                    : `${preset}${this._localize("m")}`;
+                  const label = this._formatPresetLabel(preset);
                   return b`<button class="btn btn-preset" @click=${() => this._createPresetTimer(preset)}>${label}</button>`;
                 })}
                 <button class="btn btn-ghost" @click=${() => this._toggleActivePicker("fill")}>${this._localize("custom")}</button>
@@ -3478,9 +3477,7 @@ const layout = this._config.layout;
             ${showPresetsInActive ? b`
               <div class="header-actions">
                 ${presets.map((preset) => {
-                  const label = typeof preset === "string" && preset.toLowerCase().endsWith("s")
-                    ? preset.toLowerCase()
-                    : `${preset}${this._localize("m")}`;
+                  const label = this._formatPresetLabel(preset);
                   return b`<button class="btn btn-preset" @click=${() => this._createPresetTimer(preset)}>${label}</button>`;
                 })}
                 <button class="btn btn-ghost" @click=${() => this._toggleActivePicker("bar")}>${this._localize("custom")}</button>
