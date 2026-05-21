@@ -13,7 +13,7 @@ import { html, LitElement, css } from "lit";
 import { html as shtml, literal } from "lit/static-html.js";
 import { ifDefined } from "lit/directives/if-defined.js";
 
-const cardVersion="2.4.1";
+const cardVersion="2.4.2";
 
 const DAY_IN_MS = 86400000;
 const YEAR_IN_MS = 365 * DAY_IN_MS;
@@ -3642,13 +3642,11 @@ class SimpleTimerCardEditor extends LitElement {
     let value = hasChecked ? target.checked : target.value;
     if (key === "timer_presets" && typeof value === "string") {
       value = value.split(",").map(v => v.trim()).filter(v => v).map(v => {
-        if (v.toLowerCase().endsWith("s")) {
-          const seconds = parseInt(v.slice(0, -1), 10);
-          if (!isNaN(seconds) && seconds > 0) return `${seconds}s`;
-        }
-        const minutes = parseInt(v, 10);
-        if (!isNaN(minutes) && minutes > 0) return minutes;
-        return null;
+        const m = v.toLowerCase().match(/^(\d+)\s*([smhd])?$/);
+        if (!m) return null;
+        const n = parseInt(m[1], 10);
+        if (!Number.isFinite(n) || n <= 0) return null;
+        return m[2] ? `${n}${m[2]}` : n;
       }).filter(v => v !== null);
       if (value.length === 0) value = [5, 15, 30];
     }
@@ -4301,7 +4299,7 @@ _pinnedTimerValueChanged(ev, index) {
       </label>
 
       ${this._config.show_timer_presets !== false ? html`
-        ${this._tf({ label: "Timer presets", helper: "Minutes or seconds, e.g. 5, 15, 90s", value: (this._config.timer_presets || [5, 15, 30]).join(", "), configValue: "timer_presets", change: this._valueChanged })}
+        ${this._tf({ label: "Timer presets", helper: "Seconds, minutes, hours, or days. e.g. 5, 15, 90s, 2h", value: (this._config.timer_presets || [5, 15, 30]).join(", "), configValue: "timer_presets", change: this._valueChanged })}
         ${this._tf({ label: "Timer name presets", helper: "Comma-separated labels shown in the custom-name picker", value: (this._config.timer_name_presets || []).join(", "), configValue: "timer_name_presets", change: this._valueChanged })}
       ` : ""}
 
