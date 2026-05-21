@@ -13,7 +13,7 @@ import { html, LitElement, css } from "lit";
 import { html as shtml, literal } from "lit/static-html.js";
 import { ifDefined } from "lit/directives/if-defined.js";
 
-const cardVersion="2.4.2";
+const cardVersion="2.4.3";
 
 const DAY_IN_MS = 86400000;
 const YEAR_IN_MS = 365 * DAY_IN_MS;
@@ -2472,15 +2472,21 @@ if (!audioEnabled || !audioFileUrl || !this._validateAudioUrl(audioFileUrl)) ret
   }
 
   _parseAdjustmentToSeconds(value) {
-    let seconds = 0;
-    if (typeof value === "string" && value.toLowerCase().endsWith("s")) {
-      const parsedSeconds = parseInt(value.slice(0, -1), 10);
-      if (!isNaN(parsedSeconds)) seconds = parsedSeconds;
-    } else {
-      const parsedMinutes = parseInt(value, 10);
-      if (!isNaN(parsedMinutes)) seconds = parsedMinutes * 60;
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return value * 60;
     }
-    return seconds;
+    if (typeof value !== "string") return 0;
+    const m = value.trim().toLowerCase().match(/^(\d+)\s*([smhd])?$/);
+    if (!m) return 0;
+    const n = parseInt(m[1], 10);
+    if (!Number.isFinite(n) || n < 0) return 0;
+    switch (m[2]) {
+      case "s": return n;
+      case "h": return n * 3600;
+      case "d": return n * 86400;
+      case "m":
+      default:  return n * 60;
+    }
   }
 
   _adjust(which, value, sign = +1) {
@@ -2815,7 +2821,7 @@ if (!audioEnabled || !audioFileUrl || !this._validateAudioUrl(audioFileUrl)) ret
             ${renderAdjustButtons(+1)}
           </div>
 
-          <div class="display">${this._formatDuration(totalSeconds, "seconds")}</div>
+          <div class="display">${this._formatClock(totalSeconds, true)}</div>
 
           <div class="buttons-grid">
             ${renderAdjustButtons(-1)}
@@ -3344,7 +3350,7 @@ const layout = this._config.layout;
           <div class="buttons-grid">
             ${this._renderMinuteButtons("horizontal", (which, m, sign) => this._adjust(which, m, sign), +1)}
           </div>
-          <div class="display">${this._formatDuration(this._customSecs.horizontal, "seconds")}</div>
+          <div class="display">${this._formatClock(this._customSecs.horizontal, true)}</div>
           <div class="buttons-grid">
             ${this._renderMinuteButtons("horizontal", (which, m, sign) => this._adjust(which, m, sign), -1)}
           </div>
@@ -3379,7 +3385,7 @@ const layout = this._config.layout;
           <div class="buttons-grid">
             ${this._renderMinuteButtons("vertical", (which, m, sign) => this._adjust(which, m, sign), +1)}
           </div>
-          <div class="display">${this._formatDuration(this._customSecs.vertical, "seconds")}</div>
+          <div class="display">${this._formatClock(this._customSecs.vertical, true)}</div>
           <div class="buttons-grid">
             ${this._renderMinuteButtons("vertical", (which, m, sign) => this._adjust(which, m, sign), -1)}
           </div>
@@ -3419,7 +3425,7 @@ const layout = this._config.layout;
           <div class="buttons-grid">
             ${this._renderMinuteButtons("fill", (which, m, sign) => this._adjustActive(which, m, sign), +1)}
           </div>
-          <div class="display">${this._formatDuration(this._activeSecs.fill, "seconds")}</div>
+          <div class="display">${this._formatClock(this._activeSecs.fill, true)}</div>
           <div class="buttons-grid">
             ${this._renderMinuteButtons("fill", (which, m, sign) => this._adjustActive(which, m, sign), -1)}
           </div>
@@ -3455,7 +3461,7 @@ const layout = this._config.layout;
           <div class="buttons-grid">
             ${this._renderMinuteButtons("bar", (which, m, sign) => this._adjustActive(which, m, sign), +1)}
           </div>
-          <div class="display">${this._formatDuration(this._activeSecs.bar, "seconds")}</div>
+          <div class="display">${this._formatClock(this._activeSecs.bar, true)}</div>
           <div class="buttons-grid">
             ${this._renderMinuteButtons("bar", (which, m, sign) => this._adjustActive(which, m, sign), -1)}
           </div>
@@ -3652,13 +3658,11 @@ class SimpleTimerCardEditor extends LitElement {
     }
     if (key === "minute_buttons" && typeof value === "string") {
       value = value.split(",").map(v => v.trim()).filter(v => v).map(v => {
-        if (v.toLowerCase().endsWith("s")) {
-          const seconds = parseInt(v.slice(0, -1), 10);
-          if (!isNaN(seconds) && seconds > 0) return `${seconds}s`;
-        }
-        const minutes = parseInt(v, 10);
-        if (!isNaN(minutes) && minutes > 0) return minutes;
-        return null;
+        const m = v.toLowerCase().match(/^(\d+)\s*([smhd])?$/);
+        if (!m) return null;
+        const n = parseInt(m[1], 10);
+        if (!Number.isFinite(n) || n <= 0) return null;
+        return m[2] ? `${n}${m[2]}` : n;
       }).filter(v => v !== null);
       if (value.length === 0) value = [1, 5, 10];
     }
@@ -3900,16 +3904,14 @@ _pinnedTimerValueChanged(ev, index) {
       const raw = Array.isArray(cleaned.minute_buttons) ? cleaned.minute_buttons : (typeof cleaned.minute_buttons === "string" ? cleaned.minute_buttons.split(",") : []);
       cleaned.minute_buttons = raw.map((v) => {
         if (v === null || v === undefined) return null;
-        const s = String(v).trim();
+        if (typeof v === "number" && Number.isFinite(v) && v > 0) return v;
+        const s = String(v).trim().toLowerCase();
         if (!s) return null;
-        if (s.toLowerCase().endsWith("s")) {
-          const seconds = parseInt(s.slice(0, -1), 10);
-          if (!isNaN(seconds) && seconds > 0) return `${seconds}s`;
-          return null;
-        }
-        const minutes = parseInt(s, 10);
-        if (!isNaN(minutes) && minutes > 0) return minutes;
-        return null;
+        const m = s.match(/^(\d+)\s*([smhd])?$/);
+        if (!m) return null;
+        const n = parseInt(m[1], 10);
+        if (!Number.isFinite(n) || n <= 0) return null;
+        return m[2] ? `${n}${m[2]}` : n;
       }).filter((x) => x !== null);
     }
 
@@ -4303,7 +4305,7 @@ _pinnedTimerValueChanged(ev, index) {
         ${this._tf({ label: "Timer name presets", helper: "Comma-separated labels shown in the custom-name picker", value: (this._config.timer_name_presets || []).join(", "), configValue: "timer_name_presets", change: this._valueChanged })}
       ` : ""}
 
-      ${this._tf({ label: "Minute adjustment buttons", helper: "Comma-separated (e.g. 1, 5, 10). Buttons to add/subtract from the custom timer input.", value: (this._config.minute_buttons || [1, 5, 10]).join(", "), configValue: "minute_buttons", change: this._valueChanged })}
+      ${this._tf({ label: "Adjustment buttons", helper: "Seconds, minutes, hours, or days. e.g. 1, 5, 30s, 2h. Default unit is minutes.", value: (this._config.minute_buttons || [1, 5, 10]).join(", "), configValue: "minute_buttons", change: this._valueChanged })}
     `;
 
     const pinnedContent = html`
