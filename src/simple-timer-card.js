@@ -3325,7 +3325,8 @@ const layout = this._config.layout;
           </div>
           <div style="display:flex; gap:8px;">
             ${presets.map((preset) => {
-              const label = typeof preset === "string" && preset.toLowerCase().endsWith("s")
+              const regex = /[smhd]$/
+              const label = typeof preset === "string" && regex.test(preset.toLowerCase())
                 ? preset.toLowerCase()
                 : `${preset}${this._localize("m")}`;
               return html`<button class="btn btn-preset" @click=${() => this._createPresetTimer(preset)}>${label}</button>`;
@@ -3405,7 +3406,8 @@ const layout = this._config.layout;
             ${showPresetsInActive ? html`
               <div class="header-actions">
                 ${presets.map((preset) => {
-                  const label = typeof preset === "string" && preset.toLowerCase().endsWith("s")
+                  const regex = /[smhd]$/
+                  const label = typeof preset === "string" && regex.test(preset.toLowerCase())
                     ? preset.toLowerCase()
                     : `${preset}${this._localize("m")}`;
                   return html`<button class="btn btn-preset" @click=${() => this._createPresetTimer(preset)}>${label}</button>`;
@@ -3443,7 +3445,8 @@ const layout = this._config.layout;
             ${showPresetsInActive ? html`
               <div class="header-actions">
                 ${presets.map((preset) => {
-                  const label = typeof preset === "string" && preset.toLowerCase().endsWith("s")
+                  const regex = /[smhd]$/
+                  const label = typeof preset === "string" && regex.test(preset.toLowerCase())
                     ? preset.toLowerCase()
                     : `${preset}${this._localize("m")}`;
                   return html`<button class="btn btn-preset" @click=${() => this._createPresetTimer(preset)}>${label}</button>`;
