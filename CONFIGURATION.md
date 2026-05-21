@@ -386,6 +386,7 @@ The card supports multiple UI languages:
 * French (`fr`)
 * Hebrew (`he`) - right-to-left
 * Polish (`pl`)
+* Dutch (`nl`)
 
 ```yaml
 language: de

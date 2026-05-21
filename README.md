@@ -36,7 +36,7 @@ No dashboards clutter. No duplicated cards. Just timers.
 * **Persistent storage**: Local or MQTT based, survives reloads and syncs across devices
 * **Audio & expiry actions**: Optional sounds, snooze, auto dismiss, and expiry behavior
 * **Theme aware**: Automatically matches your Home Assistant theme
-* **🌍 Multi-language support**: English, German, Spanish, Danish, Italian, French, Hebrew (RTL), and Polish
+* **🌍 Multi-language support**: English, German, Spanish, Danish, Italian, French, Hebrew (RTL), Polish, and Dutch
 * **[Spook](https://spook.boo/) fallback**: Automatically falls back to Spook's `timer.set_duration` for non-admin users
 
 ---
