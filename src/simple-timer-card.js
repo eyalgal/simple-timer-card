@@ -13,7 +13,7 @@ import { html, LitElement, css } from "lit";
 import { html as shtml, literal } from "lit/static-html.js";
 import { ifDefined } from "lit/directives/if-defined.js";
 
-const cardVersion="2.4.0";
+const cardVersion="2.4.1";
 
 const DAY_IN_MS = 86400000;
 const YEAR_IN_MS = 365 * DAY_IN_MS;
@@ -3362,7 +3362,8 @@ const layout = this._config.layout;
           </div>
           <div style="display:flex; gap:8px; margin-bottom:8px;">
             ${presets.map((preset) => {
-              const label = typeof preset === "string" && preset.toLowerCase().endsWith("s")
+              const regex = /[smhd]$/
+              const label = typeof preset === "string" && regex.test(preset.toLowerCase())
                 ? preset.toLowerCase()
                 : `${preset}${this._localize("m")}`;
               return html`<button class="btn btn-preset" @click=${() => this._createPresetTimer(preset)}>${label}</button>`;
