@@ -59,6 +59,7 @@ const DAY_IN_SECONDS = 86400;
 const TRANSLATIONS = {
   en: {
     no_timers: "No Timers",
+    timer_name_optional: "Timer Name (Optional)",
     click_to_start: "Click to start",
     no_active_timers: "No Active Timers",
     active_timers: "Active Timers",
@@ -88,6 +89,7 @@ const TRANSLATIONS = {
   },
   de: {
     no_timers: "Keine Timer",
+    timer_name_optional: "Timer-Name (optional)",
     click_to_start: "Zum Starten klicken",
     no_active_timers: "Keine aktiven Timer",
     active_timers: "Aktive Timer",
@@ -117,6 +119,7 @@ const TRANSLATIONS = {
   },
   es: {
     no_timers: "Sin Temporizadores",
+    timer_name_optional: "Nombre del temporizador (opcional)",
     click_to_start: "Clic para iniciar",
     no_active_timers: "Sin Temporizadores Activos",
     active_timers: "Temporizadores Activos",
@@ -146,6 +149,7 @@ const TRANSLATIONS = {
   },
   da: {
     no_timers: "Ingen timere",
+    timer_name_optional: "Timernavn (valgfrit)",
     click_to_start: "Tryk for at starte",
     no_active_timers: "Ingen aktive timere",
     active_timers: "Aktive Timere",
@@ -175,6 +179,7 @@ const TRANSLATIONS = {
   },
   it: {
     no_timers: "Nessun timer",
+    timer_name_optional: "Nome timer (facoltativo)",
     click_to_start: "Clicca per avviare",
     no_active_timers: "Nessun timer attivo",
     active_timers: "Timer attivi",
@@ -204,6 +209,7 @@ const TRANSLATIONS = {
   },
   fr: {
     no_timers: "Aucun minuteur",
+    timer_name_optional: "Nom du minuteur (facultatif)",
     click_to_start: "Cliquez pour démarrer",
     no_active_timers: "Aucun minuteur actif",
     active_timers: "Minuteurs actifs",
@@ -233,6 +239,7 @@ const TRANSLATIONS = {
   },
   he: {
     no_timers: "אין טיימרים",
+    timer_name_optional: "שם הטיימר (אופציונלי)",
     click_to_start: "לחץ להתחלה",
     no_active_timers: "אין טיימרים פעילים",
     active_timers: "טיימרים פעילים",
@@ -262,6 +269,7 @@ const TRANSLATIONS = {
   },
   pl: {
     no_timers: "Brak minutników",
+    timer_name_optional: "Nazwa minutnika (opcjonalnie)",
     click_to_start: "Kliknij, aby uruchomić",
     no_active_timers: "Brak aktywnych minutników",
     active_timers: "Aktywne minutniki",
@@ -291,6 +299,7 @@ const TRANSLATIONS = {
   },
   nl: {
     no_timers: "Geen timers",
+    timer_name_optional: "Timer naam (optioneel)",
     click_to_start: "Klik om te starten",
     no_active_timers: "Geen actieve timers",
     active_timers: "Actieve timers",
@@ -2827,7 +2836,7 @@ if (!audioEnabled || !audioFileUrl || !this._validateAudioUrl(audioFileUrl)) ret
             ${renderAdjustButtons(-1)}
           </div>
 
-          <input class="text-input" placeholder="Timer Name (Optional)" readonly style="margin-top: 12px;"
+          <input class="text-input" placeholder="${this._localize("timer_name_optional")}" readonly style="margin-top: 12px;"
                  .value=${this._sanitizeText(timerName)} />
 
           <div class="picker-actions">
@@ -3354,7 +3363,7 @@ const layout = this._config.layout;
           <div class="buttons-grid">
             ${this._renderMinuteButtons("horizontal", (which, m, sign) => this._adjust(which, m, sign), -1)}
           </div>
-          ${this._renderTimerNameSelector("nt-h-name", "Timer Name (Optional)")}
+          ${this._renderTimerNameSelector("nt-h-name", this._localize("timer_name_optional"))}
 
           <div class="picker-actions">
             <button class="btn btn-ghost" @click=${() => (this._ui.noTimerHorizontalOpen = false)}>${this._localize("cancel")}</button>
@@ -3389,7 +3398,7 @@ const layout = this._config.layout;
           <div class="buttons-grid">
             ${this._renderMinuteButtons("vertical", (which, m, sign) => this._adjust(which, m, sign), -1)}
           </div>
-          ${this._renderTimerNameSelector("nt-v-name", "Timer Name (Optional)")}
+          ${this._renderTimerNameSelector("nt-v-name", this._localize("timer_name_optional"))}
           <div class="picker-actions">
             <button class="btn btn-ghost" @click=${() => (this._ui.noTimerVerticalOpen = false)}>${this._localize("cancel")}</button>
             <button class="btn btn-primary" @click=${() => this._startFromCustom("vertical")}>${this._localize("start")}</button>
@@ -3429,7 +3438,7 @@ const layout = this._config.layout;
           <div class="buttons-grid">
             ${this._renderMinuteButtons("fill", (which, m, sign) => this._adjustActive(which, m, sign), -1)}
           </div>
-          ${this._renderTimerNameSelector("add-fill-name", "Timer Name (Optional)")}
+          ${this._renderTimerNameSelector("add-fill-name", this._localize("timer_name_optional"))}
           <div class="picker-actions">
             <button class="btn btn-ghost" @click=${() => (this._ui.activeFillOpen = false)}>${this._localize("cancel")}</button>
             <button class="btn btn-primary" @click=${() => this._startActive("fill")}>${this._localize("start")}</button>
@@ -3465,7 +3474,7 @@ const layout = this._config.layout;
           <div class="buttons-grid">
             ${this._renderMinuteButtons("bar", (which, m, sign) => this._adjustActive(which, m, sign), -1)}
           </div>
-          ${this._renderTimerNameSelector("add-bar-name", "Timer Name (Optional)")}
+          ${this._renderTimerNameSelector("add-bar-name", this._localize("timer_name_optional"))}
           <div class="picker-actions">
             <button class="btn btn-ghost" @click=${() => (this._ui.activeBarOpen = false)}>${this._localize("cancel")}</button>
             <button class="btn btn-primary" @click=${() => this._startActive("bar")}>${this._localize("start")}</button>
