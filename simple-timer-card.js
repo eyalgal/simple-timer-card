@@ -469,6 +469,8 @@ class SimpleTimerCard extends i$1 {
     this._cardInstanceKey = Math.random().toString(36).slice(2, 10);
     this._editingTimerId = null;
     this._editDuration = { h: 0, m: 0, s: 0 };
+    this._audioUnlocked = false;
+    this._unlockAudioHandler = this._unlockAudio.bind(this);
   }
 
   _isActionThrottled(actionType, timerId = "global", throttleMs = 1000) {
@@ -635,11 +637,13 @@ class SimpleTimerCard extends i$1 {
   connectedCallback() {
     super.connectedCallback();
     this._startTimerUpdates();
+    this.addEventListener("pointerdown", this._unlockAudioHandler, { capture: true, passive: true });
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
     this._stopTimerUpdates();
+    this.removeEventListener("pointerdown", this._unlockAudioHandler, { capture: true });
     for (const timerId of this._activeAudioInstances.keys()) this._stopAudioForTimer(timerId);
     this._activeAudioInstances.clear();
     this._ringingTimers.clear();
@@ -1598,6 +1602,25 @@ class SimpleTimerCard extends i$1 {
     }
   }
 
+  _unlockAudio() {
+    if (this._audioUnlocked) return;
+    // iOS Safari and the HA Companion App webview block audio.play() unless the
+    // page has previously played audio during a user gesture. We play a tiny silent
+    // clip on the first pointerdown so later alarm sounds (which fire from a timer
+    // callback, not a gesture) are allowed by the autoplay policy.
+    this._audioUnlocked = true;
+    try {
+      const a = new Audio("data:audio/wav;base64,UklGRiUAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQEAAACA");
+      a.volume = 0;
+      const p = a.play();
+      if (p && typeof p.catch === "function") {
+        p.catch(() => { this._audioUnlocked = false; });
+      }
+    } catch (_) {
+      this._audioUnlocked = false;
+    }
+  }
+
   _playAudioNotification(timerId,timer){
     const entityId = timer?.source_entity || timer?.entity_id || timer?.id || null;
     const entityConf = this._getEntityConfig(entityId);
@@ -1648,7 +1671,9 @@ if (!audioEnabled || !audioFileUrl || !this._validateAudioUrl(audioFileUrl)) ret
         if (this._ringingTimers.has(timerId) && playCount < maxPlays) {
           playCount++;
           audio.currentTime = 0;
-          audio.play().catch(() => {});
+          audio.play().catch((err) => {
+            console.warn("[simple-timer-card] Alarm audio.play() rejected (likely iOS autoplay policy; tap the card once to unlock):", err?.message || err);
+          });
         } else {
           this._stopAudioForTimer(timerId);
         }
