@@ -49,7 +49,7 @@ const a=Symbol.for(""),o$1=t=>{if(t?.r===a)return t?._$litStatic$},i=(t,...r)=>(
  */
 
 
-const cardVersion="2.4.2";
+const cardVersion="2.4.3";
 
 const DAY_IN_MS = 86400000;
 const YEAR_IN_MS = 365 * DAY_IN_MS;
@@ -95,6 +95,7 @@ const DAY_IN_SECONDS = 86400;
 const TRANSLATIONS = {
   en: {
     no_timers: "No Timers",
+    timer_name_optional: "Timer Name (Optional)",
     click_to_start: "Click to start",
     no_active_timers: "No Active Timers",
     active_timers: "Active Timers",
@@ -124,6 +125,7 @@ const TRANSLATIONS = {
   },
   de: {
     no_timers: "Keine Timer",
+    timer_name_optional: "Timer-Name (optional)",
     click_to_start: "Zum Starten klicken",
     no_active_timers: "Keine aktiven Timer",
     active_timers: "Aktive Timer",
@@ -153,6 +155,7 @@ const TRANSLATIONS = {
   },
   es: {
     no_timers: "Sin Temporizadores",
+    timer_name_optional: "Nombre del temporizador (opcional)",
     click_to_start: "Clic para iniciar",
     no_active_timers: "Sin Temporizadores Activos",
     active_timers: "Temporizadores Activos",
@@ -182,6 +185,7 @@ const TRANSLATIONS = {
   },
   da: {
     no_timers: "Ingen timere",
+    timer_name_optional: "Timernavn (valgfrit)",
     click_to_start: "Tryk for at starte",
     no_active_timers: "Ingen aktive timere",
     active_timers: "Aktive Timere",
@@ -211,6 +215,7 @@ const TRANSLATIONS = {
   },
   it: {
     no_timers: "Nessun timer",
+    timer_name_optional: "Nome timer (facoltativo)",
     click_to_start: "Clicca per avviare",
     no_active_timers: "Nessun timer attivo",
     active_timers: "Timer attivi",
@@ -240,6 +245,7 @@ const TRANSLATIONS = {
   },
   fr: {
     no_timers: "Aucun minuteur",
+    timer_name_optional: "Nom du minuteur (facultatif)",
     click_to_start: "Cliquez pour démarrer",
     no_active_timers: "Aucun minuteur actif",
     active_timers: "Minuteurs actifs",
@@ -269,6 +275,7 @@ const TRANSLATIONS = {
   },
   he: {
     no_timers: "אין טיימרים",
+    timer_name_optional: "שם הטיימר (אופציונלי)",
     click_to_start: "לחץ להתחלה",
     no_active_timers: "אין טיימרים פעילים",
     active_timers: "טיימרים פעילים",
@@ -298,6 +305,7 @@ const TRANSLATIONS = {
   },
   pl: {
     no_timers: "Brak minutników",
+    timer_name_optional: "Nazwa minutnika (opcjonalnie)",
     click_to_start: "Kliknij, aby uruchomić",
     no_active_timers: "Brak aktywnych minutników",
     active_timers: "Aktywne minutniki",
@@ -327,6 +335,7 @@ const TRANSLATIONS = {
   },
   nl: {
     no_timers: "Geen timers",
+    timer_name_optional: "Timer naam (optioneel)",
     click_to_start: "Klik om te starten",
     no_active_timers: "Geen actieve timers",
     active_timers: "Actieve timers",
@@ -460,6 +469,8 @@ class SimpleTimerCard extends i$1 {
     this._cardInstanceKey = Math.random().toString(36).slice(2, 10);
     this._editingTimerId = null;
     this._editDuration = { h: 0, m: 0, s: 0 };
+    this._audioUnlocked = false;
+    this._unlockAudioHandler = this._unlockAudio.bind(this);
   }
 
   _isActionThrottled(actionType, timerId = "global", throttleMs = 1000) {
@@ -626,11 +637,13 @@ class SimpleTimerCard extends i$1 {
   connectedCallback() {
     super.connectedCallback();
     this._startTimerUpdates();
+    this.addEventListener("pointerdown", this._unlockAudioHandler, { capture: true, passive: true });
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
     this._stopTimerUpdates();
+    this.removeEventListener("pointerdown", this._unlockAudioHandler, { capture: true });
     for (const timerId of this._activeAudioInstances.keys()) this._stopAudioForTimer(timerId);
     this._activeAudioInstances.clear();
     this._ringingTimers.clear();
@@ -1589,6 +1602,25 @@ class SimpleTimerCard extends i$1 {
     }
   }
 
+  _unlockAudio() {
+    if (this._audioUnlocked) return;
+    // iOS Safari and the HA Companion App webview block audio.play() unless the
+    // page has previously played audio during a user gesture. We play a tiny silent
+    // clip on the first pointerdown so later alarm sounds (which fire from a timer
+    // callback, not a gesture) are allowed by the autoplay policy.
+    this._audioUnlocked = true;
+    try {
+      const a = new Audio("data:audio/wav;base64,UklGRiUAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQEAAACA");
+      a.volume = 0;
+      const p = a.play();
+      if (p && typeof p.catch === "function") {
+        p.catch(() => { this._audioUnlocked = false; });
+      }
+    } catch (_) {
+      this._audioUnlocked = false;
+    }
+  }
+
   _playAudioNotification(timerId,timer){
     const entityId = timer?.source_entity || timer?.entity_id || timer?.id || null;
     const entityConf = this._getEntityConfig(entityId);
@@ -1639,7 +1671,9 @@ if (!audioEnabled || !audioFileUrl || !this._validateAudioUrl(audioFileUrl)) ret
         if (this._ringingTimers.has(timerId) && playCount < maxPlays) {
           playCount++;
           audio.currentTime = 0;
-          audio.play().catch(() => {});
+          audio.play().catch((err) => {
+            console.warn("[simple-timer-card] Alarm audio.play() rejected (likely iOS autoplay policy; tap the card once to unlock):", err?.message || err);
+          });
         } else {
           this._stopAudioForTimer(timerId);
         }
@@ -2508,15 +2542,21 @@ if (!audioEnabled || !audioFileUrl || !this._validateAudioUrl(audioFileUrl)) ret
   }
 
   _parseAdjustmentToSeconds(value) {
-    let seconds = 0;
-    if (typeof value === "string" && value.toLowerCase().endsWith("s")) {
-      const parsedSeconds = parseInt(value.slice(0, -1), 10);
-      if (!isNaN(parsedSeconds)) seconds = parsedSeconds;
-    } else {
-      const parsedMinutes = parseInt(value, 10);
-      if (!isNaN(parsedMinutes)) seconds = parsedMinutes * 60;
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return value * 60;
     }
-    return seconds;
+    if (typeof value !== "string") return 0;
+    const m = value.trim().toLowerCase().match(/^(\d+)\s*([smhd])?$/);
+    if (!m) return 0;
+    const n = parseInt(m[1], 10);
+    if (!Number.isFinite(n) || n < 0) return 0;
+    switch (m[2]) {
+      case "s": return n;
+      case "h": return n * 3600;
+      case "d": return n * 86400;
+      case "m":
+      default:  return n * 60;
+    }
   }
 
   _adjust(which, value, sign = 1) {
@@ -2851,13 +2891,13 @@ if (!audioEnabled || !audioFileUrl || !this._validateAudioUrl(audioFileUrl)) ret
             ${renderAdjustButtons(1)}
           </div>
 
-          <div class="display">${this._formatDuration(totalSeconds, "seconds")}</div>
+          <div class="display">${this._formatClock(totalSeconds, true)}</div>
 
           <div class="buttons-grid">
             ${renderAdjustButtons(-1)}
           </div>
 
-          <input class="text-input" placeholder="Timer Name (Optional)" readonly style="margin-top: 12px;"
+          <input class="text-input" placeholder="${this._localize("timer_name_optional")}" readonly style="margin-top: 12px;"
                  .value=${this._sanitizeText(timerName)} />
 
           <div class="picker-actions">
@@ -3380,11 +3420,11 @@ const layout = this._config.layout;
           <div class="buttons-grid">
             ${this._renderMinuteButtons("horizontal", (which, m, sign) => this._adjust(which, m, sign), 1)}
           </div>
-          <div class="display">${this._formatDuration(this._customSecs.horizontal, "seconds")}</div>
+          <div class="display">${this._formatClock(this._customSecs.horizontal, true)}</div>
           <div class="buttons-grid">
             ${this._renderMinuteButtons("horizontal", (which, m, sign) => this._adjust(which, m, sign), -1)}
           </div>
-          ${this._renderTimerNameSelector("nt-h-name", "Timer Name (Optional)")}
+          ${this._renderTimerNameSelector("nt-h-name", this._localize("timer_name_optional"))}
 
           <div class="picker-actions">
             <button class="btn btn-ghost" @click=${() => (this._ui.noTimerHorizontalOpen = false)}>${this._localize("cancel")}</button>
@@ -3415,11 +3455,11 @@ const layout = this._config.layout;
           <div class="buttons-grid">
             ${this._renderMinuteButtons("vertical", (which, m, sign) => this._adjust(which, m, sign), 1)}
           </div>
-          <div class="display">${this._formatDuration(this._customSecs.vertical, "seconds")}</div>
+          <div class="display">${this._formatClock(this._customSecs.vertical, true)}</div>
           <div class="buttons-grid">
             ${this._renderMinuteButtons("vertical", (which, m, sign) => this._adjust(which, m, sign), -1)}
           </div>
-          ${this._renderTimerNameSelector("nt-v-name", "Timer Name (Optional)")}
+          ${this._renderTimerNameSelector("nt-v-name", this._localize("timer_name_optional"))}
           <div class="picker-actions">
             <button class="btn btn-ghost" @click=${() => (this._ui.noTimerVerticalOpen = false)}>${this._localize("cancel")}</button>
             <button class="btn btn-primary" @click=${() => this._startFromCustom("vertical")}>${this._localize("start")}</button>
@@ -3455,11 +3495,11 @@ const layout = this._config.layout;
           <div class="buttons-grid">
             ${this._renderMinuteButtons("fill", (which, m, sign) => this._adjustActive(which, m, sign), 1)}
           </div>
-          <div class="display">${this._formatDuration(this._activeSecs.fill, "seconds")}</div>
+          <div class="display">${this._formatClock(this._activeSecs.fill, true)}</div>
           <div class="buttons-grid">
             ${this._renderMinuteButtons("fill", (which, m, sign) => this._adjustActive(which, m, sign), -1)}
           </div>
-          ${this._renderTimerNameSelector("add-fill-name", "Timer Name (Optional)")}
+          ${this._renderTimerNameSelector("add-fill-name", this._localize("timer_name_optional"))}
           <div class="picker-actions">
             <button class="btn btn-ghost" @click=${() => (this._ui.activeFillOpen = false)}>${this._localize("cancel")}</button>
             <button class="btn btn-primary" @click=${() => this._startActive("fill")}>${this._localize("start")}</button>
@@ -3491,11 +3531,11 @@ const layout = this._config.layout;
           <div class="buttons-grid">
             ${this._renderMinuteButtons("bar", (which, m, sign) => this._adjustActive(which, m, sign), 1)}
           </div>
-          <div class="display">${this._formatDuration(this._activeSecs.bar, "seconds")}</div>
+          <div class="display">${this._formatClock(this._activeSecs.bar, true)}</div>
           <div class="buttons-grid">
             ${this._renderMinuteButtons("bar", (which, m, sign) => this._adjustActive(which, m, sign), -1)}
           </div>
-          ${this._renderTimerNameSelector("add-bar-name", "Timer Name (Optional)")}
+          ${this._renderTimerNameSelector("add-bar-name", this._localize("timer_name_optional"))}
           <div class="picker-actions">
             <button class="btn btn-ghost" @click=${() => (this._ui.activeBarOpen = false)}>${this._localize("cancel")}</button>
             <button class="btn btn-primary" @click=${() => this._startActive("bar")}>${this._localize("start")}</button>
@@ -3688,13 +3728,11 @@ class SimpleTimerCardEditor extends i$1 {
     }
     if (key === "minute_buttons" && typeof value === "string") {
       value = value.split(",").map(v => v.trim()).filter(v => v).map(v => {
-        if (v.toLowerCase().endsWith("s")) {
-          const seconds = parseInt(v.slice(0, -1), 10);
-          if (!isNaN(seconds) && seconds > 0) return `${seconds}s`;
-        }
-        const minutes = parseInt(v, 10);
-        if (!isNaN(minutes) && minutes > 0) return minutes;
-        return null;
+        const m = v.toLowerCase().match(/^(\d+)\s*([smhd])?$/);
+        if (!m) return null;
+        const n = parseInt(m[1], 10);
+        if (!Number.isFinite(n) || n <= 0) return null;
+        return m[2] ? `${n}${m[2]}` : n;
       }).filter(v => v !== null);
       if (value.length === 0) value = [1, 5, 10];
     }
@@ -3936,16 +3974,14 @@ _pinnedTimerValueChanged(ev, index) {
       const raw = Array.isArray(cleaned.minute_buttons) ? cleaned.minute_buttons : (typeof cleaned.minute_buttons === "string" ? cleaned.minute_buttons.split(",") : []);
       cleaned.minute_buttons = raw.map((v) => {
         if (v === null || v === undefined) return null;
-        const s = String(v).trim();
+        if (typeof v === "number" && Number.isFinite(v) && v > 0) return v;
+        const s = String(v).trim().toLowerCase();
         if (!s) return null;
-        if (s.toLowerCase().endsWith("s")) {
-          const seconds = parseInt(s.slice(0, -1), 10);
-          if (!isNaN(seconds) && seconds > 0) return `${seconds}s`;
-          return null;
-        }
-        const minutes = parseInt(s, 10);
-        if (!isNaN(minutes) && minutes > 0) return minutes;
-        return null;
+        const m = s.match(/^(\d+)\s*([smhd])?$/);
+        if (!m) return null;
+        const n = parseInt(m[1], 10);
+        if (!Number.isFinite(n) || n <= 0) return null;
+        return m[2] ? `${n}${m[2]}` : n;
       }).filter((x) => x !== null);
     }
 
@@ -4339,7 +4375,7 @@ _pinnedTimerValueChanged(ev, index) {
         ${this._tf({ label: "Timer name presets", helper: "Comma-separated labels shown in the custom-name picker", value: (this._config.timer_name_presets || []).join(", "), configValue: "timer_name_presets", change: this._valueChanged })}
       ` : ""}
 
-      ${this._tf({ label: "Minute adjustment buttons", helper: "Comma-separated (e.g. 1, 5, 10). Buttons to add/subtract from the custom timer input.", value: (this._config.minute_buttons || [1, 5, 10]).join(", "), configValue: "minute_buttons", change: this._valueChanged })}
+      ${this._tf({ label: "Adjustment buttons", helper: "Seconds, minutes, hours, or days. e.g. 1, 5, 30s, 2h. Default unit is minutes.", value: (this._config.minute_buttons || [1, 5, 10]).join(", "), configValue: "minute_buttons", change: this._valueChanged })}
     `;
 
     const pinnedContent = b`
