@@ -13,7 +13,7 @@ import { html, LitElement, css } from "lit";
 import { html as shtml, literal } from "lit/static-html.js";
 import { ifDefined } from "lit/directives/if-defined.js";
 
-const cardVersion="2.4.3";
+const cardVersion="2.5.0";
 
 const DAY_IN_MS = 86400000;
 const YEAR_IN_MS = 365 * DAY_IN_MS;
@@ -602,12 +602,16 @@ class SimpleTimerCard extends LitElement {
     super.connectedCallback();
     this._startTimerUpdates();
     this.addEventListener("pointerdown", this._unlockAudioHandler, { capture: true, passive: true });
+    this.addEventListener("touchend", this._unlockAudioHandler, { capture: true, passive: true });
+    this.addEventListener("click", this._unlockAudioHandler, { capture: true, passive: true });
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
     this._stopTimerUpdates();
     this.removeEventListener("pointerdown", this._unlockAudioHandler, { capture: true });
+    this.removeEventListener("touchend", this._unlockAudioHandler, { capture: true });
+    this.removeEventListener("click", this._unlockAudioHandler, { capture: true });
     for (const timerId of this._activeAudioInstances.keys()) this._stopAudioForTimer(timerId);
     this._activeAudioInstances.clear();
     this._ringingTimers.clear();
@@ -1569,20 +1573,47 @@ class SimpleTimerCard extends LitElement {
   _unlockAudio() {
     if (this._audioUnlocked) return;
     // iOS Safari and the HA Companion App webview block audio.play() unless the
-    // page has previously played audio during a user gesture. We play a tiny silent
-    // clip on the first pointerdown so later alarm sounds (which fire from a timer
-    // callback, not a gesture) are allowed by the autoplay policy.
-    this._audioUnlocked = true;
+    // page has received a user gesture that engaged audio. We run two unlock
+    // paths on the first tap so later alarm sounds (which fire from a timer
+    // callback, not a gesture) are allowed by the autoplay policy:
+    //   1. Resume a Web Audio context and play a single silent sample. iOS
+    //      treats a resumed AudioContext as a page-wide audio capability grant,
+    //      which is what HTMLAudioElement.play() in a timer callback needs.
+    //   2. Play a 1-sample silent WAV through a plain <audio> element, which
+    //      helps older iOS versions.
+    let unlocked = false;
+    try {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (Ctx) {
+        if (!this._audioCtx) this._audioCtx = new Ctx();
+        const ctx = this._audioCtx;
+        const playSilent = () => {
+          try {
+            const buf = ctx.createBuffer(1, 1, 22050);
+            const src = ctx.createBufferSource();
+            src.buffer = buf;
+            src.connect(ctx.destination);
+            src.start(0);
+          } catch (_) {}
+        };
+        if (ctx.state === "suspended" && typeof ctx.resume === "function") {
+          ctx.resume().then(playSilent).catch(() => {});
+        } else {
+          playSilent();
+        }
+        unlocked = true;
+      }
+    } catch (_) {}
     try {
       const a = new Audio("data:audio/wav;base64,UklGRiUAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQEAAACA");
       a.volume = 0;
       const p = a.play();
       if (p && typeof p.catch === "function") {
-        p.catch(() => { this._audioUnlocked = false; });
+        p.catch(() => {});
       }
-    } catch (_) {
-      this._audioUnlocked = false;
-    }
+      unlocked = true;
+    } catch (_) {}
+    this._audioUnlocked = unlocked;
   }
 
   _playAudioNotification(timerId,timer){
@@ -3631,7 +3662,7 @@ const layout = this._config.layout;
 }
 
 class SimpleTimerCardEditor extends LitElement {
-  static get properties() { return { hass: {}, _config: {}, _expandedSections: { state: true } }; }
+  static get properties() { return { hass: {}, _config: {}, _expandedSections: { state: true }, _showAdvanced: { state: true }, _searchQuery: { state: true } }; }
 
   constructor() {
     super();
@@ -3648,12 +3679,61 @@ class SimpleTimerCardEditor extends LitElement {
       audio: false,
       storage: false,
     };
+    this._showAdvanced = false;
+    this._searchQuery = "";
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
     if (this._debounceTimeout) { clearTimeout(this._debounceTimeout); this._debounceTimeout = null; }
     if (this._emitTimeout) { clearTimeout(this._emitTimeout); this._emitTimeout = null; }
+  }
+
+  updated(changedProperties) {
+    super.updated?.(changedProperties);
+    // Re-apply the search filter whenever the query changes or the
+    // editor re-renders (config edits can add / remove fields).
+    this._applySearchFilter();
+  }
+
+  _applySearchFilter() {
+    const root = this.shadowRoot;
+    if (!root) return;
+    const q = (this._searchQuery || "").trim().toLowerCase();
+    const panels = root.querySelectorAll("ha-expansion-panel");
+    panels.forEach((panel) => {
+      let matchCount = 0;
+      const body = panel.querySelector(".panel-body");
+      if (!body) return;
+      // Direct children of .panel-body are the field rows we filter.
+      // We also descend into .entity-options (per-entity sub-blocks)
+      // so a search like "audio" still highlights matching per-entity
+      // fields nested inside the entity editor.
+      const candidates = [
+        ...body.children,
+        ...body.querySelectorAll(".entity-options > *"),
+      ];
+      candidates.forEach((el) => {
+        const text = this._extractSearchableText(el);
+        const matches = !q || text.includes(q);
+        el.toggleAttribute("data-search-hidden", !!q && !matches);
+        if (matches) matchCount++;
+      });
+      panel.toggleAttribute("data-search-hidden", !!q && matchCount === 0);
+    });
+  }
+
+  _extractSearchableText(el) {
+    if (!el || el.nodeType !== 1) return "";
+    // Gather text from common label sources so the search matches
+    // both visible labels and labels provided as attributes.
+    const parts = [];
+    const own = el.getAttribute && el.getAttribute("label");
+    if (own) parts.push(own);
+    const labelled = el.querySelectorAll ? el.querySelectorAll("[label]") : [];
+    labelled.forEach((n) => { const v = n.getAttribute("label"); if (v) parts.push(v); });
+    if (el.textContent) parts.push(el.textContent);
+    return parts.join(" ").toLowerCase();
   }
 
   setConfig(config) {
@@ -4013,9 +4093,24 @@ _pinnedTimerValueChanged(ev, index) {
   // Render a text/number input using the chosen tag. Returns a static-html
   // template so the tag itself can be interpolated. All call sites in the
   // editor go through this helper so a single switch flips the entire UI.
-  _tf({ label, value, configValue, type, min, max, step, helper, placeholder, change }) {
+  // Toolbar search input. Uses the same dynamic tag selection as _tf so
+  // it picks ha-input on HA 2026.4+ (where ha-textfield is a compat shim
+  // that can render empty) and ha-textfield on older HA.
+  _renderSearchInput() {
     const tag = this._tfTag;
     return shtml`<${tag}
+        class="editor-search"
+        outlined
+        label="Search settings"
+        .value=${this._searchQuery || ""}
+        @input=${(e) => { this._searchQuery = e.target.value || ""; }}
+      ></${tag}>`;
+  }
+
+  _tf({ label, value, configValue, type, min, max, step, helper, placeholder, change, cls }) {
+    const tag = this._tfTag;
+    return shtml`<${tag}
+        class=${ifDefined(cls)}
         label=${label ?? ""}
         .value=${value ?? ""}
         .configValue=${configValue ?? ""}
@@ -4193,15 +4288,15 @@ _pinnedTimerValueChanged(ev, index) {
     };
 
     const appearanceContent = html`
-      ${this._tf({ label: "Title", placeholder: "Optional", value: this._config.title, configValue: "title", change: this._valueChanged })}
+      ${this._tf({ label: "Title", placeholder: "Optional", helper: "Shown above the timer list at the top of the card.", value: this._config.title, configValue: "title", change: this._valueChanged })}
 
       <div class="row">
-        <ha-select label="Layout" naturalMenuWidth fixedMenuPosition .value=${this._config.layout || "horizontal"} .configValue=${"layout"} .options=${SELECT_OPTIONS.layout} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
+        <ha-select label="Layout" helper="How timers are arranged in the list." naturalMenuWidth fixedMenuPosition .value=${this._config.layout || "horizontal"} .configValue=${"layout"} .options=${SELECT_OPTIONS.layout} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
           <mwc-list-item value="horizontal">Horizontal</mwc-list-item>
           <mwc-list-item value="vertical">Vertical</mwc-list-item>
         </ha-select>
 
-        <ha-select label="Style" naturalMenuWidth fixedMenuPosition .value=${this._getDisplayStyleValue()} .configValue=${"style"} .options=${SELECT_OPTIONS.style} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
+        <ha-select label="Style" helper="Card visual style." naturalMenuWidth fixedMenuPosition .value=${this._getDisplayStyleValue()} .configValue=${"style"} .options=${SELECT_OPTIONS.style} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
           <mwc-list-item value="fill_vertical">Background fill (vertical)</mwc-list-item>
           <mwc-list-item value="fill_horizontal">Background fill (horizontal)</mwc-list-item>
           <mwc-list-item value="bar_vertical">Progress bar (vertical)</mwc-list-item>
@@ -4211,13 +4306,13 @@ _pinnedTimerValueChanged(ev, index) {
       </div>
 
       <div class="row">
-        <ha-select label="Progress mode" naturalMenuWidth fixedMenuPosition .value=${this._config.progress_mode || "drain"} .configValue=${"progress_mode"} .options=${SELECT_OPTIONS.progress_mode} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
+        <ha-select label="Progress mode" helper="How the progress bar fills as time runs out." naturalMenuWidth fixedMenuPosition .value=${this._config.progress_mode || "drain"} .configValue=${"progress_mode"} .options=${SELECT_OPTIONS.progress_mode} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
           <mwc-list-item value="drain">Drain</mwc-list-item>
           <mwc-list-item value="fill">Fill</mwc-list-item>
           <mwc-list-item value="milestones">Milestones (bar styles only)</mwc-list-item>
         </ha-select>
 
-        <ha-select label="Language" naturalMenuWidth fixedMenuPosition .value=${(String(this._config.language || this.hass?.language || "en").toLowerCase().split(/[-_]/)[0])} .configValue=${"language"} .options=${SELECT_OPTIONS.language} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
+        <ha-select label="Language" helper="Override the auto-detected display language." naturalMenuWidth fixedMenuPosition .value=${(String(this._config.language || this.hass?.language || "en").toLowerCase().split(/[-_]/)[0])} .configValue=${"language"} .options=${SELECT_OPTIONS.language} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
           <mwc-list-item value="en">English</mwc-list-item>
           <mwc-list-item value="de">Deutsch</mwc-list-item>
           <mwc-list-item value="es">Español</mwc-list-item>
@@ -4240,18 +4335,18 @@ _pinnedTimerValueChanged(ev, index) {
 
     const sortingContent = html`
       <div class="row">
-        <ha-select label="Sort by" naturalMenuWidth fixedMenuPosition .value=${this._config.sort_by || "time_left"} .configValue=${"sort_by"} .options=${SELECT_OPTIONS.sort_by} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
+        <ha-select label="Sort by" helper="Field used to order the timer list." naturalMenuWidth fixedMenuPosition .value=${this._config.sort_by || "time_left"} .configValue=${"sort_by"} .options=${SELECT_OPTIONS.sort_by} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
           <mwc-list-item value="time_left">Time left</mwc-list-item>
           <mwc-list-item value="name">Name</mwc-list-item>
         </ha-select>
 
-        <ha-select label="Sort order" naturalMenuWidth fixedMenuPosition .value=${this._config.sort_order || "asc"} .configValue=${"sort_order"} .options=${SELECT_OPTIONS.sort_order} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
+        <ha-select label="Sort order" helper="Ascending or descending." naturalMenuWidth fixedMenuPosition .value=${this._config.sort_order || "asc"} .configValue=${"sort_order"} .options=${SELECT_OPTIONS.sort_order} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
           <mwc-list-item value="asc">Ascending</mwc-list-item>
           <mwc-list-item value="desc">Descending</mwc-list-item>
         </ha-select>
       </div>
 
-      <ha-select label="Pinned timers position" naturalMenuWidth fixedMenuPosition .value=${this._config.pinned_timers_position || "inline"} .configValue=${"pinned_timers_position"} .options=${SELECT_OPTIONS.pinned_timers_position} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
+      <ha-select label="Pinned timers position" helper="Where pinned-timer buttons sit relative to the list." naturalMenuWidth fixedMenuPosition .value=${this._config.pinned_timers_position || "inline"} .configValue=${"pinned_timers_position"} .options=${SELECT_OPTIONS.pinned_timers_position} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
         <mwc-list-item value="inline">Mixed with timers</mwc-list-item>
         <mwc-list-item value="top">Top</mwc-list-item>
         <mwc-list-item value="bottom">Bottom</mwc-list-item>
@@ -4259,7 +4354,7 @@ _pinnedTimerValueChanged(ev, index) {
     `;
 
     const timeFormatContent = html`
-      <ha-select label="Time format" naturalMenuWidth fixedMenuPosition .value=${this._config.time_format || "hms"} .configValue=${"time_format"} .options=${SELECT_OPTIONS.time_format} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
+      <ha-select label="Time format" helper="Layout for the countdown digits." naturalMenuWidth fixedMenuPosition .value=${this._config.time_format || "hms"} .configValue=${"time_format"} .options=${SELECT_OPTIONS.time_format} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
         <mwc-list-item value="hms">HH:MM:SS</mwc-list-item>
         <mwc-list-item value="hm">HH:MM</mwc-list-item>
         <mwc-list-item value="ss">Seconds only</mwc-list-item>
@@ -4269,12 +4364,13 @@ _pinnedTimerValueChanged(ev, index) {
         <mwc-list-item value="human_natural">Unit style, natural language</mwc-list-item>
       </ha-select>
 
-      ${this._tf({ label: "Unit order (comma-separated)", helper: "years,months,weeks,days,hours,minutes,seconds", value: (this._config.time_format_units || ["days","hours","minutes","seconds"]).join(","), configValue: "time_format_units", change: this._valueChanged })}
+      ${this._tf({ label: "Unit order (comma-separated)", helper: "years,months,weeks,days,hours,minutes,seconds", value: (this._config.time_format_units || ["days","hours","minutes","seconds"]).join(","), configValue: "time_format_units", change: this._valueChanged, cls: "advanced" })}
 
       ${showMilestonesSection ? html`
+        <div class="advanced">
         <div class="subsection-title">Progress milestones</div>
         <div class="row" style="align-items:flex-start;">
-          <ha-select label="Milestone unit" naturalMenuWidth fixedMenuPosition .value=${this._config.milestone_unit || "auto"} .configValue=${"milestone_unit"} .options=${SELECT_OPTIONS.milestone_unit} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
+          <ha-select label="Milestone unit" helper="Unit highlighted as the active milestone." naturalMenuWidth fixedMenuPosition .value=${this._config.milestone_unit || "auto"} .configValue=${"milestone_unit"} .options=${SELECT_OPTIONS.milestone_unit} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
             <mwc-list-item value="auto">Auto (default)</mwc-list-item>
             <mwc-list-item value="none">None</mwc-list-item>
             <mwc-list-item value="years">Years</mwc-list-item>
@@ -4289,34 +4385,35 @@ _pinnedTimerValueChanged(ev, index) {
             <ha-switch .checked=${this._config.milestone_pulse !== false} .configValue=${"milestone_pulse"} @change=${this._valueChanged}></ha-switch>
           </ha-formfield>
         </div>
+        </div>
       ` : ""}
     `;
 
     const defaultsContent = html`
       <div class="row">
         ${this._tf({ label: "Default duration (minutes)", type: "number", min: "0", helper: "Starting value when the user opens the custom timer input.", value: this._config.default_new_timer_duration_mins ?? 15, configValue: "default_new_timer_duration_mins", change: this._valueChanged })}
-        ${this._tf({ label: "Snooze duration (minutes)", type: "number", min: "0", value: this._config.snooze_duration ?? 5, configValue: "snooze_duration", change: this._valueChanged })}
+        ${this._tf({ label: "Snooze duration (minutes)", type: "number", min: "0", helper: "Minutes added when the user taps Snooze on an expired timer.", value: this._config.snooze_duration ?? 5, configValue: "snooze_duration", change: this._valueChanged })}
       </div>
 
       <div class="row">
-        <ha-icon-picker label="Default timer icon" .value=${this._config.default_timer_icon || "mdi:timer-outline"} .configValue=${"default_timer_icon"} @value-changed=${this._detailValueChanged}></ha-icon-picker>
-        ${this._tf({ label: "Default timer color", value: this._config.default_timer_color || "var(--primary-color)", configValue: "default_timer_color", change: this._valueChanged })}
+        <ha-icon-picker label="Default timer icon" helper="Used when a timer does not specify its own icon." .value=${this._config.default_timer_icon || "mdi:timer-outline"} .configValue=${"default_timer_icon"} @value-changed=${this._detailValueChanged}></ha-icon-picker>
+        ${this._tf({ label: "Default timer color", helper: "CSS color or var() used as the progress accent.", value: this._config.default_timer_color || "var(--primary-color)", configValue: "default_timer_color", change: this._valueChanged })}
       </div>
 
-      ${this._tf({ label: "Timer expired message", value: this._config.expired_subtitle, configValue: "expired_subtitle", placeholder: "Time's up!", change: this._valueChanged })}
+      ${this._tf({ label: "Timer expired message", helper: "Shown under each timer once it reaches zero.", value: this._config.expired_subtitle, configValue: "expired_subtitle", placeholder: "Time's up!", change: this._valueChanged })}
 
       <div class="divider"></div>
 
       <div class="row">
-        <ha-select label="When a timer reaches 0" naturalMenuWidth fixedMenuPosition .value=${this._config.expire_action || "keep"} .configValue=${"expire_action"} .options=${SELECT_OPTIONS.expire_action} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
+        <ha-select label="When a timer reaches 0" helper="Default action when the countdown hits zero. Per-entity overrides also apply." naturalMenuWidth fixedMenuPosition .value=${this._config.expire_action || "keep"} .configValue=${"expire_action"} .options=${SELECT_OPTIONS.expire_action} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
           <mwc-list-item value="keep">Keep visible</mwc-list-item>
           <mwc-list-item value="dismiss">Dismiss</mwc-list-item>
           <mwc-list-item value="remove">Remove</mwc-list-item>
         </ha-select>
-        ${this._tf({ label: "Keep-visible duration (seconds)", type: "number", min: "0", value: this._config.expire_keep_for ?? 120, configValue: "expire_keep_for", change: this._valueChanged })}
+        ${this._tf({ label: "Keep-visible duration (seconds)", type: "number", min: "0", helper: "How long an expired timer stays on screen before disappearing.", value: this._config.expire_keep_for ?? 120, configValue: "expire_keep_for", change: this._valueChanged, cls: "advanced" })}
       </div>
 
-      <label class="toggle-row">
+      <label class="toggle-row advanced">
         <ha-switch .checked=${this._config.auto_dismiss_writable === true} .configValue=${"auto_dismiss_writable"} @change=${this._valueChanged}></ha-switch>
         <div class="toggle-text">
           <span class="toggle-title">Auto-dismiss helper timers at 0</span>
@@ -4400,10 +4497,10 @@ _pinnedTimerValueChanged(ev, index) {
       </label>
 
       ${this._config.audio_enabled ? html`
-        ${this._tf({ label: "Audio file URL or path", value: this._config.audio_file_url, configValue: "audio_file_url", placeholder: "/local/sounds/done.mp3", change: this._valueChanged })}
+        ${this._tf({ label: "Audio file URL or path", helper: "URL or /local/... path to an mp3, wav, or ogg file.", value: this._config.audio_file_url, configValue: "audio_file_url", placeholder: "/local/sounds/done.mp3", change: this._valueChanged })}
         <div class="row">
-          ${this._tf({ label: "Completion delay (seconds)", type: "number", min: "1", max: "30", value: this._config.audio_completion_delay ?? 4, configValue: "audio_completion_delay", change: this._valueChanged })}
-          ${this._tf({ label: "Number of times to play", type: "number", min: "1", max: "10", value: this._config.audio_repeat_count ?? 1, configValue: "audio_repeat_count", change: this._valueChanged })}
+          ${this._tf({ label: "Completion delay (seconds)", type: "number", min: "1", max: "30", value: this._config.audio_completion_delay ?? 4, configValue: "audio_completion_delay", change: this._valueChanged, cls: "advanced" })}
+          ${this._tf({ label: "Number of times to play", type: "number", min: "1", max: "10", helper: "Ignored when 'Play until dismissed' is on.", value: this._config.audio_repeat_count ?? 1, configValue: "audio_repeat_count", change: this._valueChanged })}
         </div>
         <label class="toggle-row">
           <ha-switch .checked=${this._config.audio_play_until_dismissed === true} .configValue=${"audio_play_until_dismissed"} @change=${this._valueChanged}></ha-switch>
@@ -4444,12 +4541,14 @@ _pinnedTimerValueChanged(ev, index) {
 
       ${this._config.auto_voice_pe === true ? html`
         <ha-entity-picker
+          class="advanced"
           .hass=${this.hass}
           .value=${this._config.voice_pe_control_entity || ""}
           .configValue=${"voice_pe_control_entity"}
           .includeDomains=${["text", "input_text"]}
           allow-custom-entity
           label="Voice PE control entity"
+          help-text="input_text/text entity Voice PE writes timer commands to."
           @value-changed=${this._valueChanged}
         ></ha-entity-picker>
       ` : ""}
@@ -4517,7 +4616,7 @@ _pinnedTimerValueChanged(ev, index) {
                   </div>
 
                   ${isTimestampMode ? html`
-                    ${this._tf({ label: "Start time attribute (optional)", value: conf.start_time_attr, configValue: "start_time_attr", helper: "Attribute on this entity containing the start timestamp (e.g., 'last_triggered').", change: (e) => this._entityValueChanged(e, index) })}
+                    ${this._tf({ label: "Start time attribute (optional)", value: conf.start_time_attr, configValue: "start_time_attr", helper: "Attribute on this entity containing the start timestamp (e.g., 'last_triggered').", change: (e) => this._entityValueChanged(e, index), cls: "advanced" })}
                   ` : ""}
 
                   <div class="row">
@@ -4540,12 +4639,14 @@ _pinnedTimerValueChanged(ev, index) {
                   ` : ""}
 
                   ${(conf.mode === "timer" || (isAuto && detectedMode === "timer")) ? html`
+                    <div class="advanced">
                     <ha-formfield label="Keep visible when idle">
                       <ha-switch .checked=${conf.keep_timer_visible_when_idle === true} .configValue=${"keep_timer_visible_when_idle"} @change=${(e) => this._entityValueChanged(e, index)}></ha-switch>
                     </ha-formfield>
                     <ha-formfield label="Hide action buttons">
                       <ha-switch .checked=${conf.hide_timer_actions === true} .configValue=${"hide_timer_actions"} @change=${(e) => this._entityValueChanged(e, index)}></ha-switch>
                     </ha-formfield>
+                    </div>
                   ` : ""}
                 </div>
 
@@ -4561,31 +4662,44 @@ _pinnedTimerValueChanged(ev, index) {
       </button>
     `;
 
-    const panel = (key, header, content, opts = {}) => {
-      const expanded = opts.expanded ?? !!this._expandedSections?.[key];
+    const panel = (key, header, icon, content, opts = {}) => {
+      const isSearching = !!(this._searchQuery && this._searchQuery.trim());
+      const expanded = isSearching ? true : (opts.expanded ?? !!this._expandedSections?.[key]);
       return html`
         <ha-expansion-panel
           outlined
           ?expanded=${expanded}
-          .header=${header}
           @expanded-changed=${(e) => { this._expandedSections = { ...(this._expandedSections || {}), [key]: !!e.detail?.expanded }; }}
         >
+          <div slot="header" class="panel-header">
+            <ha-icon class="panel-header-icon" icon=${icon}></ha-icon>
+            <span class="panel-header-label">${header}</span>
+          </div>
           <div class="panel-body">${content}</div>
         </ha-expansion-panel>
       `;
     };
 
     return html`
-      <div class="card-config">
-        ${panel("appearance", "Appearance", appearanceContent, { expanded: this._expandedSections?.appearance ?? true })}
-        ${panel("entities", "Timer entities", entitiesContent, { expanded: this._expandedSections?.entities ?? true })}
-        ${panel("sorting", "Sorting", sortingContent)}
-        ${panel("timeFormat", "Time format", timeFormatContent)}
-        ${panel("defaults", "Timer defaults & behavior", defaultsContent)}
-        ${panel("presets", "Quick-start presets", presetsContent)}
-        ${panel("pinned", "Pinned timers", pinnedContent)}
-        ${panel("audio", "Audio notifications", audioContent)}
-        ${panel("storage", "Storage & integrations", storageContent)}
+      <div class="editor-toolbar">
+        ${this._renderSearchInput()}
+        <ha-formfield label="Show advanced options" class="advanced-toggle">
+          <ha-switch
+            .checked=${this._showAdvanced}
+            @change=${(e) => { this._showAdvanced = !!e.target.checked; }}
+          ></ha-switch>
+        </ha-formfield>
+      </div>
+      <div class="card-config ${this._showAdvanced ? "show-advanced" : ""}">
+        ${panel("appearance", "Appearance", "mdi:palette", appearanceContent, { expanded: this._expandedSections?.appearance ?? true })}
+        ${panel("entities", "Timer entities", "mdi:format-list-bulleted", entitiesContent, { expanded: this._expandedSections?.entities ?? true })}
+        ${panel("sorting", "Sorting", "mdi:sort", sortingContent)}
+        ${panel("timeFormat", "Time format", "mdi:clock-outline", timeFormatContent)}
+        ${panel("defaults", "Timer defaults & behavior", "mdi:cog-outline", defaultsContent)}
+        ${panel("presets", "Quick-start presets", "mdi:flash-outline", presetsContent)}
+        ${panel("pinned", "Pinned timers", "mdi:pin-outline", pinnedContent)}
+        ${panel("audio", "Audio notifications", "mdi:volume-high", audioContent)}
+        ${panel("storage", "Storage & integrations", "mdi:database-outline", storageContent)}
       </div>
     `;
   }
@@ -4614,6 +4728,30 @@ _pinnedTimerValueChanged(ev, index) {
 
       .card-config { display: flex; flex-direction: column; gap: 12px; }
 
+      .editor-toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        padding: 0 4px;
+        margin-bottom: 8px;
+      }
+      .editor-toolbar .editor-search {
+        flex: 1;
+        min-width: 0;
+        max-width: 320px;
+      }
+      .editor-toolbar .advanced-toggle {
+        font-size: 13px;
+        color: var(--secondary-text-color);
+        flex-shrink: 0;
+      }
+
+      /* Hide fields marked .advanced unless the "Show advanced" toggle is on. */
+      .card-config:not(.show-advanced) .advanced { display: none !important; }
+      /* Hide fields and sections filtered out by the search query. */
+      [data-search-hidden] { display: none !important; }
+
       ha-expansion-panel {
         --expansion-panel-summary-padding: 0 16px;
         --expansion-panel-content-padding: 0;
@@ -4624,10 +4762,30 @@ _pinnedTimerValueChanged(ev, index) {
       }
 
       .panel-body {
-        padding: 0 16px 16px 16px;
+        padding: 8px;
         display: flex;
         flex-direction: column;
         gap: 16px;
+      }
+
+      .panel-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        width: 100%;
+        padding: 12px 0;
+      }
+      .panel-header-icon {
+        --mdc-icon-size: 20px;
+        color: var(--secondary-text-color);
+        flex-shrink: 0;
+      }
+      .panel-header-label {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--primary-text-color);
+        flex: 1;
+        min-width: 0;
       }
 
       .row,

@@ -10,7 +10,7 @@ type: custom:simple-timer-card
 
 That gives you a working card that auto-detects every supported timer in your Home Assistant instance. Everything else is optional.
 
-> 💡 **Tip:** All of the options below are also available in the visual editor (click the card &rarr; *Edit card*). The editor groups them into the same sections used here.
+> 💡 **Tip:** All of the options below are also available in the visual editor (click the card &rarr; *Edit card*). Use the search box at the top to jump to a setting, or toggle **Show advanced** to expose less-common options. The editor groups settings into the same sections used here.
 
 ---
 
@@ -282,6 +282,8 @@ audio_play_until_dismissed: false
 | `audio_completion_delay`     | number  | `4`     | Seconds to wait between repeats                                                          |
 | `audio_repeat_count`         | number  | `1`     | How many times to play                                                                   |
 | `audio_play_until_dismissed` | boolean | `false` | Keep playing until the user dismisses or snoozes the timer (overrides `audio_repeat_count`) |
+
+> 📱 **iOS / iPad:** Safari and the Home Assistant Companion App's iPad webview block audio from playing unless the page has received a user tap during the current session. The card primes audio on the first tap anywhere on the card, so for normal use (you tap a preset or start a timer manually) alarms work. The first alarm of a fresh page load that is triggered entirely by voice or an automation, with no prior tap, will be silent — tap the card once after loading the dashboard to enable sound for the rest of the session. A locked screen or fully backgrounded tab also blocks audio, which is a hard iOS limitation.
 
 ---
 
