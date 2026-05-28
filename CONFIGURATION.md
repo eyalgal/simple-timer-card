@@ -24,12 +24,13 @@ That gives you a working card that auto-detects every supported timer in your Ho
 6. [Timer defaults & behavior](#-timer-defaults--behavior)
 7. [Quick-start presets](#-quick-start-presets)
 8. [Pinned timers](#-pinned-timers)
-9. [Audio notifications](#-audio-notifications)
-10. [Storage & persistence](#-storage--persistence)
-11. [Voice PE integration](#-voice-pe-integration)
-12. [Compatibility mode](#-compatibility-mode)
-13. [Language support](#-language-support)
-14. [Examples & help](#-examples--help)
+9. [Tap, hold & double-tap actions](#ï¸-tap-hold--double-tap-actions)
+10. [Audio notifications](#-audio-notifications)
+11. [Storage & persistence](#-storage--persistence)
+12. [Voice PE integration](#-voice-pe-integration)
+13. [Compatibility mode](#-compatibility-mode)
+14. [Language support](#-language-support)
+15. [Examples & help](#-examples--help)
 
 ---
 
@@ -263,7 +264,62 @@ pinned_timers:
 
 ---
 
-## 🔊 Audio notifications
+## �️ Tap, hold & double-tap actions
+
+Standard Home Assistant `tap_action` / `hold_action` / `double_tap_action` configs, supported at both card level and per entity row.
+
+```yaml
+tap_action:
+  action: toggle
+hold_action:
+  action: more-info
+double_tap_action:
+  action: navigate
+  navigation_path: /lovelace/timers
+```
+
+| Name                | Type   | Default     | Description                                                                |
+| ------------------- | ------ | ----------- | -------------------------------------------------------------------------- |
+| `tap_action`        | object | _see below_ | Fires on a quick tap that doesn't land on a built-in control               |
+| `hold_action`       | object | none        | Fires after a 500 ms press-and-hold                                        |
+| `double_tap_action` | object | none        | Fires on a second tap within 300 ms of the first                           |
+
+Each action accepts the full Home Assistant `ActionConfig`: `more-info`, `toggle`, `navigate`, `url`, `call-service` / `perform-action`, `assist`, or `none`. See the [Home Assistant action docs](https://www.home-assistant.io/dashboards/actions/) for the full schema.
+
+### Per-row actions
+
+Each entry under `entities:` and `pinned_timers:` accepts the same three keys, and they override the card-level values for that row.
+
+```yaml
+entities:
+  - entity: timer.oven
+    tap_action:
+      action: more-info
+```
+
+### Resolution order
+
+Row → card → built-in default. The only built-in default is **tap on an idle native `timer.*` row opens the inline duration editor**. Hold and double-tap have no built-in fallback.
+
+### Smart `toggle` routing
+
+HA's `timer.*` domain has no `toggle` service, so when you set `tap_action: toggle` the card routes to the most useful per-state action:
+
+| Timer state                            | What `toggle` does              |
+| -------------------------------------- | ------------------------------- |
+| Predefined (pinned) row                | Start                           |
+| Idle native HA `timer.*`               | Open the inline duration editor |
+| Idle helper / local / MQTT / Voice PE  | Start                           |
+| Running or paused                      | Pause / resume                  |
+| Anything else                          | Falls through to `domain.toggle` |
+
+### What's ignored
+
+Tap handlers do not fire when the tap lands on an in-card control (`button`, `ha-icon-button`, `ha-textfield`, `ha-input`, `ha-select`, the action buttons row, the progress bar, or any element marked `data-no-action`). The start, pause, cancel, edit, and custom-duration controls all keep working normally.
+
+---
+
+## �🔊 Audio notifications
 
 Global audio settings used when a timer expires. Entity-level and pinned-timer audio settings override these.
 

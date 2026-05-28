@@ -49,7 +49,7 @@ const a=Symbol.for(""),o$1=t=>{if(t?.r===a)return t?._$litStatic$},i=(t,...r)=>(
  */
 
 
-const cardVersion="2.5.0";
+const cardVersion="2.6.0";
 
 const DAY_IN_MS = 86400000;
 const YEAR_IN_MS = 365 * DAY_IN_MS;
@@ -75,8 +75,11 @@ function _remainingMsFromStoredTimer(t, nowTs = Date.now()) {
 }
 
 function _pauseUpdatesFromTimer(timer, nowTs = Date.now()) {
-  const remaining = Number(timer?.remaining);
-  const remainingMs = Number.isFinite(remaining) ? Math.max(0, remaining) : _remainingMsFromStoredTimer(timer, nowTs);
+  // Compute remaining live from end_ts at the click moment. The cached
+  // timer.remaining value is up to 250 ms stale (tick interval), which can
+  // freeze the paused display one whole second higher than what the active
+  // tick would have shown next.
+  const remainingMs = _remainingMsFromStoredTimer(timer, nowTs);
   return { paused: true, remaining_ms: remainingMs, end_ts: null, state: "paused" };
 }
 
@@ -2371,6 +2374,237 @@ if (!audioEnabled || !audioFileUrl || !this._validateAudioUrl(audioFileUrl)) ret
     t.paused ? this._handleResume(t) : this._handlePause(t);
   }
 
+  // === Action handler infrastructure (v2.6.0) ===
+  //
+  // Standard HA-style tap / hold / double-tap support on the card root and
+  // per row. Resolution for a row action: row config -> card config ->
+  // built-in default. Built-in default for tap is "open inline editor" when
+  // canEdit, else "toggle pause/resume". Hold and double-tap have no
+  // built-in default (action: "none" suppresses inheritance and default).
+  _hasAnyRowAction(t) {
+    const rowConf = this._getEntityConfig(t.source_entity) || {};
+    const c = this._config || {};
+    return !!(rowConf.tap_action || rowConf.hold_action || rowConf.double_tap_action
+           || c.tap_action || c.hold_action || c.double_tap_action);
+  }
+
+  _buildRowActionCtx(t, canEdit) {
+    const rowConf = this._getEntityConfig(t.source_entity) || {};
+    const cardConf = this._config || {};
+    const tapAction = rowConf.tap_action || cardConf.tap_action;
+    const holdAction = rowConf.hold_action || cardConf.hold_action;
+    const doubleAction = rowConf.double_tap_action || cardConf.double_tap_action;
+    return {
+      cardLevel: false,
+      entityId: t.source_entity,
+      timer: t,
+      canEdit,
+      isIdle: !!t.idle,
+      tapAction, holdAction, doubleAction,
+      hold: !!(holdAction && holdAction.action && holdAction.action !== "none"),
+      double: !!(doubleAction && doubleAction.action && doubleAction.action !== "none"),
+      key: `row:${t.source_entity || t.id || ""}`,
+    };
+  }
+
+  _buildCardActionCtx() {
+    const c = this._config || {};
+    return {
+      cardLevel: true,
+      entityId: undefined,
+      timer: null,
+      canEdit: false,
+      tapAction: c.tap_action,
+      holdAction: c.hold_action,
+      doubleAction: c.double_tap_action,
+      hold: !!(c.hold_action && c.hold_action.action && c.hold_action.action !== "none"),
+      double: !!(c.double_tap_action && c.double_tap_action.action && c.double_tap_action.action !== "none"),
+      key: "card",
+    };
+  }
+
+  _rowActionHandlers(t, canEdit) {
+    const factory = () => this._buildRowActionCtx(t, canEdit);
+    return {
+      down: (e) => this._onActionPointerDown(factory, e, true),
+      up: (e) => this._onActionPointerUp(factory, e, true),
+      cancel: () => this._onActionPointerCancel(),
+    };
+  }
+
+  _cardActionHandlers() {
+    const factory = () => this._buildCardActionCtx();
+    return {
+      down: (e) => this._onActionPointerDown(factory, e, false),
+      up: (e) => this._onActionPointerUp(factory, e, false),
+      cancel: () => this._onActionPointerCancel(),
+    };
+  }
+
+  // Ignore events that originate from an interactive descendant. This is
+  // what keeps the pause button, snooze/dismiss chips, vertical-circle hot
+  // zone and inline-editor inputs from also firing the row/card action.
+  _actionEventIsInternal(e) {
+    const tgt = e.target;
+    if (!tgt || typeof tgt.closest !== "function") return false;
+    const sel = "button, ha-icon-button, ha-button, mwc-button, "
+              + "ha-textfield, ha-input, ha-select, ha-formfield, input, textarea, "
+              + ".vcircle-wrap, .actions, .vactions, .vprogressbar, [data-no-action]";
+    return !!tgt.closest(sel);
+  }
+
+  _onActionPointerDown(ctxFactory, e, isRow) {
+    if (this._actionEventIsInternal(e)) return;
+    if (e.button !== undefined && e.button !== 0) return;
+    // For card-level: ignore if the event originated inside a row li; the row
+    // handler is authoritative there.
+    if (!isRow && e.target && typeof e.target.closest === "function" && e.target.closest("li")) return;
+    const ctx = ctxFactory();
+    this._actionState = { ctx, holdFired: false, holdTimer: null, downAt: Date.now() };
+    if (ctx.hold) {
+      this._actionState.holdTimer = window.setTimeout(() => {
+        if (!this._actionState) return;
+        this._actionState.holdFired = true;
+        this._dispatchAction(this._actionState.ctx, "hold");
+      }, 500);
+    }
+  }
+
+  _onActionPointerUp(ctxFactory, e, isRow) {
+    if (!this._actionState) return;
+    if (this._actionEventIsInternal(e)) { this._cancelActionState(); return; }
+    if (!isRow && e.target && typeof e.target.closest === "function" && e.target.closest("li")) {
+      this._cancelActionState();
+      return;
+    }
+    const state = this._actionState;
+    this._actionState = null;
+    if (state.holdTimer) clearTimeout(state.holdTimer);
+    if (state.holdFired) return;
+    const ctx = state.ctx;
+    const now = Date.now();
+    if (ctx.double && this._lastTap && this._lastTap.key === ctx.key && (now - this._lastTap.at) < 300) {
+      if (this._pendingTap) { clearTimeout(this._pendingTap); this._pendingTap = null; }
+      this._lastTap = null;
+      this._dispatchAction(ctx, "double_tap");
+      return;
+    }
+    this._lastTap = { key: ctx.key, at: now };
+    if (ctx.double) {
+      this._pendingTap = window.setTimeout(() => {
+        this._pendingTap = null;
+        this._dispatchAction(ctx, "tap");
+      }, 300);
+    } else {
+      this._dispatchAction(ctx, "tap");
+    }
+  }
+
+  _onActionPointerCancel() {
+    this._cancelActionState();
+  }
+
+  _cancelActionState() {
+    if (this._actionState && this._actionState.holdTimer) clearTimeout(this._actionState.holdTimer);
+    this._actionState = null;
+  }
+
+  _dispatchAction(ctx, type) {
+    const action = type === "tap" ? ctx.tapAction
+                 : type === "hold" ? ctx.holdAction
+                 : ctx.doubleAction;
+    if (action && action.action === "none") return;
+    if (action && action.action) { this._fireAction(action, ctx); return; }
+    // Built-in defaults: tap only, row level only.
+    //   - Idle HA timer entity (canEdit + isIdle): open inline editor.
+    //   - Any other state (paused, running, finished, or non-timer source):
+    //     no-op. Configure `tap_action: toggle` to get pause/resume.
+    if (type !== "tap") return;
+    if (ctx.cardLevel) return;
+    if (ctx.canEdit && ctx.isIdle) this._openTimerEditor(ctx.timer);
+  }
+
+  _fireAction(action, ctx) {
+    if (action.confirmation) {
+      const text = (typeof action.confirmation === "object" && action.confirmation.text)
+        ? action.confirmation.text
+        : "Are you sure?";
+      if (!window.confirm(text)) return;
+    }
+    switch (action.action) {
+      case "more-info": {
+        const entityId = action.entity || ctx.entityId;
+        if (!entityId) return;
+        this._fireHassEvent("hass-more-info", { entityId });
+        return;
+      }
+      case "toggle": {
+        // For timers managed by this card the HA `toggle` service does not
+        // exist (timer.* exposes start/pause/cancel/finish). Route to the
+        // most useful per-state action. Prefer the row's own timer object
+        // so predefined (template) rows with no source_entity still work.
+        let ourTimer = ctx && ctx.timer ? ctx.timer : null;
+        const entityId = action.entity || ctx.entityId;
+        if (!ourTimer && entityId) {
+          ourTimer = (this._timers || []).find(tt => tt && tt.source_entity === entityId) || null;
+        }
+        if (ourTimer) {
+          // Predefined / template row: always start (creates the live timer).
+          if (ourTimer.kind === "template" || ourTimer.source === "template") {
+            this._handleStart(ourTimer);
+            return;
+          }
+          if (["helper", "local", "mqtt", "timer", "voice_pe"].includes(ourTimer.source)) {
+            if (ourTimer.idle) {
+              // Idle HA timer.* opens the inline editor (matches the
+              // no-tap-action default). Other idle sources start in place.
+              if (ourTimer.source === "timer") this._openTimerEditor(ourTimer);
+              else this._handleStart(ourTimer);
+              return;
+            }
+            this._togglePause(ourTimer);
+            return;
+          }
+        }
+        if (!entityId || !this.hass) return;
+        const domain = entityId.split(".")[0];
+        this.hass.callService(domain, "toggle", { entity_id: entityId });
+        return;
+      }
+      case "navigate": {
+        if (!action.navigation_path) return;
+        const replace = !!action.navigation_replace;
+        if (replace) window.history.replaceState(null, "", action.navigation_path);
+        else window.history.pushState(null, "", action.navigation_path);
+        this._fireHassEvent("location-changed", { replace });
+        return;
+      }
+      case "url": {
+        if (!action.url_path) return;
+        window.open(action.url_path);
+        return;
+      }
+      case "perform-action":
+      case "call-service": {
+        const svc = action.perform_action || action.service;
+        if (!svc || typeof svc !== "string" || !svc.includes(".")) return;
+        const [domain, service] = svc.split(".", 2);
+        const data = action.data || action.service_data || {};
+        const target = action.target || {};
+        this.hass.callService(domain, service, data, target);
+        return;
+      }
+      default:
+        return;
+    }
+  }
+
+  _fireHassEvent(type, detail) {
+    const event = new Event(type, { bubbles: true, cancelable: false, composed: true });
+    event.detail = detail || {};
+    this.dispatchEvent(event);
+  }
+
   _handleDismiss(timer) {
     this._ringingTimers.delete(timer.id);
     this._stopAudioForTimer(timer.id);
@@ -3008,15 +3242,15 @@ if (!audioEnabled || !audioFileUrl || !this._validateAudioUrl(audioFileUrl)) ret
       `;
     }
 
-    const clickHandler = canEdit ? () => this._openTimerEditor(t) : null;
-    const rowStyle = canEdit ? "cursor: pointer;" : "";
+    const acts = this._rowActionHandlers(t, canEdit);
+    const rowStyle = (canEdit || this._hasAnyRowAction(t)) ? "cursor: pointer;" : "";
 
     const fillPct = this._config.progress_mode === "drain" ? pctLeft : pct;
     const fillInlineStyle = `width:${fillPct}%;`;
 
     if (isFillStyle) {
       return b`
-        <li class="${baseClasses}" style="--tcolor:${color}; ${rowStyle}" @click=${clickHandler}>
+        <li class="${baseClasses}" style="--tcolor:${color}; ${rowStyle}" @pointerdown=${acts.down} @pointerup=${acts.up} @pointercancel=${acts.cancel}>
           <div class="progress-fill" style="${fillInlineStyle}"></div>
           <div class="card-content">
             <div class="icon-wrap"><ha-icon .icon=${icon}></ha-icon></div>
@@ -3041,7 +3275,7 @@ if (!audioEnabled || !audioFileUrl || !this._validateAudioUrl(audioFileUrl)) ret
       `;
     } else if (isCircleStyle) {
       return b`
-        <li class="${baseClasses}" style="--tcolor:${color}; ${rowStyle}" @click=${clickHandler}>
+        <li class="${baseClasses}" style="--tcolor:${color}; ${rowStyle}" @pointerdown=${acts.down} @pointerup=${acts.up} @pointercancel=${acts.cancel}>
           ${supportsManualControls && !isIdle ? b`
             <button class="vtile-close" title="${this._localize("cancel")}"
               @click=${(e)=>{ e.stopPropagation(); this._handleCancel(t); }}>
@@ -3073,7 +3307,7 @@ if (!audioEnabled || !audioFileUrl || !this._validateAudioUrl(audioFileUrl)) ret
       `;
     } else {
       return b`
-        <li class="${baseClasses}" style="--tcolor:${color}; ${rowStyle}" @click=${clickHandler}>
+        <li class="${baseClasses}" style="--tcolor:${color}; ${rowStyle}" @pointerdown=${acts.down} @pointerup=${acts.up} @pointercancel=${acts.cancel}>
           <div class="row">
             <div class="icon-wrap"><ha-icon .icon=${icon}></ha-icon></div>
             <div class="info">
@@ -3182,8 +3416,8 @@ if (!audioEnabled || !audioFileUrl || !this._validateAudioUrl(audioFileUrl)) ret
 
     const isRunning = !t.idle && !t.paused && !t.finished;
     const canEdit = t.source === "timer" && !isRunning;
-    const clickHandler = canEdit ? () => this._openTimerEditor(t) : null;
-    const rowStyle = canEdit ? "cursor: pointer;" : "";
+    const acts = this._rowActionHandlers(t, canEdit);
+    const rowStyle = (canEdit || this._hasAnyRowAction(t)) ? "cursor: pointer;" : "";
 
     const fillPct = this._config.progress_mode === "drain" ? pctLeft : pct;
     const fillInlineStyle = `width:${fillPct}%;`;
@@ -3211,7 +3445,7 @@ if (!audioEnabled || !audioFileUrl || !this._validateAudioUrl(audioFileUrl)) ret
 
     if (style === "circle") {
       return b`
-        <li class="${baseClasses}" style="--tcolor:${color}; ${rowStyle}" @click=${clickHandler}>
+        <li class="${baseClasses}" style="--tcolor:${color}; ${rowStyle}" @pointerdown=${acts.down} @pointerup=${acts.up} @pointercancel=${acts.cancel}>
           ${supportsManualControls && !isIdle ? b`
             <button class="vtile-close" title="${this._localize("cancel")}"
               @click=${(e)=>{ e.stopPropagation(); this._handleCancel(t); }}>
@@ -3248,7 +3482,7 @@ if (!audioEnabled || !audioFileUrl || !this._validateAudioUrl(audioFileUrl)) ret
     }
 
     return b`
-      <li class="${baseClasses}" style="--tcolor:${color}; ${rowStyle}" @click=${clickHandler}>
+      <li class="${baseClasses}" style="--tcolor:${color}; ${rowStyle}" @pointerdown=${acts.down} @pointerup=${acts.up} @pointercancel=${acts.cancel}>
         ${style.startsWith("fill_") ? b`<div class="progress-fill" style="${fillInlineStyle}"></div>` : ""}
         <div class="vcol">
           <div class="icon-wrap large"><ha-icon .icon=${icon}></ha-icon></div>
@@ -3577,8 +3811,9 @@ const layout = this._config.layout;
         </ul>
       </div>
     `;
+    const cardActs = this._cardActionHandlers();
     return b`
-      <ha-card dir=${this._isRTL() ? "rtl" : "ltr"}>
+      <ha-card dir=${this._isRTL() ? "rtl" : "ltr"} @pointerdown=${cardActs.down} @pointerup=${cardActs.up} @pointercancel=${cardActs.cancel}>
         ${this._config.title ? b`<div class="card-header"><span>${this._config.title}</span></div>` : ""}
         ${timers.length === 0 ? b`<div class="grid"><div>${noTimerCard}</div></div>` : b`<div class="grid"><div>${activeCard}</div></div>`}
       </ha-card>
@@ -4684,6 +4919,34 @@ _pinnedTimerValueChanged(ev, index) {
                     </ha-formfield>
                     </div>
                   ` : ""}
+                  <div class="advanced">
+                    <div class="row-actions-label">Per-row actions (override card-level)</div>
+                    <ha-selector
+                      .hass=${this.hass}
+                      .label=${"Tap action"}
+                      .selector=${{ ui_action: { default_action: "none" } }}
+                      .value=${conf.tap_action}
+                      .configValue=${"tap_action"}
+                      @value-changed=${(e) => this._entityValueChanged(e, index)}
+                    ></ha-selector>
+                    <ha-selector
+                      .hass=${this.hass}
+                      .label=${"Hold action"}
+                      .selector=${{ ui_action: { default_action: "none" } }}
+                      .value=${conf.hold_action}
+                      .configValue=${"hold_action"}
+                      @value-changed=${(e) => this._entityValueChanged(e, index)}
+                    ></ha-selector>
+                    <ha-selector
+                      .hass=${this.hass}
+                      .label=${"Double-tap action"}
+                      .selector=${{ ui_action: { default_action: "none" } }}
+                      .value=${conf.double_tap_action}
+                      .configValue=${"double_tap_action"}
+                      @value-changed=${(e) => this._entityValueChanged(e, index)}
+                    ></ha-selector>
+                  </div>
+
                 </div>
 
                 <button class="remove-entity" @click=${() => this._removeEntity(index)} title="Remove entity"><ha-icon icon="mdi:delete"></ha-icon></button>
@@ -4698,11 +4961,43 @@ _pinnedTimerValueChanged(ev, index) {
       </button>
     `;
 
+    const actionsContent = b`
+      <p class="hint">
+        Standard Home Assistant action options. Row-level actions override card-level. Leave blank to inherit, or pick "No action" to suppress the built-in default (tap toggles pause/resume).
+      </p>
+      <ha-selector
+        .hass=${this.hass}
+        .label=${"Tap action"}
+        .selector=${{ ui_action: { default_action: "none" } }}
+        .value=${this._config?.tap_action}
+        .configValue=${"tap_action"}
+        @value-changed=${this._detailValueChanged}
+      ></ha-selector>
+      <ha-selector
+        .hass=${this.hass}
+        .label=${"Hold action"}
+        .selector=${{ ui_action: { default_action: "none" } }}
+        .value=${this._config?.hold_action}
+        .configValue=${"hold_action"}
+        @value-changed=${this._detailValueChanged}
+      ></ha-selector>
+      <ha-selector
+        .hass=${this.hass}
+        .label=${"Double-tap action"}
+        .selector=${{ ui_action: { default_action: "none" } }}
+        .value=${this._config?.double_tap_action}
+        .configValue=${"double_tap_action"}
+        @value-changed=${this._detailValueChanged}
+      ></ha-selector>
+    `;
+
     const panel = (key, header, icon, content, opts = {}) => {
       const isSearching = !!(this._searchQuery && this._searchQuery.trim());
       const expanded = isSearching ? true : (opts.expanded ?? !!this._expandedSections?.[key]);
+      const panelCls = opts.advanced ? "advanced" : "";
       return b`
         <ha-expansion-panel
+          class=${panelCls}
           outlined
           ?expanded=${expanded}
           @expanded-changed=${(e) => { this._expandedSections = { ...(this._expandedSections || {}), [key]: !!e.detail?.expanded }; }}
@@ -4736,6 +5031,7 @@ _pinnedTimerValueChanged(ev, index) {
         ${panel("pinned", "Pinned timers", "mdi:pin-outline", pinnedContent)}
         ${panel("audio", "Audio notifications", "mdi:volume-high", audioContent)}
         ${panel("storage", "Storage & integrations", "mdi:database-outline", storageContent)}
+        ${panel("actions", "Actions", "mdi:gesture-tap", actionsContent, { advanced: true })}
       </div>
     `;
   }
@@ -4776,6 +5072,12 @@ _pinnedTimerValueChanged(ev, index) {
         flex: 1;
         min-width: 0;
         max-width: 320px;
+      }
+      .row-actions-label {
+        font-size: 0.85em;
+        color: var(--secondary-text-color);
+        font-weight: 500;
+        margin-top: 4px;
       }
       .editor-toolbar .advanced-toggle {
         font-size: 13px;
@@ -5016,5 +5318,11 @@ setTimeout(() => {
     preview: true,
     description: "Pick a layout (horizontal/vertical) and a style (progress bar/background fill). Uses HA theme & native elements.",
     editor: "simple-timer-card-editor",
+    getEntitySuggestion: (hass, entityId) => {
+      if (!entityId || typeof entityId !== "string") return null;
+      const [domain, objectId] = entityId.split(".");
+      if (domain !== "timer" && !(objectId || "").toLowerCase().includes("timer")) return null;
+      return { config: { type: "custom:simple-timer-card", entities: [entityId] } };
+    },
   });
 }, 0);

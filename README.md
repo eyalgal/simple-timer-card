@@ -33,6 +33,7 @@ No dashboards clutter. No duplicated cards. Just timers.
 * **Quick actions**: Presets, pinned one‑tap timers, and custom timers
 * **Visual progress styles**: Bars, fills, and circles with drain, fill, or milestone modes
 * **Sorting & layout control**: Sort by time or name, pin timers inline, top, or bottom
+* **Custom interactions**: Standard `tap_action`, `hold_action`, and `double_tap_action` at card and row level
 * **Persistent storage**: Local or MQTT based, survives reloads and syncs across devices
 * **Audio & expiry actions**: Optional sounds, snooze, auto dismiss, and expiry behavior
 * **Theme aware**: Automatically matches your Home Assistant theme
