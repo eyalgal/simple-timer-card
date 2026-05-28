@@ -49,7 +49,7 @@ const a=Symbol.for(""),o$1=t=>{if(t?.r===a)return t?._$litStatic$},i=(t,...r)=>(
  */
 
 
-const cardVersion="2.6.0";
+const cardVersion="2.7.0";
 
 const DAY_IN_MS = 86400000;
 const YEAR_IN_MS = 365 * DAY_IN_MS;
@@ -1539,13 +1539,16 @@ class SimpleTimerCard extends i$1 {
       const isNowRinging = timer.remaining <= 0 && !timer.paused && !timer.idle;
       if (isNowRinging && !wasRinging) {
         this._ringingTimers.add(timer.id);
-        this._playAudioNotification(timer.id, timer);
-        this._publishTimerEvent("expired", timer);
+        if (this._ringingInitialized) {
+          this._playAudioNotification(timer.id, timer);
+          this._publishTimerEvent("expired", timer);
+        }
       } else if (!isNowRinging && wasRinging) {
         this._ringingTimers.delete(timer.id);
         this._stopAudioForTimer(timer.id);
       }
     }
+    this._ringingInitialized = true;
     const ids = new Set(this._timers.map((t) => t.id));
     for (const r of this._ringingTimers) {
       if (!ids.has(r)) {
@@ -1609,17 +1612,22 @@ class SimpleTimerCard extends i$1 {
     }
   }
 
+  _ensureAlarmAudio() {
+    if (this._alarmAudio) return this._alarmAudio;
+    const a = new Audio();
+    a.preload = "auto";
+    this._alarmAudio = a;
+    return a;
+  }
+
   _unlockAudio() {
     if (this._audioUnlocked) return;
-    // iOS Safari and the HA Companion App webview block audio.play() unless the
-    // page has received a user gesture that engaged audio. We run two unlock
-    // paths on the first tap so later alarm sounds (which fire from a timer
-    // callback, not a gesture) are allowed by the autoplay policy:
-    //   1. Resume a Web Audio context and play a single silent sample. iOS
-    //      treats a resumed AudioContext as a page-wide audio capability grant,
-    //      which is what HTMLAudioElement.play() in a timer callback needs.
-    //   2. Play a 1-sample silent WAV through a plain <audio> element, which
-    //      helps older iOS versions.
+    // iOS Safari and the HA Companion App webview gate audio per HTMLAudioElement:
+    // a Web Audio context unlock alone is not enough, because each <audio> element
+    // needs its own user-gesture-initiated play() before later programmatic plays
+    // succeed. We therefore (1) prime a page-wide Web Audio context, and
+    // (2) touch the single shared alarm <audio> element that _playAudioNotification
+    // will reuse so later alarms (fired from timer callbacks) are allowed.
     let unlocked = false;
     try {
       const Ctx = window.AudioContext || window.webkitAudioContext;
@@ -1644,15 +1652,71 @@ class SimpleTimerCard extends i$1 {
       }
     } catch (_) {}
     try {
-      const a = new Audio("data:audio/wav;base64,UklGRiUAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQEAAACA");
-      a.volume = 0;
-      const p = a.play();
-      if (p && typeof p.catch === "function") {
-        p.catch(() => {});
+      const audio = this._ensureAlarmAudio();
+      audio.src = "data:audio/wav;base64,UklGRiUAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQEAAACA";
+      audio.volume = 0;
+      const restore = () => {
+        try { audio.pause(); audio.currentTime = 0; audio.volume = 1; } catch (_) {}
+      };
+      const p = audio.play();
+      if (p && typeof p.then === "function") {
+        // Track the unlock's play promise so _playAudioNotification can wait for it
+        // to settle before changing src and starting the real alarm — otherwise the
+        // unlock's restore() (which calls audio.pause()) races with the alarm play
+        // and produces spurious 'audio failed' signals on the first timer of a session.
+        this._audioUnlockPlay = p.then(() => { restore(); }, () => { restore(); });
+      } else {
+        restore();
+        this._audioUnlockPlay = Promise.resolve();
       }
       unlocked = true;
     } catch (_) {}
     this._audioUnlocked = unlocked;
+  }
+
+  _resolveNotifyConfig() {
+    const n = this._config && this._config.notify;
+    if (!n || typeof n !== "object") return null;
+    if (!n.service || typeof n.service !== "string") return null;
+    return n;
+  }
+
+  _notifyContext(timer) {
+    const name = (timer && (timer.name || timer.friendly_name)) ||
+      ((timer && timer.source_entity) ? String(timer.source_entity).split(".").pop() : "Timer");
+    return {
+      name,
+      entity_id: (timer && (timer.source_entity || timer.entity_id)) || "",
+      duration: (timer && timer.duration) || "",
+    };
+  }
+
+  _formatNotifyText(s, ctx) {
+    if (typeof s !== "string") return s;
+    return s.replace(/\{(name|entity_id|duration)\}/g, (_, k) => (ctx[k] != null ? String(ctx[k]) : ""));
+  }
+
+  _dispatchNotify(notifyConf, timer) {
+    try {
+      const m = String(notifyConf.service).match(/^([a-z0-9_]+)\.([a-z0-9_]+)$/i);
+      if (!m) {
+        console.warn("[simple-timer-card] notify.service must be in 'domain.service' form, got:", notifyConf.service);
+        return;
+      }
+      const domain = m[1];
+      const service = m[2];
+      const ctx = this._notifyContext(timer);
+      const payload = {};
+      if (notifyConf.message != null) payload.message = this._formatNotifyText(String(notifyConf.message), ctx);
+      if (notifyConf.title != null) payload.title = this._formatNotifyText(String(notifyConf.title), ctx);
+      if (notifyConf.data && typeof notifyConf.data === "object") {
+        payload.data = notifyConf.data;
+      }
+      if (payload.message == null) payload.message = `Timer ${ctx.name} finished`;
+      this.hass.callService(domain, service, payload);
+    } catch (e) {
+      console.warn("[simple-timer-card] notify service call failed:", e?.message || e);
+    }
   }
 
   _playAudioNotification(timerId,timer){
@@ -1695,39 +1759,105 @@ class SimpleTimerCard extends i$1 {
       audioRepeatCount = this._config.audio_repeat_count;
       audioPlayUntilDismissed = this._config.audio_play_until_dismissed;
     }
-if (!audioEnabled || !audioFileUrl || !this._validateAudioUrl(audioFileUrl)) return;
+
+    const notifyConf = this._resolveNotifyConfig();
+    const notifyWhen = (notifyConf && notifyConf.when) || "on_audio_fail";
+    const fireNotify = (outcome) => {
+      if (!notifyConf) return;
+      if (notifyWhen === "on_audio_fail" && outcome === "audio_ok") return;
+      if (notifyWhen !== "always" && notifyWhen !== "on_audio_fail") return;
+      this._dispatchNotify(notifyConf, timer);
+    };
+
+    if (!audioEnabled || !audioFileUrl || !this._validateAudioUrl(audioFileUrl)) {
+      fireNotify("no_audio");
+      return;
+    }
+    if (notifyConf && notifyWhen === "always") {
+      fireNotify("always");
+    }
     this._stopAudioForTimer(timerId);
     try {
-      const audio = new Audio(audioFileUrl);
+      const audio = this._ensureAlarmAudio();
+      // Wait for any in-flight unlock play to settle so its async restore()
+      // (audio.pause()) cannot race with our alarm playback. Falls through
+      // immediately if there is no unlock in flight.
+      const unlockSettled = (this._audioUnlockPlay && typeof this._audioUnlockPlay.then === "function")
+        ? this._audioUnlockPlay
+        : Promise.resolve();
+      unlockSettled.then(() => {
+        // Bail if the timer was dismissed while we were waiting.
+        if (!this._ringingTimers.has(timerId)) return;
+        audio.src = audioFileUrl;
+        audio.volume = 1;
       let playCount = 0;
+      let firstPlayResolved = false;
       const maxPlays = audioPlayUntilDismissed ? Infinity : Math.max(1, Math.min(10, audioRepeatCount || 1));
       const playNext = () => {
-        if (this._ringingTimers.has(timerId) && playCount < maxPlays) {
+        if (this._ringingTimers.has(timerId) && this._activeAudioInstances.has(timerId) && playCount < maxPlays) {
           playCount++;
-          audio.currentTime = 0;
-          audio.play().catch((err) => {
-            console.warn("[simple-timer-card] Alarm audio.play() rejected (likely iOS autoplay policy; tap the card once to unlock):", err?.message || err);
-          });
+          try { audio.currentTime = 0; } catch (_) {}
+          const isFirstAttempt = playCount === 1;
+          let sawPlayingEvent = false;
+          let promiseRejected = false;
+          let rejectionError = null;
+          const onPlayingOnce = () => {
+            sawPlayingEvent = true;
+            firstPlayResolved = true;
+          };
+          if (isFirstAttempt) {
+            try { audio.addEventListener("playing", onPlayingOnce, { once: true }); } catch (_) {}
+          }
+          const p = audio.play();
+          if (p && typeof p.then === "function") {
+            p.then(() => { firstPlayResolved = true; }).catch((err) => {
+              promiseRejected = true;
+              rejectionError = err;
+              if (!isFirstAttempt) return;
+              // The play() promise rejection is unreliable on iOS Safari (it can
+              // reject with AbortError/NotAllowedError even when playback succeeds).
+              // Wait a generous window, then trust the audio element's own state
+              // (playing event, !paused, currentTime advanced) as ground truth.
+              setTimeout(() => {
+                try { audio.removeEventListener("playing", onPlayingOnce); } catch (_) {}
+                const audioIsActuallyPlaying =
+                  firstPlayResolved ||
+                  sawPlayingEvent ||
+                  (audio && !audio.paused && audio.currentTime > 0);
+                if (audioIsActuallyPlaying) return;
+                console.warn("[simple-timer-card] Alarm audio.play() rejected and never started (likely iOS autoplay policy; tap the card once to unlock):", rejectionError?.message || rejectionError);
+                fireNotify("audio_fail");
+              }, 1500);
+            });
+          }
         } else {
           this._stopAudioForTimer(timerId);
         }
       };
-      const audioData = { audio, playNext };
+      const onError = () => {
+        // Audio element 'error' fires for various reasons (src reset, network blip,
+        // decoder transient). The authoritative signal for "alarm did not play" is
+        // the rejected play() promise handled above, so do NOT fire notify from here.
+        this._stopAudioForTimer(timerId);
+      };
+      const audioData = { audio, playNext, onError };
       audio.addEventListener("ended", playNext);
-      audio.addEventListener("error", () => this._stopAudioForTimer(timerId));
+      audio.addEventListener("error", onError);
       this._activeAudioInstances.set(timerId, audioData);
       playNext();
-    } catch (e) {}
+      }).catch(() => { /* unlock promise should never reject visibly */ });
+    } catch (e) {
+      fireNotify("audio_fail");
+    }
   }
 
   _stopAudioForTimer(timerId) {
     const audioData = this._activeAudioInstances.get(timerId);
     if (audioData) {
-      const { audio, playNext } = audioData;
-      audio.removeEventListener("ended", playNext);
-      audio.pause();
-      audio.currentTime = 0;
-      audio.src = "";
+      const { audio, playNext, onError } = audioData;
+      try { audio.removeEventListener("ended", playNext); } catch (_) {}
+      try { if (onError) audio.removeEventListener("error", onError); } catch (_) {}
+      try { audio.pause(); audio.currentTime = 0; } catch (_) {}
       this._activeAudioInstances.delete(timerId);
     }
   }
@@ -3948,6 +4078,7 @@ class SimpleTimerCardEditor extends i$1 {
       presets: false,
       pinned: false,
       audio: false,
+      notify: false,
       storage: false,
     };
     this._showAdvanced = false;
@@ -4018,7 +4149,7 @@ class SimpleTimerCardEditor extends i$1 {
       this._expandedSections = {
         appearance: true, entities: true,
         sorting: false, timeFormat: false, defaults: false,
-        presets: false, pinned: false, audio: false, storage: false,
+        presets: false, pinned: false, audio: false, notify: false, storage: false,
       };
     }
     this.requestUpdate();
@@ -4076,6 +4207,59 @@ class SimpleTimerCardEditor extends i$1 {
     const key = target.configValue ?? target.dataset?.configValue ?? target.getAttribute?.("configValue");
     if (!key) return;
     this._updateConfig({ [key]: ev.detail.value });
+  }
+
+  _notifyValueChanged(ev) {
+    if (!this._config || !this.hass) return;
+    const target = ev.target;
+    const key = target.configValue ?? target.dataset?.configValue ?? target.getAttribute?.("configValue");
+    if (!key) return;
+    const isSelect = target.tagName && target.tagName.toLowerCase() === "ha-select";
+    let value;
+    if (isSelect) {
+      if (ev.stopPropagation) ev.stopPropagation();
+      value = ev?.detail?.value;
+      if ((value === undefined || value === null) && ev?.detail && typeof ev.detail.index === "number" && Array.isArray(target?.options)) {
+        value = target.options[ev.detail.index]?.value;
+      }
+      if (value === undefined || value === null) value = target.value;
+      if (typeof value !== "string") return;
+    } else {
+      value = target.checked !== undefined ? target.checked : target.value;
+    }
+    const notify = { ...(this._config.notify || {}) };
+    if (value === "" || value == null) delete notify[key];
+    else notify[key] = value;
+    if (!notify.service) {
+      const next = { ...this._config };
+      delete next.notify;
+      this._config = next;
+      this._emitChange();
+      this.requestUpdate();
+      return;
+    }
+    this._updateConfig({ notify });
+    this.requestUpdate();
+  }
+
+  _notifyCriticalChanged(ev) {
+    if (!this._config || !this.hass) return;
+    const isOn = !!ev.target.checked;
+    const notify = { ...(this._config.notify || {}) };
+    if (!notify.service) return;
+    const data = { ...(notify.data || {}) };
+    const push = { ...(data.push || {}) };
+    if (isOn) {
+      push.sound = { name: "default", critical: 1, volume: 1.0 };
+    } else if (push.sound && typeof push.sound === "object" && push.sound.critical === 1) {
+      delete push.sound;
+    }
+    if (Object.keys(push).length === 0) delete data.push;
+    else data.push = push;
+    if (Object.keys(data).length === 0) delete notify.data;
+    else notify.data = data;
+    this._updateConfig({ notify });
+    this.requestUpdate();
   }
 
   _selectChanged(ev) {
@@ -4336,6 +4520,10 @@ _pinnedTimerValueChanged(ev, index) {
 
     if (cleaned.mqtt && typeof cleaned.mqtt === "object") {
       if (Object.keys(cleaned.mqtt).length === 0) delete cleaned.mqtt;
+    }
+
+    if (cleaned.notify && typeof cleaned.notify === "object" && !cleaned.notify.service) {
+      delete cleaned.notify;
     }
 
     return cleaned;
@@ -4783,6 +4971,62 @@ _pinnedTimerValueChanged(ev, index) {
       ` : ""}
     `;
 
+    const notifyServices = Object.keys(this.hass?.services?.notify || {})
+      .map((s) => "notify." + s)
+      .sort();
+    const notifyServiceOptions = [
+      { value: "", label: "(none)" },
+      ...notifyServices.map((s) => ({ value: s, label: s })),
+    ];
+    const notifyWhenOptions = [
+      { value: "on_audio_fail", label: "Only when audio fails (recommended)" },
+      { value: "always", label: "Always (alongside in-page audio)" },
+    ];
+    const nConf = this._config.notify || {};
+    const criticalOn = !!(nConf?.data?.push?.sound &&
+      typeof nConf.data.push.sound === "object" &&
+      nConf.data.push.sound.critical === 1);
+    const notifyContent = b`
+      <p class="hint">Optional push-notification fallback. Fires any HA <code>notify.*</code> service when a timer ends. Useful when in-page audio is blocked (locked screen, backgrounded tab, cold-loaded dashboard on iOS).</p>
+
+      <ha-select
+        label="Notify service"
+        naturalMenuWidth
+        fixedMenuPosition
+        .value=${nConf.service || ""}
+        .configValue=${"service"}
+        .options=${notifyServiceOptions}
+        @selected=${this._notifyValueChanged}
+        @closed=${(e) => e.stopPropagation()}
+      ></ha-select>
+
+      ${nConf.service ? b`
+        <ha-select
+          label="When to fire"
+          naturalMenuWidth
+          fixedMenuPosition
+          .value=${nConf.when || "on_audio_fail"}
+          .configValue=${"when"}
+          .options=${notifyWhenOptions}
+          @selected=${this._notifyValueChanged}
+          @closed=${(e) => e.stopPropagation()}
+        ></ha-select>
+
+        ${this._tf({ label: "Message", helper: "Placeholders: {name}, {entity_id}, {duration}. Defaults to 'Timer {name} finished'.", value: nConf.message, configValue: "message", placeholder: "Timer {name} finished", change: this._notifyValueChanged })}
+        ${this._tf({ label: "Title", helper: "Optional title shown above the message.", value: nConf.title, configValue: "title", change: this._notifyValueChanged })}
+
+        <label class="toggle-row">
+          <ha-switch .checked=${criticalOn} @change=${this._notifyCriticalChanged}></ha-switch>
+          <div class="toggle-text">
+            <span class="toggle-title">iOS critical alert</span>
+            <span class="toggle-desc">Plays the alert even when the device is in Focus/Silent mode. iPhone/iPad only; requires the HA Companion app to have critical-alerts permission granted.</span>
+          </div>
+        </label>
+
+        <p class="hint advanced">For custom sounds, Android channels, or other push payload fields, edit <code>notify.data:</code> directly in YAML. See <a href="https://github.com/eyalgal/simple-timer-card/blob/main/CONFIGURATION.md#-push-notification-fallback" target="_blank" rel="noopener">CONFIGURATION.md</a>.</p>
+      ` : ""}
+    `;
+
     const storageContent = b`
       <ha-entity-picker
         .hass=${this.hass}
@@ -5030,6 +5274,7 @@ _pinnedTimerValueChanged(ev, index) {
         ${panel("presets", "Quick-start presets", "mdi:flash-outline", presetsContent)}
         ${panel("pinned", "Pinned timers", "mdi:pin-outline", pinnedContent)}
         ${panel("audio", "Audio notifications", "mdi:volume-high", audioContent)}
+        ${panel("notify", "Push notification fallback", "mdi:bell-ring-outline", notifyContent)}
         ${panel("storage", "Storage & integrations", "mdi:database-outline", storageContent)}
         ${panel("actions", "Actions", "mdi:gesture-tap", actionsContent, { advanced: true })}
       </div>

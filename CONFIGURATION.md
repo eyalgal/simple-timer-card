@@ -26,11 +26,12 @@ That gives you a working card that auto-detects every supported timer in your Ho
 8. [Pinned timers](#-pinned-timers)
 9. [Tap, hold & double-tap actions](#ï¸-tap-hold--double-tap-actions)
 10. [Audio notifications](#-audio-notifications)
-11. [Storage & persistence](#-storage--persistence)
-12. [Voice PE integration](#-voice-pe-integration)
-13. [Compatibility mode](#-compatibility-mode)
-14. [Language support](#-language-support)
-15. [Examples & help](#-examples--help)
+11. [Push notification fallback](#-push-notification-fallback)
+12. [Storage & persistence](#-storage--persistence)
+13. [Voice PE integration](#-voice-pe-integration)
+14. [Compatibility mode](#-compatibility-mode)
+15. [Language support](#-language-support)
+16. [Examples & help](#-examples--help)
 
 ---
 
@@ -339,7 +340,41 @@ audio_play_until_dismissed: false
 | `audio_repeat_count`         | number  | `1`     | How many times to play                                                                   |
 | `audio_play_until_dismissed` | boolean | `false` | Keep playing until the user dismisses or snoozes the timer (overrides `audio_repeat_count`) |
 
-> 📱 **iOS / iPad:** Safari and the Home Assistant Companion App's iPad webview block audio from playing unless the page has received a user tap during the current session. The card primes audio on the first tap anywhere on the card, so for normal use (you tap a preset or start a timer manually) alarms work. The first alarm of a fresh page load that is triggered entirely by voice or an automation, with no prior tap, will be silent — tap the card once after loading the dashboard to enable sound for the rest of the session. A locked screen or fully backgrounded tab also blocks audio, which is a hard iOS limitation.
+> 📱 **iOS / iPad:** Safari and the Home Assistant Companion App's iPad webview block audio from playing unless the page has received a user tap during the current session. The card primes audio on the first tap anywhere on the card, so for normal use (you tap a preset or start a timer manually) alarms work. The first alarm of a fresh page load that is triggered entirely by voice or an automation, with no prior tap, will be silent: tap the card once after loading the dashboard to enable sound for the rest of the session. A locked screen or fully backgrounded tab also blocks audio, which is a hard iOS limitation. To cover the hands-off case, see [Push notification fallback](#-push-notification-fallback) below.
+
+---
+
+## 📲 Push notification fallback
+
+When a timer ends, the card can also fire a Home Assistant `notify` service call. This is useful on iPad and iPhone, where the in-page audio cannot play if the dashboard has not received a user tap during the current page session (a locked screen, a fully backgrounded tab, or a cold-loaded dashboard with a voice-triggered timer all fall into this case). A push notification goes through iOS / Android system channels and is not subject to the browser autoplay policy, so it will ring even when in-page audio cannot.
+
+```yaml
+notify:
+  service: notify.mobile_app_kitchen_ipad   # any notify.* service
+  message: "{name} timer is done"
+  title: "Kitchen timer"
+  when: on_audio_fail                       # on_audio_fail (default) | always
+  data:                                     # passed through to the notify service
+    push:
+      sound: chime.caf
+      interruption-level: time-sensitive
+```
+
+| Name      | Type   | Default          | Description                                                                                                                                                                  |
+| --------- | ------ | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `service` | string | _(required)_     | A Home Assistant notify service in `domain.service` form (for example `notify.mobile_app_kitchen_ipad`, `notify.alexa_media`, `notify.persistent_notification`).              |
+| `message` | string | `Timer {name} finished` | Notification body. Supports placeholders `{name}`, `{entity_id}`, `{duration}`.                                                                                          |
+| `title`   | string | _(none)_         | Notification title. Same placeholders as `message`.                                                                                                                          |
+| `when`    | string | `on_audio_fail`  | `on_audio_fail` fires the notification only when the browser rejects `audio.play()` (the iOS hands-off case). `always` fires it on every timer end alongside the in-page audio. |
+| `data`    | object | `{}`             | Raw object merged into the notify service call. Use it for platform-specific fields like `push.sound`, `interruption-level`, `tag`, or Android `channel`.                    |
+
+**Common patterns:**
+
+- **iPad on the kitchen wall**: `service: notify.mobile_app_kitchen_ipad`, `when: on_audio_fail`. The iPad rings via in-page audio when you are tapping the dashboard, and via push when a timer was started hands-off.
+- **Always also ring a phone**: `service: notify.mobile_app_yourphone`, `when: always`. Phone rings on every timer end regardless of where you are.
+- **Persistent notification banner only**: `service: notify.persistent_notification`. No sound, just a banner in HA.
+
+**What it cannot do:** play a custom sound from the card's `audio_file_url` through the notification. The notification's sound is whatever the target platform plays (configured via `data.push.sound` on iOS, or the Companion App's notification channel on Android).
 
 ---
 

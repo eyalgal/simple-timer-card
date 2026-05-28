@@ -36,6 +36,7 @@ No dashboards clutter. No duplicated cards. Just timers.
 * **Custom interactions**: Standard `tap_action`, `hold_action`, and `double_tap_action` at card and row level
 * **Persistent storage**: Local or MQTT based, survives reloads and syncs across devices
 * **Audio & expiry actions**: Optional sounds, snooze, auto dismiss, and expiry behavior
+* **Push notification fallback**: Optional `notify` service call on timer end, so iOS / Android devices ring even when the in-page audio cannot
 * **Theme aware**: Automatically matches your Home Assistant theme
 * **🌍 Multi-language support**: English, German, Spanish, Danish, Italian, French, Hebrew (RTL), Polish, and Dutch
 * **[Spook](https://spook.boo/) fallback**: Automatically falls back to Spook's `timer.set_duration` for non-admin users
