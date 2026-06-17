@@ -336,7 +336,9 @@ entities:
 buttons:
   - action: finish            # shorthand preset
   - action: add               # add time to the running timer
-    amount: 5m                # e.g. 5m, 30s, 1h
+    amount: 5m                # required, e.g. 5m, 30s, 1h
+  - action: reduce            # subtract time from the running timer
+    amount: 30s               # required, e.g. 5m, 30s, 1h
   - action: restart           # restart from the original duration
 ```
 
@@ -345,7 +347,7 @@ Each button supports:
 | Name        | Type            | Default              | Description                                                                                 |
 | ----------- | --------------- | -------------------- | ------------------------------------------------------------------------------------------- |
 | `action`    | string\|object  | **required**         | A shorthand preset string, or a full Home Assistant `ActionConfig` object                   |
-| `amount`    | string          | `5m`                 | Only for `action: add`. How much time to add, e.g. `5m`, `30s`, `1h`                        |
+| `amount`    | string          | **required** for `add` / `reduce` | How much time to add or subtract, e.g. `5m`, `30s`, `1h`                       |
 | `icon`      | string          | preset icon          | Button icon. Optional when `action` is a preset string, required for custom actions         |
 | `name`      | string          | `""`                 | Tooltip text                                                                                 |
 | `color`     | string          | inherit              | Icon color (any CSS color or HA theme variable)                                             |
@@ -358,7 +360,8 @@ Use a string for `action` to call a built-in handler. The icon is supplied autom
 | Preset    | Does                                                                  |
 | --------- | -------------------------------------------------------------------- |
 | `finish`  | Completes the timer now (native `timer.finish`, fires the ring/event) |
-| `add`     | Adds `amount` (default `5m`) to the running or paused timer           |
+| `add`     | Adds `amount` to the running or paused timer (`amount` required)      |
+| `reduce`  | Subtracts `amount` from the running or paused timer (`amount` required) |
 | `restart` | Restarts the timer from its original duration                        |
 | `pause`   | Toggles pause / resume (handy in the `circle` layout)                |
 

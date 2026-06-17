@@ -3540,6 +3540,7 @@ class SimpleTimerCard extends LitElement {
     switch (action) {
       case "finish": return "mdi:flag-checkered";
       case "add": return "mdi:plus";
+      case "reduce": return "mdi:minus";
       case "restart": return "mdi:restart";
       case "cancel": return "mdi:close";
       case "pause": return "mdi:pause";
@@ -3597,8 +3598,12 @@ class SimpleTimerCard extends LitElement {
       switch (action) {
         case "finish": return this._handleFinish(t);
         case "add": {
-          const amt = (btn.amount != null && btn.amount !== "") ? btn.amount : "5m";
-          return this._handleAddTime(t, this._parseAdjustmentToSeconds(amt));
+          if (btn.amount == null || btn.amount === "") { this._toast("This button needs an amount of time to add."); return; }
+          return this._handleAddTime(t, this._parseAdjustmentToSeconds(btn.amount));
+        }
+        case "reduce": {
+          if (btn.amount == null || btn.amount === "") { this._toast("This button needs an amount of time to reduce."); return; }
+          return this._handleAddTime(t, -this._parseAdjustmentToSeconds(btn.amount));
         }
         case "restart": return this._handleRestart(t);
         case "cancel": return this._handleCancel(t);
@@ -4564,6 +4569,7 @@ _pinnedTimerValueChanged(ev, index) {
     const presetOptions = [
       { value: "finish", label: "Finish" },
       { value: "add", label: "Add time" },
+      { value: "reduce", label: "Reduce time" },
       { value: "restart", label: "Restart" },
       { value: "pause", label: "Pause / resume" },
       { value: "__custom", label: "Custom action…" },
@@ -4588,9 +4594,9 @@ _pinnedTimerValueChanged(ev, index) {
                   <ha-icon icon="mdi:delete"></ha-icon>
                 </button>
               </div>
-              ${actionType === "add" ? html`
-                <ha-textfield class="button-amount" label="Amount" placeholder="5m"
-                  helper="e.g. 5m, 30s, 1h" helperPersistent
+              ${(actionType === "add" || actionType === "reduce") ? html`
+                <ha-textfield class="button-amount" label="Amount" placeholder="5m" required
+                  helper="Required. e.g. 5m, 30s, 1h" helperPersistent
                   .value=${b?.amount ?? ""}
                   @input=${(e) => this._buttonFieldChanged(e, list, i, "amount", onChange)}></ha-textfield>
               ` : ""}
@@ -4648,7 +4654,7 @@ _pinnedTimerValueChanged(ev, index) {
     } else {
       next[i].action = v;
     }
-    if (v !== "add" && next[i].amount !== undefined) delete next[i].amount;
+    if (v !== "add" && v !== "reduce" && next[i].amount !== undefined) delete next[i].amount;
     onChange(next);
   }
 
