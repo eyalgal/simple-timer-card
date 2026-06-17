@@ -13,7 +13,7 @@ import { html, LitElement, css } from "lit";
 import { html as shtml, literal } from "lit/static-html.js";
 import { ifDefined } from "lit/directives/if-defined.js";
 
-const cardVersion="2.8.0";
+const cardVersion="2.7.0";
 
 const DAY_IN_MS = 86400000;
 const YEAR_IN_MS = 365 * DAY_IN_MS;
@@ -2767,9 +2767,16 @@ class SimpleTimerCard extends LitElement {
     const deltaMs = Math.round(Number(deltaSeconds) * 1000);
     if (!Number.isFinite(deltaMs) || deltaMs === 0) return;
     const curRemaining = Math.max(0, Number(t.remaining_ms) || 0);
-    const newRemaining = Math.max(0, curRemaining + deltaMs);
-    const newDuration = Math.max(0, (Number(t.duration) || 0) + deltaMs);
+    const newRemaining = curRemaining + deltaMs;
     const now = Date.now();
+
+    // Reducing past the time left finishes the timer.
+    if (newRemaining <= 0) {
+      this._handleFinish(t);
+      return;
+    }
+
+    const newDuration = Math.max(0, (Number(t.duration) || 0) + deltaMs);
     if (t.source === "helper") {
       this._mutateHelper(t.source_entity, (data) => {
         const idx = data.timers.findIndex((x) => x.id === t.id);
@@ -2786,7 +2793,18 @@ class SimpleTimerCard extends LitElement {
       this._updateTimerInStorage(t.id, updates, t.source);
       this.requestUpdate();
     } else if (t.source === "timer") {
-      this.hass.callService("timer", "change", { entity_id: t.source_entity, duration: Math.round(deltaMs / 1000) });
+      // timer.change caps the remaining at the timer's configured duration, so
+      // adding above it does nothing. When the new remaining would exceed the
+      // configured duration, start the timer with the new value instead. That
+      // runs this one session at the larger value without saving it as the
+      // helper's default duration.
+      const configuredMs = Math.max(0, Number(t.duration) || 0);
+      if (newRemaining > configuredMs) {
+        const serviceDuration = this._formatDurationForService(Math.round(newRemaining / 1000));
+        this.hass.callService("timer", "start", { entity_id: t.source_entity, duration: serviceDuration });
+      } else {
+        this.hass.callService("timer", "change", { entity_id: t.source_entity, duration: Math.round(deltaMs / 1000) });
+      }
     } else {
       this._toast("Time can only be added to helper, local, MQTT, and timer entities.");
     }
@@ -3500,7 +3518,7 @@ class SimpleTimerCard extends LitElement {
     }
   }
 
-  // === Custom action buttons (v2.8.0) ===
+  // === Custom action buttons (v2.7.0) ===
   // Opt-in extra buttons rendered alongside the built-in start/pause/cancel
   // controls. Configured via `buttons:` at card level and/or per entity
   // (entity overrides card, matching the tap_action resolution model).
@@ -4563,7 +4581,7 @@ _pinnedTimerValueChanged(ev, index) {
   this._emitChange();
 }
 
-  // === Custom action buttons editor (v2.8.0) ===
+  // === Custom action buttons editor (v2.7.0) ===
 
   // Which preset actions actually work for a given entity mode. Returns a Set of
   // supported preset values, or null when the mode is unknown / not entity-scoped
