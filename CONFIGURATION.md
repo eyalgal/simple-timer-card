@@ -373,6 +373,8 @@ For anything else, pass a full Home Assistant `ActionConfig` (`perform-action` /
 
 Buttons sit at the leftmost edge of the controls, before the start / pause control, in the bar and fill styles. In the `circle` style they appear as a small floating button in the corner opposite the cancel X, so the tile keeps its height.
 
+> A pinned timer's buttons appear once it is started (its default `show_when` is running + paused, so the idle tile in the tray shows only the start control). The buttons carry over to the live timer it creates.
+
 ---
 
 ## 🔊 Audio notifications

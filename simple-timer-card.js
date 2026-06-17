@@ -2189,6 +2189,7 @@ class SimpleTimerCard extends i$1 {
 
       pinned_id: overrides.pinned_id,
       expired_subtitle: overrides.expired_subtitle ?? this._config.expired_subtitle,
+      ...(Array.isArray(overrides.buttons) && overrides.buttons.length ? { buttons: overrides.buttons } : {}),
       ...(overrides.audio_enabled !== undefined ? { audio_enabled: overrides.audio_enabled } : {}),
       ...(overrides.audio_file_url !== undefined ? { audio_file_url: overrides.audio_file_url } : {}),
       ...(overrides.audio_repeat_count !== undefined ? { audio_repeat_count: overrides.audio_repeat_count } : {}),
@@ -2366,6 +2367,7 @@ class SimpleTimerCard extends i$1 {
             expired_subtitle: timer.expired_subtitle,
             pinned_id: timer.pinned_id || timer.id,
           };
+          if (Array.isArray(timer.buttons) && timer.buttons.length) overrides.buttons = timer.buttons;
           if (timer.audio_enabled === true || timer.audio_enabled === false) overrides.audio_enabled = timer.audio_enabled;
           if (timer.audio_file_url) overrides.audio_file_url = timer.audio_file_url;
           if (timer.audio_repeat_count !== undefined) overrides.audio_repeat_count = timer.audio_repeat_count;
@@ -4163,7 +4165,7 @@ const layout = this._config.layout;
       .vtile-actions { position: absolute; top: 4px; inset-inline-start: 4px; display: flex; flex-direction: column; gap: 2px; z-index: 3; }
       .vtile-action { border: 0; background: none; padding: 4px; border-radius: 50%; color: var(--secondary-text-color); cursor: pointer; transition: all 0.2s; }
       .vtile-action:hover { background: color-mix(in srgb, var(--tcolor, var(--primary-color)) 12%, transparent); }
-      .item .custom-action-btn:hover, .vactions .custom-action-btn:hover, .vprogressbar .custom-action-btn:hover { background: color-mix(in srgb, var(--tcolor, var(--primary-color)) 12%, transparent); }
+      .item .action-btn:hover, .vactions .action-btn:hover, .vprogressbar .action-btn:hover { background: color-mix(in srgb, var(--tcolor, var(--primary-color)) 12%, transparent); }
       .icon-wrap.large { width: 36px; height: 36px; flex: 0 0 36px; border-radius: var(--ha-card-border-radius, 50%); background: color-mix(in srgb, var(--tcolor, var(--primary-color)) 18%, var(--ha-card-background, var(--card-background-color))); display: flex; align-items: center; justify-content: center; }
       .vtitle { font-size: 14px; font-weight: 600; line-height: 16px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0; }
       .vstatus { font-size: 12px; color: var(--secondary-text-color); line-height: 14px; font-variant-numeric: tabular-nums; margin: 0; margin-bottom: 2px; }
@@ -5422,6 +5424,9 @@ _pinnedTimerValueChanged(ev, index) {
 
                   ${this._tf({ label: "Expired message override", value: conf.expired_subtitle, configValue: "expired_subtitle", change: (e) => this._entityValueChanged(e, index) })}
 
+                  <div class="row-actions-label">Custom action buttons (override card-level)</div>
+                  ${this._renderButtonsEditor(conf.buttons, (next) => this._setEntityButtons(index, next))}
+
                   <ha-formfield label="Enable entity-specific audio">
                     <ha-switch .checked=${conf.audio_enabled === true} .configValue=${"audio_enabled"} @change=${(e) => this._entityValueChanged(e, index)}></ha-switch>
                   </ha-formfield>
@@ -5469,8 +5474,6 @@ _pinnedTimerValueChanged(ev, index) {
                       .configValue=${"double_tap_action"}
                       @value-changed=${(e) => this._entityValueChanged(e, index)}
                     ></ha-selector>
-                    <div class="row-actions-label">Custom action buttons (override card-level)</div>
-                    ${this._renderButtonsEditor(conf.buttons, (next) => this._setEntityButtons(index, next))}
                   </div>
 
                 </div>
