@@ -4564,29 +4564,68 @@ _pinnedTimerValueChanged(ev, index) {
 }
 
   // === Custom action buttons editor (v2.8.0) ===
-  _renderButtonsEditor(buttons, onChange) {
+
+  // Which preset actions actually work for a given entity mode. Returns a Set of
+  // supported preset values, or null when the mode is unknown / not entity-scoped
+  // (card-level list applies to every row, so we can't narrow it). Custom actions
+  // are always allowed since they call arbitrary HA services.
+  _supportedButtonPresets(mode) {
+    if (!mode || mode === "auto") return null;
+    switch (mode) {
+      case "timer":
+      case "helper":
+      case "local":
+      case "mqtt":
+        return new Set(["finish", "add", "reduce", "restart", "pause"]);
+      case "voice_pe":
+        // Voice PE can finish/pause/resume but has no notion of changing duration.
+        return new Set(["finish", "pause"]);
+      case "alexa":
+      case "timestamp":
+      case "minutes_attr":
+      default:
+        // Read-only or externally-owned timers: presets would under-deliver, so
+        // only custom on-screen actions are offered.
+        return new Set();
+    }
+  }
+
+  _renderButtonsEditor(buttons, onChange, mode) {
     const list = Array.isArray(buttons) ? buttons : [];
-    const presetOptions = [
+    const allPresets = [
       { value: "finish", label: "Finish" },
       { value: "add", label: "Add time" },
       { value: "reduce", label: "Reduce time" },
       { value: "restart", label: "Restart" },
       { value: "pause", label: "Pause / resume" },
+    ];
+    const supported = this._supportedButtonPresets(mode);
+    const presetOptions = [
+      ...allPresets.filter((o) => supported === null || supported.has(o.value)),
       { value: "__custom", label: "Custom action…" },
     ];
+    const presetsHidden = supported !== null && presetOptions.length < allPresets.length + 1;
     return html`
       <div class="buttons-editor">
+        ${presetsHidden && presetOptions.length === 1 ? html`
+          <div class="helper-text">This entity type only supports custom on-screen actions.</div>
+        ` : ""}
         ${list.map((b, i) => {
           const isPreset = typeof b?.action === "string";
           const actionType = isPreset ? b.action : "__custom";
+          // Keep an existing (possibly now-unsupported) action visible so the user
+          // can see and change it instead of it silently vanishing.
+          const rowOptions = (actionType === "__custom" || presetOptions.some((o) => o.value === actionType))
+            ? presetOptions
+            : [...presetOptions, { value: actionType, label: `${actionType} (unsupported here)` }];
           return html`
             <div class="button-row">
               <div class="row" style="align-items:flex-start;">
                 <ha-select label="Action" naturalMenuWidth fixedMenuPosition
-                  .value=${actionType} .options=${presetOptions}
+                  .value=${actionType} .options=${rowOptions}
                   @selected=${(e) => { e.stopPropagation(); this._buttonActionTypeChanged(e, list, i, onChange); }}
                   @closed=${(e) => e.stopPropagation()}>
-                  ${presetOptions.map((o) => html`<mwc-list-item value=${o.value}>${o.label}</mwc-list-item>`)}
+                  ${rowOptions.map((o) => html`<mwc-list-item value=${o.value}>${o.label}</mwc-list-item>`)}
                 </ha-select>
                 <ha-icon-picker label="Icon (optional)" .value=${b?.icon || ""}
                   @value-changed=${(e) => this._buttonFieldChanged(e, list, i, "icon", onChange)}></ha-icon-picker>
@@ -4594,12 +4633,7 @@ _pinnedTimerValueChanged(ev, index) {
                   <ha-icon icon="mdi:delete"></ha-icon>
                 </button>
               </div>
-              ${(actionType === "add" || actionType === "reduce") ? html`
-                <ha-textfield class="button-amount" label="Amount" placeholder="5m" required
-                  helper="Required. e.g. 5m, 30s, 1h" helperPersistent
-                  .value=${b?.amount ?? ""}
-                  @input=${(e) => this._buttonFieldChanged(e, list, i, "amount", onChange)}></ha-textfield>
-              ` : ""}
+              ${(actionType === "add" || actionType === "reduce") ? this._renderButtonAmountField(b, list, i, onChange) : ""}
               ${actionType === "__custom" ? html`
                 <ha-selector .hass=${this.hass} .label=${"Custom action"}
                   .selector=${{ ui_action: { default_action: "more-info" } }}
@@ -4609,12 +4643,28 @@ _pinnedTimerValueChanged(ev, index) {
             </div>
           `;
         })}
-        <button class="add-button" @click=${() => this._addButton(list, onChange)}>
+        <button class="add-button" @click=${() => this._addButton(list, onChange, presetOptions)}>
           <ha-icon icon="mdi:plus"></ha-icon>
           <span>Add button</span>
         </button>
       </div>
     `;
+  }
+
+  // Amount input for add/reduce. Uses the same dynamic ha-input (HA 2026.4+) /
+  // ha-textfield (older HA) tag selection as the rest of the editor.
+  _renderButtonAmountField(b, list, i, onChange) {
+    const tag = this._tfTag;
+    return shtml`<${tag}
+        class="button-amount"
+        label="Amount"
+        placeholder="5m"
+        required
+        helper="Required. e.g. 5m, 30s, 1h"
+        .value=${b?.amount ?? ""}
+        @input=${(e) => this._buttonFieldChanged(e, list, i, "amount", onChange)}
+        @change=${(e) => this._buttonFieldChanged(e, list, i, "amount", onChange)}
+      ></${tag}>`;
   }
 
   _resolveSelectValue(e) {
@@ -4627,8 +4677,14 @@ _pinnedTimerValueChanged(ev, index) {
     return v;
   }
 
-  _addButton(list, onChange) {
-    onChange([...(Array.isArray(list) ? list : []), { action: "finish" }]);
+  _addButton(list, onChange, presetOptions) {
+    // Default to the first supported preset for this entity, falling back to a
+    // custom action when no preset applies (e.g. read-only / Alexa timers).
+    const firstPreset = Array.isArray(presetOptions)
+      ? presetOptions.find((o) => o.value !== "__custom")
+      : null;
+    const def = firstPreset ? { action: firstPreset.value } : { action: { action: "more-info" } };
+    onChange([...(Array.isArray(list) ? list : []), def]);
   }
 
   _removeButton(list, i, onChange) {
@@ -5474,7 +5530,11 @@ _pinnedTimerValueChanged(ev, index) {
                   ${this._tf({ label: "Expired message override", value: conf.expired_subtitle, configValue: "expired_subtitle", change: (e) => this._entityValueChanged(e, index) })}
 
                   <div class="row-actions-label">Custom action buttons (override card-level)</div>
-                  ${this._renderButtonsEditor(conf.buttons, (next) => this._setEntityButtons(index, next))}
+                  ${this._renderButtonsEditor(
+                    conf.buttons,
+                    (next) => this._setEntityButtons(index, next),
+                    (conf.mode && conf.mode !== "auto") ? conf.mode : ((detectedMode && detectedMode !== "unknown") ? detectedMode : null)
+                  )}
 
                   <ha-formfield label="Enable entity-specific audio">
                     <ha-switch .checked=${conf.audio_enabled === true} .configValue=${"audio_enabled"} @change=${(e) => this._entityValueChanged(e, index)}></ha-switch>

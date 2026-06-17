@@ -369,6 +369,10 @@ Use a string for `action` to call a built-in handler. The icon is supplied autom
 
 For anything else, pass a full Home Assistant `ActionConfig` (`perform-action` / `call-service`, `more-info`, `navigate`, `url`, `toggle`). When a `perform-action` has no `target` or `data.entity_id`, the timer's own entity is used as the target, so `timer.change`, `timer.finish`, etc. apply to the right timer automatically.
 
+### Preset availability
+
+Presets are control actions, so they only work for timers the card can drive: `timer` entities, `input_text` / `text` helpers, and local / MQTT timers (plus `finish` and `pause` for Voice PE). Read-only or externally-owned timers such as Alexa or timestamp sensors can't be finished, restarted, or have their time changed from the card. In the visual editor the per-entity action list automatically hides presets the selected entity can't perform and offers only custom on-screen actions for those types, so you never wire up a button that would silently under-deliver. (The card-level list applies to every row, so it keeps the full preset list.)
+
 ### Placement
 
 Buttons sit at the leftmost edge of the controls, before the start / pause control, in the bar and fill styles. In the `circle` style they appear as a small floating button in the corner opposite the cancel X, so the tile keeps its height.
