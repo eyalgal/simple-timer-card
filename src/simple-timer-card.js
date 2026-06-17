@@ -13,7 +13,7 @@ import { html, LitElement, css } from "lit";
 import { html as shtml, literal } from "lit/static-html.js";
 import { ifDefined } from "lit/directives/if-defined.js";
 
-const cardVersion="2.7.0";
+const cardVersion="2.8.0";
 
 const DAY_IN_MS = 86400000;
 const YEAR_IN_MS = 365 * DAY_IN_MS;
@@ -3362,6 +3362,7 @@ class SimpleTimerCard extends LitElement {
                   <ha-icon icon=${t.paused ? "mdi:play" : "mdi:pause"}></ha-icon>
                 </button>
               ` : ""}
+              ${this._renderCustomActionButtons(t, state)}
               ${supportsManualControls && !isIdle ? html`<button class="action-btn" title="${this._localize("cancel")}" @click=${() => this._handleCancel(t)}><ha-icon icon="mdi:close"></ha-icon></button>` : ""}
             </div>
           </div>
@@ -3376,6 +3377,7 @@ class SimpleTimerCard extends LitElement {
               <ha-icon icon="mdi:close"></ha-icon>
             </button>
           ` : ""}
+          ${this._renderCircleCustomButtons(t, state)}
           <div class="vcol">
             <div class="vcircle-wrap"
                  title="${isIdle ? "Start" : (t.paused ? "Resume" : "Pause")}"
@@ -3421,11 +3423,149 @@ class SimpleTimerCard extends LitElement {
                   <ha-icon icon=${t.paused ? "mdi:play" : "mdi:pause"}></ha-icon>
                 </button>
               ` : ""}
+              ${this._renderCustomActionButtons(t, state)}
               ${supportsManualControls && !isIdle ? html`<button class="action-btn" title="${this._localize("cancel")}" @click=${() => this._handleCancel(t)}><ha-icon icon="mdi:close"></ha-icon></button>` : ""}
             </div>
           </div>
         </li>
       `;
+    }
+  }
+
+  // === Custom action buttons (v2.8.0) ===
+  // Opt-in extra buttons rendered alongside the built-in start/pause/cancel
+  // controls. Configured via `buttons:` at card level and/or per entity
+  // (entity overrides card, matching the tap_action resolution model).
+  _getCustomButtons(t) {
+    if (!t) return [];
+    const rowConf = this._getEntityConfig(t.source_entity) || {};
+    const raw = Array.isArray(rowConf.buttons)
+      ? rowConf.buttons
+      : (Array.isArray(this._config.buttons) ? this._config.buttons : null);
+    if (!raw || !raw.length) return [];
+    return raw.map((b) => this._normalizeCustomButton(b)).filter(Boolean);
+  }
+
+  _normalizeCustomButton(b) {
+    if (!b || typeof b !== "object") return null;
+    const action = b.action;
+    const icon = b.icon || this._customButtonPresetIcon(action);
+    if (!icon) return null;
+    let states = b.show_when;
+    if (typeof states === "string") states = states.split(",").map((s) => s.trim());
+    if (!Array.isArray(states) || !states.length) states = ["running", "paused"];
+    states = states.map((s) => String(s).toLowerCase());
+    return {
+      icon,
+      name: b.name || "",
+      color: b.color || "",
+      states: new Set(states),
+      action,
+    };
+  }
+
+  _customButtonPresetIcon(action) {
+    if (typeof action !== "string") return "";
+    switch (action) {
+      case "finish": return "mdi:flag-checkered";
+      case "cancel": return "mdi:close";
+      case "pause": return "mdi:pause";
+      case "resume": return "mdi:play";
+      case "snooze": return "mdi:alarm-snooze";
+      case "dismiss": return "mdi:bell-off";
+      default: return "";
+    }
+  }
+
+  _customButtonState(state) {
+    if (state.isIdle) return "idle";
+    if (state.isPaused) return "paused";
+    if (state.isFinished || state.ring) return "finished";
+    return "running";
+  }
+
+  _visibleCustomButtons(t, state) {
+    const cur = this._customButtonState(state);
+    return this._getCustomButtons(t).filter((b) => b.states.has(cur));
+  }
+
+  _renderCustomActionButtons(t, state) {
+    const btns = this._visibleCustomButtons(t, state);
+    if (!btns.length) return "";
+    return btns.map((b) => html`
+      <button class="action-btn custom-action-btn" title="${b.name}"
+        style=${b.color ? `color:${b.color}` : ""}
+        @click=${(e) => this._handleCustomButton(t, b, e)}>
+        <ha-icon icon="${b.icon}"></ha-icon>
+      </button>
+    `);
+  }
+
+  _renderCircleCustomButtons(t, state) {
+    const btns = this._visibleCustomButtons(t, state);
+    if (!btns.length) return "";
+    return html`
+      <div class="vtile-actions">
+        ${btns.map((b) => html`
+          <button class="vtile-action" title="${b.name}"
+            style=${b.color ? `color:${b.color}` : ""}
+            @click=${(e) => this._handleCustomButton(t, b, e)}>
+            <ha-icon icon="${b.icon}"></ha-icon>
+          </button>
+        `)}
+      </div>
+    `;
+  }
+
+  _handleCustomButton(t, btn, e) {
+    if (e && typeof e.stopPropagation === "function") e.stopPropagation();
+    const action = btn.action;
+    if (typeof action === "string") {
+      switch (action) {
+        case "finish": return this._handleFinish(t);
+        case "cancel": return this._handleCancel(t);
+        case "pause": return this._togglePause(t, e);
+        case "resume": return this._handleResume(t);
+        case "snooze": return this._handleSnooze(t);
+        case "dismiss": return this._handleDismiss(t);
+        default: return;
+      }
+    }
+    if (action && typeof action === "object" && action.action) {
+      let resolved = action;
+      if (action.action === "perform-action" || action.action === "call-service") {
+        const hasTarget = action.target && (action.target.entity_id || action.target.area_id || action.target.device_id || action.target.label_id);
+        const hasDataEntity = action.data && action.data.entity_id;
+        if (!hasTarget && !hasDataEntity && t.source_entity) {
+          resolved = { ...action, target: { ...(action.target || {}), entity_id: t.source_entity } };
+        }
+      }
+      this._fireAction(resolved, { cardLevel: false, entityId: t.source_entity, timer: t });
+    }
+  }
+
+  _handleFinish(t) {
+    if (this._isActionThrottled("finish", t.id)) return;
+    this._ringingTimers.delete(t.id);
+    if (t.source === "voice_pe") {
+      if (!this._isLocalVoicePETimer(t)) {
+        this._toast("This timer is read only.");
+        return;
+      }
+      this._publishTimerEvent("finished", t);
+      this._sendVoicePECommand(t.control_entity, `cancel:${String(t.voice_pe_timer_id).trim()}`);
+      return;
+    }
+    this._publishTimerEvent("finished", t);
+    if (t.source === "helper") {
+      this._mutateHelper(t.source_entity, (data) => { data.timers = data.timers.filter((x) => x.id !== t.id); });
+    } else if (["local", "mqtt"].includes(t.source)) {
+      this._removeTimerFromStorage(t.id, t.source);
+      this.requestUpdate();
+    } else if (t.source === "timer") {
+      this.hass.callService("timer", "finish", { entity_id: t.source_entity });
+    } else {
+      this._toast("This timer can't be finished from here.");
     }
   }
 
@@ -3546,6 +3686,7 @@ class SimpleTimerCard extends LitElement {
               <ha-icon icon="mdi:close"></ha-icon>
             </button>
           ` : ""}
+          ${this._renderCircleCustomButtons(t, state)}
           <div class="vcol">
             <div class="vcircle-wrap"
                  title="${isIdle ? "Start" : (t.paused ? "Resume" : "Pause")}"
@@ -3600,6 +3741,7 @@ class SimpleTimerCard extends LitElement {
                   <div class="vfill" style="width:${this._config.progress_mode === "drain" ? pctLeft : pct}%"></div>
                 </div>
               `}
+              ${this._renderCustomActionButtons(t, state)}
               ${supportsManualControls && !isIdle ? html`
                 <button class="action-btn" title="${this._localize("cancel")}" @click=${() => this._handleCancel(t)}>
                   <ha-icon icon="mdi:close"></ha-icon>
@@ -3620,6 +3762,7 @@ class SimpleTimerCard extends LitElement {
                   <ha-icon icon=${t.paused ? "mdi:play" : "mdi:pause"}></ha-icon>
                 </button>
               ` : ""}
+              ${this._renderCustomActionButtons(t, state)}
               ${supportsManualControls && !isIdle ? html`
                 <button class="action-btn" title="${this._localize("cancel")}" @click=${() => this._handleCancel(t)}>
                   <ha-icon icon="mdi:close"></ha-icon>
@@ -3978,6 +4121,10 @@ const layout = this._config.layout;
       .vtile .vcol { z-index: 1; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; }
       .vtile-close { position: absolute; top: 4px; inset-inline-end: 4px; border: 0; background: none; padding: 4px; border-radius: 50%; color: var(--secondary-text-color); cursor: pointer; z-index: 3; }
       .vtile-close:hover { background: color-mix(in srgb, var(--primary-color) 10%, transparent); }
+      .vtile-actions { position: absolute; top: 4px; inset-inline-start: 4px; display: flex; flex-direction: column; gap: 2px; z-index: 3; }
+      .vtile-action { border: 0; background: none; padding: 4px; border-radius: 50%; color: var(--secondary-text-color); cursor: pointer; transition: all 0.2s; }
+      .vtile-action:hover { background: color-mix(in srgb, var(--tcolor, var(--primary-color)) 12%, transparent); }
+      .item .custom-action-btn:hover, .vactions .custom-action-btn:hover, .vprogressbar .custom-action-btn:hover { background: color-mix(in srgb, var(--tcolor, var(--primary-color)) 12%, transparent); }
       .icon-wrap.large { width: 36px; height: 36px; flex: 0 0 36px; border-radius: var(--ha-card-border-radius, 50%); background: color-mix(in srgb, var(--tcolor, var(--primary-color)) 18%, var(--ha-card-background, var(--card-background-color))); display: flex; align-items: center; justify-content: center; }
       .vtitle { font-size: 14px; font-weight: 600; line-height: 16px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0; }
       .vstatus { font-size: 12px; color: var(--secondary-text-color); line-height: 14px; font-variant-numeric: tabular-nums; margin: 0; margin-bottom: 2px; }

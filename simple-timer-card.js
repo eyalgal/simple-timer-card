@@ -16,7 +16,7 @@ const t$1=globalThis,e$2=t$1.ShadowRoot&&(void 0===t$1.ShadyCSS||t$1.ShadyCSS.na
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const t=globalThis,i$2=t=>t,s$1=t.trustedTypes,e=s$1?s$1.createPolicy("lit-html",{createHTML:t=>t}):void 0,h="$lit$",o$3=`lit$${Math.random().toFixed(9).slice(2)}$`,n$1="?"+o$3,r=`<${n$1}>`,l$1=document,c=()=>l$1.createComment(""),a$1=t=>null===t||"object"!=typeof t&&"function"!=typeof t,u$1=Array.isArray,d=t=>u$1(t)||"function"==typeof t?.[Symbol.iterator],f="[ \t\n\f\r]",v=/<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g,_=/-->/g,m=/>/g,p=RegExp(`>|${f}(?:([^\\s"'>=/]+)(${f}*=${f}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`,"g"),g=/'/g,$=/"/g,y=/^(?:script|style|textarea|title)$/i,x=t=>(i,...s)=>({_$litType$:t,strings:i,values:s}),b=x(1),E=Symbol.for("lit-noChange"),A=Symbol.for("lit-nothing"),C=new WeakMap,P=l$1.createTreeWalker(l$1,129);function V(t,i){if(!u$1(t)||!t.hasOwnProperty("raw"))throw Error("invalid template strings array");return void 0!==e?e.createHTML(i):i}const N=(t,i)=>{const s=t.length-1,e=[];let n,l=2===i?"<svg>":3===i?"<math>":"",c=v;for(let i=0;i<s;i++){const s=t[i];let a,u,d=-1,f=0;for(;f<s.length&&(c.lastIndex=f,u=c.exec(s),null!==u);)f=c.lastIndex,c===v?"!--"===u[1]?c=_:void 0!==u[1]?c=m:void 0!==u[2]?(y.test(u[2])&&(n=RegExp("</"+u[2],"g")),c=p):void 0!==u[3]&&(c=p):c===p?">"===u[0]?(c=n??v,d=-1):void 0===u[1]?d=-2:(d=c.lastIndex-u[2].length,a=u[1],c=void 0===u[3]?p:'"'===u[3]?$:g):c===$||c===g?c=p:c===_||c===m?c=v:(c=p,n=void 0);const x=c===p&&t[i+1].startsWith("/>")?" ":"";l+=c===v?s+r:d>=0?(e.push(a),s.slice(0,d)+h+s.slice(d)+o$3+x):s+o$3+(-2===d?i:x);}return [V(t,l+(t[s]||"<?>")+(2===i?"</svg>":3===i?"</math>":"")),e]};class S{constructor({strings:t,_$litType$:i},e){let r;this.parts=[];let l=0,a=0;const u=t.length-1,d=this.parts,[f,v]=N(t,i);if(this.el=S.createElement(f,e),P.currentNode=this.el.content,2===i||3===i){const t=this.el.content.firstChild;t.replaceWith(...t.childNodes);}for(;null!==(r=P.nextNode())&&d.length<u;){if(1===r.nodeType){if(r.hasAttributes())for(const t of r.getAttributeNames())if(t.endsWith(h)){const i=v[a++],s=r.getAttribute(t).split(o$3),e=/([.?@])?(.*)/.exec(i);d.push({type:1,index:l,name:e[2],strings:s,ctor:"."===e[1]?I:"?"===e[1]?L:"@"===e[1]?z:H}),r.removeAttribute(t);}else t.startsWith(o$3)&&(d.push({type:6,index:l}),r.removeAttribute(t));if(y.test(r.tagName)){const t=r.textContent.split(o$3),i=t.length-1;if(i>0){r.textContent=s$1?s$1.emptyScript:"";for(let s=0;s<i;s++)r.append(t[s],c()),P.nextNode(),d.push({type:2,index:++l});r.append(t[i],c());}}}else if(8===r.nodeType)if(r.data===n$1)d.push({type:2,index:l});else {let t=-1;for(;-1!==(t=r.data.indexOf(o$3,t+1));)d.push({type:7,index:l}),t+=o$3.length-1;}l++;}}static createElement(t,i){const s=l$1.createElement("template");return s.innerHTML=t,s}}function M(t,i,s=t,e){if(i===E)return i;let h=void 0!==e?s._$Co?.[e]:s._$Cl;const o=a$1(i)?void 0:i._$litDirective$;return h?.constructor!==o&&(h?._$AO?.(false),void 0===o?h=void 0:(h=new o(t),h._$AT(t,s,e)),void 0!==e?(s._$Co??=[])[e]=h:s._$Cl=h),void 0!==h&&(i=M(t,h._$AS(t,i.values),h,e)),i}class R{constructor(t,i){this._$AV=[],this._$AN=void 0,this._$AD=t,this._$AM=i;}get parentNode(){return this._$AM.parentNode}get _$AU(){return this._$AM._$AU}u(t){const{el:{content:i},parts:s}=this._$AD,e=(t?.creationScope??l$1).importNode(i,true);P.currentNode=e;let h=P.nextNode(),o=0,n=0,r=s[0];for(;void 0!==r;){if(o===r.index){let i;2===r.type?i=new k(h,h.nextSibling,this,t):1===r.type?i=new r.ctor(h,r.name,r.strings,this,t):6===r.type&&(i=new Z(h,this,t)),this._$AV.push(i),r=s[++n];}o!==r?.index&&(h=P.nextNode(),o++);}return P.currentNode=l$1,e}p(t){let i=0;for(const s of this._$AV) void 0!==s&&(void 0!==s.strings?(s._$AI(t,s,i),i+=s.strings.length-2):s._$AI(t[i])),i++;}}class k{get _$AU(){return this._$AM?._$AU??this._$Cv}constructor(t,i,s,e){this.type=2,this._$AH=A,this._$AN=void 0,this._$AA=t,this._$AB=i,this._$AM=s,this.options=e,this._$Cv=e?.isConnected??true;}get parentNode(){let t=this._$AA.parentNode;const i=this._$AM;return void 0!==i&&11===t?.nodeType&&(t=i.parentNode),t}get startNode(){return this._$AA}get endNode(){return this._$AB}_$AI(t,i=this){t=M(this,t,i),a$1(t)?t===A||null==t||""===t?(this._$AH!==A&&this._$AR(),this._$AH=A):t!==this._$AH&&t!==E&&this._(t):void 0!==t._$litType$?this.$(t):void 0!==t.nodeType?this.T(t):d(t)?this.k(t):this._(t);}O(t){return this._$AA.parentNode.insertBefore(t,this._$AB)}T(t){this._$AH!==t&&(this._$AR(),this._$AH=this.O(t));}_(t){this._$AH!==A&&a$1(this._$AH)?this._$AA.nextSibling.data=t:this.T(l$1.createTextNode(t)),this._$AH=t;}$(t){const{values:i,_$litType$:s}=t,e="number"==typeof s?this._$AC(t):(void 0===s.el&&(s.el=S.createElement(V(s.h,s.h[0]),this.options)),s);if(this._$AH?._$AD===e)this._$AH.p(i);else {const t=new R(e,this),s=t.u(this.options);t.p(i),this.T(s),this._$AH=t;}}_$AC(t){let i=C.get(t.strings);return void 0===i&&C.set(t.strings,i=new S(t)),i}k(t){u$1(this._$AH)||(this._$AH=[],this._$AR());const i=this._$AH;let s,e=0;for(const h of t)e===i.length?i.push(s=new k(this.O(c()),this.O(c()),this,this.options)):s=i[e],s._$AI(h),e++;e<i.length&&(this._$AR(s&&s._$AB.nextSibling,e),i.length=e);}_$AR(t=this._$AA.nextSibling,s){for(this._$AP?.(false,true,s);t!==this._$AB;){const s=i$2(t).nextSibling;i$2(t).remove(),t=s;}}setConnected(t){ void 0===this._$AM&&(this._$Cv=t,this._$AP?.(t));}}class H{get tagName(){return this.element.tagName}get _$AU(){return this._$AM._$AU}constructor(t,i,s,e,h){this.type=1,this._$AH=A,this._$AN=void 0,this.element=t,this.name=i,this._$AM=e,this.options=h,s.length>2||""!==s[0]||""!==s[1]?(this._$AH=Array(s.length-1).fill(new String),this.strings=s):this._$AH=A;}_$AI(t,i=this,s,e){const h=this.strings;let o=false;if(void 0===h)t=M(this,t,i,0),o=!a$1(t)||t!==this._$AH&&t!==E,o&&(this._$AH=t);else {const e=t;let n,r;for(t=h[0],n=0;n<h.length-1;n++)r=M(this,e[s+n],i,n),r===E&&(r=this._$AH[n]),o||=!a$1(r)||r!==this._$AH[n],r===A?t=A:t!==A&&(t+=(r??"")+h[n+1]),this._$AH[n]=r;}o&&!e&&this.j(t);}j(t){t===A?this.element.removeAttribute(this.name):this.element.setAttribute(this.name,t??"");}}class I extends H{constructor(){super(...arguments),this.type=3;}j(t){this.element[this.name]=t===A?void 0:t;}}class L extends H{constructor(){super(...arguments),this.type=4;}j(t){this.element.toggleAttribute(this.name,!!t&&t!==A);}}class z extends H{constructor(t,i,s,e,h){super(t,i,s,e,h),this.type=5;}_$AI(t,i=this){if((t=M(this,t,i,0)??A)===E)return;const s=this._$AH,e=t===A&&s!==A||t.capture!==s.capture||t.once!==s.once||t.passive!==s.passive,h=t!==A&&(s===A||e);e&&this.element.removeEventListener(this.name,this,s),h&&this.element.addEventListener(this.name,this,t),this._$AH=t;}handleEvent(t){"function"==typeof this._$AH?this._$AH.call(this.options?.host??this.element,t):this._$AH.handleEvent(t);}}class Z{constructor(t,i,s){this.element=t,this.type=6,this._$AN=void 0,this._$AM=i,this.options=s;}get _$AU(){return this._$AM._$AU}_$AI(t){M(this,t);}}const B=t.litHtmlPolyfillSupport;B?.(S,k),(t.litHtmlVersions??=[]).push("3.3.2");const D=(t,i,s)=>{const e=s?.renderBefore??i;let h=e._$litPart$;if(void 0===h){const t=s?.renderBefore??null;e._$litPart$=h=new k(i.insertBefore(c(),t),t,void 0,s??{});}return h._$AI(t),h};
+const t=globalThis,i$2=t=>t,s$1=t.trustedTypes,e=s$1?s$1.createPolicy("lit-html",{createHTML:t=>t}):void 0,h="$lit$",o$3=`lit$${Math.random().toFixed(9).slice(2)}$`,n$1="?"+o$3,r=`<${n$1}>`,l$1=document,c=()=>l$1.createComment(""),a$1=t=>null===t||"object"!=typeof t&&"function"!=typeof t,u$1=Array.isArray,d=t=>u$1(t)||"function"==typeof t?.[Symbol.iterator],f="[ \t\n\f\r]",v=/<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g,_=/-->/g,m=/>/g,p=RegExp(`>|${f}(?:([^\\s"'>=/]+)(${f}*=${f}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`,"g"),g=/'/g,$=/"/g,y=/^(?:script|style|textarea|title)$/i,x=t=>(i,...s)=>({_$litType$:t,strings:i,values:s}),b=x(1),E=Symbol.for("lit-noChange"),A=Symbol.for("lit-nothing"),C=new WeakMap,P=l$1.createTreeWalker(l$1,129);function V(t,i){if(!u$1(t)||!t.hasOwnProperty("raw"))throw Error("invalid template strings array");return void 0!==e?e.createHTML(i):i}const N=(t,i)=>{const s=t.length-1,e=[];let n,l=2===i?"<svg>":3===i?"<math>":"",c=v;for(let i=0;i<s;i++){const s=t[i];let a,u,d=-1,f=0;for(;f<s.length&&(c.lastIndex=f,u=c.exec(s),null!==u);)f=c.lastIndex,c===v?"!--"===u[1]?c=_:void 0!==u[1]?c=m:void 0!==u[2]?(y.test(u[2])&&(n=RegExp("</"+u[2],"g")),c=p):void 0!==u[3]&&(c=p):c===p?">"===u[0]?(c=n??v,d=-1):void 0===u[1]?d=-2:(d=c.lastIndex-u[2].length,a=u[1],c=void 0===u[3]?p:'"'===u[3]?$:g):c===$||c===g?c=p:c===_||c===m?c=v:(c=p,n=void 0);const x=c===p&&t[i+1].startsWith("/>")?" ":"";l+=c===v?s+r:d>=0?(e.push(a),s.slice(0,d)+h+s.slice(d)+o$3+x):s+o$3+(-2===d?i:x);}return [V(t,l+(t[s]||"<?>")+(2===i?"</svg>":3===i?"</math>":"")),e]};class S{constructor({strings:t,_$litType$:i},e){let r;this.parts=[];let l=0,a=0;const u=t.length-1,d=this.parts,[f,v]=N(t,i);if(this.el=S.createElement(f,e),P.currentNode=this.el.content,2===i||3===i){const t=this.el.content.firstChild;t.replaceWith(...t.childNodes);}for(;null!==(r=P.nextNode())&&d.length<u;){if(1===r.nodeType){if(r.hasAttributes())for(const t of r.getAttributeNames())if(t.endsWith(h)){const i=v[a++],s=r.getAttribute(t).split(o$3),e=/([.?@])?(.*)/.exec(i);d.push({type:1,index:l,name:e[2],strings:s,ctor:"."===e[1]?I:"?"===e[1]?L:"@"===e[1]?z:H}),r.removeAttribute(t);}else t.startsWith(o$3)&&(d.push({type:6,index:l}),r.removeAttribute(t));if(y.test(r.tagName)){const t=r.textContent.split(o$3),i=t.length-1;if(i>0){r.textContent=s$1?s$1.emptyScript:"";for(let s=0;s<i;s++)r.append(t[s],c()),P.nextNode(),d.push({type:2,index:++l});r.append(t[i],c());}}}else if(8===r.nodeType)if(r.data===n$1)d.push({type:2,index:l});else {let t=-1;for(;-1!==(t=r.data.indexOf(o$3,t+1));)d.push({type:7,index:l}),t+=o$3.length-1;}l++;}}static createElement(t,i){const s=l$1.createElement("template");return s.innerHTML=t,s}}function M(t,i,s=t,e){if(i===E)return i;let h=void 0!==e?s._$Co?.[e]:s._$Cl;const o=a$1(i)?void 0:i._$litDirective$;return h?.constructor!==o&&(h?._$AO?.(false),void 0===o?h=void 0:(h=new o(t),h._$AT(t,s,e)),void 0!==e?(s._$Co??=[])[e]=h:s._$Cl=h),void 0!==h&&(i=M(t,h._$AS(t,i.values),h,e)),i}class R{constructor(t,i){this._$AV=[],this._$AN=void 0,this._$AD=t,this._$AM=i;}get parentNode(){return this._$AM.parentNode}get _$AU(){return this._$AM._$AU}u(t){const{el:{content:i},parts:s}=this._$AD,e=(t?.creationScope??l$1).importNode(i,true);P.currentNode=e;let h=P.nextNode(),o=0,n=0,r=s[0];for(;void 0!==r;){if(o===r.index){let i;2===r.type?i=new k(h,h.nextSibling,this,t):1===r.type?i=new r.ctor(h,r.name,r.strings,this,t):6===r.type&&(i=new Z(h,this,t)),this._$AV.push(i),r=s[++n];}o!==r?.index&&(h=P.nextNode(),o++);}return P.currentNode=l$1,e}p(t){let i=0;for(const s of this._$AV) void 0!==s&&(void 0!==s.strings?(s._$AI(t,s,i),i+=s.strings.length-2):s._$AI(t[i])),i++;}}class k{get _$AU(){return this._$AM?._$AU??this._$Cv}constructor(t,i,s,e){this.type=2,this._$AH=A,this._$AN=void 0,this._$AA=t,this._$AB=i,this._$AM=s,this.options=e,this._$Cv=e?.isConnected??true;}get parentNode(){let t=this._$AA.parentNode;const i=this._$AM;return void 0!==i&&11===t?.nodeType&&(t=i.parentNode),t}get startNode(){return this._$AA}get endNode(){return this._$AB}_$AI(t,i=this){t=M(this,t,i),a$1(t)?t===A||null==t||""===t?(this._$AH!==A&&this._$AR(),this._$AH=A):t!==this._$AH&&t!==E&&this._(t):void 0!==t._$litType$?this.$(t):void 0!==t.nodeType?this.T(t):d(t)?this.k(t):this._(t);}O(t){return this._$AA.parentNode.insertBefore(t,this._$AB)}T(t){this._$AH!==t&&(this._$AR(),this._$AH=this.O(t));}_(t){this._$AH!==A&&a$1(this._$AH)?this._$AA.nextSibling.data=t:this.T(l$1.createTextNode(t)),this._$AH=t;}$(t){const{values:i,_$litType$:s}=t,e="number"==typeof s?this._$AC(t):(void 0===s.el&&(s.el=S.createElement(V(s.h,s.h[0]),this.options)),s);if(this._$AH?._$AD===e)this._$AH.p(i);else {const t=new R(e,this),s=t.u(this.options);t.p(i),this.T(s),this._$AH=t;}}_$AC(t){let i=C.get(t.strings);return void 0===i&&C.set(t.strings,i=new S(t)),i}k(t){u$1(this._$AH)||(this._$AH=[],this._$AR());const i=this._$AH;let s,e=0;for(const h of t)e===i.length?i.push(s=new k(this.O(c()),this.O(c()),this,this.options)):s=i[e],s._$AI(h),e++;e<i.length&&(this._$AR(s&&s._$AB.nextSibling,e),i.length=e);}_$AR(t=this._$AA.nextSibling,s){for(this._$AP?.(false,true,s);t!==this._$AB;){const s=i$2(t).nextSibling;i$2(t).remove(),t=s;}}setConnected(t){ void 0===this._$AM&&(this._$Cv=t,this._$AP?.(t));}}class H{get tagName(){return this.element.tagName}get _$AU(){return this._$AM._$AU}constructor(t,i,s,e,h){this.type=1,this._$AH=A,this._$AN=void 0,this.element=t,this.name=i,this._$AM=e,this.options=h,s.length>2||""!==s[0]||""!==s[1]?(this._$AH=Array(s.length-1).fill(new String),this.strings=s):this._$AH=A;}_$AI(t,i=this,s,e){const h=this.strings;let o=false;if(void 0===h)t=M(this,t,i,0),o=!a$1(t)||t!==this._$AH&&t!==E,o&&(this._$AH=t);else {const e=t;let n,r;for(t=h[0],n=0;n<h.length-1;n++)r=M(this,e[s+n],i,n),r===E&&(r=this._$AH[n]),o||=!a$1(r)||r!==this._$AH[n],r===A?t=A:t!==A&&(t+=(r??"")+h[n+1]),this._$AH[n]=r;}o&&!e&&this.j(t);}j(t){t===A?this.element.removeAttribute(this.name):this.element.setAttribute(this.name,t??"");}}class I extends H{constructor(){super(...arguments),this.type=3;}j(t){this.element[this.name]=t===A?void 0:t;}}class L extends H{constructor(){super(...arguments),this.type=4;}j(t){this.element.toggleAttribute(this.name,!!t&&t!==A);}}class z extends H{constructor(t,i,s,e,h){super(t,i,s,e,h),this.type=5;}_$AI(t,i=this){if((t=M(this,t,i,0)??A)===E)return;const s=this._$AH,e=t===A&&s!==A||t.capture!==s.capture||t.once!==s.once||t.passive!==s.passive,h=t!==A&&(s===A||e);e&&this.element.removeEventListener(this.name,this,s),h&&this.element.addEventListener(this.name,this,t),this._$AH=t;}handleEvent(t){"function"==typeof this._$AH?this._$AH.call(this.options?.host??this.element,t):this._$AH.handleEvent(t);}}class Z{constructor(t,i,s){this.element=t,this.type=6,this._$AN=void 0,this._$AM=i,this.options=s;}get _$AU(){return this._$AM._$AU}_$AI(t){M(this,t);}}const B=t.litHtmlPolyfillSupport;B?.(S,k),(t.litHtmlVersions??=[]).push("3.3.3");const D=(t,i,s)=>{const e=s?.renderBefore??i;let h=e._$litPart$;if(void 0===h){const t=s?.renderBefore??null;e._$litPart$=h=new k(i.insertBefore(c(),t),t,void 0,s??{});}return h._$AI(t),h};
 
 /**
  * @license
@@ -49,7 +49,7 @@ const a=Symbol.for(""),o$1=t=>{if(t?.r===a)return t?._$litStatic$},i=(t,...r)=>(
  */
 
 
-const cardVersion="2.7.0";
+const cardVersion="2.8.0";
 
 const DAY_IN_MS = 86400000;
 const YEAR_IN_MS = 365 * DAY_IN_MS;
@@ -3398,6 +3398,7 @@ class SimpleTimerCard extends i$1 {
                   <ha-icon icon=${t.paused ? "mdi:play" : "mdi:pause"}></ha-icon>
                 </button>
               ` : ""}
+              ${this._renderCustomActionButtons(t, state)}
               ${supportsManualControls && !isIdle ? b`<button class="action-btn" title="${this._localize("cancel")}" @click=${() => this._handleCancel(t)}><ha-icon icon="mdi:close"></ha-icon></button>` : ""}
             </div>
           </div>
@@ -3412,6 +3413,7 @@ class SimpleTimerCard extends i$1 {
               <ha-icon icon="mdi:close"></ha-icon>
             </button>
           ` : ""}
+          ${this._renderCircleCustomButtons(t, state)}
           <div class="vcol">
             <div class="vcircle-wrap"
                  title="${isIdle ? "Start" : (t.paused ? "Resume" : "Pause")}"
@@ -3457,11 +3459,149 @@ class SimpleTimerCard extends i$1 {
                   <ha-icon icon=${t.paused ? "mdi:play" : "mdi:pause"}></ha-icon>
                 </button>
               ` : ""}
+              ${this._renderCustomActionButtons(t, state)}
               ${supportsManualControls && !isIdle ? b`<button class="action-btn" title="${this._localize("cancel")}" @click=${() => this._handleCancel(t)}><ha-icon icon="mdi:close"></ha-icon></button>` : ""}
             </div>
           </div>
         </li>
       `;
+    }
+  }
+
+  // === Custom action buttons (v2.8.0) ===
+  // Opt-in extra buttons rendered alongside the built-in start/pause/cancel
+  // controls. Configured via `buttons:` at card level and/or per entity
+  // (entity overrides card, matching the tap_action resolution model).
+  _getCustomButtons(t) {
+    if (!t) return [];
+    const rowConf = this._getEntityConfig(t.source_entity) || {};
+    const raw = Array.isArray(rowConf.buttons)
+      ? rowConf.buttons
+      : (Array.isArray(this._config.buttons) ? this._config.buttons : null);
+    if (!raw || !raw.length) return [];
+    return raw.map((b) => this._normalizeCustomButton(b)).filter(Boolean);
+  }
+
+  _normalizeCustomButton(b) {
+    if (!b || typeof b !== "object") return null;
+    const action = b.action;
+    const icon = b.icon || this._customButtonPresetIcon(action);
+    if (!icon) return null;
+    let states = b.show_when;
+    if (typeof states === "string") states = states.split(",").map((s) => s.trim());
+    if (!Array.isArray(states) || !states.length) states = ["running", "paused"];
+    states = states.map((s) => String(s).toLowerCase());
+    return {
+      icon,
+      name: b.name || "",
+      color: b.color || "",
+      states: new Set(states),
+      action,
+    };
+  }
+
+  _customButtonPresetIcon(action) {
+    if (typeof action !== "string") return "";
+    switch (action) {
+      case "finish": return "mdi:flag-checkered";
+      case "cancel": return "mdi:close";
+      case "pause": return "mdi:pause";
+      case "resume": return "mdi:play";
+      case "snooze": return "mdi:alarm-snooze";
+      case "dismiss": return "mdi:bell-off";
+      default: return "";
+    }
+  }
+
+  _customButtonState(state) {
+    if (state.isIdle) return "idle";
+    if (state.isPaused) return "paused";
+    if (state.isFinished || state.ring) return "finished";
+    return "running";
+  }
+
+  _visibleCustomButtons(t, state) {
+    const cur = this._customButtonState(state);
+    return this._getCustomButtons(t).filter((b) => b.states.has(cur));
+  }
+
+  _renderCustomActionButtons(t, state) {
+    const btns = this._visibleCustomButtons(t, state);
+    if (!btns.length) return "";
+    return btns.map((b$1) => b`
+      <button class="action-btn custom-action-btn" title="${b$1.name}"
+        style=${b$1.color ? `color:${b$1.color}` : ""}
+        @click=${(e) => this._handleCustomButton(t, b$1, e)}>
+        <ha-icon icon="${b$1.icon}"></ha-icon>
+      </button>
+    `);
+  }
+
+  _renderCircleCustomButtons(t, state) {
+    const btns = this._visibleCustomButtons(t, state);
+    if (!btns.length) return "";
+    return b`
+      <div class="vtile-actions">
+        ${btns.map((b$1) => b`
+          <button class="vtile-action" title="${b$1.name}"
+            style=${b$1.color ? `color:${b$1.color}` : ""}
+            @click=${(e) => this._handleCustomButton(t, b$1, e)}>
+            <ha-icon icon="${b$1.icon}"></ha-icon>
+          </button>
+        `)}
+      </div>
+    `;
+  }
+
+  _handleCustomButton(t, btn, e) {
+    if (e && typeof e.stopPropagation === "function") e.stopPropagation();
+    const action = btn.action;
+    if (typeof action === "string") {
+      switch (action) {
+        case "finish": return this._handleFinish(t);
+        case "cancel": return this._handleCancel(t);
+        case "pause": return this._togglePause(t, e);
+        case "resume": return this._handleResume(t);
+        case "snooze": return this._handleSnooze(t);
+        case "dismiss": return this._handleDismiss(t);
+        default: return;
+      }
+    }
+    if (action && typeof action === "object" && action.action) {
+      let resolved = action;
+      if (action.action === "perform-action" || action.action === "call-service") {
+        const hasTarget = action.target && (action.target.entity_id || action.target.area_id || action.target.device_id || action.target.label_id);
+        const hasDataEntity = action.data && action.data.entity_id;
+        if (!hasTarget && !hasDataEntity && t.source_entity) {
+          resolved = { ...action, target: { ...(action.target || {}), entity_id: t.source_entity } };
+        }
+      }
+      this._fireAction(resolved, { cardLevel: false, entityId: t.source_entity, timer: t });
+    }
+  }
+
+  _handleFinish(t) {
+    if (this._isActionThrottled("finish", t.id)) return;
+    this._ringingTimers.delete(t.id);
+    if (t.source === "voice_pe") {
+      if (!this._isLocalVoicePETimer(t)) {
+        this._toast("This timer is read only.");
+        return;
+      }
+      this._publishTimerEvent("finished", t);
+      this._sendVoicePECommand(t.control_entity, `cancel:${String(t.voice_pe_timer_id).trim()}`);
+      return;
+    }
+    this._publishTimerEvent("finished", t);
+    if (t.source === "helper") {
+      this._mutateHelper(t.source_entity, (data) => { data.timers = data.timers.filter((x) => x.id !== t.id); });
+    } else if (["local", "mqtt"].includes(t.source)) {
+      this._removeTimerFromStorage(t.id, t.source);
+      this.requestUpdate();
+    } else if (t.source === "timer") {
+      this.hass.callService("timer", "finish", { entity_id: t.source_entity });
+    } else {
+      this._toast("This timer can't be finished from here.");
     }
   }
 
@@ -3582,6 +3722,7 @@ class SimpleTimerCard extends i$1 {
               <ha-icon icon="mdi:close"></ha-icon>
             </button>
           ` : ""}
+          ${this._renderCircleCustomButtons(t, state)}
           <div class="vcol">
             <div class="vcircle-wrap"
                  title="${isIdle ? "Start" : (t.paused ? "Resume" : "Pause")}"
@@ -3636,6 +3777,7 @@ class SimpleTimerCard extends i$1 {
                   <div class="vfill" style="width:${this._config.progress_mode === "drain" ? pctLeft : pct}%"></div>
                 </div>
               `}
+              ${this._renderCustomActionButtons(t, state)}
               ${supportsManualControls && !isIdle ? b`
                 <button class="action-btn" title="${this._localize("cancel")}" @click=${() => this._handleCancel(t)}>
                   <ha-icon icon="mdi:close"></ha-icon>
@@ -3656,6 +3798,7 @@ class SimpleTimerCard extends i$1 {
                   <ha-icon icon=${t.paused ? "mdi:play" : "mdi:pause"}></ha-icon>
                 </button>
               ` : ""}
+              ${this._renderCustomActionButtons(t, state)}
               ${supportsManualControls && !isIdle ? b`
                 <button class="action-btn" title="${this._localize("cancel")}" @click=${() => this._handleCancel(t)}>
                   <ha-icon icon="mdi:close"></ha-icon>
@@ -4014,6 +4157,10 @@ const layout = this._config.layout;
       .vtile .vcol { z-index: 1; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; }
       .vtile-close { position: absolute; top: 4px; inset-inline-end: 4px; border: 0; background: none; padding: 4px; border-radius: 50%; color: var(--secondary-text-color); cursor: pointer; z-index: 3; }
       .vtile-close:hover { background: color-mix(in srgb, var(--primary-color) 10%, transparent); }
+      .vtile-actions { position: absolute; top: 4px; inset-inline-start: 4px; display: flex; flex-direction: column; gap: 2px; z-index: 3; }
+      .vtile-action { border: 0; background: none; padding: 4px; border-radius: 50%; color: var(--secondary-text-color); cursor: pointer; transition: all 0.2s; }
+      .vtile-action:hover { background: color-mix(in srgb, var(--tcolor, var(--primary-color)) 12%, transparent); }
+      .item .custom-action-btn:hover, .vactions .custom-action-btn:hover, .vprogressbar .custom-action-btn:hover { background: color-mix(in srgb, var(--tcolor, var(--primary-color)) 12%, transparent); }
       .icon-wrap.large { width: 36px; height: 36px; flex: 0 0 36px; border-radius: var(--ha-card-border-radius, 50%); background: color-mix(in srgb, var(--tcolor, var(--primary-color)) 18%, var(--ha-card-background, var(--card-background-color))); display: flex; align-items: center; justify-content: center; }
       .vtitle { font-size: 14px; font-weight: 600; line-height: 16px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0; }
       .vstatus { font-size: 12px; color: var(--secondary-text-color); line-height: 14px; font-variant-numeric: tabular-nums; margin: 0; margin-bottom: 2px; }

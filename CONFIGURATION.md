@@ -25,13 +25,14 @@ That gives you a working card that auto-detects every supported timer in your Ho
 7. [Quick-start presets](#-quick-start-presets)
 8. [Pinned timers](#-pinned-timers)
 9. [Tap, hold & double-tap actions](#ï¸-tap-hold--double-tap-actions)
-10. [Audio notifications](#-audio-notifications)
-11. [Push notification fallback](#-push-notification-fallback)
-12. [Storage & persistence](#-storage--persistence)
-13. [Voice PE integration](#-voice-pe-integration)
-14. [Compatibility mode](#-compatibility-mode)
-15. [Language support](#-language-support)
-16. [Examples & help](#-examples--help)
+10. [Custom action buttons](#-custom-action-buttons)
+11. [Audio notifications](#-audio-notifications)
+12. [Push notification fallback](#-push-notification-fallback)
+13. [Storage & persistence](#-storage--persistence)
+14. [Voice PE integration](#-voice-pe-integration)
+15. [Compatibility mode](#-compatibility-mode)
+16. [Language support](#-language-support)
+17. [Examples & help](#-examples--help)
 
 ---
 
@@ -118,6 +119,7 @@ Mix and match freely. Mode is auto-detected by default.
 | `start_time_attr`              | string  | `start_time` | `mode: timestamp`      | Attribute on the entity holding the start timestamp                          |
 | `keep_timer_visible_when_idle` | boolean | `false`      | `mode: timer`          | Keep the row in view even when the timer is idle                             |
 | `hide_timer_actions`           | boolean | `false`      | `mode: timer`          | Hide the start / pause / cancel buttons                                      |
+| `buttons`                      | list    | inherited    | Always                 | Extra action buttons for this row, see [Custom action buttons](#-custom-action-buttons) |
 | `audio_enabled`                | boolean | `false`      | Always                 | Enable an entity-specific expiry sound                                       |
 | `audio_file_url`               | string  | `""`         | `audio_enabled: true`  | URL or path to the audio file                                                |
 | `audio_repeat_count`           | number  | `1`          | `audio_enabled: true`  | How many times to play the audio                                             |
@@ -320,7 +322,59 @@ Tap handlers do not fire when the tap lands on an in-card control (`button`, `ha
 
 ---
 
-## �🔊 Audio notifications
+## 🔘 Custom action buttons
+
+Add your own icon buttons next to the built-in start / pause / cancel controls. Configure `buttons:` at card level (applies to every row) and/or per entity row (overrides the card-level list for that row, the same way `tap_action` resolves). YAML only, like the tap/hold actions above.
+
+```yaml
+type: custom:simple-timer-card
+entities:
+  - timer.ac_bedroom
+buttons:
+  - action: finish            # shorthand preset
+  - icon: mdi:plus
+    name: +5 min
+    action:
+      action: perform-action
+      perform_action: timer.change
+      data:
+        duration: "00:05:00"  # timer.change accepts negative values too
+```
+
+Each button supports:
+
+| Name        | Type            | Default              | Description                                                                                 |
+| ----------- | --------------- | -------------------- | ------------------------------------------------------------------------------------------- |
+| `action`    | string\|object  | **required**         | A shorthand preset string, or a full Home Assistant `ActionConfig` object                   |
+| `icon`      | string          | preset icon          | Button icon. Optional when `action` is a preset string, required for custom actions         |
+| `name`      | string          | `""`                 | Tooltip text                                                                                 |
+| `color`     | string          | inherit              | Icon color (any CSS color or HA theme variable)                                             |
+| `show_when` | string\|list    | `[running, paused]`  | Timer states the button appears in: `idle`, `running`, `paused`                             |
+
+### Shorthand presets
+
+Use a string for `action` to call a built-in handler. The icon is supplied automatically (override with `icon`):
+
+| Preset    | Does                                                                  |
+| --------- | -------------------------------------------------------------------- |
+| `finish`  | Completes the timer now (native `timer.finish`, fires the ring/event) |
+| `cancel`  | Cancels the timer (same as the built-in X)                           |
+| `pause`   | Toggles pause / resume                                               |
+| `resume`  | Resumes a paused timer                                               |
+| `snooze`  | Snoozes a ringing timer                                              |
+| `dismiss` | Dismisses a ringing timer                                            |
+
+### Custom actions
+
+For anything else, pass a full Home Assistant `ActionConfig` (`perform-action` / `call-service`, `more-info`, `navigate`, `url`, `toggle`). When a `perform-action` has no `target` or `data.entity_id`, the timer's own entity is used as the target, so `timer.change`, `timer.finish`, etc. apply to the right timer automatically.
+
+### Placement
+
+Buttons sit to the left of the cancel control in the bar and fill styles. In the `circle` style they appear as a small floating button in the corner opposite the cancel X, so the tile keeps its height.
+
+---
+
+## 🔊 Audio notifications
 
 Global audio settings used when a timer expires. Entity-level and pinned-timer audio settings override these.
 
