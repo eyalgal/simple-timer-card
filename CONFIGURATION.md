@@ -327,7 +327,7 @@ Tap handlers do not fire when the tap lands on an in-card control (`button`, `ha
 
 Add your own icon buttons next to the built-in start / pause / cancel controls. Configure `buttons:` at card level (applies to every row), per entity row, or per pinned timer. The most specific list wins: pinned/entity buttons override the card-level list (the same way `tap_action` resolves). Configurable in the visual editor (action + icon) or in YAML.
 
-Start, pause/resume, and cancel already have built-in controls, so the presets focus on actions you can't otherwise reach inline.
+Start, pause/resume, and cancel already have built-in controls, so the presets focus on actions you can't otherwise reach inline. Pause/resume is also offered as a preset since it's useful in the `circle` layout, which has no inline pause control.
 
 ```yaml
 type: custom:simple-timer-card
@@ -360,6 +360,7 @@ Use a string for `action` to call a built-in handler. The icon is supplied autom
 | `finish`  | Completes the timer now (native `timer.finish`, fires the ring/event) |
 | `add`     | Adds `amount` (default `5m`) to the running or paused timer           |
 | `restart` | Restarts the timer from its original duration                        |
+| `pause`   | Toggles pause / resume (handy in the `circle` layout)                |
 
 ### Custom actions
 

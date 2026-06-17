@@ -4565,6 +4565,7 @@ _pinnedTimerValueChanged(ev, index) {
       { value: "finish", label: "Finish" },
       { value: "add", label: "Add time" },
       { value: "restart", label: "Restart" },
+      { value: "pause", label: "Pause / resume" },
       { value: "__custom", label: "Custom action…" },
     ];
     return html`
