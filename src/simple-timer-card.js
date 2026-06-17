@@ -3353,6 +3353,7 @@ class SimpleTimerCard extends LitElement {
               <div class="status">${timeStr}</div>
             </div>
             <div class="actions" @click=${(e) => e.stopPropagation()}>
+              ${this._renderCustomActionButtons(t, state)}
               ${isIdle && supportsManualControls ? html`
                 <button class="action-btn" title="${this._localize("start")}" @click=${() => this._handleStart(t)}>
                   <ha-icon icon="mdi:play"></ha-icon>
@@ -3362,7 +3363,6 @@ class SimpleTimerCard extends LitElement {
                   <ha-icon icon=${t.paused ? "mdi:play" : "mdi:pause"}></ha-icon>
                 </button>
               ` : ""}
-              ${this._renderCustomActionButtons(t, state)}
               ${supportsManualControls && !isIdle ? html`<button class="action-btn" title="${this._localize("cancel")}" @click=${() => this._handleCancel(t)}><ha-icon icon="mdi:close"></ha-icon></button>` : ""}
             </div>
           </div>
@@ -3414,6 +3414,7 @@ class SimpleTimerCard extends LitElement {
               ${this._renderProgressTrack(t, style, pct, pctLeft)}
             </div>
             <div class="actions" @click=${(e) => e.stopPropagation()}>
+              ${this._renderCustomActionButtons(t, state)}
               ${isIdle && supportsManualControls ? html`
                 <button class="action-btn" title="${this._localize("start")}" @click=${() => this._handleStart(t)}>
                   <ha-icon icon="mdi:play"></ha-icon>
@@ -3423,7 +3424,6 @@ class SimpleTimerCard extends LitElement {
                   <ha-icon icon=${t.paused ? "mdi:play" : "mdi:pause"}></ha-icon>
                 </button>
               ` : ""}
-              ${this._renderCustomActionButtons(t, state)}
               ${supportsManualControls && !isIdle ? html`<button class="action-btn" title="${this._localize("cancel")}" @click=${() => this._handleCancel(t)}><ha-icon icon="mdi:close"></ha-icon></button>` : ""}
             </div>
           </div>
@@ -3438,10 +3438,12 @@ class SimpleTimerCard extends LitElement {
   // (entity overrides card, matching the tap_action resolution model).
   _getCustomButtons(t) {
     if (!t) return [];
-    const rowConf = this._getEntityConfig(t.source_entity) || {};
-    const raw = Array.isArray(rowConf.buttons)
-      ? rowConf.buttons
-      : (Array.isArray(this._config.buttons) ? this._config.buttons : null);
+    let raw = Array.isArray(t.buttons) ? t.buttons : null;
+    if (!raw) {
+      const rowConf = this._getEntityConfig(t.source_entity) || {};
+      if (Array.isArray(rowConf.buttons)) raw = rowConf.buttons;
+    }
+    if (!raw && Array.isArray(this._config.buttons)) raw = this._config.buttons;
     if (!raw || !raw.length) return [];
     return raw.map((b) => this._normalizeCustomButton(b)).filter(Boolean);
   }
@@ -3725,6 +3727,7 @@ class SimpleTimerCard extends LitElement {
           <div class="vstatus">${timeStr}</div>
           ${style.startsWith("bar_") ? html`
             <div class="vprogressbar" @click=${(e) => e.stopPropagation()}>
+              ${this._renderCustomActionButtons(t, state)}
               ${isIdle && supportsManualControls ? html`
                 <button class="action-btn" title="${this._localize("start")}" @click=${() => this._handleStart(t)}>
                   <ha-icon icon="mdi:play"></ha-icon>
@@ -3741,7 +3744,6 @@ class SimpleTimerCard extends LitElement {
                   <div class="vfill" style="width:${this._config.progress_mode === "drain" ? pctLeft : pct}%"></div>
                 </div>
               `}
-              ${this._renderCustomActionButtons(t, state)}
               ${supportsManualControls && !isIdle ? html`
                 <button class="action-btn" title="${this._localize("cancel")}" @click=${() => this._handleCancel(t)}>
                   <ha-icon icon="mdi:close"></ha-icon>
@@ -3751,6 +3753,7 @@ class SimpleTimerCard extends LitElement {
           ` : html`
 
             <div class="vactions" @click=${(e) => e.stopPropagation()}>
+              ${this._renderCustomActionButtons(t, state)}
               ${isIdle && supportsManualControls ? html`
                 <button class="action-btn" title="${this._localize("start")}" @click=${() => this._handleStart(t)}>
                   <ha-icon icon="mdi:play"></ha-icon>
@@ -3762,7 +3765,6 @@ class SimpleTimerCard extends LitElement {
                   <ha-icon icon=${t.paused ? "mdi:play" : "mdi:pause"}></ha-icon>
                 </button>
               ` : ""}
-              ${this._renderCustomActionButtons(t, state)}
               ${supportsManualControls && !isIdle ? html`
                 <button class="action-btn" title="${this._localize("cancel")}" @click=${() => this._handleCancel(t)}>
                   <ha-icon icon="mdi:close"></ha-icon>
@@ -3809,6 +3811,7 @@ class SimpleTimerCard extends LitElement {
 
         icon,
         color,
+        buttons: (p && typeof p === "object" && Array.isArray(p.buttons)) ? p.buttons : undefined,
         expired_subtitle: (p && typeof p === "object" && p.expired_subtitle) ? p.expired_subtitle : (this._config.expired_subtitle || ""),
         audio_enabled: (p && typeof p === "object" && p.audio_enabled === true) ? true : undefined,
         audio_file_url: (p && typeof p === "object" && p.audio_file_url) ? p.audio_file_url : undefined,
@@ -4479,6 +4482,133 @@ _pinnedTimerValueChanged(ev, index) {
   this._emitChange();
 }
 
+  // === Custom action buttons editor (v2.8.0) ===
+  _renderButtonsEditor(buttons, onChange) {
+    const list = Array.isArray(buttons) ? buttons : [];
+    const presetOptions = [
+      { value: "finish", label: "Finish" },
+      { value: "cancel", label: "Cancel" },
+      { value: "pause", label: "Pause / resume" },
+      { value: "resume", label: "Resume" },
+      { value: "snooze", label: "Snooze" },
+      { value: "dismiss", label: "Dismiss" },
+      { value: "__custom", label: "Custom action…" },
+    ];
+    return html`
+      <div class="buttons-editor">
+        ${list.map((b, i) => {
+          const isPreset = typeof b?.action === "string";
+          const actionType = isPreset ? b.action : "__custom";
+          return html`
+            <div class="button-row">
+              <div class="row" style="align-items:flex-start;">
+                <ha-select label="Action" naturalMenuWidth fixedMenuPosition
+                  .value=${actionType} .options=${presetOptions}
+                  @selected=${(e) => { e.stopPropagation(); this._buttonActionTypeChanged(e, list, i, onChange); }}
+                  @closed=${(e) => e.stopPropagation()}>
+                  ${presetOptions.map((o) => html`<mwc-list-item value=${o.value}>${o.label}</mwc-list-item>`)}
+                </ha-select>
+                <ha-icon-picker label="Icon (optional)" .value=${b?.icon || ""}
+                  @value-changed=${(e) => this._buttonFieldChanged(e, list, i, "icon", onChange)}></ha-icon-picker>
+                <button class="remove-entity" @click=${() => this._removeButton(list, i, onChange)} title="Remove button">
+                  <ha-icon icon="mdi:delete"></ha-icon>
+                </button>
+              </div>
+              ${actionType === "__custom" ? html`
+                <ha-selector .hass=${this.hass} .label=${"Custom action"}
+                  .selector=${{ ui_action: { default_action: "more-info" } }}
+                  .value=${isPreset ? undefined : b?.action}
+                  @value-changed=${(e) => this._buttonActionChanged(e, list, i, onChange)}></ha-selector>
+              ` : ""}
+            </div>
+          `;
+        })}
+        <button class="add-button" @click=${() => this._addButton(list, onChange)}>
+          <ha-icon icon="mdi:plus"></ha-icon>
+          <span>Add button</span>
+        </button>
+      </div>
+    `;
+  }
+
+  _resolveSelectValue(e) {
+    const target = e?.target;
+    let v = e?.detail?.value;
+    if ((v === undefined || v === null) && e?.detail && typeof e.detail.index === "number" && Array.isArray(target?.options)) {
+      v = target.options[e.detail.index]?.value;
+    }
+    if (v === undefined || v === null) v = target?.value;
+    return v;
+  }
+
+  _addButton(list, onChange) {
+    onChange([...(Array.isArray(list) ? list : []), { action: "finish" }]);
+  }
+
+  _removeButton(list, i, onChange) {
+    const next = [...list];
+    next.splice(i, 1);
+    onChange(next.length ? next : undefined);
+  }
+
+  _buttonFieldChanged(e, list, i, key, onChange) {
+    const v = e?.detail?.value ?? e?.target?.value;
+    const next = list.map((b, idx) => (idx === i ? { ...b } : b));
+    if (v === "" || v == null) delete next[i][key];
+    else next[i][key] = v;
+    onChange(next);
+  }
+
+  _buttonActionTypeChanged(e, list, i, onChange) {
+    const v = this._resolveSelectValue(e);
+    if (typeof v !== "string" || v === "") return;
+    const next = list.map((b, idx) => (idx === i ? { ...b } : b));
+    if (v === "__custom") {
+      if (typeof next[i].action === "string" || !next[i].action) next[i].action = { action: "more-info" };
+    } else {
+      next[i].action = v;
+    }
+    onChange(next);
+  }
+
+  _buttonActionChanged(e, list, i, onChange) {
+    const v = e?.detail?.value;
+    const next = list.map((b, idx) => (idx === i ? { ...b, action: v } : b));
+    onChange(next);
+  }
+
+  _setCardButtons(next) {
+    const cfg = { ...this._config };
+    if (!next || !next.length) delete cfg.buttons;
+    else cfg.buttons = next;
+    this._config = cfg;
+    this._emitChange();
+    this.requestUpdate();
+  }
+
+  _setEntityButtons(index, next) {
+    const entities = [...(this._config.entities || [])];
+    let conf = typeof entities[index] === "string" ? { entity: entities[index] } : { ...(entities[index] || {}) };
+    if (!next || !next.length) delete conf.buttons;
+    else conf.buttons = next;
+    if (Object.keys(conf).length === 1 && conf.entity) entities[index] = conf.entity;
+    else entities[index] = conf;
+    this._config = { ...this._config, entities };
+    this._emitChange();
+    this.requestUpdate();
+  }
+
+  _setPinnedButtons(index, next) {
+    const pinned = Array.isArray(this._config.pinned_timers) ? [...this._config.pinned_timers] : [];
+    const cur = (pinned[index] && typeof pinned[index] === "object") ? { ...pinned[index] } : {};
+    if (!next || !next.length) delete cur.buttons;
+    else cur.buttons = next;
+    pinned[index] = cur;
+    this._config = { ...this._config, pinned_timers: pinned };
+    this._emitChange();
+    this.requestUpdate();
+  }
+
   _addEntity() {
     if (!this._config) return;
     const newConfig = { ...this._config };
@@ -5043,6 +5173,9 @@ _pinnedTimerValueChanged(ev, index) {
                     <ha-switch .checked=${t?.audio_play_until_dismissed === true} .configValue=${"audio_play_until_dismissed"} @change=${(e) => this._pinnedTimerValueChanged(e, index)}></ha-switch>
                   </ha-formfield>
                 ` : ""}
+
+                <div class="row-actions-label">Custom action buttons</div>
+                ${this._renderButtonsEditor(t?.buttons, (next) => this._setPinnedButtons(index, next))}
               </div>
 
               <button class="remove-entity" @click=${() => this._removePinnedTimer(index)} title="Remove pinned timer">
@@ -5300,6 +5433,8 @@ _pinnedTimerValueChanged(ev, index) {
                       .configValue=${"double_tap_action"}
                       @value-changed=${(e) => this._entityValueChanged(e, index)}
                     ></ha-selector>
+                    <div class="row-actions-label">Custom action buttons (override card-level)</div>
+                    ${this._renderButtonsEditor(conf.buttons, (next) => this._setEntityButtons(index, next))}
                   </div>
 
                 </div>
@@ -5344,6 +5479,9 @@ _pinnedTimerValueChanged(ev, index) {
         .configValue=${"double_tap_action"}
         @value-changed=${this._detailValueChanged}
       ></ha-selector>
+      <div class="row-actions-label" style="margin-top:8px;">Custom action buttons</div>
+      <p class="hint">Extra icon buttons shown next to the built-in start / pause / cancel controls. Per-entity and per-pinned buttons override these.</p>
+      ${this._renderButtonsEditor(this._config?.buttons, (next) => this._setCardButtons(next))}
     `;
 
     const panel = (key, header, icon, content, opts = {}) => {
@@ -5435,6 +5573,8 @@ _pinnedTimerValueChanged(ev, index) {
         font-weight: 500;
         margin-top: 4px;
       }
+      .buttons-editor { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+      .button-row { border: 1px solid var(--divider-color); border-radius: 8px; padding: 8px; display: flex; flex-direction: column; gap: 8px; }
       .editor-toolbar .advanced-toggle {
         font-size: 13px;
         color: var(--secondary-text-color);

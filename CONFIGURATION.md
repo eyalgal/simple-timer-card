@@ -264,6 +264,7 @@ pinned_timers:
 | `audio_file_url`             | string  | `""`         | URL or path to audio file                                                                  |
 | `audio_repeat_count`         | number  | `1`          | How many times to play the audio                                                           |
 | `audio_play_until_dismissed` | boolean | `false`      | Keep playing until the user acts on the timer (overrides `audio_repeat_count`)             |
+| `buttons`                    | list    | inherited    | Extra action buttons for this pin, see [Custom action buttons](#-custom-action-buttons)    |
 
 ---
 
@@ -324,7 +325,7 @@ Tap handlers do not fire when the tap lands on an in-card control (`button`, `ha
 
 ## 🔘 Custom action buttons
 
-Add your own icon buttons next to the built-in start / pause / cancel controls. Configure `buttons:` at card level (applies to every row) and/or per entity row (overrides the card-level list for that row, the same way `tap_action` resolves). YAML only, like the tap/hold actions above.
+Add your own icon buttons next to the built-in start / pause / cancel controls. Configure `buttons:` at card level (applies to every row), per entity row, or per pinned timer. The most specific list wins: pinned/entity buttons override the card-level list (the same way `tap_action` resolves). Configurable in the visual editor (action + icon) or in YAML.
 
 ```yaml
 type: custom:simple-timer-card
@@ -370,7 +371,7 @@ For anything else, pass a full Home Assistant `ActionConfig` (`perform-action` /
 
 ### Placement
 
-Buttons sit to the left of the cancel control in the bar and fill styles. In the `circle` style they appear as a small floating button in the corner opposite the cancel X, so the tile keeps its height.
+Buttons sit at the leftmost edge of the controls, before the start / pause control, in the bar and fill styles. In the `circle` style they appear as a small floating button in the corner opposite the cancel X, so the tile keeps its height.
 
 ---
 
