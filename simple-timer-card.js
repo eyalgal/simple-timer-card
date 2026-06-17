@@ -2798,6 +2798,72 @@ class SimpleTimerCard extends i$1 {
     }
   }
 
+  _handleAddTime(t, deltaSeconds) {
+    if (this._isActionThrottled("add_time", t.id, 200)) return;
+    const deltaMs = Math.round(Number(deltaSeconds) * 1000);
+    if (!Number.isFinite(deltaMs) || deltaMs === 0) return;
+    const curRemaining = Math.max(0, Number(t.remaining_ms) || 0);
+    const newRemaining = Math.max(0, curRemaining + deltaMs);
+    const newDuration = Math.max(0, (Number(t.duration) || 0) + deltaMs);
+    const now = Date.now();
+    if (t.source === "helper") {
+      this._mutateHelper(t.source_entity, (data) => {
+        const idx = data.timers.findIndex((x) => x.id === t.id);
+        if (idx === -1) return;
+        const tm = data.timers[idx];
+        tm.duration = newDuration;
+        if (tm.paused) tm.remaining_ms = newRemaining;
+        else tm.end_ts = now + newRemaining;
+      });
+    } else if (["local", "mqtt"].includes(t.source)) {
+      const updates = { duration: newDuration };
+      if (t.paused) updates.remaining_ms = newRemaining;
+      else updates.end_ts = now + newRemaining;
+      this._updateTimerInStorage(t.id, updates, t.source);
+      this.requestUpdate();
+    } else if (t.source === "timer") {
+      this.hass.callService("timer", "change", { entity_id: t.source_entity, duration: Math.round(deltaMs / 1000) });
+    } else {
+      this._toast("Time can only be added to helper, local, MQTT, and timer entities.");
+    }
+  }
+
+  _handleRestart(t) {
+    if (this._isActionThrottled("restart", t.id, 300)) return;
+    const durationMs = Math.max(0, Number(t.duration) || 0);
+    if (durationMs <= 0) { this._toast("This timer has no duration to restart."); return; }
+    const now = Date.now();
+    this._ringingTimers.delete(t.id);
+    this._stopAudioForTimer(t.id);
+    if (t.source === "helper") {
+      this._mutateHelper(t.source_entity, (data) => {
+        const idx = data.timers.findIndex((x) => x.id === t.id);
+        if (idx === -1) return;
+        const tm = data.timers[idx];
+        tm.start_ts = now;
+        tm.end_ts = now + durationMs;
+        tm.duration = durationMs;
+        tm.paused = false;
+        tm.state = "active";
+        tm.finished = false;
+        tm.idle = false;
+        if (tm.remaining_ms != null) delete tm.remaining_ms;
+      });
+    } else if (["local", "mqtt"].includes(t.source)) {
+      this._updateTimerInStorage(
+        t.id,
+        { start_ts: now, end_ts: now + durationMs, duration: durationMs, paused: false, state: "active", remaining_ms: undefined, finished: false, idle: false },
+        t.source
+      );
+      this.requestUpdate();
+    } else if (t.source === "timer") {
+      const serviceDuration = this._formatDurationForService(Math.round(durationMs / 1000));
+      this.hass.callService("timer", "start", { entity_id: t.source_entity, duration: serviceDuration });
+    } else {
+      this._toast("Only helper, local, MQTT, and timer entities can be restarted here.");
+    }
+  }
+
   _formatTimeAgo(ms) {
     if (ms < 1000) return null;
     const seconds = Math.floor(ms / 1000);
@@ -3501,6 +3567,7 @@ class SimpleTimerCard extends i$1 {
       color: b.color || "",
       states: new Set(states),
       action,
+      amount: b.amount,
     };
   }
 
@@ -3508,6 +3575,8 @@ class SimpleTimerCard extends i$1 {
     if (typeof action !== "string") return "";
     switch (action) {
       case "finish": return "mdi:flag-checkered";
+      case "add": return "mdi:plus";
+      case "restart": return "mdi:restart";
       case "cancel": return "mdi:close";
       case "pause": return "mdi:pause";
       case "resume": return "mdi:play";
@@ -3563,6 +3632,11 @@ class SimpleTimerCard extends i$1 {
     if (typeof action === "string") {
       switch (action) {
         case "finish": return this._handleFinish(t);
+        case "add": {
+          const amt = (btn.amount != null && btn.amount !== "") ? btn.amount : "5m";
+          return this._handleAddTime(t, this._parseAdjustmentToSeconds(amt));
+        }
+        case "restart": return this._handleRestart(t);
         case "cancel": return this._handleCancel(t);
         case "pause": return this._togglePause(t, e);
         case "resume": return this._handleResume(t);
@@ -4525,11 +4599,8 @@ _pinnedTimerValueChanged(ev, index) {
     const list = Array.isArray(buttons) ? buttons : [];
     const presetOptions = [
       { value: "finish", label: "Finish" },
-      { value: "cancel", label: "Cancel" },
-      { value: "pause", label: "Pause / resume" },
-      { value: "resume", label: "Resume" },
-      { value: "snooze", label: "Snooze" },
-      { value: "dismiss", label: "Dismiss" },
+      { value: "add", label: "Add time" },
+      { value: "restart", label: "Restart" },
       { value: "__custom", label: "Custom action…" },
     ];
     return b`
@@ -4552,6 +4623,12 @@ _pinnedTimerValueChanged(ev, index) {
                   <ha-icon icon="mdi:delete"></ha-icon>
                 </button>
               </div>
+              ${actionType === "add" ? b`
+                <ha-textfield class="button-amount" label="Amount" placeholder="5m"
+                  helper="e.g. 5m, 30s, 1h" helperPersistent
+                  .value=${b$1?.amount ?? ""}
+                  @input=${(e) => this._buttonFieldChanged(e, list, i, "amount", onChange)}></ha-textfield>
+              ` : ""}
               ${actionType === "__custom" ? b`
                 <ha-selector .hass=${this.hass} .label=${"Custom action"}
                   .selector=${{ ui_action: { default_action: "more-info" } }}
@@ -4606,6 +4683,7 @@ _pinnedTimerValueChanged(ev, index) {
     } else {
       next[i].action = v;
     }
+    if (v !== "add" && next[i].amount !== undefined) delete next[i].amount;
     onChange(next);
   }
 
@@ -5613,7 +5691,7 @@ _pinnedTimerValueChanged(ev, index) {
         margin-top: 4px;
       }
       .buttons-editor { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
-      .button-row { border: 1px solid var(--divider-color); border-radius: 8px; padding: 8px; display: flex; flex-direction: column; gap: 8px; }
+      .button-row { border: 1px solid var(--divider-color); border-radius: 8px; padding: 8px; padding-inline-end: 44px; display: flex; flex-direction: column; gap: 8px; position: relative; }
       .editor-toolbar .advanced-toggle {
         font-size: 13px;
         color: var(--secondary-text-color);

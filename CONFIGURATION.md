@@ -327,19 +327,17 @@ Tap handlers do not fire when the tap lands on an in-card control (`button`, `ha
 
 Add your own icon buttons next to the built-in start / pause / cancel controls. Configure `buttons:` at card level (applies to every row), per entity row, or per pinned timer. The most specific list wins: pinned/entity buttons override the card-level list (the same way `tap_action` resolves). Configurable in the visual editor (action + icon) or in YAML.
 
+Start, pause/resume, and cancel already have built-in controls, so the presets focus on actions you can't otherwise reach inline.
+
 ```yaml
 type: custom:simple-timer-card
 entities:
   - timer.ac_bedroom
 buttons:
   - action: finish            # shorthand preset
-  - icon: mdi:plus
-    name: +5 min
-    action:
-      action: perform-action
-      perform_action: timer.change
-      data:
-        duration: "00:05:00"  # timer.change accepts negative values too
+  - action: add               # add time to the running timer
+    amount: 5m                # e.g. 5m, 30s, 1h
+  - action: restart           # restart from the original duration
 ```
 
 Each button supports:
@@ -347,6 +345,7 @@ Each button supports:
 | Name        | Type            | Default              | Description                                                                                 |
 | ----------- | --------------- | -------------------- | ------------------------------------------------------------------------------------------- |
 | `action`    | string\|object  | **required**         | A shorthand preset string, or a full Home Assistant `ActionConfig` object                   |
+| `amount`    | string          | `5m`                 | Only for `action: add`. How much time to add, e.g. `5m`, `30s`, `1h`                        |
 | `icon`      | string          | preset icon          | Button icon. Optional when `action` is a preset string, required for custom actions         |
 | `name`      | string          | `""`                 | Tooltip text                                                                                 |
 | `color`     | string          | inherit              | Icon color (any CSS color or HA theme variable)                                             |
@@ -359,11 +358,8 @@ Use a string for `action` to call a built-in handler. The icon is supplied autom
 | Preset    | Does                                                                  |
 | --------- | -------------------------------------------------------------------- |
 | `finish`  | Completes the timer now (native `timer.finish`, fires the ring/event) |
-| `cancel`  | Cancels the timer (same as the built-in X)                           |
-| `pause`   | Toggles pause / resume                                               |
-| `resume`  | Resumes a paused timer                                               |
-| `snooze`  | Snoozes a ringing timer                                              |
-| `dismiss` | Dismisses a ringing timer                                            |
+| `add`     | Adds `amount` (default `5m`) to the running or paused timer           |
+| `restart` | Restarts the timer from its original duration                        |
 
 ### Custom actions
 
