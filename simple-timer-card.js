@@ -49,7 +49,7 @@ const a=Symbol.for(""),o$1=t=>{if(t?.r===a)return t?._$litStatic$},i=(t,...r)=>(
  */
 
 
-const cardVersion="2.7.0";
+const cardVersion="2.7.1";
 
 const DAY_IN_MS = 86400000;
 const YEAR_IN_MS = 365 * DAY_IN_MS;
@@ -458,6 +458,7 @@ class SimpleTimerCard extends i$1 {
     this._expirationTimes = new Map();
     this._lastCleanupTime = 0;
     this._mqttShadow = null;
+    this._mqttLastLoadSource = "none";
     this._ui = {
       noTimerHorizontalOpen: false,
       noTimerVerticalOpen: false,
@@ -759,13 +760,19 @@ class SimpleTimerCard extends i$1 {
 
   _loadTimersFromStorage_mqtt() {
     try {
+      this._mqttLastLoadSource = "none";
       const cached = this._readMqttCache();
       const sensor = this._config?.mqtt?.sensor_entity;
-      if (!sensor) return Array.isArray(this._mqttShadow?.timers) ? this._mqttShadow.timers : cached;
+      if (!sensor) {
+        const usingShadow = Array.isArray(this._mqttShadow?.timers);
+        this._mqttLastLoadSource = usingShadow ? "shadow" : "cache";
+        return usingShadow ? this._mqttShadow.timers : cached;
+      }
       const entity = this.hass?.states?.[sensor];
       const timers = entity?.attributes?.timers;
 
       if (Array.isArray(timers)) {
+        this._mqttLastLoadSource = "sensor";
         this._writeMqttCache(timers);
         if (this._mqttShadow?.lastUpdated && entity?.attributes?.lastUpdated && entity.attributes.lastUpdated >= this._mqttShadow.lastUpdated) {
           this._mqttShadow = null;
@@ -776,10 +783,14 @@ class SimpleTimerCard extends i$1 {
         return timers;
       }
 
-      return Array.isArray(this._mqttShadow?.timers) ? this._mqttShadow.timers : cached;
+      const usingShadow = Array.isArray(this._mqttShadow?.timers);
+      this._mqttLastLoadSource = usingShadow ? "shadow" : "cache";
+      return usingShadow ? this._mqttShadow.timers : cached;
     } catch (e) {
       const cached = this._readMqttCache();
-      return Array.isArray(this._mqttShadow?.timers) ? this._mqttShadow.timers : cached;
+      const usingShadow = Array.isArray(this._mqttShadow?.timers);
+      this._mqttLastLoadSource = usingShadow ? "shadow" : "cache";
+      return usingShadow ? this._mqttShadow.timers : cached;
     }
   }
 
@@ -1468,7 +1479,14 @@ class SimpleTimerCard extends i$1 {
       }
     }
     if (this._config.storage === "local" || this._config.storage === "mqtt") {
-      collected.push(...this._loadTimersFromStorage());
+      const storageTimers = this._loadTimersFromStorage();
+      if (this._config.storage === "mqtt" && this._mqttLastLoadSource !== "sensor") {
+        // Cache/shadow data can be stale after wake-up. Keep rendering it, but
+        // block automatic expiry mutations until a fresh sensor snapshot arrives.
+        collected.push(...storageTimers.map((t) => ({ ...t, _mqtt_untrusted: true })));
+      } else {
+        collected.push(...storageTimers);
+      }
     }
     const filtered = collected.filter((t) => !(this._dismissed.has(`${t.source_entity}:${t.id}`)));
     const now = Date.now();
@@ -1560,6 +1578,7 @@ class SimpleTimerCard extends i$1 {
     const audioDelay = (this._config.audio_completion_delay || 4) * 1000;
     for (const timer of [...this._timers]) {
       if (timer.idle || timer.remaining > 0 || timer.paused) continue;
+      if (timer.source === "mqtt" && timer._mqtt_untrusted) continue;
       const action = this._config.expire_action;
       if (action === "dismiss") continue;
       if (action === "keep") {
