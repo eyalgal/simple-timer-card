@@ -49,7 +49,7 @@ const a=Symbol.for(""),o$1=t=>{if(t?.r===a)return t?._$litStatic$},i=(t,...r)=>(
  */
 
 
-const cardVersion="2.7.1";
+const cardVersion="2.7.2";
 
 const DAY_IN_MS = 86400000;
 const YEAR_IN_MS = 365 * DAY_IN_MS;
@@ -905,7 +905,15 @@ class SimpleTimerCard extends i$1 {
       return c;
     });
 
-    if (changed) this._saveTimersToStorage(timers, storage);
+    if (changed) {
+      // Never persist/publish normalized data that came from a stale cache or
+      // shadow snapshot. A device waking from background would otherwise write
+      // its old timer list back onto the retained MQTT topic and resurrect
+      // timers that were already dismissed on another device. Only re-save when
+      // the data is authoritative: local storage, or a fresh MQTT sensor read.
+      const isMqttNonAuthoritative = storage === "mqtt" && this._mqttLastLoadSource !== "sensor";
+      if (!isMqttNonAuthoritative) this._saveTimersToStorage(timers, storage);
+    }
     return timers;
   }
 
@@ -1554,7 +1562,11 @@ class SimpleTimerCard extends i$1 {
         timer.idle = false;
         timer.remaining = 0;
       }
-      const isNowRinging = timer.remaining <= 0 && !timer.paused && !timer.idle;
+      // Untrusted (stale cache/shadow) MQTT timers must not ring, play audio, or
+      // emit expired events. A backgrounded device waking up could otherwise
+      // re-announce a timer that was already dismissed on another device. Once a
+      // fresh sensor snapshot arrives the timer becomes trusted and rings then.
+      const isNowRinging = timer.remaining <= 0 && !timer.paused && !timer.idle && !(timer.source === "mqtt" && timer._mqtt_untrusted);
       if (isNowRinging && !wasRinging) {
         this._ringingTimers.add(timer.id);
         if (this._ringingInitialized) {
