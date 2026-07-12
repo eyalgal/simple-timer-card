@@ -49,7 +49,7 @@ const a=Symbol.for(""),o$1=t=>{if(t?.r===a)return t?._$litStatic$},i=(t,...r)=>(
  */
 
 
-const cardVersion="2.7.2";
+const cardVersion="2.7.3";
 
 const DAY_IN_MS = 86400000;
 const YEAR_IN_MS = 365 * DAY_IN_MS;
@@ -365,6 +365,36 @@ const TRANSLATIONS = {
     month: "maand", months: "maanden", year: "jaar", years: "jaren",
     hour: "uur", hours: "uren", minute: "minuut", minutes: "minuten",
     second: "seconde", seconds: "seconden",
+  },
+  sv: {
+    no_timers: "Ingen timer",
+    timer_name_optional: "Namn på timer (frivilligt)",
+    click_to_start: "Tryck för att starta",
+    no_active_timers: "Ingen pågående timer",
+    active_timers: "Pågående timers",
+    add: "Lägg till",
+    custom: "Anpassa",
+    cancel: "Avbryt",
+    save: "Spara",
+    start: "Start",
+    snooze: "Snooze",
+    dismiss: "Avfärda",
+    ready: "Redo",
+    paused: "Pausad",
+    times_up: "Tiden är ute!",
+    timer: "Timer",
+    hour_ago: "{n} timme sedan",
+    hours_ago: "{n} timmar sedan",
+    minute_ago: "{n} minut sedan",
+    minutes_ago: "{n} minuter sedan",
+    second_ago: "{n} sekund sedan",
+    seconds_ago: "{n} sekunder sedan",
+    h: "t", m: "m", s: "s", d: "d",
+    w_short: "v", mo_short: "må", y_short: "å",
+    day: "dag", days: "dagar", week: "vecka", weeks: "veckor",
+    month: "månad", months: "månader", year: "år", years: "år",
+    hour: "timme", hours: "timmar", minute: "minut", minutes: "minuter",
+    second: "sekund", seconds: "sekunder",
   }
 };
 
@@ -5164,6 +5194,7 @@ _pinnedTimerValueChanged(ev, index) {
         { value: "it", label: "Italiano" },
         { value: "nl", label: "Nederlands" },
         { value: "pl", label: "Polski" },
+        { value: "sv", label: "Svenska" },
         { value: "he", label: "עברית" },
       ],
       sort_by: [
@@ -5249,6 +5280,7 @@ _pinnedTimerValueChanged(ev, index) {
           <mwc-list-item value="fr">Français</mwc-list-item>
           <mwc-list-item value="he">עברית</mwc-list-item>
           <mwc-list-item value="pl">Polski</mwc-list-item>
+          <mwc-list-item value="sv">Svenska</mwc-list-item>
         </ha-select>
       </div>
 
