@@ -13,7 +13,7 @@ import { html, LitElement, css } from "lit";
 import { html as shtml, literal } from "lit/static-html.js";
 import { ifDefined } from "lit/directives/if-defined.js";
 
-const cardVersion="2.7.3";
+const cardVersion="2.7.4";
 
 const DAY_IN_MS = 86400000;
 const YEAR_IN_MS = 365 * DAY_IN_MS;
@@ -1938,6 +1938,28 @@ class SimpleTimerCard extends LitElement {
     return discovered.length ? discovered[0] : null;
   }
 
+  _resolveNativeTimerTarget() {
+    // Preset chips and the custom picker start a native HA timer.* entity via the
+    // timer.start service so timer.started / timer.finished events fire for
+    // automations. This resolves which timer to start: an explicit
+    // default_timer_entity that is a timer.*, otherwise the single native timer
+    // entity configured on the card (ambiguous when there are several).
+    const def = this._config?.default_timer_entity;
+    if (typeof def === "string" && def.startsWith("timer.")) return def;
+    try {
+      const cfg = Array.isArray(this._config?.entities) ? this._config.entities : [];
+      const nativeTimers = [];
+      for (const entityConf of cfg) {
+        const entityId = typeof entityConf === "string" ? entityConf : entityConf?.entity;
+        const mode = typeof entityConf === "string" ? null : entityConf?.mode;
+        if (!entityId) continue;
+        if (entityId.startsWith("timer.") && (!mode || mode === "auto" || mode === "timer")) nativeTimers.push(entityId);
+      }
+      if (nativeTimers.length === 1) return nativeTimers[0];
+    } catch (_) {}
+    return null;
+  }
+
   _ensureAutoVoicePEEntities() {
     if (this._autoVoicePEInjected) return;
     if (this._config?.auto_voice_pe !== true) return;
@@ -2195,6 +2217,17 @@ class SimpleTimerCard extends LitElement {
       const nameForCommand = userProvidedName ? String(overrides.voice_pe_name).trim() : "";
       this._publishTimerEvent("started", { source: "voice_pe", source_entity: targetEntity, label });
       this._sendVoicePEStart(durationMs, nameForCommand, targetEntity);
+      this.requestUpdate();
+      return;
+    }
+
+    // Start a native HA timer.* entity through the timer.start service so the
+    // standard timer.started / timer.finished events fire for automations.
+    const nativeTimerTarget = (targetEntity && targetEntity.startsWith("timer.")) ? targetEntity : this._resolveNativeTimerTarget();
+    if (nativeTimerTarget) {
+      const serviceDuration = this._formatDurationForService(Math.round(durationMs / 1000));
+      this.hass.callService("timer", "start", { entity_id: nativeTimerTarget, duration: serviceDuration });
+      this._publishTimerEvent("started", { source: "timer", source_entity: nativeTimerTarget, label, duration: durationMs });
       this.requestUpdate();
       return;
     }
@@ -3113,6 +3146,17 @@ class SimpleTimerCard extends LitElement {
     }
 
 
+
+    // Start a native HA timer.* entity through the timer.start service so the
+    // standard timer.started / timer.finished events fire for automations.
+    const nativeTimerTarget = (targetEntity && targetEntity.startsWith("timer.")) ? targetEntity : this._resolveNativeTimerTarget();
+    if (nativeTimerTarget) {
+      const serviceDuration = this._formatDurationForService(Math.round(durationMs / 1000));
+      this.hass.callService("timer", "start", { entity_id: nativeTimerTarget, duration: serviceDuration });
+      this._publishTimerEvent("started", { source: "timer", source_entity: nativeTimerTarget, label: finalLabel, duration: durationMs });
+      this.requestUpdate();
+      return;
+    }
 
     if (targetEntity && (targetEntity.startsWith("input_text.") || targetEntity.startsWith("text."))) {
       const now = Date.now();
