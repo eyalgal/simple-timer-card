@@ -570,6 +570,7 @@ class SimpleTimerCard extends LitElement {
       config.storage_namespace ||
       config.default_timer_entity ||
       firstEntityFromList ||
+	  this._storageNamespace ||
       `instance-${this._cardInstanceKey}`;
     const defaultUnits = ["days", "hours", "minutes", "seconds"];
     let timeUnits = defaultUnits;
