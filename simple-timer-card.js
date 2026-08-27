@@ -49,12 +49,22 @@ const a=Symbol.for(""),o$1=t=>{if(t?.r===a)return t?._$litStatic$},i=(t,...r)=>(
  */
 
 
-const cardVersion="2.7.4";
+const cardVersion="2.8.0";
 
 const DAY_IN_MS = 86400000;
 const YEAR_IN_MS = 365 * DAY_IN_MS;
 const HOUR_IN_SECONDS = 3600;
 const MINUTE_IN_SECONDS = 60;
+
+// A tick gap this large means the page was frozen (device asleep or app
+// backgrounded), so any hass state still in memory predates the freeze.
+const MQTT_WAKE_GAP_MS = 5000;
+// How long to wait after a wake for the websocket to resync entity states
+// before trusting the MQTT sensor snapshot again.
+const MQTT_RESYNC_GRACE_MS = 5000;
+// Deletions are remembered this long so a client that slept through one cannot
+// resurrect the timer when it comes back.
+const MQTT_TOMBSTONE_TTL_MS = 24 * 60 * 60 * 1000;
 
 function _cleanUndefined(obj) {
   if (!obj || typeof obj !== "object") return obj;
@@ -62,6 +72,58 @@ function _cleanUndefined(obj) {
     if (obj[k] === undefined) delete obj[k];
   }
   return obj;
+}
+
+function _timerRev(t) {
+  const r = Number(t?.rev);
+  return Number.isFinite(r) && r > 0 ? r : 0;
+}
+
+// Lamport counter: always one above anything either side has seen, so revisions
+// keep increasing without depending on device clocks staying in sync.
+function _nextMqttRev(timers, tombstones) {
+  let max = 0;
+  for (const t of timers || []) max = Math.max(max, _timerRev(t));
+  for (const d of tombstones || []) max = Math.max(max, Number(d?.rev) || 0);
+  return max + 1;
+}
+
+function _pruneTombstones(tombstones, now = Date.now()) {
+  return (tombstones || []).filter((d) => d?.id && now - (Number(d.ts) || 0) < MQTT_TOMBSTONE_TTL_MS);
+}
+
+// Union by id rather than replacing wholesale. Tombstones carry causality and
+// always outrank a timer at or below their revision, so a client that slept
+// through a deletion cannot bring the timer back. Omissions are only honoured
+// when the snapshot is provably newer than what this client's cache was built
+// from, which keeps deletions working for clients that write no tombstones.
+function _mergeMqttState(local, incoming, { acceptOmissions = true, now = Date.now() } = {}) {
+  const tombs = new Map();
+  for (const d of [...(local?.tombstones || []), ...(incoming?.tombstones || [])]) {
+    if (!d?.id) continue;
+    const rev = Number(d.rev) || 0;
+    const prev = tombs.get(d.id);
+    if (!prev || rev > prev.rev) tombs.set(d.id, { id: d.id, rev, ts: Number(d.ts) || now });
+  }
+
+  const timers = new Map();
+  for (const t of incoming?.timers || []) if (t?.id) timers.set(t.id, t);
+  if (!acceptOmissions) {
+    for (const t of local?.timers || []) {
+      if (!t?.id) continue;
+      const prev = timers.get(t.id);
+      if (!prev || _timerRev(t) > _timerRev(prev)) timers.set(t.id, t);
+    }
+  }
+
+  const alive = [];
+  for (const t of timers.values()) {
+    const tomb = tombs.get(t.id);
+    if (tomb && tomb.rev >= _timerRev(t)) continue;
+    alive.push(t);
+  }
+
+  return { timers: alive, tombstones: _pruneTombstones([...tombs.values()], now) };
 }
 
 function _remainingMsFromStoredTimer(t, nowTs = Date.now()) {
@@ -489,6 +551,10 @@ class SimpleTimerCard extends i$1 {
     this._lastCleanupTime = 0;
     this._mqttShadow = null;
     this._mqttLastLoadSource = "none";
+    this._lastTickTs = Date.now();
+    this._mqttAwaitingFresh = false;
+    this._mqttReconnectedAt = 0;
+    this._mqttWakeBaseline = 0;
     this._ui = {
       noTimerHorizontalOpen: false,
       noTimerVerticalOpen: false,
@@ -770,22 +836,82 @@ class SimpleTimerCard extends i$1 {
   }
 
   _readMqttCache() {
+    return this._readMqttCacheState().timers;
+  }
+
+  _readMqttCacheState() {
     try {
       const raw = localStorage.getItem(this._mqttCacheKey());
-      if (!raw) return [];
+      if (!raw) return { timers: [], tombstones: [], baseUpdated: 0 };
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) return parsed;
-      if (parsed && Array.isArray(parsed.timers)) return parsed.timers;
-      return [];
+      if (Array.isArray(parsed)) return { timers: parsed, tombstones: [], baseUpdated: 0 };
+      if (parsed && Array.isArray(parsed.timers)) {
+        return {
+          timers: parsed.timers,
+          tombstones: Array.isArray(parsed.tombstones) ? parsed.tombstones : [],
+          baseUpdated: Number(parsed.baseUpdated) || 0,
+        };
+      }
+      return { timers: [], tombstones: [], baseUpdated: 0 };
     } catch (e) {
-      return [];
+      return { timers: [], tombstones: [], baseUpdated: 0 };
     }
   }
 
-  _writeMqttCache(timers) {
+  _writeMqttCache(timers, tombstones = null, baseUpdated = null) {
     try {
-      localStorage.setItem(this._mqttCacheKey(), JSON.stringify({ timers: Array.isArray(timers) ? timers : [] }));
+      const prev = this._readMqttCacheState();
+      localStorage.setItem(this._mqttCacheKey(), JSON.stringify({
+        timers: Array.isArray(timers) ? timers : [],
+        tombstones: _pruneTombstones(tombstones || prev.tombstones),
+        baseUpdated: baseUpdated != null ? baseUpdated : prev.baseUpdated,
+      }));
     } catch (e) {}
+  }
+
+  _detectWakeFromFreeze() {
+    const now = Date.now();
+    // The tick runs every 250ms while the page is alive. A much larger gap means
+    // the page was frozen, so hass.states may still hold a pre-freeze snapshot.
+    if (this._lastTickTs && now - this._lastTickTs > MQTT_WAKE_GAP_MS) {
+      this._mqttAwaitingFresh = true;
+      this._mqttReconnectedAt = 0;
+      // Whatever is visible at this instant predates the freeze, so it becomes
+      // the bar a snapshot must beat to prove it came from the broker.
+      const sensor = this._config?.mqtt?.sensor_entity;
+      this._mqttWakeBaseline = this._mqttSnapshotStamp(sensor ? this.hass?.states?.[sensor] : null);
+    }
+    this._lastTickTs = now;
+  }
+
+  _mqttSnapshotStamp(entity) {
+    const attr = Number(entity?.attributes?.lastUpdated);
+    if (Number.isFinite(attr) && attr > 0) return attr;
+    const parsed = Date.parse(entity?.last_updated || "");
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  // A sensor read is only authoritative once we know it reflects the broker
+  // rather than state left in memory from before the device went to sleep.
+  _isMqttSnapshotFresh(entity) {
+    const connected = this.hass?.connected !== false;
+    if (!connected) {
+      this._mqttReconnectedAt = 0;
+      return false;
+    }
+    if (!this._mqttAwaitingFresh) return true;
+
+    const stamp = this._mqttSnapshotStamp(entity);
+    if (stamp > 0 && stamp > this._mqttWakeBaseline) {
+      this._mqttAwaitingFresh = false;
+      return true;
+    }
+    if (!this._mqttReconnectedAt) this._mqttReconnectedAt = Date.now();
+    if (Date.now() - this._mqttReconnectedAt >= MQTT_RESYNC_GRACE_MS) {
+      this._mqttAwaitingFresh = false;
+      return true;
+    }
+    return false;
   }
 
   _loadTimersFromStorage_mqtt() {
@@ -802,15 +928,34 @@ class SimpleTimerCard extends i$1 {
       const timers = entity?.attributes?.timers;
 
       if (Array.isArray(timers)) {
+        if (!this._isMqttSnapshotFresh(entity)) {
+          // Render it so the card does not blank out, but treat it as stale so
+          // it cannot ring, expire, or be published back over newer broker state.
+          this._mqttLastLoadSource = "stale_sensor";
+          return timers;
+        }
         this._mqttLastLoadSource = "sensor";
-        this._writeMqttCache(timers);
+        // Reconcile instead of replacing, so a stale publish from another client
+        // cannot resurrect something this client already knows was deleted.
+        const cached = this._readMqttCacheState();
+        const incomingStamp = this._mqttSnapshotStamp(entity);
+        const merged = _mergeMqttState(
+          cached,
+          { timers, tombstones: Array.isArray(entity?.attributes?.deleted) ? entity.attributes.deleted : [] },
+          { acceptOmissions: incomingStamp > cached.baseUpdated },
+        );
+        this._writeMqttCache(merged.timers, merged.tombstones, Math.max(incomingStamp, cached.baseUpdated));
+        if (merged.timers.length !== timers.length) {
+          // The retained topic carried a resurrected timer. Heal it for everyone.
+          this._saveTimersToStorage_mqtt(merged.timers, merged.tombstones);
+        }
         if (this._mqttShadow?.lastUpdated && entity?.attributes?.lastUpdated && entity.attributes.lastUpdated >= this._mqttShadow.lastUpdated) {
           this._mqttShadow = null;
         } else if (this._mqttShadow?.timers) {
           const hasAllShadow = this._mqttShadow.timers.every((t) => t?.id && timers.some((x) => x?.id === t.id));
           if (hasAllShadow) this._mqttShadow = null;
         }
-        return timers;
+        return merged.timers;
       }
 
       const usingShadow = Array.isArray(this._mqttShadow?.timers);
@@ -824,18 +969,19 @@ class SimpleTimerCard extends i$1 {
     }
   }
 
-  _saveTimersToStorage_mqtt(timers) {
+  _saveTimersToStorage_mqtt(timers, tombstones = null) {
     try {
       const timersArr = Array.isArray(timers) ? timers : [];
+      const tombs = _pruneTombstones(tombstones || this._readMqttCacheState().tombstones);
       const lastUpdated = Date.now();
       this._mqttShadow = { timers: timersArr, lastUpdated };
-      this._writeMqttCache(timersArr);
+      this._writeMqttCache(timersArr, tombs, lastUpdated);
 
       const topic = this._config?.mqtt?.topic;
       if (topic) {
         const compat = (this._config?.compatibility_mode || "2.1.1");
         if (compat && compat !== "latest") {
-          const payloadObj = { timers: timersArr, version: 1, lastUpdated };
+          const payloadObj = { timers: timersArr, version: 1, lastUpdated, deleted: tombs };
           this.hass.callService("mqtt", "publish", {
             topic,
             payload: JSON.stringify(payloadObj),
@@ -865,14 +1011,18 @@ class SimpleTimerCard extends i$1 {
     const timers = this._loadTimersFromStorage_mqtt();
     const index = timers.findIndex((t) => t.id === timerId);
     if (index !== -1) {
-      timers[index] = _cleanUndefined({ ...timers[index], ...updates });
-      this._saveTimersToStorage_mqtt(timers);
+      const tombs = this._readMqttCacheState().tombstones;
+      timers[index] = _cleanUndefined({ ...timers[index], ...updates, rev: _nextMqttRev(timers, tombs) });
+      this._saveTimersToStorage_mqtt(timers, tombs);
     }
   }
 
   _removeTimerFromStorage_mqtt(timerId) {
-    const timers = this._loadTimersFromStorage_mqtt().filter((t) => t.id !== timerId);
-    this._saveTimersToStorage_mqtt(timers);
+    const current = this._loadTimersFromStorage_mqtt();
+    const tombs = this._readMqttCacheState().tombstones;
+    const rev = _nextMqttRev(current, tombs);
+    const timers = current.filter((t) => t.id !== timerId);
+    this._saveTimersToStorage_mqtt(timers, [...tombs, { id: timerId, rev, ts: Date.now() }]);
   }
 
   _loadTimersFromStorage(sourceHint = null) {
@@ -968,6 +1118,10 @@ class SimpleTimerCard extends i$1 {
   _addTimerToStorage(timer) {
     const storage = timer.source || this._config.storage;
     const timers = this._loadTimersFromStorage(storage);
+    if (storage === "mqtt") {
+      const tombs = this._readMqttCacheState().tombstones;
+      timer = { ...timer, rev: _nextMqttRev(timers, tombs) };
+    }
     timers.push(timer);
     this._saveTimersToStorage(timers, storage);
   }
@@ -1486,6 +1640,7 @@ class SimpleTimerCard extends i$1 {
 
 
   _updateTimers() {
+    this._detectWakeFromFreeze();
     if (!this.hass) return;
     this._ensureAutoVoicePEEntities();
     const collected = [];

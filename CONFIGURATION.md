@@ -476,6 +476,29 @@ mqtt:
 
 Full details on the MQTT payload and hybrid model: [mqtt-hybrid-model.md](mqtt-hybrid-model.md).
 
+#### Multi-device reconciliation
+
+Cards do not overwrite each other's state. Each timer carries a revision, and
+deletions publish a short-lived tombstone alongside the timer list:
+
+```json
+{
+  "timers": [ { "id": "custom-1", "rev": 3, "...": "..." } ],
+  "deleted": [ { "id": "custom-0", "rev": 4, "ts": 1750000000000 } ],
+  "version": 1,
+  "lastUpdated": 1750000000000
+}
+```
+
+When a card reads the topic it reconciles the payload against what it already
+knows instead of replacing it. A device that was asleep or backgrounded can
+therefore no longer republish an old snapshot and bring back a timer that was
+dismissed elsewhere; the first card to notice republishes the corrected list.
+Tombstones are dropped after 24 hours.
+
+The `deleted` key is additive. Older cards and the failsafe automation in
+[mqtt-hybrid-model.md](mqtt-hybrid-model.md) read `timers` and are unaffected.
+
 ### Multiple cards on one dashboard
 
 When more than one card lives on the same dashboard and uses local browser storage (no `default_timer_entity`, no MQTT), each card needs its own namespace so they don't share state.
