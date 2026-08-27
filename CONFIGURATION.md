@@ -505,9 +505,11 @@ When more than one card lives on the same dashboard and uses local browser stora
 
 The card derives its `localStorage` key from, in order:
 
-`storage_namespace` > `default_timer_entity` > first entity in `entities:` > per-instance random key
+`storage_namespace` > `default_timer_entity` > first entity in `entities:` > a key derived from the card's own configuration
 
-So cards that set `default_timer_entity` or list `entities:` are isolated automatically. Cards with none of those get a fresh per-instance namespace on each load - to make the namespace stable across reloads, set `storage_namespace` explicitly:
+So cards that set `default_timer_entity` or list `entities:` are isolated automatically. Cards with none of those fall back to a key derived from their configuration, which is stable across reloads, so their timers survive navigation and browser restarts.
+
+Two cards whose configuration is byte for byte identical will resolve to the same key and therefore share state. Give at least one of them an explicit namespace:
 
 ```yaml
 - type: custom:simple-timer-card
@@ -515,6 +517,8 @@ So cards that set `default_timer_entity` or list `entities:` are isolated automa
 - type: custom:simple-timer-card
   storage_namespace: kitchen
 ```
+
+Setting `storage_namespace` explicitly is also worthwhile for a single card, because the derived key changes if you edit the card's configuration, which starts the card on a fresh empty store.
 
 For two genuinely independent timers, the supported setups are still a per-card `timer.*` helper via `default_timer_entity:` or per-card MQTT with a unique `mqtt.topic:`.
 
@@ -524,7 +528,7 @@ For two genuinely independent timers, the supported setups are still a per-card 
 | ---------------------- | ------ | ------- | ------------------------------------------------------------------------------------------------------ |
 | `default_timer_entity` | string | `null`  | Helper (`input_text`/`text`) or MQTT sensor used as the timer store. Auto-detects `local` vs `mqtt`.   |
 | `storage`              | string | auto    | Force a backend: `local` or `mqtt`. Usually auto-detected from `default_timer_entity`.                 |
-| `storage_namespace`    | string | auto    | Override the `localStorage` namespace for this card. Defaults to `default_timer_entity`, then the first entity in `entities:`, then a per-instance random key. Needed when running multiple local-storage cards on one dashboard. |
+| `storage_namespace`    | string | auto    | Override the `localStorage` namespace for this card. Defaults to `default_timer_entity`, then the first entity in `entities:`, then a key derived from the card's configuration. Needed when running multiple identically configured local-storage cards on one dashboard. |
 | `mqtt.sensor_entity`   | string | -       | MQTT sensor entity holding state                                                                       |
 | `mqtt.topic`           | string | -       | Base MQTT topic                                                                                        |
 | `mqtt.state_topic`     | string | -       | Override the state topic                                                                               |

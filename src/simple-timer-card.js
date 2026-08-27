@@ -56,6 +56,50 @@ function _pruneTombstones(tombstones, now = Date.now()) {
   return (tombstones || []).filter((d) => d?.id && now - (Number(d.ts) || 0) < MQTT_TOMBSTONE_TTL_MS);
 }
 
+// Stable across reloads and distinct per card, so a card with no explicit
+// namespace keeps its timers without colliding with a differently configured
+// card on the same dashboard.
+function _stableConfigHash(config) {
+  const seen = new WeakSet();
+  const ordered = (v) => {
+    if (v === null || typeof v !== "object") return v;
+    if (seen.has(v)) return null;
+    seen.add(v);
+    if (Array.isArray(v)) return v.map(ordered);
+    const out = {};
+    for (const k of Object.keys(v).sort()) out[k] = ordered(v[k]);
+    return out;
+  };
+  let json;
+  try {
+    json = JSON.stringify(ordered(config)) || "";
+  } catch (e) {
+    json = "";
+  }
+  let h = 0x811c9dc5;
+  for (let i = 0; i < json.length; i++) {
+    h ^= json.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h.toString(36);
+}
+
+// Versions 2.4.0 to 2.8.0 keyed unconfigured cards by a random value, leaving a
+// dead entry behind on every reload.
+let _prunedLegacyInstanceKeys = false;
+function _pruneLegacyInstanceNamespaces() {
+  if (_prunedLegacyInstanceKeys) return;
+  _prunedLegacyInstanceKeys = true;
+  try {
+    const stale = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith("simple-timer-card-instance-")) stale.push(key);
+    }
+    for (const key of stale) localStorage.removeItem(key);
+  } catch (e) {}
+}
+
 // Union by id rather than replacing wholesale. Tombstones carry causality and
 // always outrank a timer at or below their revision, so a client that slept
 // through a deletion cannot bring the timer back. Omissions are only honoured
@@ -530,7 +574,6 @@ class SimpleTimerCard extends LitElement {
     this._showingCustomName = {};
     this._lastSelectedName = {};
     this._storageNamespace = "default";
-    this._cardInstanceKey = Math.random().toString(36).slice(2, 10);
     this._editingTimerId = null;
     this._editDuration = { h: 0, m: 0, s: 0 };
     this._audioUnlocked = false;
@@ -636,7 +679,8 @@ class SimpleTimerCard extends LitElement {
       config.storage_namespace ||
       config.default_timer_entity ||
       firstEntityFromList ||
-      `instance-${this._cardInstanceKey}`;
+      `auto-${_stableConfigHash(config)}`;
+    _pruneLegacyInstanceNamespaces();
     const defaultUnits = ["days", "hours", "minutes", "seconds"];
     let timeUnits = defaultUnits;
     if (Array.isArray(config.time_format_units)) {
@@ -4149,7 +4193,7 @@ class SimpleTimerCard extends LitElement {
       const color = (p && typeof p === "object" && p.color) ? p.color : (this._config.default_timer_color || "var(--primary-color)");
       const userId = (p && typeof p === "object" && p.id) ? String(p.id) : null;
       const basePinnedId = userId || `pinned-${idx}`;
-      const pinnedId = userId ? `${ns}:${basePinnedId}` : `${ns}:${this._cardInstanceKey}:${basePinnedId}`;
+      const pinnedId = `${ns}:${basePinnedId}`;
       const templateId = `template:${pinnedId}`;
 
       return {
