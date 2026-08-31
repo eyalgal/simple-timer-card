@@ -5508,6 +5508,47 @@ _pinnedTimerValueChanged(ev, index) {
     return _normalizeCardStyle(this._config.style);
   }
 
+  _sourceStyleChanged(source, field, ev) {
+    ev?.stopPropagation?.();
+    const raw = ev?.detail?.value ?? ev?.target?.value ?? "";
+    const value = typeof raw === "string" ? raw.trim() : "";
+    const styles = { ...(this._config?.source_styles || {}) };
+    const entry = { ...(styles[source] || {}) };
+    if (value) entry[field] = value;
+    else delete entry[field];
+    if (Object.keys(entry).length) styles[source] = entry;
+    else delete styles[source];
+    this._updateConfig({ source_styles: styles });
+  }
+
+  _renderSourceStyleRows() {
+    const sources = [
+      { key: "alexa", label: "Alexa", advanced: false },
+      { key: "google", label: "Google Home", advanced: false },
+      { key: "voice_pe", label: "Voice PE", advanced: false },
+      { key: "timer", label: "Native timer", advanced: true },
+      { key: "helper", label: "Helper", advanced: true },
+      { key: "timestamp", label: "Timestamp sensor", advanced: true },
+      { key: "minutes_attr", label: "Minutes attribute", advanced: true },
+    ];
+    const styles = this._config?.source_styles || {};
+    return sources.map((s) => html`
+      <div class="row ${s.advanced ? "advanced" : ""}">
+        <ha-icon-picker
+          label="${s.label} icon"
+          .value=${styles[s.key]?.icon || ""}
+          @value-changed=${(e) => this._sourceStyleChanged(s.key, "icon", e)}
+        ></ha-icon-picker>
+        ${this._tf({
+          label: `${s.label} color`,
+          placeholder: "var(--primary-color)",
+          value: styles[s.key]?.color || "",
+          change: (e) => this._sourceStyleChanged(s.key, "color", e),
+        })}
+      </div>
+    `);
+  }
+
   _detectMode(entityId, entityState, entityConf) {
     if (!entityState) return null;
     if (entityId.startsWith("timer.")) return "timer";
@@ -5741,6 +5782,11 @@ _pinnedTimerValueChanged(ev, index) {
         <ha-icon-picker label="Default timer icon" helper="Used when a timer does not specify its own icon." .value=${this._config.default_timer_icon || "mdi:timer-outline"} .configValue=${"default_timer_icon"} @value-changed=${this._detailValueChanged}></ha-icon-picker>
         ${this._tf({ label: "Default timer color", helper: "CSS color or var() used as the progress accent.", value: this._config.default_timer_color || "var(--primary-color)", configValue: "default_timer_color", change: this._valueChanged })}
       </div>
+
+      <div class="divider"></div>
+
+      <p class="hint">Per-source icon and color. Useful for auto-discovered timers, which have no per-entity settings. An entity listed under Entities with its own icon still wins. Paused and finished timers keep their state icon and color.</p>
+      ${this._renderSourceStyleRows()}
 
       ${this._tf({ label: "Timer expired message", helper: "Shown under each timer once it reaches zero.", value: this._config.expired_subtitle, configValue: "expired_subtitle", placeholder: "Time's up!", change: this._valueChanged })}
 
