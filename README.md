@@ -8,56 +8,22 @@
 <img width="1000" alt="hero image" src="https://raw.githubusercontent.com/eyalgal/simple-timer-card/main/assets/readme-hero.png" />
 
 
-A **clean, powerful timer card for Home Assistant** that works seamlessly with native timers, Alexa, Voice PE, helpers, MQTT, and local UI timers.
+A **clean, powerful timer card for Home Assistant** that shows every timer you have in one place, whether it comes from a native `timer.*`, Alexa, Google Home, Voice PE, a helper, MQTT, or the card itself.
 
----
-
-## ✨ Why Simple Timer Card
-
-Simple Timer Card focuses on doing one thing extremely well: **making timers easy to see, start, and manage**, no matter where they come from.
-
-**What you get:**
-
-* One card for **all your timers**
-* Works with **native HA timers, Alexa, Voice PE, helpers, MQTT, and local UI timers**
-* Clean UI that scales from one timer to many
-* Persistent timers that survive reloads and sync across devices
-
-No dashboards clutter. No duplicated cards. Just timers.
+No dashboard clutter. No duplicated cards. Just timers.
 
 ---
 
 ## 🚀 Highlights
 
-* **Multiple timer sources**: Native `timer.*`, Alexa, Voice PE, helpers, MQTT, timestamps, and more
+* **Every timer in one card**: Native `timer.*`, Alexa, Google Home, Voice PE, helpers, MQTT, timestamps, and local timers
 * **Auto-discovery**: Optionally pick up Alexa and Google Home timers without listing every speaker entity
 * **Quick actions**: Presets, pinned one‑tap timers, and custom timers
 * **Visual progress styles**: Bars, fills, and circles (vertical or horizontal) with drain, fill, or milestone modes
-* **Sorting & layout control**: Sort by time or name, pin timers inline, top, or bottom
-* **Custom interactions**: Standard `tap_action`, `hold_action`, and `double_tap_action` at card and row level
 * **Persistent storage**: Local or MQTT based, survives reloads and syncs across devices
-* **Audio & expiry actions**: Optional sounds, snooze, auto dismiss, and expiry behavior
-* **Push notification fallback**: Optional `notify` service call on timer end, so iOS / Android devices ring even when the in-page audio cannot
-* **Theme aware**: Automatically matches your Home Assistant theme
-* **🌍 Multi-language support**: English, German, Spanish, Danish, Italian, French, Hebrew (RTL), Polish, and Dutch
+* **Audio & notifications**: Optional sounds, snooze, auto dismiss, plus a `notify` fallback so phones ring even when in-page audio cannot
+* **Theme aware & multilingual**: Matches your Home Assistant theme; English, German, Spanish, Danish, Italian, French, Hebrew (RTL), Polish, Dutch, and Swedish
 * **[Spook](https://spook.boo/) fallback**: Automatically falls back to Spook's `timer.set_duration` for non-admin users
-
----
-
-## 🔌 Integrations & Guides
-
-Simple Timer Card works with a wide range of timer sources, from native Home Assistant timers to advanced setups.
-
-- **Voice PE**
-  - Mirror Voice PE timers or fully control them from the UI
-  - Supports ESPHome-based local timers
-  - 📖 Docs: [Voice PE overview](voice-pe/voice-pe.md)  
-    📖 Advanced: [Voice PE + ESPHome](voice-pe/voice-pe-esphome.md)
-
-- **MQTT (Persistent Timers)**
-  - Timers survive reloads and sync across devices
-  - Hybrid MQTT model with local fallback
-  - 📖 Docs: [MQTT Hybrid Storage Model](mqtt-hybrid-model.md)
 
 ---
 
@@ -83,26 +49,36 @@ resources:
 
 ---
 
+## 🚦 Quick start
+
+Add the card with no options and it keeps local timers in the browser:
+
+```yaml
+type: custom:simple-timer-card
+```
+
+To follow timers that already exist in Home Assistant, list them:
+
+```yaml
+type: custom:simple-timer-card
+entities:
+  - timer.kitchen
+  - timer.laundry
+```
+
+---
+
 ## 📝 Configuration
 
-Configuration has grown over time, so it now lives in its own dedicated document.
+Everything else, including styles, presets, pinned timers, storage, audio, notifications and tap actions, is in [`CONFIGURATION.md`](CONFIGURATION.md).
 
-➡️ **See full configuration reference:**
-
-👉 [`CONFIGURATION.md`](CONFIGURATION.md)
+**Guides:** [Voice PE](voice-pe/voice-pe.md) and [Voice PE with ESPHome](voice-pe/voice-pe-esphome.md) · [MQTT hybrid storage](mqtt-hybrid-model.md)
 
 ---
 
 ## 🔒 Security
 
-The card includes built‑in safeguards:
-
-* Input validation and sanitization
-* Safe audio URL handling
-* Rate limiting for actions
-* Graceful handling of corrupted storage
-
-See [`SECURITY.md`](SECURITY.md) for details.
+Input validation and sanitization, safe audio URL handling, rate limiting for actions, and graceful handling of corrupted storage. See [`SECURITY.md`](SECURITY.md) for details.
 
 ---
 

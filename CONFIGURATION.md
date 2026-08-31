@@ -611,6 +611,7 @@ The card supports multiple UI languages:
 * Hebrew (`he`) - right-to-left
 * Polish (`pl`)
 * Dutch (`nl`)
+* Swedish (`sv`)
 
 ```yaml
 language: de
