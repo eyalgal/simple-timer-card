@@ -19,25 +19,32 @@ This requires taking full control of your Voice PE device configuration. Proceed
 
 ### Per display slot (1..3)
 
-* `sensor.timer_X_total_seconds`
-* `sensor.timer_X_seconds_left`
-* `text_sensor.timer_X_name`
-* `text_sensor.timer_X_state` active paused finished idle
-* `text_sensor.timer_X_id` required for local control local vs remote
+* `sensor.home_assistant_voice_timer_X_total_seconds`
+* `sensor.home_assistant_voice_timer_X_seconds_left`
+* `sensor.home_assistant_voice_timer_X_name`
+* `sensor.home_assistant_voice_timer_X_state` active paused finished idle
+* `sensor.home_assistant_voice_timer_X_id` required for local control local vs remote
 
 ### Global
 
-* `sensor.timer_count` remote plus local active timers
+* `sensor.home_assistant_voice_timer_count` remote plus local active timers
 
 ### Control input (for local timers)
 
-* `text.voice_pe_timer_command` receives commands like start pause resume cancel
+* `text.home_assistant_voice_voice_pe_timer_command` receives commands like start pause resume cancel
+
+> The `home_assistant_voice_` prefix comes from `friendly_name` in the base config
+> below, so swap in your own device name.
+>
+> `timer_X_name`, `timer_X_state` and `timer_X_id` are declared under `text_sensor:`
+> in ESPHome but arrive as `sensor.` entities, because Home Assistant has no
+> `text_sensor` domain.
 
 ## How the integration works (high level)
 
 1. `voice_assistant.on_timer_tick` provides a timers vector remote timers sorted by soonest end.
 2. We mirror the first N entries into internal remote storage r1..r3.
-3. Separately, local timers t1..t3 are created controlled via commands written to `text.voice_pe_timer_command`.
+3. Separately, local timers t1..t3 are created controlled via commands written to `text.home_assistant_voice_voice_pe_timer_command`.
 4. A `publish_display` script merges remote timers first then local timers into display slots timer 1..timer 3.
 
 Both remote and local timers can use a sticky finished state for about 10 seconds then clear.
@@ -503,7 +510,7 @@ script:
 
 ## 6) Handle local timer control commands
 
-Commands written into `text.voice_pe_timer_command`:
+Commands written into `text.home_assistant_voice_voice_pe_timer_command`:
 
 * `start:<seconds>:<optional name>`
 * `pause:<timer_id>`

@@ -61,13 +61,21 @@ Pick **one**:
 
 Once flashed, you should see ESPHome entities like:
 
-- `sensor.<device>_timer_1_total_seconds`
-- `sensor.<device>_timer_1_seconds_left`
-- `sensor.<device>_timer_1_state` (sometimes as `text_sensor` depending on your YAML)
-- `sensor.<device>_timer_1_name` (sometimes as `text_sensor` depending on your YAML)
+- `sensor.home_assistant_voice_timer_1_total_seconds`
+- `sensor.home_assistant_voice_timer_1_seconds_left`
+- `sensor.home_assistant_voice_timer_1_state`
+- `sensor.home_assistant_voice_timer_1_name`
 
-> The exact entity IDs depend on your ESPHome device name.  
-> Use *Developer Tools → States* to find the real ones.
+> ESPHome prefixes every entity with the device's friendly name, so the ids above
+> assume the `friendly_name: Home Assistant Voice` used in the ESPHome guides.
+> Replace that prefix with your own device name.
+>
+> Note that ESPHome text sensors arrive in Home Assistant as `sensor.` entities.
+> There is no `text_sensor` domain in Home Assistant, so `timer_1_state` and
+> `timer_1_name` are both `sensor.` even though the ESPHome YAML declares them
+> under `text_sensor:`.
+>
+> Check *Developer Tools → States* and filter on `timer_` to confirm yours.
 
 ---
 
@@ -79,66 +87,66 @@ Create one HA template sensor per slot.
 - This template sensor structure is the **mirror-only** format.
 - If you use the **advanced local-control** ESPHome setup, you’ll likely want the advanced template structure that includes `timer_id` and `control_entity` (that is covered in the advanced guide).
 
-Add this to `configuration.yaml` (adjust entity IDs!):
+Add this to `configuration.yaml`. The ids below assume the `friendly_name: Home Assistant Voice` from the ESPHome guides, so replace that prefix with your own device name:
 
 ```yaml
 template:
   - sensor:
       - name: "VPE Timer 1"
-        state: "{{ states('sensor.timer_1_state') or 'idle' }}"
+        state: "{{ states('sensor.home_assistant_voice_timer_1_state') or 'idle' }}"
         attributes:
           display_name: >-
-            {% set s = states('sensor.timer_1_total_seconds')|int(0) %}
+            {% set s = states('sensor.home_assistant_voice_timer_1_total_seconds')|int(0) %}
             {% set h = s // 3600 %}
             {% set m = (s % 3600) // 60 %}
             {% set sec = s % 60 %}
             {% if h > 0 %}Voice PE - {{ h }}h
             {% elif m > 0 %}Voice PE - {{ m }}m
             {% else %}Voice PE - {{ sec }}s{% endif %}
-          timer_name: "{{ states('sensor.timer_1_name') }}"
+          timer_name: "{{ states('sensor.home_assistant_voice_timer_1_name') }}"
           duration: >-
-            {% set s = states('sensor.timer_1_total_seconds')|int(0) %}
+            {% set s = states('sensor.home_assistant_voice_timer_1_total_seconds')|int(0) %}
             {{ '%d:%02d:%02d' % (s//3600, (s%3600)//60, s%60) }}
           remaining: >-
-            {% set s = states('sensor.timer_1_seconds_left')|int(0) %}
+            {% set s = states('sensor.home_assistant_voice_timer_1_seconds_left')|int(0) %}
             {{ '%d:%02d:%02d' % (s//3600, (s%3600)//60, s%60) }}
 
       - name: "VPE Timer 2"
-        state: "{{ states('sensor.timer_2_state') or 'idle' }}"
+        state: "{{ states('sensor.home_assistant_voice_timer_2_state') or 'idle' }}"
         attributes:
           display_name: >-
-            {% set s = states('sensor.timer_2_total_seconds')|int(0) %}
+            {% set s = states('sensor.home_assistant_voice_timer_2_total_seconds')|int(0) %}
             {% set h = s // 3600 %}
             {% set m = (s % 3600) // 60 %}
             {% set sec = s % 60 %}
             {% if h > 0 %}Voice PE - {{ h }}h
             {% elif m > 0 %}Voice PE - {{ m }}m
             {% else %}Voice PE - {{ sec }}s{% endif %}
-          timer_name: "{{ states('sensor.timer_2_name') }}"
+          timer_name: "{{ states('sensor.home_assistant_voice_timer_2_name') }}"
           duration: >-
-            {% set s = states('sensor.timer_2_total_seconds')|int(0) %}
+            {% set s = states('sensor.home_assistant_voice_timer_2_total_seconds')|int(0) %}
             {{ '%d:%02d:%02d' % (s//3600, (s%3600)//60, s%60) }}
           remaining: >-
-            {% set s = states('sensor.timer_2_seconds_left')|int(0) %}
+            {% set s = states('sensor.home_assistant_voice_timer_2_seconds_left')|int(0) %}
             {{ '%d:%02d:%02d' % (s//3600, (s%3600)//60, s%60) }}
 
       - name: "VPE Timer 3"
-        state: "{{ states('sensor.timer_3_state') or 'idle' }}"
+        state: "{{ states('sensor.home_assistant_voice_timer_3_state') or 'idle' }}"
         attributes:
           display_name: >-
-            {% set s = states('sensor.timer_3_total_seconds')|int(0) %}
+            {% set s = states('sensor.home_assistant_voice_timer_3_total_seconds')|int(0) %}
             {% set h = s // 3600 %}
             {% set m = (s % 3600) // 60 %}
             {% set sec = s % 60 %}
             {% if h > 0 %}Voice PE - {{ h }}h
             {% elif m > 0 %}Voice PE - {{ m }}m
             {% else %}Voice PE - {{ sec }}s{% endif %}
-          timer_name: "{{ states('sensor.timer_3_name') }}"
+          timer_name: "{{ states('sensor.home_assistant_voice_timer_3_name') }}"
           duration: >-
-            {% set s = states('sensor.timer_3_total_seconds')|int(0) %}
+            {% set s = states('sensor.home_assistant_voice_timer_3_total_seconds')|int(0) %}
             {{ '%d:%02d:%02d' % (s//3600, (s%3600)//60, s%60) }}
           remaining: >-
-            {% set s = states('sensor.timer_3_seconds_left')|int(0) %}
+            {% set s = states('sensor.home_assistant_voice_timer_3_seconds_left')|int(0) %}
             {{ '%d:%02d:%02d' % (s//3600, (s%3600)//60, s%60) }}
 ```
 
@@ -180,7 +188,12 @@ The card uses:
 ## Troubleshooting
 
 - **Everything is `unknown` / `idle`**
-  - Your entity IDs don’t match. Go to *Developer Tools → States* and find the real ESPHome entities, then update the template sensors.
+  - The entity ids in the template sensors do not match your device. ESPHome prefixes
+    entities with the device friendly name, so a device named `Kitchen Voice` gives
+    `sensor.kitchen_voice_timer_1_state`, not `sensor.timer_1_state`. Check
+    *Developer Tools → States*, filter on `timer_`, and update the templates.
+  - Remember that `timer_1_state` and `timer_1_name` are `sensor.` entities in Home
+    Assistant even though ESPHome declares them under `text_sensor:`.
 
 - **Timers appear in the wrong order**
   - This is expected: Voice PE sorts timers by soonest-to-finish, so slots can change when you add a shorter timer.

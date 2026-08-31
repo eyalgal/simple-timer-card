@@ -20,13 +20,20 @@ If you want **UI-controlled timers** too (start/pause/resume/cancel from the das
 
 This mirror-only approach exposes (per slot 1..3 shown here):
 
-- `sensor.timer_X_total_seconds`
-- `sensor.timer_X_seconds_left`
-- `text_sensor.timer_X_name`
-- `text_sensor.timer_X_state` (`active`, `paused`, `finished`, `idle`)
+- `sensor.home_assistant_voice_timer_X_total_seconds`
+- `sensor.home_assistant_voice_timer_X_seconds_left`
+- `sensor.home_assistant_voice_timer_X_name`
+- `sensor.home_assistant_voice_timer_X_state` (`active`, `paused`, `finished`, `idle`)
 
 And globally:
-- `sensor.timer_count`
+- `sensor.home_assistant_voice_timer_count`
+
+> The `home_assistant_voice_` prefix comes from `friendly_name` in the base config
+> below. Swap in your own device name.
+>
+> `timer_X_name` and `timer_X_state` are declared under `text_sensor:` in ESPHome
+> but arrive in Home Assistant as `sensor.` entities, because Home Assistant has
+> no `text_sensor` domain.
 
 > There is **no** `timer_id` and **no** `control_entity` because there is no local control.
 
