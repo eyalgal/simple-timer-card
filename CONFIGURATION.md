@@ -350,7 +350,7 @@ Tap handlers do not fire when the tap lands on an in-card control (`button`, `ha
 
 Add your own icon buttons next to the built-in start / pause / cancel controls. Configure `buttons:` at card level (applies to every row), per entity row, or per pinned timer. The most specific list wins: pinned/entity buttons override the card-level list (the same way `tap_action` resolves). Configurable in the visual editor (action + icon) or in YAML.
 
-Start, pause/resume, and cancel already have built-in controls, so the presets focus on actions you can't otherwise reach inline. Pause/resume is also offered as a preset since it's useful in the `circle` layout, which has no inline pause control.
+Start, pause/resume, and cancel already have built-in controls, so the presets focus on actions you can't otherwise reach inline. Pause/resume is also offered as a preset since it's useful in the `circle_vertical` layout, which has no inline pause control.
 
 ```yaml
 type: custom:simple-timer-card
@@ -386,7 +386,7 @@ Use a string for `action` to call a built-in handler. The icon is supplied autom
 | `add`     | Adds `amount` to the running or paused timer (`amount` required)      |
 | `reduce`  | Subtracts `amount` from the running or paused timer (`amount` required) |
 | `restart` | Restarts the timer from its original duration                        |
-| `pause`   | Toggles pause / resume (handy in the `circle` layout)                |
+| `pause`   | Toggles pause / resume (handy in the `circle_vertical` layout)                |
 
 ### Custom actions
 
@@ -398,7 +398,7 @@ Presets are control actions, so they only work for timers the card can drive: `t
 
 ### Placement
 
-Buttons sit at the leftmost edge of the controls, before the start / pause control, in the bar and fill styles. In the `circle` style they appear as a small floating button in the corner opposite the cancel X, so the tile keeps its height.
+Buttons sit at the leftmost edge of the controls, before the start / pause control, in the bar, fill and `circle_horizontal` styles. In the `circle_vertical` style they appear as a small floating button in the corner opposite the cancel X, so the tile keeps its height.
 
 > A pinned timer's buttons appear once it is started (its default `show_when` is running + paused, so the idle tile in the tray shows only the start control). The buttons carry over to the live timer it creates.
 
