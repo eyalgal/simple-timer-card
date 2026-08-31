@@ -49,7 +49,7 @@ const a=Symbol.for(""),o$1=t=>{if(t?.r===a)return t?._$litStatic$},i=(t,...r)=>(
  */
 
 
-const cardVersion="2.8.0";
+const cardVersion="2.9.0";
 
 const DAY_IN_MS = 86400000;
 const YEAR_IN_MS = 365 * DAY_IN_MS;
@@ -72,6 +72,19 @@ function _cleanUndefined(obj) {
     if (obj[k] === undefined) delete obj[k];
   }
   return obj;
+}
+
+const CARD_STYLES = ["fill_vertical", "fill_horizontal", "bar_vertical", "bar_horizontal", "circle_vertical", "circle_horizontal"];
+
+// `circle` was the only circle style before 2.9.0 and was laid out vertically.
+function _normalizeCardStyle(value) {
+  const v = String(value || "").toLowerCase();
+  if (v === "circle") return "circle_vertical";
+  return CARD_STYLES.includes(v) ? v : "bar_horizontal";
+}
+
+function _isCircleStyle(style) {
+  return style === "circle_vertical" || style === "circle_horizontal";
 }
 
 function _timerRev(t) {
@@ -704,8 +717,7 @@ class SimpleTimerCard extends i$1 {
       ...config.mqtt,
     };
     const layout = (config.layout || "horizontal").toLowerCase() === "vertical" ? "vertical" : "horizontal";
-    const validStyles = ["fill_vertical", "fill_horizontal", "bar_vertical", "bar_horizontal", "circle"];
-    const style = validStyles.includes((config.style || "").toLowerCase()) ? (config.style || "").toLowerCase() : "bar_horizontal";
+    const style = _normalizeCardStyle(config.style);
     const progressModeOptions = ["drain", "fill", "milestones"];
     const progressMode = progressModeOptions.includes(config.progress_mode) ? config.progress_mode : "drain";
     const firstEntityFromList = Array.isArray(config.entities) && config.entities.length
@@ -746,6 +758,8 @@ class SimpleTimerCard extends i$1 {
       default_timer_color: "var(--primary-color)",
       default_timer_entity: null,
       auto_voice_pe: false,
+      auto_discover_alexa: false,
+      auto_discover_google: false,
       expire_action: "keep",
       expire_keep_for: 120,
       auto_dismiss_writable: false,
@@ -1170,11 +1184,105 @@ class SimpleTimerCard extends i$1 {
     this._saveTimersToStorage(timers, storage);
   }
 
+  // ha-google-home publishes a `timers` array on sensor.<device>_timers. Unlike
+  // the Alexa payloads, fire_time is epoch seconds and duration is seconds, and
+  // status is lower case, so it needs its own parser rather than the Alexa one.
+  _parseGoogle(entityId, entityState, entityConf) {
+    const attrs = entityState?.attributes || {};
+    const list = Array.isArray(attrs.timers) ? attrs.timers : [];
+    if (!list.length) return [];
+
+    const epochToMs = (v) => {
+      const n = Number(v);
+      if (!Number.isFinite(n) || n <= 0) return 0;
+      return n > 1e11 ? n : n * 1000;
+    };
+    const deviceName = this._sanitizeText(
+      attrs.friendly_name ||
+      entityId.replace(/^sensor\./, "").replace(/_timers$/, "").replace(/_/g, " ")
+    );
+    const hasCustomIcon = !!entityConf?.icon;
+    const hasCustomColor = !!entityConf?.color;
+    const now = Date.now();
+    const out = [];
+
+    list.forEach((item, idx) => {
+      if (!item || typeof item !== "object") return;
+      const status = String(item.status || "").toLowerCase().trim();
+      if (status && !["set", "ringing", "paused"].includes(status)) return;
+
+      const paused = status === "paused";
+      const ringing = status === "ringing";
+      const durationMs = Math.max(0, Number(item.duration) || 0) * 1000;
+      const endMs = epochToMs(item.fire_time);
+      if (!paused && !ringing && !endMs) return;
+
+      const label = this._sanitizeText(item.label || "") || deviceName;
+      out.push({
+        id: `google-${entityId}-${item.timer_id ?? idx}`,
+        source: "google",
+        source_entity: entityId,
+        label,
+        icon: hasCustomIcon ? entityConf.icon : (paused ? "mdi:timer-pause" : "mdi:timer"),
+        color: hasCustomColor ? entityConf.color : (paused ? "var(--warning-color)" : "var(--primary-color)"),
+        // For paused rows the shared normalizer reads `end` as the remaining ms.
+        end: paused
+          ? Math.max(0, endMs ? endMs - now : durationMs)
+          : (ringing ? now : endMs),
+        duration: durationMs,
+        paused,
+      });
+    });
+
+    return out;
+  }
+
+  // Finds Alexa and Google Home timer entities the user has not listed. Entity
+  // id patterns are checked first because this runs against every state.
+  _discoverTimerEntities() {
+    const wantAlexa = this._config?.auto_discover_alexa === true;
+    const wantGoogle = this._config?.auto_discover_google === true;
+    if (!wantAlexa && !wantGoogle) return [];
+    const states = this.hass?.states;
+    if (!states) return [];
+
+    const now = Date.now();
+    const cache = this._discoveryCache;
+    if (cache && now - cache.at < 2000 && cache.alexa === wantAlexa && cache.google === wantGoogle) {
+      return cache.entities;
+    }
+
+    const configured = new Set(
+      (this._config.entities || [])
+        .map((e) => (typeof e === "string" ? e : e?.entity))
+        .filter(Boolean)
+    );
+    if (this._config.default_timer_entity) configured.add(this._config.default_timer_entity);
+
+    const found = [];
+    for (const entityId in states) {
+      if (configured.has(entityId) || !entityId.startsWith("sensor.")) continue;
+      const looksGoogle = entityId.endsWith("_timers") || (entityId.includes("google_home") && entityId.includes("timer"));
+      const looksAlexa = entityId.includes("_next_timer") || entityId.includes("alexa_timer") ||
+        (entityId.includes("alexa") && entityId.includes("timer"));
+      if (!looksGoogle && !looksAlexa) continue;
+
+      const mode = this._detectMode(entityId, states[entityId], {});
+      if (mode === "google" && wantGoogle) found.push({ entity: entityId, mode: "google" });
+      else if (mode === "alexa" && wantAlexa) found.push({ entity: entityId, mode: "alexa" });
+    }
+
+    this._discoveryCache = { at: now, alexa: wantAlexa, google: wantGoogle, entities: found };
+    return found;
+  }
+
   _detectMode(entityId, entityState, entityConf) {
     if (!entityState) return null;
     if (entityId.startsWith("timer.")) return "timer";
     if (entityId.startsWith("input_text.") || entityId.startsWith("text.")) return "helper";
     const attrs = entityState.attributes || {};
+    // ha-google-home entries carry a timer_id; Alexa payloads never do.
+    if (Array.isArray(attrs.timers) && attrs.timers.some((x) => x && typeof x === "object" && x.timer_id !== undefined)) return "google";
     if (
       attrs.alarms_brief != null ||
       attrs.sorted_active != null ||
@@ -1688,7 +1796,7 @@ class SimpleTimerCard extends i$1 {
     if (!this.hass) return;
     this._ensureAutoVoicePEEntities();
     const collected = [];
-    for (const entityConfig of this._config.entities) {
+    for (const entityConfig of [...this._config.entities, ...this._discoverTimerEntities()]) {
       const entityId = typeof entityConfig === "string" ? entityConfig : entityConfig.entity;
       const conf = typeof entityConfig === "string" ? {} : entityConfig;
       const st = this.hass.states[entityId];
@@ -1701,6 +1809,7 @@ class SimpleTimerCard extends i$1 {
       try {
         if (mode === "alexa") collected.push(...this._parseAlexa(entityId, st, conf));
         else if (mode === "helper") collected.push(...this._parseHelper(entityId, st, conf));
+        else if (mode === "google") collected.push(...this._parseGoogle(entityId, st, conf));
         else if (mode === "timer") collected.push(...this._parseTimer(entityId, st, conf));
         else if (mode === "voice_pe") collected.push(...this._parseVoicePE(entityId, st, conf));
         else if (mode === "minutes_attr") collected.push(...this._parseMinutesAttr(entityId, st, conf));
@@ -3642,7 +3751,7 @@ class SimpleTimerCard extends i$1 {
   }
 
   _renderInlineEditor(t, style) {
-    const isCircle = style === "circle";
+    const isCircle = style === "circle_vertical";
     const baseClasses = style.startsWith("fill_")
       ? "card item editor-row"
       : (isCircle ? "item vtile editor-row" : "item bar editor-row");
@@ -3700,15 +3809,16 @@ class SimpleTimerCard extends i$1 {
         return this._renderInlineEditor(t, style);
     }
     const state = this._getTimerRenderState(t, style);
-    const { isPaused, isIdle, isFinished, color, icon, ring, pct, pctLeft, isCircleStyle, isFillStyle, supportsPause, supportsManualControls, timeStr, circleValues, supportsReadOnlyDismiss } = state;
-    const baseClasses = isFillStyle ? "card item" : (isCircleStyle ? "item vtile" : "item bar");
-    const finishedClasses = isFillStyle ? "card item finished" : (isCircleStyle ? "item vtile" : "card item bar");
+    const { isPaused, isIdle, isFinished, color, icon, ring, pct, pctLeft, isCircleStyle, isCircleHorizontal, isFillStyle, supportsPause, supportsManualControls, timeStr, circleValues, supportsReadOnlyDismiss } = state;
+    const isCircleTile = isCircleStyle && !isCircleHorizontal;
+    const baseClasses = isFillStyle ? "card item" : (isCircleTile ? "item vtile" : "item bar");
+    const finishedClasses = isFillStyle ? "card item finished" : (isCircleTile ? "item vtile" : "card item bar");
 
     const isRunning = !t.idle && !t.paused && !t.finished;
     const canEdit = t.source === "timer" && !isRunning;
 
     if (ring) {
-      if (isCircleStyle) {
+      if (isCircleTile) {
         return b`
           <li class="${finishedClasses}" style="--tcolor:${color}">
             <div class="vcol">
@@ -3794,7 +3904,42 @@ class SimpleTimerCard extends i$1 {
           </div>
         </li>
       `;
-    } else if (isCircleStyle) {
+    } else if (isCircleHorizontal) {
+      return b`
+        <li class="${baseClasses}" style="--tcolor:${color}; ${rowStyle}" @pointerdown=${acts.down} @pointerup=${acts.up} @pointercancel=${acts.cancel}>
+          <div class="row">
+            <div class="icon-wrap"><ha-icon .icon=${icon}></ha-icon></div>
+            <div class="info">
+              <div class="title">${t.label}</div>
+              <div class="status">${timeStr}</div>
+            </div>
+            <div class="actions" @click=${(e) => e.stopPropagation()}>
+              ${this._renderCustomActionButtons(t, state)}
+              ${isIdle && supportsManualControls ? b`
+                <button class="action-btn" title="${this._localize("start")}" @click=${() => this._handleStart(t)}>
+                  <ha-icon icon="mdi:play"></ha-icon>
+                </button>
+              ` : supportsPause && !ring && supportsManualControls ? b`
+                <button class="action-btn" title="${t.paused ? "Resume" : "Pause"}" @click=${() => t.paused ? this._handleResume(t) : this._handlePause(t)}>
+                  <ha-icon icon=${t.paused ? "mdi:play" : "mdi:pause"}></ha-icon>
+                </button>
+              ` : ""}
+              ${supportsManualControls && !isIdle ? b`<button class="action-btn" title="${this._localize("cancel")}" @click=${() => this._handleCancel(t)}><ha-icon icon="mdi:close"></ha-icon></button>` : ""}
+            </div>
+            <div class="hcircle-wrap">
+              <svg class="hcircle" width="40" height="40" viewBox="0 0 40 40" aria-hidden="true">
+                <circle class="vc-track ${this._config.progress_mode === "drain" ? "vc-track-drain" : ""}"
+                        cx="20" cy="20" r="${circleValues.radius}"></circle>
+                <circle class="vc-prog ${this._config.progress_mode === "drain" ? "vc-prog-drain" : ""}"
+                        cx="20" cy="20" r="${circleValues.radius}"
+                  stroke-dasharray="${circleValues.circumference} ${circleValues.circumference}"
+                  style="stroke-dashoffset: ${circleValues.strokeDashoffset}; transition: stroke-dashoffset 0.25s;"></circle>
+              </svg>
+            </div>
+          </div>
+        </li>
+      `;
+    } else if (isCircleTile) {
       return b`
         <li class="${baseClasses}" style="--tcolor:${color}; ${rowStyle}" @pointerdown=${acts.down} @pointerup=${acts.up} @pointercancel=${acts.cancel}>
           ${supportsManualControls && !isIdle ? b`
@@ -4027,14 +4172,15 @@ class SimpleTimerCard extends i$1 {
     const ring = t.remaining <= 0 && !isIdle && !isFinished;
     const pct = typeof t.percent === "number" ? Math.max(0, Math.min(100, t.percent)) : 0;
     const pctLeft = 100 - pct;
-    const isCircleStyle = style === "circle";
+    const isCircleStyle = _isCircleStyle(style);
+    const isCircleHorizontal = style === "circle_horizontal";
     const isFillStyle = style.startsWith("fill_");
     const supportsPause = ["helper", "local", "mqtt", "timer"].includes(t.source) || (t.source === "voice_pe" && !!(t.control_entity && String(t.control_entity).trim() && t.voice_pe_timer_id && String(t.voice_pe_timer_id).trim()));
     const entityConf = this._getEntityConfig(t.source_entity);
     const hideTimerActions = entityConf?.hide_timer_actions === true;
     const isTimerSource = t.source === "timer";
     const supportsManualControls = (((["local", "mqtt", "timer", "helper"].includes(t.source)) || t.kind === "template" || t.source === "template") && !(isTimerSource && hideTimerActions)) || (t.source === "voice_pe" && !!(t.control_entity && String(t.control_entity).trim()));
-    const supportsReadOnlyDismiss = ring && ["timestamp", "minutes_attr", "alexa"].includes(t.source);
+    const supportsReadOnlyDismiss = ring && ["timestamp", "minutes_attr", "alexa", "google"].includes(t.source);
     let timeStr;
     if (isIdle) timeStr = t.duration ? this._formatDuration(t.duration, "ms") : this._localize("ready");
     else if (isPaused) timeStr = `${this._formatDuration(t.remaining, "ms")} (${this._localize("paused")})`;
@@ -4052,11 +4198,11 @@ class SimpleTimerCard extends i$1 {
     let circleValues;
     if (isCircleStyle) {
       const progressMode = this._config.progress_mode === "drain" ? "drain" : "fill";
-      circleValues = this._calculateCircleValues(28, pct, progressMode);
+      circleValues = this._calculateCircleValues(isCircleHorizontal ? 17 : 28, pct, progressMode);
     }
     return {
       isPaused, isIdle, isFinished, color, icon, ring, pct, pctLeft,
-      isCircleStyle, isFillStyle,
+      isCircleStyle, isCircleHorizontal, isFillStyle,
       supportsPause, supportsManualControls, timeStr,
       circleValues, supportsReadOnlyDismiss
     };
@@ -4118,7 +4264,7 @@ class SimpleTimerCard extends i$1 {
       `;
     }
 
-    if (style === "circle") {
+    if (style === "circle_vertical") {
       return b`
         <li class="${baseClasses}" style="--tcolor:${color}; ${rowStyle}" @pointerdown=${acts.down} @pointerup=${acts.up} @pointercancel=${acts.cancel}>
           ${supportsManualControls && !isIdle ? b`
@@ -4335,7 +4481,7 @@ class SimpleTimerCard extends i$1 {
     }
 const layout = this._config.layout;
     const style = this._config.style;
-    const activeTimersLayout = ["fill_vertical", "bar_vertical", "circle"].includes((this._config.style || "").toLowerCase()) ? "vertical" : "horizontal";
+    const activeTimersLayout = ["fill_vertical", "bar_vertical", "circle_vertical"].includes((this._config.style || "").toLowerCase()) ? "vertical" : "horizontal";
     const showPresetsInActive = this._config.show_timer_presets !== false && this._config.show_active_header !== false;
 
     const noTimerCard = layout === "horizontal" ? b`
@@ -4414,7 +4560,7 @@ const layout = this._config.layout;
     const renderFn = activeTimersLayout === "vertical"
       ? this._renderItemVertical.bind(this)
       : this._renderItem.bind(this);
-    const useGrid = (activeTimersLayout === "vertical") || (style === "circle");
+    const useGrid = (activeTimersLayout === "vertical") || (style === "circle_vertical");
     const cols = (useGrid && timers.length > 1) ? 2 : 1;
     const listClass = useGrid ? `list vgrid cols-${cols}` : "list";
     const activeCard = style.startsWith("fill_") ? b`
@@ -4578,6 +4724,8 @@ const layout = this._config.layout;
       .vprogressbar .milestone-track { flex: 0 0 60%; }
       .vactions { display: flex; gap: 6px; align-items: center; justify-content: center; margin-top: -4px; margin-bottom: -4px; }
       .vcircle-wrap { position: relative; width: 64px; height: 64px; display: grid; place-items: center; }
+      .hcircle-wrap { position: relative; width: 40px; height: 40px; flex: 0 0 40px; display: grid; place-items: center; }
+      .hcircle { position: absolute; inset: 0; transform: rotate(-90deg); }
       .vcircle { position: absolute; inset: 0; transform: rotate(-90deg); z-index: 0; }
       .vc-track, .vc-prog { fill: none; stroke-width: 4.5px; vector-effect: non-scaling-stroke; }
       .vc-track { stroke: var(--tcolor, var(--primary-color)); stroke-opacity: 0.22; }
@@ -4833,10 +4981,7 @@ class SimpleTimerCardEditor extends i$1 {
     if (typeof value !== "string" || value === "") return;
     if (value === this._config[key]) return;
     if (key === "style") {
-      const styleValue = value.toLowerCase();
-      const validStyles = ["fill_vertical", "fill_horizontal", "bar_vertical", "bar_horizontal", "circle"];
-      const normalizedStyle = validStyles.includes(styleValue) ? styleValue : "bar_horizontal";
-      this._updateConfig({ style: normalizedStyle }, true);
+      this._updateConfig({ style: _normalizeCardStyle(value) }, true);
     } else if (key === "progress_mode") {
       const modes = ["drain", "fill", "milestones"];
       this._updateConfig({ progress_mode: modes.includes(value) ? value : "drain" }, true);
@@ -5368,7 +5513,7 @@ _pinnedTimerValueChanged(ev, index) {
   _ensureEntityPickerLoaded() { this._ensureHACommonsLoaded(); }
 
   _getDisplayStyleValue() {
-    return this._config.style || "bar_horizontal";
+    return _normalizeCardStyle(this._config.style);
   }
 
   _detectMode(entityId, entityState, entityConf) {
@@ -5421,7 +5566,8 @@ _pinnedTimerValueChanged(ev, index) {
         { value: "fill_horizontal", label: "Background fill (horizontal)" },
         { value: "bar_vertical", label: "Progress bar (vertical)" },
         { value: "bar_horizontal", label: "Progress bar (horizontal)" },
-        { value: "circle", label: "Circle" },
+        { value: "circle_vertical", label: "Circle (vertical)" },
+        { value: "circle_horizontal", label: "Circle (horizontal)" },
       ],
       progress_mode: [
         { value: "drain", label: "Drain" },
@@ -5503,7 +5649,8 @@ _pinnedTimerValueChanged(ev, index) {
           <mwc-list-item value="fill_horizontal">Background fill (horizontal)</mwc-list-item>
           <mwc-list-item value="bar_vertical">Progress bar (vertical)</mwc-list-item>
           <mwc-list-item value="bar_horizontal">Progress bar (horizontal)</mwc-list-item>
-          <mwc-list-item value="circle">Circle</mwc-list-item>
+          <mwc-list-item value="circle_vertical">Circle (vertical)</mwc-list-item>
+          <mwc-list-item value="circle_horizontal">Circle (horizontal)</mwc-list-item>
         </ha-select>
       </div>
 
@@ -5798,6 +5945,22 @@ _pinnedTimerValueChanged(ev, index) {
         <div class="toggle-text">
           <span class="toggle-title">Auto-detect Voice PE timers</span>
           <span class="toggle-desc">Mirror Voice PE timers automatically when present on the system.</span>
+        </div>
+      </label>
+
+      <label class="toggle-row">
+        <ha-switch .checked=${this._config.auto_discover_alexa === true} .configValue=${"auto_discover_alexa"} @change=${this._valueChanged}></ha-switch>
+        <div class="toggle-text">
+          <span class="toggle-title">Auto-discover Alexa timers</span>
+          <span class="toggle-desc">Show timers from Alexa Media Player without listing each entity.</span>
+        </div>
+      </label>
+
+      <label class="toggle-row">
+        <ha-switch .checked=${this._config.auto_discover_google === true} .configValue=${"auto_discover_google"} @change=${this._valueChanged}></ha-switch>
+        <div class="toggle-text">
+          <span class="toggle-title">Auto-discover Google Home timers</span>
+          <span class="toggle-desc">Show timers from the Google Home integration without listing each entity.</span>
         </div>
       </label>
 

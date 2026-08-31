@@ -30,8 +30,9 @@ No dashboards clutter. No duplicated cards. Just timers.
 ## 🚀 Highlights
 
 * **Multiple timer sources**: Native `timer.*`, Alexa, Voice PE, helpers, MQTT, timestamps, and more
+* **Auto-discovery**: Optionally pick up Alexa and Google Home timers without listing every speaker entity
 * **Quick actions**: Presets, pinned one‑tap timers, and custom timers
-* **Visual progress styles**: Bars, fills, and circles with drain, fill, or milestone modes
+* **Visual progress styles**: Bars, fills, and circles (vertical or horizontal) with drain, fill, or milestone modes
 * **Sorting & layout control**: Sort by time or name, pin timers inline, top, or bottom
 * **Custom interactions**: Standard `tap_action`, `hold_action`, and `double_tap_action` at card and row level
 * **Persistent storage**: Local or MQTT based, survives reloads and syncs across devices
@@ -102,6 +103,15 @@ The card includes built‑in safeguards:
 * Graceful handling of corrupted storage
 
 See [`SECURITY.md`](SECURITY.md) for details.
+
+---
+
+## 🙏 Credits
+
+The `circle_horizontal` layout was inspired by the compact style in
+[TimeFlow Card](https://github.com/Rishi8078/TimeFlow-Card) by
+[@Rishi8078](https://github.com/Rishi8078). Worth a look if you want countdowns
+to dates and events rather than timers.
 
 ---
 

@@ -69,7 +69,7 @@ show_active_header: true
 | `type`               | string  | **required**     | `custom:simple-timer-card`                                                                   |
 | `title`              | string  | `null`           | Optional card title                                                                          |
 | `layout`             | string  | `horizontal`     | Card layout when no timers are running: `horizontal` or `vertical`                           |
-| `style`              | string  | `bar_horizontal` | Active timer style: `bar_horizontal`, `bar_vertical`, `fill_horizontal`, `fill_vertical`, `circle` |
+| `style`              | string  | `bar_horizontal` | Active timer style: `bar_horizontal`, `bar_vertical`, `fill_horizontal`, `fill_vertical`, `circle_vertical`, `circle_horizontal` |
 | `progress_mode`      | string  | `drain`          | How the progress indicator fills: `drain`, `fill`, or `milestones` (bar styles only)         |
 | `language`           | string  | auto             | UI language. Defaults to your Home Assistant language. See [Language support](#-language-support). |
 | `show_active_header` | boolean | `true`           | Show the "Active Timers" heading above running timers                                        |
@@ -99,10 +99,33 @@ Mix and match freely. Mode is auto-detected by default.
 | ------------------------- | ----------------------------------------------- |
 | Native HA timer           | `timer.*`                                       |
 | Alexa                     | `alexa_media_player` next-timer sensors         |
+| Google Home               | `sensor.*_timers` from the Google Home integration |
 | Voice PE                  | Voice PE entities (see [Voice PE](#-voice-pe-integration)) |
 | Helper                    | `input_text.*`, `text.*`                        |
 | Timestamp sensor          | Any sensor whose state or attribute is an ISO timestamp |
 | Minutes attribute sensor  | Any sensor exposing a "minutes remaining" attribute     |
+
+### Auto-discovery
+
+Alexa and Google Home expose one timer entity per speaker, which is tedious to
+list by hand and needs editing whenever a device is added. Both can be
+discovered instead:
+
+```yaml
+type: custom:simple-timer-card
+auto_discover_alexa: true
+auto_discover_google: true
+```
+
+| Name                   | Type    | Default | Description                                                            |
+| ---------------------- | ------- | ------- | ---------------------------------------------------------------------- |
+| `auto_discover_alexa`  | boolean | `false` | Pick up Alexa Media Player next-timer sensors without listing them.     |
+| `auto_discover_google` | boolean | `false` | Pick up Google Home `sensor.*_timers` entities without listing them.    |
+
+Discovered entities are added to anything in `entities:`, never duplicated, and
+carry no per-entity options. List an entity explicitly if you want to override
+its icon, colour or name. Both providers are read-only, so discovered timers can
+be dismissed once they ring but not started or paused from the card.
 
 ### Per-entity options
 
