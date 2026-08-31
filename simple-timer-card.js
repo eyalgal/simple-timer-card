@@ -760,6 +760,7 @@ class SimpleTimerCard extends i$1 {
       auto_voice_pe: false,
       auto_discover_alexa: false,
       auto_discover_google: false,
+      source_styles: {},
       expire_action: "keep",
       expire_keep_for: 120,
       auto_dismiss_writable: false,
@@ -787,6 +788,7 @@ class SimpleTimerCard extends i$1 {
     const defaultDurationSecs = (parseInt(this._config.default_new_timer_duration_mins, 10) || 15) * 60;
     this._customSecs = { horizontal: defaultDurationSecs, vertical: defaultDurationSecs };
     this._activeSecs = { fill: defaultDurationSecs, bar: defaultDurationSecs };
+    this._config.source_styles = this._normalizeSourceStyles(this._config.source_styles);
     if (typeof this._config.timer_name_presets === "string") {
       this._config.timer_name_presets = this._config.timer_name_presets.split(",").map((name) => name.trim()).filter((name) => name);
     }
@@ -1274,6 +1276,30 @@ class SimpleTimerCard extends i$1 {
 
     this._discoveryCache = { at: now, alexa: wantAlexa, google: wantGoogle, entities: found };
     return found;
+  }
+
+  _normalizeSourceStyles(value) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+    const out = {};
+    for (const [source, style] of Object.entries(value)) {
+      if (!style || typeof style !== "object" || Array.isArray(style)) continue;
+      const entry = {};
+      if (typeof style.icon === "string" && style.icon.trim()) entry.icon = style.icon.trim();
+      if (typeof style.color === "string" && style.color.trim()) entry.color = style.color.trim();
+      if (Object.keys(entry).length) out[String(source).trim().toLowerCase()] = entry;
+    }
+    return out;
+  }
+
+  // Resolved before parsing so the parsers' existing entityConf handling applies
+  // it, which keeps per-entity config ahead of the per-source default.
+  _applySourceStyle(mode, conf) {
+    const style = this._config?.source_styles?.[mode];
+    if (!style) return conf;
+    const merged = { ...conf };
+    if (!merged.icon && style.icon) merged.icon = style.icon;
+    if (!merged.color && style.color) merged.color = style.color;
+    return merged;
   }
 
   _detectMode(entityId, entityState, entityConf) {
@@ -1806,14 +1832,15 @@ class SimpleTimerCard extends i$1 {
         mode = this._detectMode(entityId, st, conf);
         if (!mode) continue;
       }
+      const styled = this._applySourceStyle(mode, conf);
       try {
-        if (mode === "alexa") collected.push(...this._parseAlexa(entityId, st, conf));
-        else if (mode === "helper") collected.push(...this._parseHelper(entityId, st, conf));
-        else if (mode === "google") collected.push(...this._parseGoogle(entityId, st, conf));
-        else if (mode === "timer") collected.push(...this._parseTimer(entityId, st, conf));
-        else if (mode === "voice_pe") collected.push(...this._parseVoicePE(entityId, st, conf));
-        else if (mode === "minutes_attr") collected.push(...this._parseMinutesAttr(entityId, st, conf));
-        else if (mode === "timestamp") collected.push(...this._parseTimestamp(entityId, st, conf));
+        if (mode === "alexa") collected.push(...this._parseAlexa(entityId, st, styled));
+        else if (mode === "helper") collected.push(...this._parseHelper(entityId, st, styled));
+        else if (mode === "google") collected.push(...this._parseGoogle(entityId, st, styled));
+        else if (mode === "timer") collected.push(...this._parseTimer(entityId, st, styled));
+        else if (mode === "voice_pe") collected.push(...this._parseVoicePE(entityId, st, styled));
+        else if (mode === "minutes_attr") collected.push(...this._parseMinutesAttr(entityId, st, styled));
+        else if (mode === "timestamp") collected.push(...this._parseTimestamp(entityId, st, styled));
       } catch (e) {}
     }
 

@@ -127,6 +127,38 @@ carry no per-entity options. List an entity explicitly if you want to override
 its icon, colour or name. Both providers are read-only, so discovered timers can
 be dismissed once they ring but not started or paused from the card.
 
+### Per-source icon and colour
+
+Discovered timers have no per-entity options, so `source_styles` sets a default
+icon and colour for every timer coming from a given source:
+
+```yaml
+type: custom:simple-timer-card
+auto_discover_alexa: true
+auto_discover_google: true
+source_styles:
+  alexa:
+    icon: mdi:amazon-alexa
+    color: "#00d4ff"
+  google:
+    icon: mdi:google-assistant
+    color: "#4285f4"
+  voice_pe:
+    icon: mdi:microphone-message
+```
+
+Keys are the source names: `alexa`, `google`, `voice_pe`, `timer`, `helper`,
+`timestamp`, `minutes_attr`. Each accepts `icon`, `color`, or both.
+
+Precedence is per-entity config, then `source_styles`, then the built-in default,
+so an entity listed in `entities:` with its own `icon:` still wins.
+
+> Paused and finished timers keep their state indicators (`mdi:timer-pause` with
+> the warning colour, `mdi:timer-check` with the success colour) rather than the
+> configured icon and colour. That applies to per-entity icons too, and keeps
+> timer state readable at a glance. Active, idle and ringing timers use the
+> configured style.
+
 ### Per-entity options
 
 | Name                           | Type    | Default      | Applies when           | Description                                                                  |
