@@ -1180,7 +1180,10 @@ class SimpleTimerCard extends LitElement {
 
       const paused = status === "paused";
       const ringing = status === "ringing";
-      const durationMs = Math.max(0, Number(item.duration) || 0) * 1000;
+      // ha-google-home sends duration as "H:MM:SS", though older builds sent seconds.
+      const durationMs = (typeof item.duration === "string" && item.duration.includes(":"))
+        ? this._parseHMSToMs(item.duration)
+        : Math.max(0, Number(item.duration) || 0) * 1000;
       const endMs = epochToMs(item.fire_time);
       if (!paused && !ringing && !endMs) return;
 
@@ -1204,8 +1207,8 @@ class SimpleTimerCard extends LitElement {
     return out;
   }
 
-  // Finds Alexa and Google Home timer entities the user has not listed. Entity
-  // id patterns are checked first because this runs against every state.
+  // Finds Alexa and Google Home timer entities the user has not listed. Matching
+  // is on attributes rather than entity id, so a renamed entity is still found.
   _discoverTimerEntities() {
     const wantAlexa = this._config?.auto_discover_alexa === true;
     const wantGoogle = this._config?.auto_discover_google === true;
@@ -1229,10 +1232,16 @@ class SimpleTimerCard extends LitElement {
     const found = [];
     for (const entityId in states) {
       if (configured.has(entityId) || !entityId.startsWith("sensor.")) continue;
-      const looksGoogle = entityId.endsWith("_timers") || (entityId.includes("google_home") && entityId.includes("timer"));
-      const looksAlexa = entityId.includes("_next_timer") || entityId.includes("alexa_timer") ||
-        (entityId.includes("alexa") && entityId.includes("timer"));
-      if (!looksGoogle && !looksAlexa) continue;
+      const attrs = states[entityId]?.attributes;
+      if (!attrs) continue;
+      // Cheap attribute probe first, since this runs against every state.
+      const maybeGoogle = wantGoogle && Array.isArray(attrs.timers);
+      const maybeAlexa = wantAlexa && (
+        attrs.sorted_active != null || attrs.sorted_all != null ||
+        attrs.sorted_paused != null || attrs.next_timer != null ||
+        attrs.alarms_brief != null
+      );
+      if (!maybeGoogle && !maybeAlexa) continue;
 
       const mode = this._detectMode(entityId, states[entityId], {});
       if (mode === "google" && wantGoogle) found.push({ entity: entityId, mode: "google" });
