@@ -138,7 +138,7 @@ auto_discover_alexa: true
 auto_discover_google: true
 source_styles:
   alexa:
-    icon: mdi:amazon-alexa
+    icon: mdi:speaker
     color: "#00d4ff"
   google:
     icon: mdi:google-assistant
@@ -149,6 +149,11 @@ source_styles:
 
 Keys are the source names: `alexa`, `google`, `voice_pe`, `timer`, `helper`,
 `timestamp`, `minutes_attr`. Each accepts `icon`, `color`, or both.
+
+> Material Design Icons dropped its Amazon brand icons, so there is no
+> `mdi:amazon-alexa`. `mdi:google-assistant` does still exist. For actual brand
+> logos, install an icon pack such as Simple Icons (`si:`) or Custom Brand Icons
+> (`phu:`) and use one of their names instead.
 
 Precedence is per-entity config, then `source_styles`, then the built-in default,
 so an entity listed in `entities:` with its own `icon:` still wins.
