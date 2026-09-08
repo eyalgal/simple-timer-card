@@ -20,8 +20,9 @@ No dashboard clutter. No duplicated cards. Just timers.
 * **Auto-discovery**: Optionally pick up Alexa and Google Home timers without listing every speaker entity
 * **Quick actions**: Presets, pinned one‑tap timers, and custom timers with a keypad or +/- buttons, plus an optional on-card input switch
 * **Visual progress styles**: Bars, fills, and circles (vertical or horizontal) with drain, fill, or milestone modes
-* **Persistent storage**: Local or MQTT based, survives reloads and syncs across devices
-* **Audio & notifications**: Optional sounds, snooze, auto dismiss, plus a `notify` fallback so phones ring even when in-page audio cannot
+* **Simple editor**: Sources, storage, appearance, and timer input in one place, with a remembered Advanced mode for specialist settings
+* **Persistent storage**: Local timers survive reloads in the same browser; MQTT shares timers across devices
+* **Audio & notifications**: Optional sounds, snooze, cleanup, and push notifications while the card is running; a backend monitor is needed when all dashboards are closed
 * **Theme aware & multilingual**: Matches your Home Assistant theme; English, German, Spanish, Danish, Italian, French, Hebrew (RTL), Polish, Dutch, and Swedish
 * **[Spook](https://spook.boo/) fallback**: Automatically falls back to Spook's `timer.set_duration` for non-admin users
 
@@ -46,6 +47,13 @@ resources:
   - url: /local/simple-timer-card.js
     type: module
 ```
+
+### Updating to v2.9.0
+
+Existing cards keep their +/- input and discovery remains opt-in. The old
+`style: circle` value still works as the vertical circle layout. If you tested
+a v2.9.0 pre-release, redownload v2.9.0 in HACS and fully reload the dashboard:
+the version number is unchanged, so an update notice may not appear.
 
 ---
 

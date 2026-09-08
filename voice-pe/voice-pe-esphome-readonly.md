@@ -4,15 +4,19 @@ This page explains the **mirror-only** (read-only) Voice PE integration.
 
 Use this if you only want to **display timers that were created by voice on the Voice PE device** in Home Assistant / Simple Timer Card.
 
+**Stock Voice PE firmware does not expose native voice timers as Home Assistant `timer.*` entities or as the slot sensors below.** This custom configuration adds a read-only sensor mirror. It does not provide UI control of native timers.
+
 - ✅ Shows timer name, total seconds, remaining seconds, count, and state
 - ✅ Optional sticky `finished` state (TTL)
 - ❌ No UI start / pause / resume / cancel (read-only)
 
-If you want **UI-controlled timers** too (start/pause/resume/cancel from the dashboard), use the advanced guide:
+If you want **independent UI-controlled local timers** too (start/pause/resume/cancel from the dashboard), use the advanced guide. Its local timers are separate from native voice timers, which remain read-only:
 - **Advanced:** [voice-pe-esphome.md](voice-pe-esphome.md)
 
 > **⚠️ Unofficial / advanced**
 > This requires taking full control of your Voice PE device configuration. Proceed only if you understand ESPHome and can recover your device.
+
+The firmware example has **not been compiled or flashed against current ESPHome** for this documentation update. No current package revision, ESPHome version, or pin configuration is validated here. Back up your existing configuration, validate and compile the fully merged configuration for your chosen versions before flashing, and keep access to the [official Voice PE documentation](https://voice-pe.home-assistant.io/) and [official firmware installer](https://esphome.github.io/home-assistant-voice-pe/) for recovery.
 
 ---
 
@@ -26,10 +30,13 @@ This mirror-only approach exposes (per slot 1..3 shown here):
 - `sensor.home_assistant_voice_timer_X_state` (`active`, `paused`, `finished`, `idle`)
 
 And globally:
-- `sensor.home_assistant_voice_timer_count`
+- `sensor.home_assistant_voice_timers_count`
 
-> The `home_assistant_voice_` prefix comes from `friendly_name` in the base config
-> below. Swap in your own device name.
+> These are example IDs based on the `friendly_name` in the base config below.
+> Replace them with the actual IDs from *Developer Tools → States*, including any
+> numeric suffixes such as `_2`, MAC suffixes, or registry renames. The global entity
+> normally uses `timers_count`, plural, because its name is "Timers Count"; its
+> internal ESPHome ID is still `timer_count`.
 >
 > `timer_X_name` and `timer_X_state` are declared under `text_sensor:` in ESPHome
 > but arrive in Home Assistant as `sensor.` entities, because Home Assistant has
@@ -41,7 +48,7 @@ And globally:
 
 ## 0) Start from the official Voice PE package
 
-A typical base:
+An illustrative base, not a replacement for your existing provisioning and hardware settings. This package reference is not pinned to a validated revision:
 
 ```yaml
 substitutions:
@@ -63,7 +70,7 @@ wifi:
 logger:
 ```
 
-Append the rest of this guide to your YAML.
+Merge the following fragments into the matching sections of your existing YAML. **Do not blindly append duplicate top-level keys.** Keep a single `esphome` mapping and combine `sensor`, `text_sensor`, `globals`, and `interval` lists with existing entries. Preserve the official package's existing boot hooks, `voice_assistant` configuration, and timer callback actions, including native sound and LED behavior. Add the mirror actions to matching callbacks instead of replacing them wholesale. Inspect the merged package configuration before compiling, and do not combine this implementation with the advanced firmware fragments.
 
 ---
 
@@ -141,7 +148,11 @@ Voice PE timers may “disappear” quickly after finishing. If you want dashboa
 This implementation uses:
 - `t1_finished`, `t2_finished`, `t3_finished` latches
 - timestamps `tX_finished_ts`
-- a TTL clear interval (default `10s`)
+- a `10s` TTL threshold checked every `5s`, so normal cleanup happens roughly 10 to 15 seconds after latching
+
+Cancellation clears all latches early. Finished latches occupy display slots, leaving fewer slots for other active timers until cleared. This TTL implementation is separate from both local and remote handling in the advanced guide.
+
+The callback example in section 3 references these globals. **Include this section when using that example as written.** To omit sticky finished behavior, first adapt the callbacks to remove every latch/timestamp reference and the custom finish-latching action, preserving the official package's own actions. Simply skipping this section will leave undefined IDs and will not compile.
 
 ```yaml
 globals:
@@ -207,13 +218,15 @@ interval:
           if (id(t3_finished) && id(t3_finished_ts) != 0 && (uint32_t)(now - id(t3_finished_ts)) > TTL) clear_slot(3);
 ```
 
-If you don’t want sticky finished at all, skip this entire section.
+If you choose the no-TTL adaptation, validate and compile the adapted callbacks together with the rest of the configuration before flashing.
 
 ---
 
 ## 3) Mirror timers from `voice_assistant`
 
-Voice PE provides a `timers` vector (sorted by soonest end). We mirror the first 3 into the slot entities.
+The example uses the `timers` vector supplied to `on_timer_tick`, ordered by soonest finish in the timer interface it targets. It fills available display slots from the first timers in that vector. Only three slots are shown; a sticky finished latch takes priority over a running timer's display.
+
+`on_timer_cancelled` clears **all** mirrored slots and latches, not just the cancelled timer. Other native timers continue on the device and reappear when a later tick republishes them. The count sensor reports the vector size on ticks, including timers beyond the three-slot display; TTL/cancel cleanup resets it to zero until another tick. It is not a persistent independent count.
 
 ```yaml
 voice_assistant:
@@ -330,16 +343,19 @@ voice_assistant:
         id(timer_3_total_seconds).publish_state(0);
 ```
 
-> If you skipped the “sticky finished” globals, also remove the parts that reference `tX_finished`.
+> For a no-TTL adaptation, remove all `tX_finished` and `tX_finished_ts` references,
+> including the latch checks around slot assignment and the custom finish-latching
+> action. Do not remove the official package's native finish/cancel actions. Use
+> the full example above with section 2 unless you are validating that adaptation.
 
 ---
 
 ## 4) Next steps in Home Assistant
 
-Once ESPHome is flashed and the entities exist, go back to:
-- [voice-pe.md](voice-pe.md)
+Once your validated configuration is flashed and the raw entities are present, use:
+- [voice-pe.md](voice-pe.md) for the complete three-slot HA templates and explicit `mode: voice_pe` card entries.
 
-…to create the Home Assistant template sensors and configure Simple Timer Card.
+Those templates normalize state/name values and use `has_value` availability so missing data is not silently reported as an idle timer. Match their IDs and the card's template-sensor IDs to your actual entities, including numeric suffixes and renames. Mirror-only sensors deliberately lack `control_entity`, so Voice PE auto-discovery will not find them; list all three explicitly. The card can still create separate browser or configured storage timers, but it cannot control native voice timers through this mirror.
 
 ---
 

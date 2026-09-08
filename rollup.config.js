@@ -1,5 +1,4 @@
 import resolve from '@rollup/plugin-node-resolve';
-import terser from '@rollup/plugin-terser';
 
 export default {
   input: 'src/simple-timer-card.js',
@@ -9,6 +8,5 @@ export default {
   },
   plugins: [
     resolve(),
-    // terser()
   ]
 };

@@ -1,14 +1,66 @@
-# Example: Announce on Alexa when timer expires
-alias: "Alexa Timer Announcement"
+# CUSTOMIZATION TEMPLATE: frontend-generated Alexa expiry announcement.
+# Paste context: one automation mapping for the single-automation YAML editor.
+# For an automation list, prefix alias with "- " and indent the remaining
+# mapping two spaces. Do not add an automation: wrapper in the editor.
+#
+# Requires Alexa Media Player, HA's MQTT integration, and a connected card
+# frontend actively running when it observes expiry. A closed/suspended frontend
+# cannot publish this event. This is NOT a backend scheduler or catch-up service.
+# Replace sensor.kitchen_echo_next_timer in BOTH the card and condition, and
+# media_player.kitchen_echo in the notification target, with your actual entities.
+# Verify notify.alexa_media exists in Developer Tools > Actions; it is supplied
+# by Alexa Media Player, not by this card. Adapt its target/data if necessary.
+#
+# Separate dashboard card mapping (uncomment there, not in this automation):
+# type: custom:simple-timer-card
+# entities:
+#   - entity: sensor.kitchen_echo_next_timer
+#     mode: alexa
+# storage: mqtt
+# compatibility_mode: '2.1.1'
+# mqtt:
+#   sensor_entity: sensor.simple_timer_store
+#   topic: simple_timer_card/timers
+#   state_topic: simple_timer_card/timers/state
+#   events_topic: simple_timer_card/events
+# notify: null
+#
+# Create/verify sensor.simple_timer_store using only the MQTT transport setup
+# in ../mqtt-hybrid-model.md, and replace its ID above if different.
+# The three topic settings have independent defaults. Changing mqtt.topic does
+# not change state_topic or events_topic. Match the trigger below to the card's
+# events_topic plus /expired, not to mqtt.topic plus /expired.
+#
+# FRONTEND NOTIFICATION ALTERNATIVE: disable this automation when choosing the
+# hybrid backend notification path for this card/store. The hybrid monitor only
+# reads stored MQTT timers; it does not schedule Alexa timers. Remove card notify
+# settings on other frontends too if this is your sole announcement path.
+# Multiple frontends may publish duplicates; queued mode only serializes calls.
+# Events are not retained/replayed. Source filters are routing, not authentication;
+# restrict MQTT publishers to trusted clients. Not for safety-critical alerts.
+
+alias: "Alexa Timer Announcement (Frontend Template)"
+description: "Announce only Alexa expiry events from the configured speaker sensor."
 trigger:
   - platform: mqtt
-    topic: "simple_timer_card/events/expired"
+    topic: simple_timer_card/events/expired
 condition:
   - condition: template
-    value_template: "{{ trigger.payload_json.source == 'alexa' }}"
+    value_template: >-
+      {{ trigger.payload_json is defined
+         and trigger.payload_json is mapping
+         and (trigger.payload_json.event | default('')) == 'expired'
+         and (trigger.payload_json.source | default('')) == 'alexa'
+         and (trigger.payload_json.source_entity | default('')) == 'sensor.kitchen_echo_next_timer' }}
 action:
-  - service: notify.alexa_media_everywhere
+  - service: notify.alexa_media
     data:
-      message: "Your {{ trigger.payload_json.label }} timer is done"
+      target:
+        - media_player.kitchen_echo
+      message: >-
+        {% set label = trigger.payload_json.get('label') %}
+        {{ (label if label is string and (label | trim) else 'Timer') ~ ' is done!' }}
       data:
-        type: "tts"
+        type: tts
+mode: queued
+max: 10

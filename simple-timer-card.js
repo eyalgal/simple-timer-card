@@ -96,7 +96,7 @@ function editDurationDigits(digits, key) {
  *
  * Author: eyalgal
  * License: MIT
- * Version: 2.2.4
+ * Version: 2.9.0
  * For more information, visit: https://github.com/eyalgal/simple-timer-card
  */
 
@@ -115,8 +115,7 @@ const MQTT_WAKE_GAP_MS = 5000;
 // How long to wait after a wake for the websocket to resync entity states
 // before trusting the MQTT sensor snapshot again.
 const MQTT_RESYNC_GRACE_MS = 5000;
-// Deletions are remembered this long so a client that slept through one cannot
-// resurrect the timer when it comes back.
+// Retain deletion markers to reduce stale resurrection after a client wakes.
 const MQTT_TOMBSTONE_TTL_MS = 24 * 60 * 60 * 1000;
 
 function _cleanUndefined(obj) {
@@ -202,11 +201,8 @@ function _pruneLegacyInstanceNamespaces() {
   } catch (e) {}
 }
 
-// Union by id rather than replacing wholesale. Tombstones carry causality and
-// always outrank a timer at or below their revision, so a client that slept
-// through a deletion cannot bring the timer back. Omissions are only honoured
-// when the snapshot is provably newer than what this client's cache was built
-// from, which keeps deletions working for clients that write no tombstones.
+// Tombstones suppress timers at or below their revision. Timestamp-based
+// omissions support older writers, but this is not transactional reconciliation.
 function _mergeMqttState(local, incoming, { acceptOmissions = true, now = Date.now() } = {}) {
   const tombs = new Map();
   for (const d of [...(local?.tombstones || []), ...(incoming?.tombstones || [])]) {
@@ -2179,7 +2175,7 @@ class SimpleTimerCard extends i$2 {
       const p = audio.play();
       if (p && typeof p.then === "function") {
         // Track the unlock's play promise so _playAudioNotification can wait for it
-        // to settle before changing src and starting the real alarm — otherwise the
+        // to settle before changing src and starting the real alarm; otherwise the
         // unlock's restore() (which calls audio.pause()) races with the alarm play
         // and produces spurious 'audio failed' signals on the first timer of a session.
         this._audioUnlockPlay = p.then(() => { restore(); }, () => { restore(); });
@@ -3072,9 +3068,9 @@ class SimpleTimerCard extends i$2 {
   //
   // Standard HA-style tap / hold / double-tap support on the card root and
   // per row. Resolution for a row action: row config -> card config ->
-  // built-in default. Built-in default for tap is "open inline editor" when
-  // canEdit, else "toggle pause/resume". Hold and double-tap have no
-  // built-in default (action: "none" suppresses inheritance and default).
+  // built-in default. Tap opens the inline editor for idle native timers.
+  // Other states, hold and double-tap have no built-in default.
+  // action: "none" suppresses inheritance and the default.
   _hasAnyRowAction(t) {
     const rowConf = this._getEntityConfig(t.source_entity) || {};
     const c = this._config || {};
@@ -6024,10 +6020,10 @@ _pinnedTimerValueChanged(ev, index) {
         <mwc-list-item value="human_natural">Unit style, natural language</mwc-list-item>
       </ha-select>
 
-      ${this._tf({ label: "Unit order (comma-separated)", helper: "years,months,weeks,days,hours,minutes,seconds", value: (this._config.time_format_units || ["days","hours","minutes","seconds"]).join(","), configValue: "time_format_units", change: this._valueChanged, cls: "advanced" })}
+      ${this._tf({ label: "Unit order (comma-separated)", helper: "years,months,weeks,days,hours,minutes,seconds", value: (this._config.time_format_units || ["days","hours","minutes","seconds"]).join(","), configValue: "time_format_units", change: this._valueChanged })}
 
       ${showMilestonesSection ? b`
-        <div class="advanced">
+        <div class="settings-group" data-search-terms="progress milestones">
         <div class="subsection-title">Progress milestones</div>
         <div class="row" style="align-items:flex-start;">
           <ha-select label="Milestone unit" helper="Unit highlighted as the active milestone." naturalMenuWidth fixedMenuPosition .value=${this._config.milestone_unit || "auto"} .configValue=${"milestone_unit"} .options=${SELECT_OPTIONS.milestone_unit} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
@@ -6456,7 +6452,7 @@ _pinnedTimerValueChanged(ev, index) {
 
     const actionsContent = b`
       <p class="hint">
-        Standard Home Assistant action options. Row-level actions override card-level. Leave blank to inherit, or pick "No action" to suppress the built-in default (tap toggles pause/resume).
+        Supported Home Assistant-style actions. Entity-row actions override card-level. Leave blank to inherit, or pick "No action" to suppress the default. An idle native timer opens its duration editor on tap; set Toggle explicitly for pause/resume on supported timers.
       </p>
       <ha-selector
         .hass=${this.hass}
@@ -6530,9 +6526,8 @@ _pinnedTimerValueChanged(ev, index) {
       <div class="card-config ${this._showAdvanced ? "show-advanced" : ""} ${isSearching ? "is-searching" : ""}">
         ${panel("entities", "Timer sources", "mdi:format-list-bulleted", entitiesContent)}
         ${panel("storage", "Timer storage", "mdi:database-outline", storageContent)}
-        ${panel("appearance", "Appearance", "mdi:palette", appearanceContent)}
+        ${panel("appearance", "Appearance", "mdi:palette", b`${appearanceContent}${displayContent}${timeFormatContent}${sortingContent}`)}
         ${panel("input", "Timer input", "mdi:dialpad", inputContent)}
-        ${panel("display", "Display & ordering", "mdi:format-list-numbered", b`${displayContent}${timeFormatContent}${sortingContent}`, { advanced: true })}
         ${panel("styling", "Icons & colors", "mdi:palette-outline", stylingContent, { advanced: true })}
         ${panel("defaults", "When timers finish", "mdi:timer-check-outline", defaultsContent, { advanced: true })}
         ${panel("pinned", "Pinned timers", "mdi:pin-outline", pinnedContent, { advanced: true })}

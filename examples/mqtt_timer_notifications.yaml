@@ -1,28 +1,61 @@
-# Example: Send mobile notification when MQTT timer expires
-alias: MQTT Timer Expired Notification
-description: Sends push notification when any MQTT-based timer expires
-triggers:
-  - topic: simple_timer_card/events/expired
-    value_template: "{{ value_json }}"
-    trigger: mqtt
-conditions: []
-actions:
-  - data:
-      title: ⏱️ Timer Expired
-      message: |-
-        {% if trigger.payload_json is defined %}
-          {{ trigger.payload_json.label | default('Timer') }} is done!
-        {% else %}
-          Timer is done!
-        {% endif %}
-      data:
-        tag: |-
-          {% if trigger.payload_json is defined %}
-            timer_{{ trigger.payload_json.id | default('unknown') }}
-          {% else %}
-            timer_unknown
-          {% endif %}
-        channel: Timers
-        importance: high
-        notification_icon: mdi:timer-outline
-    action: notify.mobile_app_YOUR_DEVICE_HERE
+# CUSTOMIZATION TEMPLATE: mobile notification from frontend MQTT expiry events.
+# Paste context: one automation mapping for the single-automation YAML editor.
+# For an automation list, prefix alias with "- " and indent the remaining
+# mapping two spaces. Do not add an automation: wrapper in the editor.
+#
+# Requires HA's MQTT integration, a broker, and a connected card frontend actively
+# running when it observes expiry. A closed/suspended frontend cannot publish.
+# This is NOT a backend scheduler and cannot guarantee expiry or catch-up alerts.
+# Replace notify.mobile_app_your_phone with the actual Companion App notify action
+# shown in Developer Tools > Actions. Adapt its data for the chosen notifier.
+#
+# Separate dashboard card mapping (uncomment there, not in this automation):
+# type: custom:simple-timer-card
+# storage: mqtt
+# compatibility_mode: '2.1.1'
+# mqtt:
+#   sensor_entity: sensor.simple_timer_store
+#   topic: simple_timer_card/timers
+#   state_topic: simple_timer_card/timers/state
+#   events_topic: simple_timer_card/events
+# notify: null
+#
+# Create/verify sensor.simple_timer_store using only the MQTT transport setup
+# in ../mqtt-hybrid-model.md. Replace its ID in BOTH card and condition if different.
+# The three defaults are independent: changing mqtt.topic does not derive new
+# state_topic/events_topic values. Match this trigger to events_topic + /expired.
+# '2.1.1' is the default object envelope used by that sensor. 'latest' publishes
+# bare arrays, incompatible with that JSON attributes setup and without shared
+# deletion tombstones. Neither mode turns the broker into a timer scheduler.
+#
+# FRONTEND NOTIFICATION ALTERNATIVE: disable this automation when using the hybrid
+# backend monitor for this store. Remove card notify on ALL cards for the same
+# store too, rather than relying on notification tags to prevent duplicates.
+# Ordinary MQTT timer events do not include end_ts; timestamp is emission time,
+# not a deadline/cycle ID. Multiple frontends can send duplicates. queued mode
+# serializes calls only; this example has no durable deduplication or retry.
+# Events are non-retained, so HA/broker downtime can lose them. Source filters
+# are routing, not authentication; restrict MQTT publishers. Not safety-critical.
+
+alias: "MQTT Timer Expired Notification (Frontend Template)"
+description: "Notify only for frontend expiry events from the configured MQTT store."
+trigger:
+  - platform: mqtt
+    topic: simple_timer_card/events/expired
+condition:
+  - condition: template
+    value_template: >-
+      {{ trigger.payload_json is defined
+         and trigger.payload_json is mapping
+         and (trigger.payload_json.event | default('')) == 'expired'
+         and (trigger.payload_json.source | default('')) == 'mqtt'
+         and (trigger.payload_json.source_entity | default('')) == 'sensor.simple_timer_store' }}
+action:
+  - service: notify.mobile_app_your_phone
+    data:
+      title: "Timer Expired"
+      message: >-
+        {% set label = trigger.payload_json.get('label') %}
+        {{ (label if label is string and (label | trim) else 'Timer') ~ ' is done!' }}
+mode: queued
+max: 10

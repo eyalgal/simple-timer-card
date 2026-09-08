@@ -18,10 +18,13 @@ Simple mode shows four sections:
 | --- | --- |
 | **Timer sources** | Entity selection and Alexa, Google Home, and Voice PE discovery |
 | **Timer storage** | Where new timers are created and the current storage type |
-| **Appearance** | Optional title and active-timer style |
+| **Appearance** | Title, style, layout, progress, language, time format, and timer ordering |
 | **Timer input** | Input method, optional on-card switch, starting duration, increments, and quick-start presets |
 
-Turn on **Advanced** for display and ordering, icons and colors, expiry behavior,
+Appearance includes the display and ordering controls in both editor modes.
+Progress milestone options appear when the progress mode is set to Milestones.
+
+Turn on **Advanced** for icons and colors, expiry behavior,
 pinned timers, audio, push notifications, Voice PE control details, and custom actions.
 Per-entity overrides and timer-name suggestions also live in Advanced. Button
 settings are hidden in simple mode when the card uses a fixed keypad; they remain
@@ -104,7 +107,7 @@ show_active_header: true
 
 ---
 
-## ⏱️ Timer entities
+## ⏱ Timer entities
 
 The `entities:` list tells the card which timer sources to display. Each entry can be a plain entity ID or an object with overrides.
 
@@ -127,10 +130,10 @@ Mix and match freely. Mode is auto-detected by default.
 | ------------------------- | ----------------------------------------------- |
 | Native HA timer           | `timer.*`                                       |
 | Alexa                     | `alexa_media_player` next-timer sensors         |
-| Google Home               | `sensor.*_timers` from the Google Home integration |
-| Voice PE                  | Voice PE entities (see [Voice PE](#-voice-pe-integration)) |
+| Google Home               | Timer sensors from the Google Home integration, identified by attributes |
+| Voice PE                  | Custom ESPHome/template sensors (see [Voice PE](#-voice-pe-integration)) |
 | Helper                    | `input_text.*`, `text.*`                        |
-| Timestamp sensor          | Any sensor whose state or attribute is an ISO timestamp |
+| Timestamp sensor          | A sensor whose state is the timer's end timestamp |
 | Minutes attribute sensor  | Any sensor exposing a "minutes remaining" attribute     |
 
 ### Auto-discovery
@@ -148,12 +151,14 @@ auto_discover_google: true
 | Name                   | Type    | Default | Description                                                            |
 | ---------------------- | ------- | ------- | ---------------------------------------------------------------------- |
 | `auto_discover_alexa`  | boolean | `false` | Pick up Alexa Media Player next-timer sensors without listing them.     |
-| `auto_discover_google` | boolean | `false` | Pick up Google Home `sensor.*_timers` entities without listing them.    |
+| `auto_discover_google` | boolean | `false` | Pick up Google Home timer sensors by their attributes, including renamed entities. |
 
 Discovered entities are added to anything in `entities:`, never duplicated, and
 carry no per-entity options. List an entity explicitly if you want to override
 its icon, colour or name. Both providers are read-only, so discovered timers can
-be dismissed once they ring but not started or paused from the card.
+be dismissed from this card once they ring but not started or paused from it.
+Dismissal does not stop the timer or alarm on the speaker. The Alexa Media Player
+or Google Home integration must already expose the timer sensors in Home Assistant.
 
 ### Per-source icon and colour
 
@@ -204,7 +209,7 @@ so an entity listed in `entities:` with its own `icon:` still wins.
 | `icon`                         | string  | auto         | Always                 | Override the icon                                                            |
 | `color`                        | string  | auto         | Always                 | Override the color (any CSS color or HA theme variable)                      |
 | `expired_subtitle`             | string  | inherited    | Always                 | Override the message shown when this timer expires                           |
-| `minutes_attr`                 | string  | `Minutes to arrive` | `mode: minutes_attr` | Attribute name holding minutes remaining                            |
+| `minutes_attr`                 | string  | `Minutes to arrival` | `mode: minutes_attr` | Attribute name holding minutes remaining                           |
 | `start_time_entity`            | string  | self         | `mode: timestamp`      | Use another entity for the start timestamp                                   |
 | `start_time_attr`              | string  | `start_time` | `mode: timestamp`      | Attribute on the entity holding the start timestamp                          |
 | `keep_timer_visible_when_idle` | boolean | `false`      | `mode: timer`          | Keep the row in view even when the timer is idle                             |
@@ -218,7 +223,8 @@ so an entity listed in `entities:` with its own `icon:` still wins.
 
 ## 🔀 Sorting & ordering
 
-Controls the order timers appear in.
+Controls the order timers appear in. These controls are in **Appearance** in both
+Simple and Advanced editor modes.
 
 ```yaml
 sort_by: time_left           # or name
@@ -236,7 +242,8 @@ pinned_timers_position: inline
 
 ## 🕐 Time format
 
-Controls how the time-remaining string is rendered.
+Controls how the time-remaining string is rendered. Find these settings in
+**Appearance** in either editor mode.
 
 ```yaml
 time_format: hms
@@ -246,7 +253,7 @@ time_format_units: [days, hours, minutes, seconds]
 | Name                | Type    | Default                                | Description                                                                  |
 | ------------------- | ------- | -------------------------------------- | ---------------------------------------------------------------------------- |
 | `time_format`       | string  | `hms`                                  | One of `hms`, `hm`, `ss`, `dhms`, `human_compact`, `human_short`, `human_natural` |
-| `time_format_units` | array   | `[days, hours, minutes, seconds]`      | Allowed units (in order). Used by `human_*` and `dhms` formats               |
+| `time_format_units` | array   | `[days, hours, minutes, seconds]`      | Allowed units (in order) for `human_*` formats. Does not change clock formats. |
 
 ### Format reference
 
@@ -255,10 +262,14 @@ time_format_units: [days, hours, minutes, seconds]
 | `hms`             | `01:23:45`                      |
 | `hm`              | `01:23`                         |
 | `ss`              | `5025` (seconds only)           |
-| `dhms`            | `00:01:23:45`                   |
-| `human_compact`   | `1h23m45s`                      |
-| `human_short`     | `1h 23m 45s`                    |
+| `dhms`            | `01:23:45`                      |
+| `human_compact`   | `1h 23m 45s`                    |
+| `human_short`     | `1 hour, 23 minutes, 45 seconds` |
 | `human_natural`   | `1 hour, 23 minutes, 45 seconds` |
+
+Clock formats omit leading zero day/hour fields. For example, `dhms` adds the day
+field once the duration reaches a day. `human_short` and `human_natural` currently
+use the same localized wording.
 
 ### Milestones (only when `progress_mode: milestones`)
 
@@ -275,7 +286,7 @@ milestone_pulse: true
 
 ---
 
-## ⚙️ Timer defaults & behavior
+## ⚙ Timer defaults & behavior
 
 Defaults applied when no entity-level override is given, plus what happens when a timer expires.
 
@@ -299,9 +310,9 @@ auto_dismiss_writable: false
 | `default_timer_icon`              | string  | `mdi:timer-outline`    | Default icon for entities that do not specify one                                            |
 | `default_timer_color`             | string  | `var(--primary-color)` | Default color for entities that do not specify one (any CSS color or HA variable)            |
 | `expired_subtitle`                | string  | localized "Time's up!" | Default subtitle shown when a timer expires                                                  |
-| `expire_action`                   | string  | `keep`                 | What to do when a timer hits zero: `keep` (show with expired message), `dismiss`, or `remove` |
+| `expire_action`                   | string  | `keep`                 | `keep` shows the expired timer until `expire_keep_for`; `remove` cleans it up; `dismiss` leaves it for manual dismissal. |
 | `expire_keep_for`                 | number  | `120`                  | Seconds to keep an expired timer visible (only when `expire_action: keep`)                   |
-| `auto_dismiss_writable`           | boolean | `false`                | For helper-backed timers (`input_text`/`text`), clear the entity at 0 instead of leaving the expired value |
+| `auto_dismiss_writable`           | boolean | `false`                | Retained compatibility setting; currently does not add automatic helper cleanup. Use `expire_action` instead. |
 
 ---
 
@@ -389,7 +400,7 @@ pinned_timers:
 | ---------------------------- | ------- | ------------ | ------------------------------------------------------------------------------------------ |
 | `id`                         | string  | auto         | Stable identifier used for persistence. Recommended so renames don't reset progress.       |
 | `name`                       | string  | `#<index>`   | Displayed label                                                                            |
-| `duration`                   | string \| number | **required** | Duration. Accepts `5m`, `90s`, `1h`, or raw seconds                              |
+| `duration`                   | string \| number | **required** | Duration. Accepts `5m`, `90s`, `1h`, or `1d`. Bare numbers mean minutes.         |
 | `icon`                       | string  | `default_timer_icon` | Icon                                                                               |
 | `color`                      | string  | `default_timer_color` | Color (any CSS color or HA variable)                                              |
 | `expired_subtitle`           | string  | inherited    | Override expired message                                                                   |
@@ -421,11 +432,17 @@ double_tap_action:
 | `hold_action`       | object | none        | Fires after a 500 ms press-and-hold                                        |
 | `double_tap_action` | object | none        | Fires on a second tap within 300 ms of the first                           |
 
-Each action accepts the full Home Assistant `ActionConfig`: `more-info`, `toggle`, `navigate`, `url`, `call-service` / `perform-action`, `assist`, or `none`. See the [Home Assistant action docs](https://www.home-assistant.io/dashboards/actions/) for the full schema.
+Supported Home Assistant-style actions are `more-info`, `toggle`, `navigate`,
+`url`, `call-service` / `perform-action`, and `none`. This is not the complete
+Home Assistant `ActionConfig` implementation; `assist` is not handled. See the
+[Home Assistant action docs](https://www.home-assistant.io/dashboards/actions/)
+for the standard action syntax.
 
 ### Per-row actions
 
-Each entry under `entities:` and `pinned_timers:` accepts the same three keys, and they override the card-level values for that row.
+Entries under `entities:` accept the same three keys and override the card-level
+values for that row. Per-pin `tap_action`, `hold_action`, and `double_tap_action`
+overrides are not resolved; use a pin's `buttons:` for custom actions instead.
 
 ```yaml
 entities:
@@ -446,8 +463,8 @@ HA's `timer.*` domain has no `toggle` service, so when you set `tap_action: togg
 | -------------------------------------- | ------------------------------- |
 | Predefined (pinned) row                | Start                           |
 | Idle native HA `timer.*`               | Open the inline duration editor |
-| Idle helper / local / MQTT / Voice PE  | Start                           |
-| Running or paused                      | Pause / resume                  |
+| Running or paused native/helper/local/MQTT | Pause / resume               |
+| Idle non-native or Voice PE             | No supported toggle behavior; use built-in controls or an explicit service action |
 | Anything else                          | Falls through to `domain.toggle` |
 
 ### What's ignored
@@ -484,7 +501,7 @@ Each button supports:
 | `icon`      | string          | preset icon          | Button icon. Optional when `action` is a preset string, required for custom actions         |
 | `name`      | string          | `""`                 | Tooltip text                                                                                 |
 | `color`     | string          | inherit              | Icon color (any CSS color or HA theme variable)                                             |
-| `show_when` | string\|list    | `[running, paused]`  | Timer states the button appears in: `idle`, `running`, `paused`                             |
+| `show_when` | string\|list    | `[running, paused]`  | Timer states: `idle`, `running`, `paused`, `finished`. The ringing layout uses its built-in Snooze/Dismiss controls instead. |
 
 ### Shorthand presets
 
@@ -492,7 +509,7 @@ Use a string for `action` to call a built-in handler. The icon is supplied autom
 
 | Preset    | Does                                                                  |
 | --------- | -------------------------------------------------------------------- |
-| `finish`  | Completes the timer now (native `timer.finish`, fires the ring/event) |
+| `finish`  | Calls native `timer.finish`, removes a helper/local/MQTT timer, or cancels a controllable Voice PE local timer. Publishes `finished` when MQTT events are enabled. |
 | `add`     | Adds `amount` to the running or paused timer (`amount` required)      |
 | `reduce`  | Subtracts `amount` from the running or paused timer (`amount` required) |
 | `restart` | Restarts the timer from its original duration                        |
@@ -504,11 +521,22 @@ For anything else, pass a full Home Assistant `ActionConfig` (`perform-action` /
 
 ### Preset availability
 
-Presets are control actions, so they only work for timers the card can drive: `timer` entities, `input_text` / `text` helpers, and local / MQTT timers (plus `finish` and `pause` for Voice PE). Read-only or externally-owned timers such as Alexa or timestamp sensors can't be finished, restarted, or have their time changed from the card. In the visual editor the per-entity action list automatically hides presets the selected entity can't perform and offers only custom on-screen actions for those types, so you never wire up a button that would silently under-deliver. (The card-level list applies to every row, so it keeps the full preset list.)
+Presets work for native `timer` entities, `input_text` / `text` helpers, and
+local / MQTT timers. Read-only Alexa, Google Home, timestamp, and mirrored Voice
+PE timers cannot be controlled this way. The per-entity editor filters its list
+by source; the card-level list keeps all presets.
+
+For controllable Voice PE local timers, `finish` sends a cancel command. Use the
+built-in pause/resume controls, not the `pause` shorthand, which currently does
+not handle Voice PE even though the editor offers it. Finishing a timer is not
+the same as natural expiry: automations listening only to MQTT `/expired` do
+not receive the `/finished` event.
 
 ### Placement
 
-Buttons sit at the leftmost edge of the controls, before the start / pause control, in the bar, fill and `circle_horizontal` styles. In the `circle_vertical` style they appear as a small floating button in the corner opposite the cancel X, so the tile keeps its height.
+Buttons sit before the start / pause control in the bar, fill and
+`circle_horizontal` styles, following the page direction. In `circle_vertical`
+they appear in the corner opposite the cancel X.
 
 > A pinned timer's buttons appear once it is started (its default `show_when` is running + paused, so the idle tile in the tray shows only the start control). The buttons carry over to the live timer it creates.
 
@@ -530,17 +558,26 @@ audio_play_until_dismissed: false
 | ---------------------------- | ------- | ------- | ---------------------------------------------------------------------------------------- |
 | `audio_enabled`              | boolean | `false` | Master switch                                                                            |
 | `audio_file_url`             | string  | `""`    | URL or path (e.g. `/local/sounds/done.mp3` or `https://...`)                             |
-| `audio_completion_delay`     | number  | `4`     | Seconds to wait between repeats                                                          |
+| `audio_completion_delay`     | number  | `4`     | Delay before cleanup with `expire_action: remove` when audio is enabled. Not a repeat interval. |
 | `audio_repeat_count`         | number  | `1`     | How many times to play                                                                   |
 | `audio_play_until_dismissed` | boolean | `false` | Keep playing until the user dismisses or snoozes the timer (overrides `audio_repeat_count`) |
 
-> 📱 **iOS / iPad:** Safari and the Home Assistant Companion App's iPad webview block audio from playing unless the page has received a user tap during the current session. The card primes audio on the first tap anywhere on the card, so for normal use (you tap a preset or start a timer manually) alarms work. The first alarm of a fresh page load that is triggered entirely by voice or an automation, with no prior tap, will be silent: tap the card once after loading the dashboard to enable sound for the rest of the session. A locked screen or fully backgrounded tab also blocks audio, which is a hard iOS limitation. To cover the hands-off case, see [Push notification fallback](#-push-notification-fallback) below.
+> 📱 **iOS / iPad:** Browser autoplay policies can block alarm audio until a user
+> gesture. Tap the card after loading to let it prime audio playback. A suspended
+> tab or locked device can also stop the card's JavaScript from checking timers.
+> Push fallback helps when the card is running but audio cannot play; it does not
+> turn the card into a background scheduler.
 
 ---
 
 ## 📲 Push notification fallback
 
-When a timer ends, the card can also fire a Home Assistant `notify` service call. This is useful on iPad and iPhone, where the in-page audio cannot play if the dashboard has not received a user tap during the current page session (a locked screen, a fully backgrounded tab, or a cold-loaded dashboard with a voice-triggered timer all fall into this case). A push notification goes through iOS / Android system channels and is not subject to the browser autoplay policy, so it will ring even when in-page audio cannot.
+When a timer ends, a running card can call a Home Assistant `notify` service.
+Push delivery is separate from browser audio, but the card must still be open,
+connected and executing to detect expiry and send the call. A closed or suspended
+dashboard cannot guarantee notifications. For MQTT timers with no dashboard open,
+configure a separate [backend monitor](mqtt-hybrid-model.md). Delivery and sound
+also depend on the target device's notification permissions and settings.
 
 ```yaml
 notify:
@@ -557,15 +594,15 @@ notify:
 | Name      | Type   | Default          | Description                                                                                                                                                                  |
 | --------- | ------ | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `service` | string | _(required)_     | A Home Assistant notify service in `domain.service` form (for example `notify.mobile_app_kitchen_ipad`, `notify.alexa_media`, `notify.persistent_notification`).              |
-| `message` | string | `Timer {name} finished` | Notification body. Supports placeholders `{name}`, `{entity_id}`, `{duration}`.                                                                                          |
+| `message` | string | `Timer {name} finished` | Body with `{name}`, `{entity_id}`, and `{duration}` placeholders. Duration is in milliseconds. |
 | `title`   | string | _(none)_         | Notification title. Same placeholders as `message`.                                                                                                                          |
-| `when`    | string | `on_audio_fail`  | `on_audio_fail` fires the notification only when the browser rejects `audio.play()` (the iOS hands-off case). `always` fires it on every timer end alongside the in-page audio. |
-| `data`    | object | `{}`             | Raw object merged into the notify service call. Use it for platform-specific fields like `push.sound`, `interruption-level`, `tag`, or Android `channel`.                    |
+| `when`    | string | `on_audio_fail`  | `on_audio_fail` notifies if audio is disabled, missing, invalid, or fails to start. `always` also notifies alongside audio. Requires the card to detect expiry. |
+| `data`    | object | `{}`             | Passed as the notification service's nested `data` object, for platform-specific fields such as `push.sound`, `tag`, or Android `channel`. |
 
 **Common patterns:**
 
-- **iPad on the kitchen wall**: `service: notify.mobile_app_kitchen_ipad`, `when: on_audio_fail`. The iPad rings via in-page audio when you are tapping the dashboard, and via push when a timer was started hands-off.
-- **Always also ring a phone**: `service: notify.mobile_app_yourphone`, `when: always`. Phone rings on every timer end regardless of where you are.
+- **Open kitchen dashboard**: `service: notify.mobile_app_kitchen_ipad`, `when: on_audio_fail`. The running card tries audio and sends a push when audio is unavailable.
+- **Also notify a phone**: `service: notify.mobile_app_yourphone`, `when: always`. Sends a notification whenever this running card detects a timer end.
 - **Persistent notification banner only**: `service: notify.persistent_notification`. No sound, just a banner in HA.
 
 **What it cannot do:** play a custom sound from the card's `audio_file_url` through the notification. The notification's sound is whatever the target platform plays (configured via `data.push.sound` on iOS, or the Companion App's notification channel on Android).
@@ -574,11 +611,27 @@ notify:
 
 ## 💾 Storage & persistence
 
-Where the card persists user-created timers (presets, pinned timers, custom timers).
+Where the card creates or persists user-created timers. Choose a target under
+**Timer storage** in either editor mode. Custom MQTT topics and namespaces use YAML.
+
+### Native Home Assistant timer
+
+To start a native timer through `timer.start`, select it explicitly:
+
+```yaml
+default_timer_entity: timer.kitchen
+```
+
+If the card lists exactly one native timer in `entities:`, it can select that
+timer automatically. With several native timers, choose a default to avoid
+ambiguity. Starting it again restarts that same entity, rather than creating a
+second timer. Voice PE local-control setup has its own targeting rules below.
 
 ### Local (default)
 
-Timers are stored in browser `localStorage`. They persist across reloads on the same device.
+Without a native/helper/Voice PE target or MQTT backend, timers use browser
+`localStorage`. They persist across reloads in the same browser and Home Assistant
+origin, but do not sync across devices. Clearing site data removes them.
 
 No configuration needed:
 
@@ -588,7 +641,11 @@ type: custom:simple-timer-card
 
 ### Helper entity
 
-Use an `input_text` or `text` helper to persist timers in HA itself. Syncs across devices.
+An `input_text` or `text` entity can store timer JSON in HA, subject to the entity's
+length limit. All readers must use the same entity. This is a constrained legacy
+option: HA states, including `input_text`, are limited to 255 characters, and a
+current timer record can exceed that even for one timer. Use native timers or
+MQTT for normal cross-device use; do not assume a list fits in a helper.
 
 ```yaml
 default_timer_entity: input_text.timer_store
@@ -596,23 +653,28 @@ default_timer_entity: input_text.timer_store
 
 ### MQTT
 
-Best for cross-device sync. Pick an MQTT-backed sensor (or supply an explicit `mqtt:` block).
+Use an MQTT-backed sensor for shared lists of timers. Configure the sensor and
+matching card topics as shown in [mqtt-hybrid-model.md](mqtt-hybrid-model.md).
 
 ```yaml
-default_timer_entity: sensor.simple_timer_store
-# or, explicitly:
 storage: mqtt
+compatibility_mode: '2.1.1'
 mqtt:
   sensor_entity: sensor.simple_timer_store
-  topic: simple_timer/state
+  topic: simple_timer_card/timers
+  state_topic: simple_timer_card/timers/state
+  events_topic: simple_timer_card/events
 ```
 
-Full details on the MQTT payload and hybrid model: [mqtt-hybrid-model.md](mqtt-hybrid-model.md).
+If using all default topics, `default_timer_entity: sensor.simple_timer_store`
+remains a shorthand for MQTT storage. The three topics are independent: changing
+`mqtt.topic` does not automatically change the state or event topic.
 
 #### Multi-device reconciliation
 
-Cards do not overwrite each other's state. Each timer carries a revision, and
-deletions publish a short-lived tombstone alongside the timer list:
+MQTT uses best-effort multi-device reconciliation. In the default compatibility
+mode, timer revisions and deletion tombstones reduce stale snapshot problems.
+The retained envelope has this shape (timer details omitted):
 
 ```json
 {
@@ -623,14 +685,16 @@ deletions publish a short-lived tombstone alongside the timer list:
 }
 ```
 
-When a card reads the topic it reconciles the payload against what it already
-knows instead of replacing it. A device that was asleep or backgrounded can
-therefore no longer republish an old snapshot and bring back a timer that was
-dismissed elsewhere; the first card to notice republishes the corrected list.
-Tombstones are dropped after 24 hours.
+Cards reconcile snapshots against cached revisions and tombstones and delay
+automatic expiry processing after waking. Tombstones expire after **24 hours**.
+Timestamp-based omission handling and reconnect heuristics are not a transaction
+or a guarantee against lost concurrent edits or resurrected timers after long
+offline periods. Older clients may ignore or discard tombstones. The bare-array
+`latest` compatibility mode does not publish them at all.
 
-The `deleted` key is additive. Older cards and the failsafe automation in
-[mqtt-hybrid-model.md](mqtt-hybrid-model.md) read `timers` and are unaffected.
+MQTT storage alone does not schedule notifications. The optional backend guide
+polls stored `end_ts` deadlines in milliseconds; notification delivery remains
+best-effort and requires its separate HA automation.
 
 ### Multiple cards on one dashboard
 
@@ -640,9 +704,12 @@ The card derives its `localStorage` key from, in order:
 
 `storage_namespace` > `default_timer_entity` > first entity in `entities:` > a key derived from the card's own configuration
 
-So cards that set `default_timer_entity` or list `entities:` are isolated automatically. Cards with none of those fall back to a key derived from their configuration, which is stable across reloads, so their timers survive navigation and browser restarts.
+Cards selecting the same default or first entity can share a namespace. Without
+those fields, a hash of the normalized configuration provides a stable key across
+reloads. Reordering object keys does not create a distinct configuration hash.
 
-Two cards whose configuration is byte for byte identical will resolve to the same key and therefore share state. Give at least one of them an explicit namespace:
+Equivalent normalized configurations can share a key. To keep local stores
+independent, give each card an explicit namespace:
 
 ```yaml
 - type: custom:simple-timer-card
@@ -653,58 +720,87 @@ Two cards whose configuration is byte for byte identical will resolve to the sam
 
 Setting `storage_namespace` explicitly is also worthwhile for a single card, because the derived key changes if you edit the card's configuration, which starts the card on a fresh empty store.
 
-For two genuinely independent timers, the supported setups are still a per-card `timer.*` helper via `default_timer_entity:` or per-card MQTT with a unique `mqtt.topic:`.
+The namespace also prefixes pinned IDs, for example `kitchen:tea`. It does not
+partition MQTT data, its topic-based cache, or event topics. Independent MQTT
+stores need distinct topics and matching sensors; give them distinct event
+topics when their notification automations must also be isolated. Independent
+native timers need different `timer.*` entities.
 
 ### Storage options
 
 | Name                   | Type   | Default | Description                                                                                            |
 | ---------------------- | ------ | ------- | ------------------------------------------------------------------------------------------------------ |
-| `default_timer_entity` | string | `null`  | Helper (`input_text`/`text`) or MQTT sensor used as the timer store. Auto-detects `local` vs `mqtt`.   |
+| `default_timer_entity` | string | `null`  | Native `timer.*` target, legacy text/helper store, or MQTT sensor. A single configured native timer can be selected automatically. |
 | `storage`              | string | auto    | Force a backend: `local` or `mqtt`. Usually auto-detected from `default_timer_entity`.                 |
-| `storage_namespace`    | string | auto    | Override the `localStorage` namespace for this card. Defaults to `default_timer_entity`, then the first entity in `entities:`, then a key derived from the card's configuration. Needed when running multiple identically configured local-storage cards on one dashboard. |
+| `storage_namespace`    | string | auto    | Explicit local-store namespace and pinned-ID prefix. Does not isolate MQTT topics. See precedence above. |
 | `mqtt.sensor_entity`   | string | -       | MQTT sensor entity holding state                                                                       |
-| `mqtt.topic`           | string | -       | Base MQTT topic                                                                                        |
-| `mqtt.state_topic`     | string | -       | Override the state topic                                                                               |
-| `mqtt.events_topic`    | string | -       | Override the events topic                                                                              |
+| `mqtt.topic`           | string | `simple_timer_card/timers` | Retained timer payload topic, matching sensor `json_attributes_topic` |
+| `mqtt.state_topic`     | string | `simple_timer_card/timers/state` | State/version marker topic, matching sensor `state_topic` |
+| `mqtt.events_topic`    | string | `simple_timer_card/events` | Non-retained event prefix, followed by `/started`, `/expired`, etc. |
 
 ---
 
-## 🗣️ Voice PE integration
+## 🗣 Voice PE integration
 
-Mirror or fully control Voice PE timers from the card.
+Stock Voice PE firmware does not expose HA timer entities for this card. The
+custom ESPHome guides mirror native voice timers read-only, or additionally
+create independent local timers that the card can start, pause, resume and
+cancel. They do not add control of native voice timers. Firmware examples must
+be adapted and validated for your device; they were not build/flash-tested for
+this card release.
 
 ```yaml
+# Advanced local-timer setup, after configuring the guide's template sensors.
 auto_voice_pe: true
-voice_pe_control_entity: text.voice_pe_timer_command
+voice_pe_control_entity: text.home_assistant_voice_timer_command  # Replace with yours.
+entities:
+  - entity: sensor.vpe_timer_1
+    mode: voice_pe
+  - entity: sensor.vpe_timer_2
+    mode: voice_pe
+  - entity: sensor.vpe_timer_3
+    mode: voice_pe
 ```
 
 | Name                      | Type    | Default | Description                                                                                          |
 | ------------------------- | ------- | ------- | ---------------------------------------------------------------------------------------------------- |
-| `auto_voice_pe`           | boolean | `false` | Auto-detect and mirror Voice PE timers                                                               |
-| `voice_pe_control_entity` | string  | `null`  | A `text` or `input_text` entity used to send Voice PE commands (required for full control, not just mirroring) |
+| `auto_voice_pe`           | boolean | `false` | Enables the local-creation path. Auto-discovers only with an empty `entities` list, using timer-like state plus nonempty `control_entity`. |
+| `voice_pe_control_entity` | string  | `null`  | Command entity for creating independent local timers. Per-row controls also require that sensor's `timer_id` and `control_entity` attributes. |
+
+Mirror-only sensors have no control entity and should be listed explicitly with
+`mode: voice_pe`. For mixed remote/local slots, also list every slot explicitly:
+control metadata is intentionally absent when a slot contains a remote timer.
 
 Full guides:
 
 * [voice-pe/voice-pe.md](voice-pe/voice-pe.md) - overview
+* [voice-pe/voice-pe-esphome-readonly.md](voice-pe/voice-pe-esphome-readonly.md) - read-only ESPHome mirror
 * [voice-pe/voice-pe-esphome.md](voice-pe/voice-pe-esphome.md) - ESPHome-based local timers
 
 ---
 
 ## 🧷 Compatibility mode
 
-Preserves the storage and MQTT contracts from older versions.
+Selects the MQTT payload shape. Keep the default for the documented MQTT sensor
+and backend monitor; `latest` is an alternate format, not a required upgrade.
 
 ```yaml
-compatibility_mode: 2.1.1   # default, preserves v2.1.1 behavior
-# or
-compatibility_mode: latest  # opt in to the newest behavior
+compatibility_mode: '2.1.1'  # Default object envelope, including deletion tombstones.
+```
+
+Only for consumers that explicitly expect a bare array:
+
+```yaml
+compatibility_mode: latest  # Bare array, requires a different consumer.
 ```
 
 | Name                 | Type   | Default | Description                                                  |
 | -------------------- | ------ | ------- | ------------------------------------------------------------ |
-| `compatibility_mode` | string | `2.1.1` | `2.1.1` (legacy behavior, default) or `latest` (current spec) |
+| `compatibility_mode` | string | `2.1.1` | `2.1.1` publishes `{timers, deleted, version, lastUpdated}`; `latest` publishes a bare timer array. |
 
-If you are upgrading from v2.1.1 and your timers stop persisting, leave this on `2.1.1`.
+The bare array lacks shared tombstones and snapshot timestamps and is not
+compatible with the guide's `json_attributes_topic` sensor. Do not mix formats
+on one topic. No mode change is needed when upgrading to v2.9.0.
 
 ---
 
@@ -733,10 +829,14 @@ If no language is set, the card automatically uses your Home Assistant language.
 
 ## 📚 Examples & help
 
-See the [`examples/`](examples) folder for ready-to-paste configs:
+The [`examples/`](examples) folder contains customization templates, not drop-in
+automations. Replace entity IDs, topics and notification actions, follow each
+file's paste context, and validate before enabling:
 
-* MQTT notifications
-* Helper monitoring
-* Mobile push notifications
+* [MQTT event notifications](examples/mqtt_timer_notifications.yaml) and [Alexa event notifications](examples/alexa_timer_notifications.yaml), requiring a running card
+* [Native timer completion](examples/helper_timer_monitor.yaml), replacing the old JSON-helper monitor
+* [Allowlisted climate timer actions](examples/climate_timer_example.yaml)
+
+For backend polling of stored MQTT deadlines, see [mqtt-hybrid-model.md](mqtt-hybrid-model.md).
 
 **Need help?** Open an issue on [GitHub](https://github.com/eyalgal/simple-timer-card/issues) or ask in the Home Assistant [community forum](https://community.home-assistant.io/t/simple-timer-card-a-clean-way-to-track-timers-in-home-assistant/928813).

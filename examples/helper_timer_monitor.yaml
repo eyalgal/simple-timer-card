@@ -1,17 +1,59 @@
-# Example: Monitor helper entity for expired timers
-alias: "Helper Timer Monitor"
+# CUSTOMIZATION TEMPLATE: native timer.finished ALTERNATIVE to JSON helper polling.
+# Paste context: one automation mapping for the single-automation YAML editor.
+# For an automation list, prefix alias with "- " and indent the remaining
+# mapping two spaces. Do not add an automation: wrapper in the editor.
+#
+# This does NOT monitor or migrate input_text/text JSON timer stores. Those store
+# end_ts (epoch milliseconds), or remaining_ms with end_ts: null when paused.
+# Stored remaining is not a ticking countdown, and state-change-only triggers
+# cannot detect a deadline passing without a write. For stored MQTT deadlines,
+# see the separate BEST-EFFORT backend monitor in ../mqtt-hybrid-model.md.
+#
+# Instead, create two native Timer helpers in Settings > Devices & services >
+# Helpers > Create helper > Timer. Set a duration and enable Restore if wanted.
+# Verify their actual IDs and replace timer.kitchen/timer.laundry everywhere below.
+# Start them using timer.start or the card's native timer controls. No MQTT broker,
+# topics, JSON ledger, or running frontend is required for this automation.
+# persistent_notification.create is HA's built-in notification action; check
+# notifications in HA, or replace it and its data with your actual notify action.
+#
+# Separate dashboard card mapping (uncomment there, not in this automation):
+# type: custom:simple-timer-card
+# default_timer_entity: timer.kitchen
+# entities:
+#   - entity: timer.kitchen
+#     keep_timer_visible_when_idle: true
+#   - entity: timer.laundry
+#     keep_timer_visible_when_idle: true
+# notify: null
+#
+# New custom/preset timers on this card target timer.kitchen. Use a separate card
+# with default_timer_entity: timer.laundry for a laundry-specific input picker.
+# Disable card notify and any other expiry-notification automation for these
+# same native entities to keep one notification path.
+#
+# timer.finish also emits timer.finished; timer.cancel does not. Restore does
+# NOT replay timer.finished when a timer expires while HA is stopped. Missed
+# events/service failures are not retried here, and queued mode only serializes
+# calls. This is not an exactly-once or safety-critical notification system.
+
+alias: "Native Timer Finished Notification (Alternative Template)"
+description: "Backend events from native Timer helpers, not JSON helper monitoring."
 trigger:
-  - platform: state
-    entity_id: 
-      - input_text.kitchen_timers
-      - input_text.laundry_timers
-condition:
-  - condition: template
-    value_template: >
-      {% set data = trigger.to_state.state | from_json %}
-      {{ data.timers | selectattr('remaining', 'le', 0) | list | length > 0 }}
+  - platform: event
+    event_type: timer.finished
+    event_data:
+      entity_id: timer.kitchen
+  - platform: event
+    event_type: timer.finished
+    event_data:
+      entity_id: timer.laundry
 action:
   - service: persistent_notification.create
     data:
       title: "Timer Expired"
-      message: "Check your timers!"
+      message: >-
+        {{ state_attr(trigger.event.data.entity_id, 'friendly_name')
+           | default('Timer', true) }} is done!
+mode: queued
+max: 10

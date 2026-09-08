@@ -4,8 +4,10 @@ This page is the advanced ESPHome implementation walkthrough for the Voice PE + 
 
 Use this if you want both:
 
-* Remote timers: timers created via voice on the Voice PE device mirrored from `voice_assistant` timers
-* Local timers: timers created from the Home Assistant UI start pause resume cancel
+* **Remote timers:** native timers created by voice, mirrored from `voice_assistant` for read-only display in Home Assistant.
+* **Local timers:** independent timers implemented by this example on the device, with UI start / pause / resume / cancel commands. They are not native voice timers, Home Assistant `timer.*` helpers, or browser-storage timers.
+
+**Stock Voice PE firmware does not expose its native timers as Home Assistant timer entities or as these slot sensors.** This example adds sensors and a separate local timer implementation. It does not add card control of native voice timers.
 
 If you only want a mirror only read only setup, use:
 
@@ -14,6 +16,8 @@ If you only want a mirror only read only setup, use:
 ## Unofficial advanced
 
 This requires taking full control of your Voice PE device configuration. Proceed only if you understand ESPHome and can recover your device.
+
+**This firmware example has not been compiled or flashed against current ESPHome for this documentation update.** No current package revision, ESPHome version, or pin configuration is validated here. The package reference below is not pinned to a validated revision. Select compatible versions, inspect the merged configuration, and validate and compile it before flashing. Back up your configuration and retain access to the [official Voice PE documentation](https://voice-pe.home-assistant.io/) and [official firmware installer](https://esphome.github.io/home-assistant-voice-pe/) for recovery.
 
 ## What you will get (entities Home Assistant will see)
 
@@ -27,14 +31,24 @@ This requires taking full control of your Voice PE device configuration. Proceed
 
 ### Global
 
-* `sensor.home_assistant_voice_timer_count` remote plus local active timers
+* `sensor.home_assistant_voice_timers_count`: mirrored remote entries plus unfinished local timers, including paused locals. This can exceed the three displayed rows and excludes finished locals. Only the first three native timers are stored in this example.
+
+The generated suffix is normally **`timers_count`**, plural, from `name: "Timers Count"`. The internal ESPHome ID remains `timer_count`.
 
 ### Control input (for local timers)
 
-* `text.home_assistant_voice_voice_pe_timer_command` receives commands like start pause resume cancel
+* `text.home_assistant_voice_timer_command`: example command entity used by the HA templates and card below for start / pause / resume / cancel.
 
-> The `home_assistant_voice_` prefix comes from `friendly_name` in the base config
-> below, so swap in your own device name.
+> All IDs are examples. The base config uses `friendly_name: Home Assistant Voice`,
+> but actual IDs can have different prefixes, numeric suffixes such as `_2`, or
+> earlier registry renames. Confirm every raw sensor, template sensor, and command
+> entity in *Developer Tools → States*.
+>
+> With `name: "Voice PE Timer Command"` in section 2, the initial command ID may be
+> `text.home_assistant_voice_voice_pe_timer_command`. The shorter ID used below
+> assumes you rename that entity in Home Assistant. Alternatively, keep its real
+> ID and substitute it in all three `control_entity` templates and the card's
+> `voice_pe_control_entity`. No firmware rename is required.
 >
 > `timer_X_name`, `timer_X_state` and `timer_X_id` are declared under `text_sensor:`
 > in ESPHome but arrive as `sensor.` entities, because Home Assistant has no
@@ -42,16 +56,23 @@ This requires taking full control of your Voice PE device configuration. Proceed
 
 ## How the integration works (high level)
 
-1. `voice_assistant.on_timer_tick` provides a timers vector remote timers sorted by soonest end.
-2. We mirror the first N entries into internal remote storage r1..r3.
-3. Separately, local timers t1..t3 are created controlled via commands written to `text.home_assistant_voice_voice_pe_timer_command`.
-4. A `publish_display` script merges remote timers first then local timers into display slots timer 1..timer 3.
+1. `voice_assistant.on_timer_tick` provides the native timers vector, ordered by soonest finish in the timer interface this example uses.
+2. The first three entries are mirrored into internal remote storage `r1` through `r3`.
+3. Separately, local timers `t1` through `t3` are created and controlled via commands written to the command entity.
+4. `publish_display` fills three shared display slots with remote timers first, then local timers in local-slot order. The `timer_id` attribute identifies the current occupant, not a fixed HA slot.
 
-Both remote and local timers can use a sticky finished state for about 10 seconds then clear.
+### Limits of this example
+
+* **Three local timers maximum.** A start reuses the first empty or finished local slot. If all three contain unfinished timers, a fourth start replaces local slot 3, including a paused timer. There is no queue or full-capacity rejection.
+* **Only three shared display slots.** Remote timers take priority. Local timers can be hidden while still counting down and invoking the local ring script. A local timer may finish and be cleaned up without ever appearing on the card. Explicit card entries do not increase firmware display capacity.
+* **Native timers stay read-only.** The local command handler cannot pause, resume, or cancel them. `remote:1` through `remote:3` are synthetic display IDs, not native timer control IDs.
+* **No guaranteed remote finished TTL.** Any native finish or cancel callback clears all remote mirror slots until remaining timers are republished by a later tick. The native timers themselves are not all cancelled by this cleanup.
+* **Local TTL is separate.** Local finished records are eligible for cleanup after 10 seconds, checked every 5 seconds, unless cancelled or reused sooner. This is not a guarantee about remote timers or the separate mirror-only example.
+* **Alarm state is shared.** Local commands, local TTL cleanup, and the boot hook turn off `timer_ringing`, which can affect an already ringing native alarm. Local storage is independent; the sound and LED hooks are not isolated. Sound compatibility must be validated as described in section 4.
 
 ## 0) Start from the official Voice PE package
 
-A typical base:
+An illustrative base, not a replacement for your existing provisioning and hardware settings:
 
 ```yaml
 substitutions:
@@ -73,8 +94,17 @@ wifi:
 logger:
 ```
 
-Keep your existing Voice PE config packages wifi api etc.
-Append the rest of this page to the same YAML.
+### Merge the fragments, do not blindly append them
+
+Keep your existing `packages`, `wifi`, `api`, hardware settings, and package hooks. The repeated headings below split one example for readability; they are **not** instructions to paste duplicate YAML mapping keys into the same file.
+
+* Merge sections 3.1 and 3.2 into **one `globals:` list**.
+* Merge the scripts in sections 4, 5, and 6 into **one `script:` list**, retaining existing scripts and resolving any ID collisions.
+* Merge sections 7 and 9 into **one `interval:` list**, retaining existing intervals.
+* Keep **one `esphome:` mapping**. Add section 10 as an additional `on_boot` automation without replacing the package's boot actions. If an existing hook is written as a single automation, preserve it as an entry when combining hooks into a list.
+* Merge `sensor`, `text_sensor`, `text`, and `voice_assistant` entries with their existing sections. Preserve the package's existing `voice_assistant` configuration and actions in matching timer callbacks, including native sound and LED behavior. Add the mirror actions to those callbacks instead of replacing the callbacks wholesale.
+
+Inspect the fully merged package configuration before compiling to confirm the original boot and voice-assistant hooks remain and each added action runs once. Do not combine this implementation with the mirror-only firmware fragments.
 
 ## 1) Display slot entities (3 slots)
 
@@ -357,7 +387,9 @@ globals:
 
 ## 4) Local ring behavior (sound + LED ring)
 
-Local timers are not native Voice PE timers, so they do not automatically trigger the device timer ring UI. This block makes local timers behave like the built in device timer finish experience by turning on `timer_ringing` and playing the configured timer finished sound.
+Local timers are not native Voice PE timers, so they do not automatically trigger the native timer finish experience. This block attempts to reuse the package's `timer_ringing` switch and `play_sound` script for sound and LEDs.
+
+**Package-version dependency:** the `play_sound` parameters and the accepted value/type of `sound_file` must match your selected Voice PE package. In particular, `sound_file: timer_finished_sound` below is an unverified example, not a claim that the current package accepts that literal or that it should be changed to a particular lambda or substitution. Check the package's script declaration and its own timer-finish call, then validate and compile your merged configuration. Do not assume successful compilation alone proves ringing or alarm dismissal works on the device.
 
 ```yaml
 script:
@@ -510,17 +542,16 @@ script:
 
 ## 6) Handle local timer control commands
 
-Commands written into `text.home_assistant_voice_voice_pe_timer_command`:
+Commands written into your command entity, shown here as `text.home_assistant_voice_timer_command`:
 
 * `start:<seconds>:<optional name>`
 * `pause:<timer_id>`
 * `resume:<timer_id>`
 * `cancel:<timer_id>`
 
-This implementation guarantees:
+Pause / resume / cancel require the current `local:` ID published by the device. A remote display ID is not a local control target.
 
-* `timer_X_name` is empty when no user defined name is provided
-* local slot stored name uses a fallback display name for internal use only, while the exposed name remains empty unless explicitly set
+For an unnamed local timer, the example stores a **generated duration label**, such as `5m timer`. `publish_display` exposes that label through `timer_X_name`, and the templates below use it in `display_name`. It is not hidden internal metadata. A supplied name is used instead.
 
 ```yaml
 script:
@@ -636,6 +667,8 @@ script:
 
 ## 7) Local countdown + local TTL cleanup + ring on finish
 
+The countdown decrements once per running interval, not from an absolute wall-clock deadline. It is not a guarantee of accurate timer recovery across device downtime or reboot. The cleanup interval below applies to **local** finished records only, with a 10-second threshold checked every 5 seconds. Ringing also depends on the package hooks in section 4.
+
 ```yaml
 interval:
   - interval: 1s
@@ -725,9 +758,9 @@ interval:
 
 ## 8) Mirror Voice PE timers into remote slots (voice_assistant timer events)
 
-This mirrors device timers into r1..r3 and adds a sticky finished state if the device reports a timer with total greater than 0 and seconds left equal 0.
+This mirrors native device timers into `r1` through `r3`. A tick reporting a positive total and zero seconds left can publish `finished` in that snapshot, but this is not a latched 10-second completion display.
 
-The `on_timer_cancelled` and `on_timer_finished` handlers ensure that slots are cleared when a timer is cancelled or finishes. Without these, `on_timer_tick` stops firing when no timers remain, leaving entities stuck with stale data.
+Both `on_timer_cancelled` and `on_timer_finished` clear **all remote slots**, not just the affected timer. Other native timers are temporarily absent from the mirror until a later tick republishes them. This avoids relying on another tick after the last native timer disappears, but does not provide per-timer remote cleanup or a guaranteed remote TTL. Preserve the official package's existing actions in these callbacks when merging.
 
 ```yaml
 voice_assistant:
@@ -798,7 +831,9 @@ voice_assistant:
         id(publish_display).execute();
 ```
 
-## 9) Remote TTL cleanup (sticky finished)
+## 9) Remote cleanup interval (not a guaranteed TTL)
+
+This interval can clear a residual remote finished record only if its timestamp survives long enough. Section 8 clears and rebuilds remote storage on every tick, resetting those timestamps, and the finish/cancel handlers clear remote records immediately. Keeping this interval does **not** guarantee a sticky remote finished state. The local TTL in section 7 and mirror-only latches in [voice-pe-esphome-readonly.md](voice-pe-esphome-readonly.md) are separate implementations.
 
 ```yaml
 interval:
@@ -835,6 +870,8 @@ interval:
 
 ## 10) Boot hook (recommended)
 
+Merge this into the existing `esphome` mapping as an additional boot automation. Preserve the package's current boot hooks and their actions; do not replace the earlier `esphome` settings or paste a second key into the same mapping.
+
 ```yaml
 esphome:
   on_boot:
@@ -846,17 +883,170 @@ esphome:
       - script.execute: publish_display
 ```
 
-## Next: Home Assistant template sensors + card setup
+## 11) Home Assistant template sensors (all three slots)
 
-After flashing and confirming entities exist, go back to:
+After validating, compiling, and flashing your own merged configuration, confirm the raw entities in Home Assistant. Use these templates **instead of** the mirror-only HA templates if switching setups. Merge the three sensor definitions into your existing `template` configuration; do not create duplicate top-level keys or a second set of the same sensors.
 
-* [voice-pe.md](voice-pe.md)
+These repeat the mirror-only `display_name`, `timer_name`, `duration`, and `remaining` attributes described in [voice-pe.md](voice-pe.md), adding the complete local-control mapping for every slot:
+
+* `timer_id` comes from that display slot's raw `sensor.home_assistant_voice_timer_N_id`. It changes when the slot's occupant changes.
+* `control_entity` is `text.home_assistant_voice_timer_command` **only when the trimmed ID starts with `local:`**, otherwise it is empty. The card treats any nonempty ID plus control-entity attribute as controllable; it does not enforce the `local:` prefix itself. Do not expose the command entity unconditionally on remote or empty slots.
+* `availability` uses `has_value` for required state, timing, and ID sensors, with valid-state and numeric checks. Empty IDs are normal for idle slots. Optional unknown/unavailable names become empty, while missing required data makes the template sensor unavailable. The explicit `idle` fallback does not override that availability check.
+* `display_name` uses a usable name or a duration-based label. `timer_name` alone is not read as the card's label. Unnamed local timers already have the generated duration label described in section 6.
+
+All entity IDs below are examples, including the resulting `sensor.vpe_timer_1`, `sensor.vpe_timer_2`, and `sensor.vpe_timer_3`. Substitute real prefixes, numeric suffixes, or renamed IDs. Rename the command entity to the shorter example ID or replace it consistently in **all three** attributes and the card configuration.
+
+```yaml
+template:
+  - sensor:
+      - name: "VPE Timer 1"
+        availability: >-
+          {{ has_value('sensor.home_assistant_voice_timer_1_state')
+             and (states('sensor.home_assistant_voice_timer_1_state') | trim | lower) in ['active', 'paused', 'finished', 'idle']
+             and has_value('sensor.home_assistant_voice_timer_1_total_seconds')
+             and is_number(states('sensor.home_assistant_voice_timer_1_total_seconds'))
+             and has_value('sensor.home_assistant_voice_timer_1_seconds_left')
+             and is_number(states('sensor.home_assistant_voice_timer_1_seconds_left'))
+             and has_value('sensor.home_assistant_voice_timer_1_id') }}
+        state: >-
+          {% set value = states('sensor.home_assistant_voice_timer_1_state') | trim | lower %}
+          {{ value if value in ['active', 'paused', 'finished', 'idle'] else 'idle' }}
+        attributes:
+          display_name: >-
+            {% set name = states('sensor.home_assistant_voice_timer_1_name') | trim %}
+            {% set s = states('sensor.home_assistant_voice_timer_1_total_seconds')|int(0) %}
+            {% set h = s // 3600 %}
+            {% set m = (s % 3600) // 60 %}
+            {% set sec = s % 60 %}
+            {% if name | lower not in ['', 'unknown', 'unavailable'] %}{{ name }}
+            {% elif h > 0 %}Voice PE - {{ h }}h
+            {% elif m > 0 %}Voice PE - {{ m }}m
+            {% else %}Voice PE - {{ sec }}s{% endif %}
+          timer_name: >-
+            {% set name = states('sensor.home_assistant_voice_timer_1_name') | trim %}
+            {{ name if name | lower not in ['unknown', 'unavailable'] else '' }}
+          duration: >-
+            {% set s = states('sensor.home_assistant_voice_timer_1_total_seconds')|int(0) %}
+            {{ '%d:%02d:%02d' % (s//3600, (s%3600)//60, s%60) }}
+          remaining: >-
+            {% set s = states('sensor.home_assistant_voice_timer_1_seconds_left')|int(0) %}
+            {{ '%d:%02d:%02d' % (s//3600, (s%3600)//60, s%60) }}
+          timer_id: >-
+            {% set timer_id = states('sensor.home_assistant_voice_timer_1_id') | trim %}
+            {{ timer_id if timer_id | lower not in ['unknown', 'unavailable'] else '' }}
+          control_entity: >-
+            {% set timer_id = states('sensor.home_assistant_voice_timer_1_id') | trim %}
+            {{ 'text.home_assistant_voice_timer_command' if timer_id.startswith('local:') else '' }}
+
+      - name: "VPE Timer 2"
+        availability: >-
+          {{ has_value('sensor.home_assistant_voice_timer_2_state')
+             and (states('sensor.home_assistant_voice_timer_2_state') | trim | lower) in ['active', 'paused', 'finished', 'idle']
+             and has_value('sensor.home_assistant_voice_timer_2_total_seconds')
+             and is_number(states('sensor.home_assistant_voice_timer_2_total_seconds'))
+             and has_value('sensor.home_assistant_voice_timer_2_seconds_left')
+             and is_number(states('sensor.home_assistant_voice_timer_2_seconds_left'))
+             and has_value('sensor.home_assistant_voice_timer_2_id') }}
+        state: >-
+          {% set value = states('sensor.home_assistant_voice_timer_2_state') | trim | lower %}
+          {{ value if value in ['active', 'paused', 'finished', 'idle'] else 'idle' }}
+        attributes:
+          display_name: >-
+            {% set name = states('sensor.home_assistant_voice_timer_2_name') | trim %}
+            {% set s = states('sensor.home_assistant_voice_timer_2_total_seconds')|int(0) %}
+            {% set h = s // 3600 %}
+            {% set m = (s % 3600) // 60 %}
+            {% set sec = s % 60 %}
+            {% if name | lower not in ['', 'unknown', 'unavailable'] %}{{ name }}
+            {% elif h > 0 %}Voice PE - {{ h }}h
+            {% elif m > 0 %}Voice PE - {{ m }}m
+            {% else %}Voice PE - {{ sec }}s{% endif %}
+          timer_name: >-
+            {% set name = states('sensor.home_assistant_voice_timer_2_name') | trim %}
+            {{ name if name | lower not in ['unknown', 'unavailable'] else '' }}
+          duration: >-
+            {% set s = states('sensor.home_assistant_voice_timer_2_total_seconds')|int(0) %}
+            {{ '%d:%02d:%02d' % (s//3600, (s%3600)//60, s%60) }}
+          remaining: >-
+            {% set s = states('sensor.home_assistant_voice_timer_2_seconds_left')|int(0) %}
+            {{ '%d:%02d:%02d' % (s//3600, (s%3600)//60, s%60) }}
+          timer_id: >-
+            {% set timer_id = states('sensor.home_assistant_voice_timer_2_id') | trim %}
+            {{ timer_id if timer_id | lower not in ['unknown', 'unavailable'] else '' }}
+          control_entity: >-
+            {% set timer_id = states('sensor.home_assistant_voice_timer_2_id') | trim %}
+            {{ 'text.home_assistant_voice_timer_command' if timer_id.startswith('local:') else '' }}
+
+      - name: "VPE Timer 3"
+        availability: >-
+          {{ has_value('sensor.home_assistant_voice_timer_3_state')
+             and (states('sensor.home_assistant_voice_timer_3_state') | trim | lower) in ['active', 'paused', 'finished', 'idle']
+             and has_value('sensor.home_assistant_voice_timer_3_total_seconds')
+             and is_number(states('sensor.home_assistant_voice_timer_3_total_seconds'))
+             and has_value('sensor.home_assistant_voice_timer_3_seconds_left')
+             and is_number(states('sensor.home_assistant_voice_timer_3_seconds_left'))
+             and has_value('sensor.home_assistant_voice_timer_3_id') }}
+        state: >-
+          {% set value = states('sensor.home_assistant_voice_timer_3_state') | trim | lower %}
+          {{ value if value in ['active', 'paused', 'finished', 'idle'] else 'idle' }}
+        attributes:
+          display_name: >-
+            {% set name = states('sensor.home_assistant_voice_timer_3_name') | trim %}
+            {% set s = states('sensor.home_assistant_voice_timer_3_total_seconds')|int(0) %}
+            {% set h = s // 3600 %}
+            {% set m = (s % 3600) // 60 %}
+            {% set sec = s % 60 %}
+            {% if name | lower not in ['', 'unknown', 'unavailable'] %}{{ name }}
+            {% elif h > 0 %}Voice PE - {{ h }}h
+            {% elif m > 0 %}Voice PE - {{ m }}m
+            {% else %}Voice PE - {{ sec }}s{% endif %}
+          timer_name: >-
+            {% set name = states('sensor.home_assistant_voice_timer_3_name') | trim %}
+            {{ name if name | lower not in ['unknown', 'unavailable'] else '' }}
+          duration: >-
+            {% set s = states('sensor.home_assistant_voice_timer_3_total_seconds')|int(0) %}
+            {{ '%d:%02d:%02d' % (s//3600, (s%3600)//60, s%60) }}
+          remaining: >-
+            {% set s = states('sensor.home_assistant_voice_timer_3_seconds_left')|int(0) %}
+            {{ '%d:%02d:%02d' % (s//3600, (s%3600)//60, s%60) }}
+          timer_id: >-
+            {% set timer_id = states('sensor.home_assistant_voice_timer_3_id') | trim %}
+            {{ timer_id if timer_id | lower not in ['unknown', 'unavailable'] else '' }}
+          control_entity: >-
+            {% set timer_id = states('sensor.home_assistant_voice_timer_3_id') | trim %}
+            {{ 'text.home_assistant_voice_timer_command' if timer_id.startswith('local:') else '' }}
+```
+
+Reload Template Entities or restart Home Assistant. Confirm the template sensors' state and attributes, not just the raw seconds sensors. The command entity is a separate input and must exist and be available before sending commands.
+
+## 12) Simple Timer Card configuration (remote display + local UI creation)
+
+List **all three** template sensors explicitly and set each entry's `mode: voice_pe`. The example uses horizontal bars with separate pause/resume and cancel buttons for local timer rows.
+
+```yaml
+type: custom:simple-timer-card
+style: bar_horizontal
+auto_voice_pe: true
+voice_pe_control_entity: text.home_assistant_voice_timer_command
+entities:
+  - mode: voice_pe
+    entity: sensor.vpe_timer_1
+  - mode: voice_pe
+    entity: sensor.vpe_timer_2
+  - mode: voice_pe
+    entity: sensor.vpe_timer_3
+```
+
+### Why both an explicit list and `auto_voice_pe: true`?
+
+* Voice PE auto-discovery only fills an **empty `entities` list**. It considers supported timer states with a **nonempty `control_entity` attribute**, then keeps that initial discovered list rather than continuously tracking new slots.
+* These shared slots dynamically switch between remote, local, and idle occupants. Remote and idle slots deliberately have an empty control attribute, so auto-discovery can miss them or discover only a subset. The normal `mode: auto` detector does not recognize this template format either. Explicit `mode: voice_pe` entries keep all three slots configured through those changes.
+* With that list present, `auto_voice_pe: true` still routes the preset/custom timer UI to Voice PE local creation. `voice_pe_control_entity` provides the command target even when the first listed sensor is remote or idle and has no control attribute. It does **not** make that remote timer controllable or select a fixed local storage slot; the device's allocator chooses the slot.
+
+Keep the command text entity out of the card's `entities` list and do not use it as a generic timer-storage helper. The card sends `start:<seconds>[:<name>]` through `text.set_value`; it reads the slot attributes for pause/resume/cancel. Local timers do not support snooze or duration extension through this command protocol. Native timers remain read-only regardless of the card-level creation settings.
+
+Before relying on the setup, check that local occupants expose a `local:` ID and the correct command entity, while remote/empty occupants have an empty `control_entity`. Unavailable sensors are skipped by the card, so an empty card is not proof that no device timers are running. Check raw entities and remember the remote-first display limit. Actual compilation, flashing, and device behavior require separate validation.
 
 ## Scale up to 5 slots
 
-Copy the same pattern:
-
-* add entities timer 4 and timer 5
-* add local globals t4 and t5
-* add remote globals r4 and r5
-* update loops and conditions from 3 to 5
+The example is fixed at three local storage slots and three shared display slots. Adding two HA sensors or card entries alone does not create capacity. A five-slot adaptation would need new entities and globals, ID lookup and allocation branches, display logic, all countdown/finish/cleanup handlers, HA templates, and card entries. That is a separate firmware change requiring validation and compilation, not a supported option in the example as written.

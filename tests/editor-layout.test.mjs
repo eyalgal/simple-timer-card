@@ -58,12 +58,71 @@ test("simple mode contains four essential sections including timer storage", asy
   const { editor } = await mount();
   assert.deepEqual(sections(editor), ["entities", "storage", "appearance", "input"]);
   assert.deepEqual([...editor.shadowRoot.querySelectorAll("ha-expansion-panel[expanded]")].map(p => p.dataset.section), ["entities"]);
-  for (const key of ["title", "style", "custom_timer_input", "show_timer_input_selector", "minute_buttons", "default_new_timer_duration_mins", "timer_presets", "auto_discover_google", "auto_discover_alexa", "auto_voice_pe", "default_timer_entity"]) {
+  for (const key of ["title", "style", "layout", "language", "progress_mode", "show_active_header", "time_format", "time_format_units", "sort_by", "sort_order", "pinned_timers_position", "custom_timer_input", "show_timer_input_selector", "minute_buttons", "default_new_timer_duration_mins", "timer_presets", "auto_discover_google", "auto_discover_alexa", "auto_voice_pe", "default_timer_entity"]) {
     assert.ok(available(editor, control(editor, key)), `Expected simple field ${key}`);
   }
-  for (const key of ["layout", "language", "sort_by", "time_format", "default_timer_icon", "audio_enabled", "snooze_duration", "timer_name_presets"]) {
+  for (const key of ["default_timer_icon", "audio_enabled", "snooze_duration", "timer_name_presets"]) {
     assert.equal(available(editor, control(editor, key)), false, `Expected advanced field ${key}`);
   }
+});
+
+test("appearance contains each display and ordering control once in both editor modes", async () => {
+  const saved = {
+    title: "Kitchen", style: "circle_horizontal", layout: "vertical", language: "he",
+    progress_mode: "milestones", show_active_header: false, time_format: "human_short",
+    time_format_units: ["hours", "minutes", "seconds"], sort_by: "name", sort_order: "desc",
+    pinned_timers_position: "bottom", milestone_unit: "minutes", milestone_pulse: false,
+  };
+  const { editor, events } = await mount(saved);
+  for (const mode of [false, true, false]) {
+    await advanced(editor, mode);
+    const appearance = editor.shadowRoot.querySelector('[data-section="appearance"]');
+    assert.equal(appearance.querySelector(".advanced-badge"), null);
+    assert.equal(editor.shadowRoot.querySelector('[data-section="display"]'), null);
+    for (const [key, value] of Object.entries(saved)) {
+      const matches = [...editor.shadowRoot.querySelectorAll("*")].filter(el => el.configValue === key);
+      assert.equal(matches.length, 1, `Expected one control for ${key}`);
+      const [field] = matches;
+      assert.equal(field.closest("ha-expansion-panel"), appearance);
+      assert.ok(available(editor, field), `Expected visible Appearance field ${key}`);
+      assert.equal(typeof value === "boolean" ? field.checked : field.value, Array.isArray(value) ? value.join(",") : value);
+    }
+    assert.deepEqual(editor._config, { type: "custom:simple-timer-card", ...saved });
+  }
+  assert.equal(events.length, 0);
+});
+
+test("display and ordering can be edited in simple mode with conditional milestones", async () => {
+  const { editor, events } = await mount({ storage_namespace: "kitchen", custom_timer_input: "keypad" });
+  assert.equal(control(editor, "milestone_unit"), undefined);
+  for (const [key, value] of Object.entries({ layout: "vertical", progress_mode: "milestones", language: "he", time_format: "human_short", sort_by: "name", sort_order: "desc", pinned_timers_position: "bottom", milestone_unit: "seconds" })) {
+    const field = control(editor, key);
+    assert.ok(available(editor, field), `Expected editable simple field ${key}`);
+    field.dispatchEvent(new CustomEvent("selected", { detail: { value }, bubbles: true }));
+    await editor.updateComplete;
+    assert.equal(events.at(-1)[key], value);
+    assert.equal(events.at(-1).storage_namespace, "kitchen");
+    assert.equal(events.at(-1).custom_timer_input, "keypad");
+  }
+  const pulse = control(editor, "milestone_pulse");
+  assert.ok(available(editor, pulse));
+  pulse.checked = false;
+  pulse.dispatchEvent(new dom.window.Event("change", { bubbles: true }));
+  await editor.updateComplete;
+  assert.equal(events.at(-1).milestone_pulse, false);
+  await search(editor, "Progress milestones");
+  assert.deepEqual(sections(editor), ["appearance"]);
+  assert.ok(available(editor, control(editor, "milestone_unit")));
+  assert.ok(available(editor, control(editor, "milestone_pulse")));
+  await search(editor, "");
+  for (const value of ["fill", "milestones"]) {
+    control(editor, "progress_mode").dispatchEvent(new CustomEvent("selected", { detail: { value }, bubbles: true }));
+    await editor.updateComplete;
+    assert.equal(!!control(editor, "milestone_unit"), value === "milestones");
+    assert.equal(events.at(-1).milestone_unit, "seconds");
+    assert.equal(events.at(-1).milestone_pulse, false);
+  }
+  assert.equal(editor._showAdvanced, false);
 });
 
 test("input fields stay together; fixed keypad hides button settings only in simple mode", async () => {
@@ -100,7 +159,7 @@ test("advanced toggle reveals specialist panels without emitting configuration",
   const { editor, events } = await mount();
   const before = JSON.stringify(editor._config);
   await advanced(editor, true);
-  assert.deepEqual(sections(editor), ["entities", "storage", "appearance", "input", "display", "styling", "defaults", "pinned", "audio", "notify", "actions"]);
+  assert.deepEqual(sections(editor), ["entities", "storage", "appearance", "input", "styling", "defaults", "pinned", "audio", "notify", "actions"]);
   await advanced(editor, false);
   assert.deepEqual(sections(editor), ["entities", "storage", "appearance", "input"]);
   assert.equal(JSON.stringify(editor._config), before);
@@ -118,7 +177,7 @@ test("editor mode persists across instances and config reloads without changing 
   editor.remove();
   const { editor: reopened, events: newEvents } = await mount({ title: "Office", storage_namespace: "different-card" });
   assert.equal(reopened._showAdvanced, true);
-  assert.ok(available(reopened, control(reopened, "sort_by")));
+  assert.ok(available(reopened, control(reopened, "default_timer_icon")));
   reopened.setConfig({ type: "custom:simple-timer-card", title: "Reloaded" });
   await reopened.updateComplete;
   assert.equal(reopened._showAdvanced, true);
@@ -132,8 +191,8 @@ test("editor mode persists across instances and config reloads without changing 
 test("searching advanced fields never replaces the remembered mode", async () => {
   const { editor } = await mount();
   await advanced(editor, false);
-  await search(editor, "sort_by");
-  assert.ok(available(editor, control(editor, "sort_by")));
+  await search(editor, "default_timer_icon");
+  assert.ok(available(editor, control(editor, "default_timer_icon")));
   assert.equal(localStorage.getItem("simple-timer-card-editor-mode"), "simple");
   await search(editor, "");
   const { editor: reopened } = await mount();
@@ -169,13 +228,19 @@ test("blocked localStorage does not break the editor or mode switching", async (
   }
 });
 
-test("search finds advanced fields and YAML keys without toggling advanced or changing configuration", async () => {
+test("search finds appearance and advanced fields without changing editor mode or configuration", async () => {
   const { editor, events } = await mount();
   await search(editor, "sort_by");
-  assert.deepEqual(sections(editor), ["display"]);
+  assert.deepEqual(sections(editor), ["appearance"]);
   assert.equal(available(editor, control(editor, "sort_by")), true);
   assert.equal(editor._showAdvanced, false);
-  assert.ok(editor.shadowRoot.querySelector('[data-section="display"] .advanced-badge'));
+  assert.equal(editor.shadowRoot.querySelector('[data-section="appearance"] .advanced-badge'), null);
+  await search(editor, "time_format_units");
+  assert.deepEqual(sections(editor), ["appearance"]);
+  assert.ok(available(editor, control(editor, "time_format_units")));
+  await search(editor, "default_timer_icon");
+  assert.deepEqual(sections(editor), ["styling"]);
+  assert.ok(editor.shadowRoot.querySelector('[data-section="styling"] .advanced-badge'));
   await search(editor, "source_styles alexa");
   assert.deepEqual(sections(editor), ["styling"]);
   assert.ok([...editor.shadowRoot.querySelectorAll('[label="Alexa icon"]')].some(el => available(editor, el)));

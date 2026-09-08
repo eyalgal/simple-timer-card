@@ -1,27 +1,72 @@
-# This turns off a climate entity when its associated timer expires
-# The timers have an id starting with the name of the climate entity
-# ie, "study_1hr". Fallback to parsing the name if a pinned id is not present.
-# This assumes that we're using a mqtt source for the timer
+# CUSTOMIZATION TEMPLATE: allowlisted climate shutoff from frontend MQTT events.
+# Paste context: one automation mapping for the single-automation YAML editor.
+# For an automation list, prefix alias with "- " and indent the remaining
+# mapping two spaces. Do not add an automation: wrapper in the editor.
+#
+# Requires HA's MQTT integration, an actively running/connected card frontend,
+# MQTT storage, and climate entities supporting climate.turn_off. Verify that
+# action and replace climate.study/climate.bedroom with actual entity IDs.
+# This is a convenience action, NOT a safety-critical shutoff or backend scheduler.
+# A closed/suspended frontend cannot publish expiry; the hybrid notification
+# monitor does not emit these events or provide a backend climate scheduler.
+#
+# Separate dashboard card mapping (uncomment there, not in this automation):
+# type: custom:simple-timer-card
+# storage: mqtt
+# storage_namespace: climate_timers
+# compatibility_mode: '2.1.1'
+# mqtt:
+#   sensor_entity: sensor.simple_timer_store
+#   topic: simple_timer_card/timers
+#   state_topic: simple_timer_card/timers/state
+#   events_topic: simple_timer_card/events
+# pinned_timers:
+#   - id: study_1hr
+#     name: Study 1 hour
+#     duration: 1h
+#   - id: bedroom_30min
+#     name: Bedroom 30 minutes
+#     duration: 30m
+#
+# Create/verify sensor.simple_timer_store using the MQTT transport setup in
+# ../mqtt-hybrid-model.md. Replace its ID in BOTH card and condition if different.
+# The independent topic defaults are shown above; custom topics must match the
+# sensor and this trigger (events_topic plus /expired). storage_namespace does
+# not isolate MQTT topics. Use distinct topic settings for an independent store.
+#
+# Full pinned_id = storage_namespace + ":" + configured pinned id. Keep the FULL
+# exact keys below in sync with the card. If using an existing automatic namespace,
+# inspect a real event's pinned_id and copy it verbatim, or set a stable namespace.
+# Never derive targets from labels, friendly names, partial IDs, or a split ID.
+# Unknown pins, wrong sources, and malformed payloads perform no action.
+# Multiple frontends/replayed messages can repeat shutoffs; queued mode is not
+# deduplication. Restrict MQTT publishers: source/pinned_id can be spoofed.
 
-- alias: "Climate Timer - Turn Off Climate When Timer Expires"
-  description: "Turn off climate entity when its associated timer expires"
-  id: timer_turn_off_climate
-  trigger:
-    - platform: mqtt
-      topic: "simple_timer_card/events/expired"
-      value_template: " {{ trigger.payload_json.get('pinned_id') | regex_search('_.*$') }} "
-  action:
-    - action: climate.turn_off
-      target:
-        entity_id: >
-          {% set pinned_id = trigger.payload_json.get('pinned_id', '') %}
-          {% if pinned_id and pinned_id is string and pinned_id | regex_search('_.*$') %}
-            {% set entity_name = pinned_id | regex_replace('_.+$', '') %}
-            {% set entity_id = 'climate.' ~ entity_name %}
-            {{ entity_id }}
-          {% else %}
-            {% set label = trigger.payload_json.get('label', '') %}
-            {% set entity_name = label | regex_replace(' \\d.*$', '') | trim %}
-            {% set entity_id = 'climate.' ~ entity_name | lower() | replace(' ', '_') %}
-            {{ entity_id }}
-          {% endif %}
+alias: "Climate Timer - Allowlisted Shutoff (Frontend Template)"
+description: "Turn off only the climate entity explicitly mapped to the full pinned_id."
+id: timer_turn_off_climate
+trigger:
+  - platform: mqtt
+    topic: simple_timer_card/events/expired
+variables:
+  climate_by_pinned_id:
+    "climate_timers:study_1hr": climate.study
+    "climate_timers:bedroom_30min": climate.bedroom
+condition:
+  - condition: template
+    value_template: >-
+      {{ trigger.payload_json is defined
+         and trigger.payload_json is mapping
+         and (trigger.payload_json.event | default('')) == 'expired'
+         and (trigger.payload_json.source | default('')) == 'mqtt'
+         and (trigger.payload_json.source_entity | default('')) == 'sensor.simple_timer_store' }}
+  - condition: template
+    value_template: >-
+      {% set pin = trigger.payload_json.get('pinned_id', '') %}
+      {{ pin is string and pin in climate_by_pinned_id }}
+action:
+  - service: climate.turn_off
+    target:
+      entity_id: "{{ climate_by_pinned_id[trigger.payload_json.pinned_id] }}"
+mode: queued
+max: 10
