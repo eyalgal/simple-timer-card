@@ -18,7 +18,7 @@ No dashboard clutter. No duplicated cards. Just timers.
 
 * **Every timer in one card**: Native `timer.*`, Alexa, Google Home, Voice PE, helpers, MQTT, timestamps, and local timers
 * **Auto-discovery**: Optionally pick up Alexa and Google Home timers without listing every speaker entity
-* **Quick actions**: Presets, pinned one‑tap timers, and custom timers with switchable keypad or +/- buttons
+* **Quick actions**: Presets, pinned one‑tap timers, and custom timers with a keypad or +/- buttons, plus an optional on-card input switch
 * **Visual progress styles**: Bars, fills, and circles (vertical or horizontal) with drain, fill, or milestone modes
 * **Persistent storage**: Local or MQTT based, survives reloads and syncs across devices
 * **Audio & notifications**: Optional sounds, snooze, auto dismiss, plus a `notify` fallback so phones ring even when in-page audio cannot

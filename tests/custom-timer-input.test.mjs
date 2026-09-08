@@ -116,7 +116,7 @@ for (const scenario of [
 }
 
 test("live switching keeps duration, name, storage key and saved config", async () => {
-  const { card } = await mount({ storage_namespace: undefined, custom_timer_input: "keypad", minute_buttons: ["30s", 5] });
+  const { card } = await mount({ storage_namespace: undefined, custom_timer_input: "keypad", show_timer_input_selector: true, minute_buttons: ["30s", 5] });
   await open(card);
   const config = JSON.stringify(card._config);
   const storageKey = card._getStorageKey();
@@ -143,9 +143,9 @@ test("unconfigured cards retain the existing automatic storage namespace", async
   const { card } = await mount({ storage_namespace: undefined });
   assert.equal(card._getStorageKey(), "simple-timer-card-auto-1htuhog");
   await open(card);
-  await mode(card, "keypad");
+  assert.equal(picker(card).querySelector(".duration-mode"), null);
   assert.equal(card._getStorageKey(), "simple-timer-card-auto-1htuhog");
-  assert.equal(readout(card), "00h15m00s");
+  assert.equal(card._durationSeconds("horizontal"), 900);
 });
 
 test("backspace and clear operate on raw digits; zero cannot start", async () => {
@@ -189,7 +189,7 @@ test("cancel keeps the draft but does not create a timer", async () => {
 for (const layout of ["horizontal", "vertical"]) {
   for (const style of ["fill_horizontal", "bar_horizontal"]) {
     test(`${layout} / ${style}: restored draft matches its keypad after changing mode in another form`, async () => {
-      const { card } = await mount({ layout, style, minute_buttons: [5] });
+      const { card } = await mount({ layout, style, minute_buttons: [5], show_timer_input_selector: true });
       await open(card);
       await click(card, picker(card).querySelector(".buttons-grid button"));
       assert.equal(card._durationSeconds(layout), 1200);
@@ -253,7 +253,7 @@ test("scoped physical keyboard handles digits and editing without affecting name
 });
 
 test("right-to-left UI keeps numeral and keypad ordering left-to-right", async () => {
-  const { card } = await mount({ custom_timer_input: "keypad", language: "he" });
+  const { card } = await mount({ custom_timer_input: "keypad", language: "he", show_timer_input_selector: true });
   await open(card);
   assert.equal(card.shadowRoot.querySelector("ha-card").dir, "rtl");
   assert.equal(picker(card).querySelector(".duration-readout").dir, "ltr");
@@ -275,8 +275,8 @@ test("keypad works without quick presets and existing quick presets stay one-tap
 });
 
 test("independent cards do not share live input mode or draft", async () => {
-  const { card: first } = await mount();
-  const { card: second } = await mount({ storage_namespace: "second" });
+  const { card: first } = await mount({ show_timer_input_selector: true });
+  const { card: second } = await mount({ storage_namespace: "second", show_timer_input_selector: true });
   await open(first); await open(second);
   await mode(first, "keypad");
   await click(first, picker(first).querySelector(".duration-clear"));
@@ -286,7 +286,7 @@ test("independent cards do not share live input mode or draft", async () => {
 });
 
 test("long duration survives switching to and from the keypad", async () => {
-  const { card } = await mount({ default_new_timer_duration_mins: 6000 });
+  const { card } = await mount({ default_new_timer_duration_mins: 6000, show_timer_input_selector: true });
   await open(card);
   await mode(card, "keypad");
   assert.equal(readout(card), "100h00m00s");
@@ -321,6 +321,32 @@ test("stepper reset honors the configured default including zero", async () => {
   await click(card, picker(card).querySelector(".btn-primary"));
   assert.equal(card._durationSeconds("horizontal"), 0);
 });
+
+for (const input of ["stepper", "keypad"]) {
+  for (const show of [false, true]) {
+    for (const scenario of [
+      { layout: "horizontal", which: "horizontal" },
+      { layout: "vertical", which: "vertical" },
+      ...["fill_horizontal", "fill_vertical", "bar_horizontal", "bar_vertical", "circle_horizontal", "circle_vertical"].map(style => ({
+        style, active: true, which: style.startsWith("fill") ? "fill" : "bar",
+      })),
+    ]) {
+      test(`${input} / selector ${show} / ${scenario.style || scenario.layout}: input works independently of the selector`, async () => {
+        const { card } = await mount({ custom_timer_input: input, show_timer_input_selector: show, style: scenario.style, layout: scenario.layout }, scenario);
+        await open(card);
+        assert.equal(!!picker(card).querySelector(".duration-mode"), show);
+        assert.equal(picker(card).querySelector(".duration-entry").dataset.inputMode, input);
+        if (input === "keypad") {
+          await key(card, "1"); await key(card, "5"); await key(card, "9");
+        }
+        await click(card, picker(card).querySelector(".btn-primary"));
+        const created = card._loadTimersFromStorage_local().find(t => t.id !== "existing");
+        assert.ok(created);
+        assert.equal(created.duration, input === "keypad" ? 119000 : 900000);
+      });
+    }
+  }
+}
 
 async function mountEditor(config = {}) {
   const editor = document.createElement("simple-timer-card-editor");

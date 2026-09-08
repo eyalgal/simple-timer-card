@@ -8,9 +8,37 @@ If you are new, the absolute minimum is:
 type: custom:simple-timer-card
 ```
 
-That gives you a working card that auto-detects every supported timer in your Home Assistant instance. Everything else is optional.
+That gives you a working card for timers created in the browser. List existing entities or enable speaker discovery to display timers from Home Assistant.
 
-> 💡 **Tip:** All of the options below are also available in the visual editor (click the card &rarr; *Edit card*). Use the search box at the top to jump to a setting, or toggle **Show advanced** to expose less-common options. The editor groups settings into the same sections used here.
+### Visual editor
+
+Simple mode shows four sections:
+
+| Section | Settings |
+| --- | --- |
+| **Timer sources** | Entity selection and Alexa, Google Home, and Voice PE discovery |
+| **Timer storage** | Where new timers are created and the current storage type |
+| **Appearance** | Optional title and active-timer style |
+| **Timer input** | Input method, optional on-card switch, starting duration, increments, and quick-start presets |
+
+Turn on **Advanced** for display and ordering, icons and colors, expiry behavior,
+pinned timers, audio, push notifications, Voice PE control details, and custom actions.
+Per-entity overrides and timer-name suggestions also live in Advanced. Button
+settings are hidden in simple mode when the card uses a fixed keypad; they remain
+available in Advanced because native-timer editing also uses the increments.
+
+The Simple/Advanced choice is remembered in this browser for the current Home
+Assistant address, across cards and page reloads. It is an editor preference,
+not a card YAML setting, and is separate from stored timers. Each device keeps
+its own choice. If browser storage is blocked, the switch still works for the
+current editor session.
+
+Search finds all rendered settings, including advanced ones and their YAML keys.
+Clearing search restores the previous editor mode and panel layout. Switching
+editor modes or searching never changes saved configuration. Hidden settings stay
+active; disabling audio or quick-start buttons also keeps their configured values
+for later use. Some specialist options, such as custom MQTT topics and
+notification payloads, remain YAML-only.
 
 ---
 
@@ -24,7 +52,7 @@ That gives you a working card that auto-detects every supported timer in your Ho
 6. [Timer defaults & behavior](#-timer-defaults--behavior)
 7. [Quick-start presets](#-quick-start-presets)
 8. [Pinned timers](#-pinned-timers)
-9. [Tap, hold & double-tap actions](#ï¸-tap-hold--double-tap-actions)
+9. [Tap, hold & double-tap actions](#-tap-hold--double-tap-actions)
 10. [Custom action buttons](#-custom-action-buttons)
 11. [Audio notifications](#-audio-notifications)
 12. [Push notification fallback](#-push-notification-fallback)
@@ -150,6 +178,8 @@ source_styles:
 Keys are the source names: `alexa`, `google`, `voice_pe`, `timer`, `helper`,
 `timestamp`, `minutes_attr`. Each accepts `icon`, `color`, or both.
 
+In the editor, enable **Advanced** and open **Icons & colors** for these settings.
+
 > Material Design Icons dropped its Amazon brand icons, so there is no
 > `mdi:amazon-alexa`. `mdi:google-assistant` does still exist. For actual brand
 > logos, install an icon pack such as Simple Icons (`si:`) or Custom Brand Icons
@@ -170,7 +200,7 @@ so an entity listed in `entities:` with its own `icon:` still wins.
 | ------------------------------ | ------- | ------------ | ---------------------- | ---------------------------------------------------------------------------- |
 | `entity`                       | string  | **required** | Always                 | Entity ID                                                                    |
 | `name`                         | string  | auto         | Always                 | Override the displayed name                                                  |
-| `mode`                         | string  | `auto`       | Always                 | One of `auto`, `timer`, `alexa`, `voice_pe`, `helper`, `timestamp`, `minutes_attr` |
+| `mode`                         | string  | `auto`       | Always                 | One of `auto`, `timer`, `alexa`, `google`, `voice_pe`, `helper`, `timestamp`, `minutes_attr` |
 | `icon`                         | string  | auto         | Always                 | Override the icon                                                            |
 | `color`                        | string  | auto         | Always                 | Override the color (any CSS color or HA theme variable)                      |
 | `expired_subtitle`             | string  | inherited    | Always                 | Override the message shown when this timer expires                           |
@@ -263,7 +293,8 @@ auto_dismiss_writable: false
 | Name                              | Type    | Default                | Description                                                                                  |
 | --------------------------------- | ------- | ---------------------- | -------------------------------------------------------------------------------------------- |
 | `default_new_timer_duration_mins` | number  | `15`                   | Starting value (in minutes) for the **Custom timer** +/- buttons. Set `0` to start empty. Keypad entry always starts at zero. |
-| `custom_timer_input`             | string  | `stepper`              | Initial custom input: `stepper` (+/- buttons) or `keypad`. Users can switch modes directly on the card. |
+| `custom_timer_input`             | string  | `stepper`              | Custom input: `stepper` (+/- buttons) or `keypad`. Located under **Timer input** in the editor. |
+| `show_timer_input_selector`       | boolean | `false`                | Show the optional Buttons / Keypad switch on the card. When hidden, use the configured `custom_timer_input`. |
 | `snooze_duration`                 | number  | `5`                    | Minutes added when the user taps **Snooze** on an expired timer                              |
 | `default_timer_icon`              | string  | `mdi:timer-outline`    | Default icon for entities that do not specify one                                            |
 | `default_timer_color`             | string  | `var(--primary-color)` | Default color for entities that do not specify one (any CSS color or HA variable)            |
@@ -296,17 +327,24 @@ minute_buttons: [1, 5, 10]
 
 ### Custom timer input
 
-The custom timer form has a **Buttons / Keypad** switch. It is available in both
-layouts, including when adding another timer while one is running. Switching
-keeps the duration and timer name; it does not change the saved card configuration
-or the timer storage key. The choice lasts until the card is recreated.
+All input controls are together in the editor under **Timer input**: input method,
+starting duration, adjustment buttons, optional on-card switch, and quick-start
+presets. Advanced also reveals name suggestions, independently of whether the
+quick-start buttons are shown.
 
-Choose the initial mode in the editor under **Timer defaults & behavior → Custom
-timer input**, or in YAML:
+By default, the card uses the selected input method without showing a mode switch.
+For a fixed keypad:
 
 ```yaml
 custom_timer_input: keypad
+show_timer_input_selector: false
 ```
+
+Enable **Show input switch on card**, or set `show_timer_input_selector: true`,
+to let users switch between **Buttons / Keypad** while entering a timer. It works
+in both layouts, including when adding another timer while one is running.
+Switching keeps the duration and timer name, does not change saved configuration
+or storage keys, and lasts until the card is recreated.
 
 - **Buttons** keeps the existing `minute_buttons` increments and starts at
   `default_new_timer_duration_mins` (15 by default).
@@ -318,8 +356,11 @@ custom_timer_input: keypad
 - While the keypad is focused, number keys, Backspace and Delete work too. Enter
   starts the timer when the keypad area itself is focused; on a focused button,
   Enter activates that button. Typing a timer name is unaffected.
-- Hours expand for longer durations, up to the existing 365-day limit. The digits
-  and keypad keep the same order in right-to-left languages.
+- Hours expand for longer durations, up to the existing 365-day limit. Hour,
+  minute, and second columns and the numeric keypad keep their order in RTL.
+  Within each value, Hebrew units appear to the left of the number with a
+  correctly placed geresh (`׳`). Preset and adjustment labels follow the same
+  rule, with `+`/`-` kept beside the digits.
 
 Quick-start presets, pinned timers, and existing-timer editing are unchanged.
 

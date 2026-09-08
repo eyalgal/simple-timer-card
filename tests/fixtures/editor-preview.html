@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Simple Timer Card - Editor preview</title>
+  <style>
+    :root { color-scheme: light; font: 14px/1.5 system-ui, sans-serif; background: #eef2f7; color: #18243a; --primary-color: #3b6bdc; --primary-text-color: #18243a; --secondary-text-color: #617086; --text-primary-color: #fff; --divider-color: #d9e1ee; --card-background-color: #fff; }
+    body { margin: 0; padding: 24px; }
+    main { max-width: 520px; margin: auto; }
+    h1 { font-size: 23px; margin: 0; }
+    .note { color: #617086; font-size: 12px; margin: 4px 0 20px; }
+    #editor { display: block; }
+    details { margin-top: 18px; }
+    pre { overflow: auto; background: #fff; border-radius: 8px; padding: 12px; }
+    @media (max-width: 360px) { body { padding: 12px; } }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Simple editor</h1>
+    <p class="note">Mock Home Assistant controls. No connection, device actions, or saved dashboard changes.</p>
+    <div id="mount"></div>
+    <details><summary>Emitted configuration</summary><pre id="config"></pre></details>
+  </main>
+  <script type="module">
+    class MockField extends HTMLElement {
+      static observedAttributes = ["label", "type", "placeholder"];
+      constructor() {
+        super();
+        this.attachShadow({ mode: "open" });
+        this.shadowRoot.innerHTML = '<style>:host{display:inline-flex;flex-direction:column;min-width:0}label{font-size:12px;color:var(--secondary-text-color);display:flex;flex-direction:column;gap:5px}input,select{box-sizing:border-box;width:100%;min-width:0;min-height:40px;border:1px solid var(--divider-color);border-radius:6px;background:#f9fbfe;color:var(--primary-text-color);padding:8px;font:inherit}input:focus-visible,select:focus-visible{outline:2px solid var(--primary-color)}small{font-size:11px;color:var(--secondary-text-color);margin-top:4px}</style><label><span></span></label><small></small>';
+        this.control = document.createElement(this.localName === "ha-select" ? "select" : "input");
+        this.shadowRoot.querySelector("label").append(this.control);
+        for (const type of ["input", "change"]) this.control.addEventListener(type, event => {
+          event.stopPropagation(); this._value = this.control.value;
+          if (this.localName === "ha-select") {
+            if (type === "change") this.dispatchEvent(new CustomEvent("selected", { detail: { value: this._value }, bubbles: true, composed: true }));
+          } else if (["ha-entity-picker", "ha-icon-picker", "ha-selector"].includes(this.localName)) {
+            this.dispatchEvent(new CustomEvent("value-changed", { detail: { value: this._value }, bubbles: true, composed: true }));
+          } else this.dispatchEvent(new Event(type, { bubbles: true, composed: true }));
+        });
+      }
+      connectedCallback() { this.sync(); }
+      attributeChangedCallback() { this.sync(); }
+      set value(value) { this._value = value; this.sync(); }
+      get value() { return this._value; }
+      set options(value) {
+        this._options = value;
+        this.control.replaceChildren(...(value || []).map(item => {
+          const option = document.createElement("option"); option.value = item.value; option.textContent = item.label; return option;
+        }));
+        this.sync();
+      }
+      get options() { return this._options; }
+      set label(value) { this._label = value; this.sync(); }
+      get label() { return this._label || this.getAttribute("label"); }
+      sync() {
+        if (!this.control) return;
+        this.shadowRoot.querySelector("span").textContent = this.label || "";
+        this.shadowRoot.querySelector("small").textContent = this.getAttribute("helper") || this.getAttribute("help-text") || "";
+        this.control.value = typeof this._value === "object" ? JSON.stringify(this._value) : this._value ?? "";
+        if (this.control.localName === "input") this.control.type = this.getAttribute("type") || "text";
+        this.control.placeholder = this.getAttribute("placeholder") || "";
+      }
+    }
+    for (const name of ["ha-input", "ha-select", "ha-entity-picker", "ha-icon-picker", "ha-selector"]) {
+      customElements.define(name, class extends MockField {});
+    }
+    customElements.define("ha-switch", class extends HTMLElement {
+      constructor() {
+        super(); this.attachShadow({ mode: "open" });
+        this.shadowRoot.innerHTML = '<style>:host{display:inline-flex}input{width:32px;height:20px;accent-color:var(--primary-color);cursor:pointer}</style><input type="checkbox">';
+        this.control = this.shadowRoot.querySelector("input");
+        this.control.addEventListener("change", event => { event.stopPropagation(); this.dispatchEvent(new Event("change", { bubbles: true, composed: true })); });
+      }
+      set checked(value) { this.control.checked = value; }
+      get checked() { return this.control.checked; }
+    });
+    customElements.define("ha-formfield", class extends HTMLElement {
+      connectedCallback() {
+        if (this.shadowRoot) return;
+        this.attachShadow({ mode: "open" });
+        this.shadowRoot.innerHTML = '<style>:host{display:inline-flex;align-items:center;gap:8px}</style><slot></slot><span></span>';
+        this.shadowRoot.querySelector("span").textContent = this.getAttribute("label") || "";
+      }
+    });
+    customElements.define("ha-expansion-panel", class extends HTMLElement {
+      constructor() {
+        super(); this.attachShadow({ mode: "open" });
+        this.shadowRoot.innerHTML = '<style>:host{display:block}button{width:100%;border:0;background:transparent;color:inherit;font:inherit;text-align:start;cursor:pointer;padding:0 16px}.body{border-top:1px solid var(--divider-color)}:host(:not([expanded])) .body{display:none}button:focus-visible{outline:2px solid var(--primary-color);outline-offset:-2px}</style><button type="button"><slot name="header"></slot></button><div class="body"><slot></slot></div>';
+        this.shadowRoot.querySelector("button").addEventListener("click", () => {
+          this.expanded = !this.expanded;
+          this.dispatchEvent(new CustomEvent("expanded-changed", { detail: { expanded: this.expanded }, bubbles: true, composed: true }));
+        });
+      }
+      set expanded(value) { this.toggleAttribute("expanded", value); }
+      get expanded() { return this.hasAttribute("expanded"); }
+    });
+    customElements.define("ha-icon", class extends HTMLElement {
+      connectedCallback() { this.textContent = this.getAttribute("icon") === "mdi:plus" ? "+" : "◷"; }
+    });
+    await import("../../simple-timer-card.js");
+    const editor = document.createElement("simple-timer-card-editor"); editor.id = "editor";
+    editor.hass = { language: "en", states: {}, services: { notify: { mobile_app: {} } } };
+    const config = { type: "custom:simple-timer-card", storage_namespace: "editor-preview" };
+    editor.setConfig(config);
+    document.getElementById("config").textContent = JSON.stringify(config, null, 2);
+    editor.addEventListener("config-changed", event => { document.getElementById("config").textContent = JSON.stringify(event.detail.config, null, 2); });
+    document.getElementById("mount").append(editor);
+  </script>
+</body>
+</html>

@@ -37,10 +37,11 @@
     customElements.define("ha-card", class extends HTMLElement {});
     await import("../../simple-timer-card.js");
     const examples = [
-      { title: "Keypad / empty card", config: { custom_timer_input: "keypad", show_timer_presets: false } },
-      { title: "Keypad / running circle timer", active: true, config: { custom_timer_input: "keypad", style: "circle_horizontal", show_timer_presets: false } },
-      { title: "Keypad / Hebrew RTL", config: { custom_timer_input: "keypad", language: "he", layout: "vertical", show_timer_presets: false } },
-      { title: "Buttons / existing default", config: { show_timer_presets: false } },
+      { title: "Keypad / no input switch", config: { custom_timer_input: "keypad", show_timer_presets: false } },
+      { title: "Keypad / optional input switch", active: true, config: { custom_timer_input: "keypad", show_timer_input_selector: true, style: "circle_horizontal", show_timer_presets: false } },
+      { title: "Keypad / Hebrew RTL", config: { custom_timer_input: "keypad", show_timer_input_selector: true, language: "he", layout: "vertical", show_timer_presets: false } },
+      { title: "Buttons / Hebrew RTL", config: { language: "he", layout: "vertical", timer_presets: [12, "30s", "2h"], minute_buttons: [12, "30s", "2h"] } },
+      { title: "Buttons / no input switch", config: { show_timer_presets: false } },
       { title: "Keypad / wrapped name presets", active: true, config: { custom_timer_input: "keypad", style: "fill_vertical", show_timer_presets: false,
         timer_name_presets: ["Coffee", "Tea", "Roasted vegetables", "Pasta", "Stretch break", "Laundry", "Study", "Workout", "Meditation", "Meeting", "Oven", "Pizza"] } },
     ];
