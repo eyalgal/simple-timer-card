@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Simple Timer Card - Keypad preview</title>
+  <style>
+    :root { font: 15px/1.5 system-ui, sans-serif; color: #18243a; background: #edf1f7; --primary-color: #3b6bdc; --primary-text-color: #18243a; --secondary-text-color: #617086; --text-primary-color: white; --divider-color: #d9e1ee; --card-background-color: white; --secondary-background-color: #f0f4fa; --ha-card-border-radius: 18px; }
+    body { margin: 0; padding: 24px; }
+    main { max-width: 960px; margin: auto; }
+    h1 { font-size: 24px; margin: 0; }
+    h2 { font-size: 14px; color: #617086; margin: 0 0 10px; }
+    .note { color: #617086; margin: 4px 0 24px; }
+    .examples { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 24px; }
+    .panel { min-width: 0; }
+    ha-card { display: block; box-shadow: 0 4px 22px #1c2f5010; }
+    button { font: inherit; }
+    @media (prefers-color-scheme: dark) {
+      :root { color: #e2e9f4; background: #121923; --primary-text-color: #e2e9f4; --secondary-text-color: #a2b1c9; --primary-color: #98b4ff; --text-primary-color: #152544; --divider-color: #384256; --card-background-color: #212a3b; --secondary-background-color: #2b3549; }
+    }
+    @media (max-width: 360px) { body { padding: 12px; } }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Custom timer input</h1>
+    <p class="note">Local test data only. No Home Assistant connection or device actions.</p>
+    <div class="examples" id="examples"></div>
+  </main>
+  <script type="module">
+    customElements.define("ha-icon", class extends HTMLElement {
+      connectedCallback() {
+        const icons = { "mdi:backspace-outline": "⌫", "mdi:timer-outline": "◷", "mdi:timer-off": "◷", "mdi:close": "×", "mdi:play": "▶", "mdi:pause": "Ⅱ" };
+        this.textContent = icons[this.icon || this.getAttribute("icon")] || "◷";
+      }
+    });
+    customElements.define("ha-card", class extends HTMLElement {});
+    await import("../../simple-timer-card.js");
+    const examples = [
+      { title: "Keypad / empty card", config: { custom_timer_input: "keypad", show_timer_presets: false } },
+      { title: "Keypad / running circle timer", active: true, config: { custom_timer_input: "keypad", style: "circle_horizontal", show_timer_presets: false } },
+      { title: "Keypad / Hebrew RTL", config: { custom_timer_input: "keypad", language: "he", layout: "vertical", show_timer_presets: false } },
+      { title: "Buttons / existing default", config: { show_timer_presets: false } },
+      { title: "Keypad / wrapped name presets", active: true, config: { custom_timer_input: "keypad", style: "fill_vertical", show_timer_presets: false,
+        timer_name_presets: ["Coffee", "Tea", "Roasted vegetables", "Pasta", "Stretch break", "Laundry", "Study", "Workout", "Meditation", "Meeting", "Oven", "Pizza"] } },
+    ];
+    for (const [index, example] of examples.entries()) {
+      const panel = document.createElement("section");
+      panel.className = "panel";
+      const title = document.createElement("h2");
+      title.textContent = example.title;
+      panel.append(title);
+      const card = document.createElement("simple-timer-card");
+      card.setConfig({ type: "custom:simple-timer-card", storage_namespace: `keypad-preview-${index}`, ...example.config });
+      card.hass = { states: {}, services: {}, connected: true, language: "en", callService() { return Promise.resolve(); } };
+      card._unlockAudioHandler = () => {};
+      card._saveTimersToStorage_local(example.active ? [{ id: `preview-${index}`, source: "local", source_entity: "local", label: "Cooking",
+        duration: 900000, start_ts: Date.now() - 300000, end_ts: Date.now() + 600000 }] : []);
+      panel.append(card);
+      document.getElementById("examples").append(panel);
+      await card.updateComplete;
+      const which = example.active ? (example.config.style.startsWith("fill") ? "fill" : "bar") : example.config.layout === "vertical" ? "vertical" : "horizontal";
+      if (example.active) card._toggleActivePicker(which);
+      else card._toggleCustom(which);
+    }
+  </script>
+</body>
+</html>

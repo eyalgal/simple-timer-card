@@ -37,6 +37,39 @@ const a=Symbol.for(""),o$1=t=>{if(t?.r===a)return t?._$litStatic$},i=(t,...r)=>(
  * SPDX-License-Identifier: BSD-3-Clause
  */const o=o=>o??A;
 
+const MAX_TIMER_SECONDS = 365 * 24 * 60 * 60;
+
+function normalizeTimerInput(value) {
+  return typeof value === "string" && value.trim().toLowerCase() === "keypad" ? "keypad" : "stepper";
+}
+
+function durationDigitFields(digits) {
+  const padded = String(digits).padStart(6, "0");
+  return [padded.slice(0, -4), padded.slice(-4, -2), padded.slice(-2)];
+}
+
+function durationDigitsToSeconds(digits) {
+  if (typeof digits !== "string" || !/^\d{0,8}$/.test(digits)) return 0;
+  const [hours, minutes, seconds] = durationDigitFields(digits).map(Number);
+  return hours * 3600 + minutes * 60 + seconds;
+}
+
+function secondsToDurationDigits(seconds) {
+  const total = Number.isFinite(seconds) ? Math.min(MAX_TIMER_SECONDS, Math.max(0, Math.floor(seconds))) : 0;
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor(total / 60) % 60;
+  return `${hours}${String(minutes).padStart(2, "0")}${String(total % 60).padStart(2, "0")}`.replace(/^0+/, "");
+}
+
+function editDurationDigits(digits, key) {
+  if (key === "clear") return "";
+  if (key === "backspace") return digits.slice(0, -1);
+  if (!/^(\d|00)$/.test(key)) return null;
+  const next = (digits + key).replace(/^0+/, "");
+  if (next.length > 8 || durationDigitsToSeconds(next) > MAX_TIMER_SECONDS) return null;
+  return next;
+}
+
 /*
  * Simple Timer Card
  *
@@ -223,6 +256,11 @@ const TRANSLATIONS = {
     active_timers: "Active Timers",
     add: "Add",
     custom: "Custom",
+    input_stepper: "Buttons",
+    input_keypad: "Keypad",
+    duration_input: "Duration input",
+    clear: "Clear",
+    backspace: "Delete last digit",
     cancel: "Cancel",
     save: "Save",
     start: "Start",
@@ -253,6 +291,11 @@ const TRANSLATIONS = {
     active_timers: "Aktive Timer",
     add: "Hinzufügen",
     custom: "Benutzerdefiniert",
+    input_stepper: "Tasten",
+    input_keypad: "Ziffernblock",
+    duration_input: "Dauer eingeben",
+    clear: "Löschen",
+    backspace: "Letzte Ziffer löschen",
     cancel: "Abbrechen",
     save: "Speichern",
     start: "Starten",
@@ -283,6 +326,11 @@ const TRANSLATIONS = {
     active_timers: "Temporizadores Activos",
     add: "Añadir",
     custom: "Personalizado",
+    input_stepper: "Botones",
+    input_keypad: "Teclado",
+    duration_input: "Introducir duración",
+    clear: "Borrar",
+    backspace: "Borrar último dígito",
     cancel: "Cancelar",
     save: "Guardar",
     start: "Iniciar",
@@ -313,6 +361,11 @@ const TRANSLATIONS = {
     active_timers: "Aktive Timere",
     add: "Tilføj",
     custom: "Tilpasset",
+    input_stepper: "Knapper",
+    input_keypad: "Taltastatur",
+    duration_input: "Indtast varighed",
+    clear: "Ryd",
+    backspace: "Slet sidste ciffer",
     cancel: "Annuller",
     save: "Gem",
     start: "Start",
@@ -343,6 +396,11 @@ const TRANSLATIONS = {
     active_timers: "Timer attivi",
     add: "Aggiungi",
     custom: "Personalizzato",
+    input_stepper: "Pulsanti",
+    input_keypad: "Tastierino",
+    duration_input: "Inserisci durata",
+    clear: "Svuota",
+    backspace: "Elimina ultima cifra",
     cancel: "Annulla",
     save: "Salva",
     start: "Avvia",
@@ -373,6 +431,11 @@ const TRANSLATIONS = {
     active_timers: "Minuteurs actifs",
     add: "Ajouter",
     custom: "Personnalisé",
+    input_stepper: "Boutons",
+    input_keypad: "Clavier",
+    duration_input: "Saisir la durée",
+    clear: "Effacer",
+    backspace: "Effacer le dernier chiffre",
     cancel: "Annuler",
     save: "Sauvegarder",
     start: "Démarrer",
@@ -403,6 +466,11 @@ const TRANSLATIONS = {
     active_timers: "טיימרים פעילים",
     add: "הוסף",
     custom: "מותאם אישית",
+    input_stepper: "כפתורים",
+    input_keypad: "לוח מקשים",
+    duration_input: "הזנת משך זמן",
+    clear: "ניקוי",
+    backspace: "מחיקת הספרה האחרונה",
     cancel: "ביטול",
     save: "שמור",
     start: "התחל",
@@ -433,6 +501,11 @@ const TRANSLATIONS = {
     active_timers: "Aktywne minutniki",
     add: "Dodaj",
     custom: "Niestandardowy",
+    input_stepper: "Przyciski",
+    input_keypad: "Klawiatura",
+    duration_input: "Wprowadź czas",
+    clear: "Wyczyść",
+    backspace: "Usuń ostatnią cyfrę",
     cancel: "Anuluj",
     save: "Zapisz",
     start: "Uruchom",
@@ -463,6 +536,11 @@ const TRANSLATIONS = {
     active_timers: "Actieve timers",
     add: "Toevoegen",
     custom: "Aangepast",
+    input_stepper: "Knoppen",
+    input_keypad: "Toetsenblok",
+    duration_input: "Tijdsduur invoeren",
+    clear: "Wissen",
+    backspace: "Laatste cijfer verwijderen",
     cancel: "Annuleren",
     save: "Opslaan",
     start: "Starten",
@@ -493,6 +571,11 @@ const TRANSLATIONS = {
     active_timers: "Pågående timers",
     add: "Lägg till",
     custom: "Anpassa",
+    input_stepper: "Knappar",
+    input_keypad: "Knappsats",
+    duration_input: "Ange varaktighet",
+    clear: "Rensa",
+    backspace: "Ta bort sista siffran",
     cancel: "Avbryt",
     save: "Spara",
     start: "Start",
@@ -532,6 +615,8 @@ class SimpleTimerCard extends i$1 {
       _ui: { state: true },
       _customSecs: { state: true },
       _activeSecs: { state: true },
+      _timerInputMode: { state: true },
+      _keypadDigits: { state: true },
       _editingTimerId: { state: true },
       _editDuration: { state: true },
     };
@@ -620,6 +705,9 @@ class SimpleTimerCard extends i$1 {
     };
     this._customSecs = { horizontal: 15 * 60, vertical: 15 * 60 };
     this._activeSecs = { fill: 10 * 60, bar: 10 * 60 };
+    this._timerInputMode = "stepper";
+    this._keypadDigits = {};
+    this._initializedDurationInputs = new Set();
     this._showingCustomName = {};
     this._lastSelectedName = {};
     this._storageNamespace = "default";
@@ -784,8 +872,12 @@ class SimpleTimerCard extends i$1 {
       style,
       mqtt: mqttConfig,
       time_format_units: timeUnits,
+      custom_timer_input: normalizeTimerInput(config.custom_timer_input),
     };
-    const defaultDurationSecs = (parseInt(this._config.default_new_timer_duration_mins, 10) || 15) * 60;
+    this._timerInputMode = this._config.custom_timer_input;
+    this._keypadDigits = {};
+    this._initializedDurationInputs.clear();
+    const defaultDurationSecs = this._defaultCustomTimerSeconds();
     this._customSecs = { horizontal: defaultDurationSecs, vertical: defaultDurationSecs };
     this._activeSecs = { fill: defaultDurationSecs, bar: defaultDurationSecs };
     this._config.source_styles = this._normalizeSourceStyles(this._config.source_styles);
@@ -3456,8 +3548,80 @@ class SimpleTimerCard extends i$1 {
 
   _toggleCustom(which) {
     const openKey = `noTimer${which.charAt(0).toUpperCase() + which.slice(1)}Open`;
+    if (!this._ui[openKey]) this._prepareDurationInput(which);
     this._ui[openKey] = !this._ui[openKey];
     this.requestUpdate();
+  }
+
+  _defaultCustomTimerSeconds() {
+    if (this._timerInputMode === "keypad") return 0;
+    const minutes = parseInt(this._config?.default_new_timer_duration_mins, 10);
+    return Math.min(MAX_TIMER_SECONDS, (Number.isFinite(minutes) && minutes >= 0 ? minutes : 15) * 60);
+  }
+
+  _durationSeconds(which) {
+    return ["horizontal", "vertical"].includes(which) ? this._customSecs[which] : this._activeSecs[which];
+  }
+
+  _setDurationSeconds(which, value) {
+    if (!Number.isFinite(value)) return;
+    const field = ["horizontal", "vertical"].includes(which) ? "_customSecs" : "_activeSecs";
+    this[field] = { ...this[field], [which]: Math.min(MAX_TIMER_SECONDS, Math.max(0, Math.floor(value))) };
+  }
+
+  _resetDurationInput(which) {
+    const seconds = this._defaultCustomTimerSeconds();
+    this._setDurationSeconds(which, seconds);
+    this._keypadDigits = { ...this._keypadDigits, [which]: secondsToDurationDigits(seconds) };
+    this._initializedDurationInputs.delete(which);
+  }
+
+  _prepareDurationInput(which) {
+    if (this._initializedDurationInputs.has(which)) return;
+    this._resetDurationInput(which);
+    this._initializedDurationInputs.add(which);
+  }
+
+  _setTimerInputMode(which, value) {
+    const mode = normalizeTimerInput(value);
+    if (mode === this._timerInputMode) return;
+    this._initializedDurationInputs.add(which);
+    if (mode === "keypad") {
+      this._keypadDigits = Object.fromEntries(
+        ["horizontal", "vertical", "fill", "bar"].map(input => [input, secondsToDurationDigits(this._durationSeconds(input))])
+      );
+    }
+    this._timerInputMode = mode;
+  }
+
+  _durationKey(which, key) {
+    if (this._timerInputMode !== "keypad") return;
+    const digits = this._keypadDigits[which] ?? secondsToDurationDigits(this._durationSeconds(which));
+    const next = editDurationDigits(digits, key);
+    if (next === null) return;
+    this._initializedDurationInputs.add(which);
+    this._keypadDigits = { ...this._keypadDigits, [which]: next };
+    this._setDurationSeconds(which, durationDigitsToSeconds(next));
+  }
+
+  _durationKeyDown(which, event) {
+    if (event.ctrlKey || event.metaKey || event.altKey || event.isComposing) return;
+    const key = /^\d$/.test(event.key) ? event.key : ({ Backspace: "backspace", Delete: "clear" })[event.key];
+    if (key) {
+      event.preventDefault();
+      event.stopPropagation();
+      this._durationKey(which, key);
+    } else if (event.key === "Enter" && event.target === event.currentTarget) {
+      event.preventDefault();
+      event.stopPropagation();
+      if (["horizontal", "vertical"].includes(which)) this._startFromCustom(which);
+      else this._startActive(which);
+    }
+  }
+
+  _canStartCustomTimer(which) {
+    const seconds = this._durationSeconds(which);
+    return Number.isFinite(seconds) && seconds > 0 && seconds <= MAX_TIMER_SECONDS;
   }
 
   _parseAdjustmentToSeconds(value) {
@@ -3482,19 +3646,18 @@ class SimpleTimerCard extends i$1 {
     const delta = this._parseAdjustmentToSeconds(value);
     if (!Number.isFinite(delta)) return;
     const base = Number(this._customSecs?.[which] ?? 0);
-    const next = base + sign * delta;
-    this._customSecs = { ...this._customSecs, [which]: Math.max(0, Number.isFinite(next) ? next : 0) };
+    this._setDurationSeconds(which, base + sign * delta);
   }
 
 
   _createAndSaveTimer(secs, label) {
-    if (this._isActionThrottled("create_timer", "global", 500)) return;
     const secsNum = Number(secs);
     if (!Number.isFinite(secsNum) || secsNum <= 0) return;
 
     const durationMs = secsNum * 1000;
     const validation = this._validateTimerInput(durationMs, label);
     if (!validation.valid) return;
+    if (this._isActionThrottled("create_timer", "global", 500)) return;
 
     const finalLabel = label && String(label).trim()
       ? this._sanitizeText(String(label).trim())
@@ -3521,7 +3684,7 @@ class SimpleTimerCard extends i$1 {
         const nameForCommand = userProvidedName ? String(label).trim() : "";
         this._sendVoicePEStart(durationMs, nameForCommand, targetEntity);
         this.requestUpdate();
-        return;
+        return true;
       }
     }
 
@@ -3535,7 +3698,7 @@ class SimpleTimerCard extends i$1 {
       this.hass.callService("timer", "start", { entity_id: nativeTimerTarget, duration: serviceDuration });
       this._publishTimerEvent("started", { source: "timer", source_entity: nativeTimerTarget, label: finalLabel, duration: durationMs });
       this.requestUpdate();
-      return;
+      return true;
     }
 
     if (targetEntity && (targetEntity.startsWith("input_text.") || targetEntity.startsWith("text."))) {
@@ -3558,7 +3721,7 @@ class SimpleTimerCard extends i$1 {
       this._mutateHelper(targetEntity, (data) => { data.timers.push(newTimer); });
       this._publishTimerEvent("started", newTimer);
       this.requestUpdate();
-      return;
+      return true;
     }
 
 
@@ -3584,17 +3747,18 @@ class SimpleTimerCard extends i$1 {
     this._addTimerToStorage(t);
     this._publishTimerEvent("started", t);
     this.requestUpdate();
+    return true;
   }
 
   _startFromCustom(which, label) {
+    if (!this._canStartCustomTimer(which)) return;
     const secs = this._customSecs[which];
     const inputId = which === "horizontal" ? "nt-h-name" : "nt-v-name";
     let finalLabel = label || this._lastSelectedName[inputId] || "";
     const input = this.shadowRoot?.getElementById(inputId);
     if (input && input.value) finalLabel = input.value.trim();
-    this._createAndSaveTimer(secs, finalLabel);
-    const defaultDurationSecs = (parseInt(this._config.default_new_timer_duration_mins, 10) || 15) * 60;
-    this._customSecs = { ...this._customSecs, [which]: defaultDurationSecs };
+    if (!this._createAndSaveTimer(secs, finalLabel)) return;
+    this._resetDurationInput(which);
     const openKey = `noTimer${which.charAt(0).toUpperCase() + which.slice(1)}Open`;
     this._ui[openKey] = false;
     this._showingCustomName[inputId] = false;
@@ -3604,14 +3768,14 @@ class SimpleTimerCard extends i$1 {
   }
 
   _startActive(which, label) {
+    if (!this._canStartCustomTimer(which)) return;
     const secs = this._activeSecs[which];
     const inputId = which === "bar" ? "add-bar-name" : "add-fill-name";
     let finalLabel = label || this._lastSelectedName[inputId] || "";
     const input = this.shadowRoot?.getElementById(inputId);
     if (input && input.value) finalLabel = input.value.trim();
-    this._createAndSaveTimer(secs, finalLabel);
-    const defaultDurationSecs = (parseInt(this._config.default_new_timer_duration_mins, 10) || 15) * 60;
-    this._activeSecs = { ...this._activeSecs, [which]: defaultDurationSecs };
+    if (!this._createAndSaveTimer(secs, finalLabel)) return;
+    this._resetDurationInput(which);
     const openKey = `active${which.charAt(0).toUpperCase() + which.slice(1)}Open`;
     this._ui[openKey] = false;
     this._showingCustomName[inputId] = false;
@@ -3622,13 +3786,14 @@ class SimpleTimerCard extends i$1 {
 
   _toggleActivePicker(which) {
     const openKey = `active${which.charAt(0).toUpperCase() + which.slice(1)}Open`;
+    if (!this._ui[openKey]) this._prepareDurationInput(which);
     this._ui[openKey] = !this._ui[openKey];
     this.requestUpdate();
   }
 
   _adjustActive(which, value, sign = 1) {
     const delta = this._parseAdjustmentToSeconds(value);
-    this._activeSecs = { ...this._activeSecs, [which]: Math.max(0, this._activeSecs[which] + sign * delta) };
+    this._setDurationSeconds(which, this._activeSecs[which] + sign * delta);
   }
 
   _pickAutoMilestoneUnit(duration) {
@@ -4244,6 +4409,71 @@ class SimpleTimerCard extends i$1 {
     };
   }
 
+  _renderDurationInput(which) {
+    const keypad = this._timerInputMode === "keypad";
+    const digits = this._keypadDigits[which] ?? secondsToDurationDigits(this._durationSeconds(which));
+    const fields = durationDigitFields(digits);
+    const units = ["h", "m", "s"];
+    const adjust = ["horizontal", "vertical"].includes(which) ? this._adjust.bind(this) : this._adjustActive.bind(this);
+    return b`
+      <div class="duration-entry" data-input-mode=${this._timerInputMode}>
+        <div class="duration-mode" role="group" aria-label=${this._localize("duration_input")}>
+          ${["stepper", "keypad"].map(mode => b`
+            <button type="button" class="duration-mode-btn" aria-pressed=${String(this._timerInputMode === mode)}
+              @click=${() => this._setTimerInputMode(which, mode)}>${this._localize(`input_${mode}`)}</button>
+          `)}
+        </div>
+        ${keypad ? b`
+          <div class="duration-keypad" role="group" tabindex="0" aria-label=${this._localize("input_keypad")}
+            @keydown=${(e) => this._durationKeyDown(which, e)}>
+            <div class="duration-display-row">
+              <output class="duration-readout" dir="ltr" aria-live="polite" aria-atomic="true">
+                ${fields.map((field, index) => b`<span>${field}<small>${this._localize(units[index])}</small></span>`)}
+              </output>
+              <button type="button" class="duration-clear" ?disabled=${!digits}
+                @click=${() => this._durationKey(which, "clear")}>${this._localize("clear")}</button>
+            </div>
+            <div class="duration-key-grid" dir="ltr">
+              ${["1", "2", "3", "4", "5", "6", "7", "8", "9", "00", "0", "backspace"].map(key => b`
+                <button type="button" class="duration-key" data-key=${key}
+                  aria-label=${key === "backspace" ? this._localize("backspace") : key}
+                  ?disabled=${key === "backspace" ? !digits : editDurationDigits(digits, key) === null}
+                  @click=${() => this._durationKey(which, key)}>
+                  ${key === "backspace" ? b`<ha-icon icon="mdi:backspace-outline" aria-hidden="true"></ha-icon>` : key}
+                </button>
+              `)}
+            </div>
+          </div>
+        ` : b`
+          <div class="buttons-grid">${this._renderMinuteButtons(which, adjust, 1)}</div>
+          <div class="display" dir="ltr">${this._formatClock(this._durationSeconds(which), true)}</div>
+          <div class="buttons-grid">${this._renderMinuteButtons(which, adjust, -1)}</div>
+        `}
+      </div>
+    `;
+  }
+
+  _renderCustomTimerPicker(which) {
+    const custom = ["horizontal", "vertical"].includes(which);
+    const capitalized = which.charAt(0).toUpperCase() + which.slice(1);
+    const openKey = custom ? `noTimer${capitalized}Open` : `active${capitalized}Open`;
+    const nameId = custom ? (which === "horizontal" ? "nt-h-name" : "nt-v-name") : `add-${which}-name`;
+    return b`
+      <div class=${custom ? "picker" : "active-picker"} data-duration-picker=${which} data-no-action
+        ?inert=${!this._ui[openKey]} aria-hidden=${String(!this._ui[openKey])}
+        @click=${(e) => e.stopPropagation()}>
+        ${this._renderDurationInput(which)}
+        ${this._renderTimerNameSelector(nameId, this._localize("timer_name_optional"))}
+        <div class="picker-actions">
+          <button type="button" class="btn btn-ghost"
+            @click=${() => { this._ui[openKey] = false; this.requestUpdate(); }}>${this._localize("cancel")}</button>
+          <button type="button" class="btn btn-primary" ?disabled=${!this._canStartCustomTimer(which)}
+            @click=${() => custom ? this._startFromCustom(which) : this._startActive(which)}>${this._localize("start")}</button>
+        </div>
+      </div>
+    `;
+  }
+
   _renderMinuteButtons(which, adjustFunction, sign) {
     const minuteButtons = this._config.minute_buttons?.length ? this._config.minute_buttons : [1, 5, 10];
     const target = ["horizontal", "vertical"].includes(which) ? "custom" : "active";
@@ -4256,6 +4486,7 @@ class SimpleTimerCard extends i$1 {
       const displayLabel = this._formatPresetLabel(val);
       return b`
         <button class="btn btn-ghost ${isClickable ? "" : "disabled"}"
+          type="button" ?disabled=${!isClickable}
                 @click=${() => isClickable && adjustFunction(whichKey, val, sign)}>
           ${isNegative ? "-" : "+"}${displayLabel}
         </button>
@@ -4542,21 +4773,7 @@ const layout = this._config.layout;
             `}
           </div>
         </div>
-        <div class="picker">
-          <div class="buttons-grid">
-            ${this._renderMinuteButtons("horizontal", (which, m, sign) => this._adjust(which, m, sign), 1)}
-          </div>
-          <div class="display">${this._formatClock(this._customSecs.horizontal, true)}</div>
-          <div class="buttons-grid">
-            ${this._renderMinuteButtons("horizontal", (which, m, sign) => this._adjust(which, m, sign), -1)}
-          </div>
-          ${this._renderTimerNameSelector("nt-h-name", this._localize("timer_name_optional"))}
-
-          <div class="picker-actions">
-            <button class="btn btn-ghost" @click=${() => (this._ui.noTimerHorizontalOpen = false)}>${this._localize("cancel")}</button>
-            <button class="btn btn-primary" @click=${() => this._startFromCustom("horizontal")}>${this._localize("start")}</button>
-          </div>
-        </div>
+        ${this._renderCustomTimerPicker("horizontal")}
       </div>
     ` : b`
       <div class="card nt-v ${this._ui.noTimerVerticalOpen ? "expanded" : ""}">
@@ -4577,20 +4794,7 @@ const layout = this._config.layout;
             `}
           </div>
         </div>
-        <div class="picker">
-          <div class="buttons-grid">
-            ${this._renderMinuteButtons("vertical", (which, m, sign) => this._adjust(which, m, sign), 1)}
-          </div>
-          <div class="display">${this._formatClock(this._customSecs.vertical, true)}</div>
-          <div class="buttons-grid">
-            ${this._renderMinuteButtons("vertical", (which, m, sign) => this._adjust(which, m, sign), -1)}
-          </div>
-          ${this._renderTimerNameSelector("nt-v-name", this._localize("timer_name_optional"))}
-          <div class="picker-actions">
-            <button class="btn btn-ghost" @click=${() => (this._ui.noTimerVerticalOpen = false)}>${this._localize("cancel")}</button>
-            <button class="btn btn-primary" @click=${() => this._startFromCustom("vertical")}>${this._localize("start")}</button>
-          </div>
-        </div>
+        ${this._renderCustomTimerPicker("vertical")}
       </div>
     `;
     const renderFn = activeTimersLayout === "vertical"
@@ -4617,20 +4821,7 @@ const layout = this._config.layout;
             `}
           </div>
         ` : ""}
-        <div class="active-picker">
-          <div class="buttons-grid">
-            ${this._renderMinuteButtons("fill", (which, m, sign) => this._adjustActive(which, m, sign), 1)}
-          </div>
-          <div class="display">${this._formatClock(this._activeSecs.fill, true)}</div>
-          <div class="buttons-grid">
-            ${this._renderMinuteButtons("fill", (which, m, sign) => this._adjustActive(which, m, sign), -1)}
-          </div>
-          ${this._renderTimerNameSelector("add-fill-name", this._localize("timer_name_optional"))}
-          <div class="picker-actions">
-            <button class="btn btn-ghost" @click=${() => (this._ui.activeFillOpen = false)}>${this._localize("cancel")}</button>
-            <button class="btn btn-primary" @click=${() => this._startActive("fill")}>${this._localize("start")}</button>
-          </div>
-        </div>
+        ${this._renderCustomTimerPicker("fill")}
         <ul class="${listClass}">
           ${timers.map((t) => renderFn(t, style))}
         </ul>
@@ -4653,20 +4844,7 @@ const layout = this._config.layout;
             `}
           </div>
         ` : ""}
-        <div class="active-picker">
-          <div class="buttons-grid">
-            ${this._renderMinuteButtons("bar", (which, m, sign) => this._adjustActive(which, m, sign), 1)}
-          </div>
-          <div class="display">${this._formatClock(this._activeSecs.bar, true)}</div>
-          <div class="buttons-grid">
-            ${this._renderMinuteButtons("bar", (which, m, sign) => this._adjustActive(which, m, sign), -1)}
-          </div>
-          ${this._renderTimerNameSelector("add-bar-name", this._localize("timer_name_optional"))}
-          <div class="picker-actions">
-            <button class="btn btn-ghost" @click=${() => (this._ui.activeBarOpen = false)}>${this._localize("cancel")}</button>
-            <button class="btn btn-primary" @click=${() => this._startActive("bar")}>${this._localize("start")}</button>
-          </div>
-        </div>
+        ${this._renderCustomTimerPicker("bar")}
         <ul class="${listClass}">
           ${timers.map((t) => renderFn(t, style))}
         </ul>
@@ -4696,14 +4874,15 @@ const layout = this._config.layout;
       .nt-v { padding: 0 8px; min-height: 120px; transition: height .3s ease; }
       .nt-v.expanded { height: auto; }
       .nt-v .col { display: flex; flex-direction: column; align-items: center; justify-content: space-between; width: 100%; min-height: 120px; }
-      .picker, .active-picker { max-height: 0; opacity: 0; overflow: hidden; transition: max-height .5s ease, opacity .3s ease, padding-top .5s ease, margin-bottom .3s ease; padding-top: 0; margin-bottom: 0; }
-      .card.expanded .picker { max-height: 450px; opacity: 1; padding: 12px 8px 8px; }
-      .card-show .active-picker { max-height: 450px; opacity: 1; margin-bottom: 8px; padding: 8px 0; }
+      .picker, .active-picker { display: none; padding-top: 0; margin-bottom: 0; }
+      .card.expanded .picker { display: block; padding: 12px 8px 8px; }
+      .card-show .active-picker { display: block; margin-bottom: 8px; padding: 8px 0; }
       .icon-wrap { width: 36px; height: 36px; border-radius: var(--ha-card-border-radius, 50%); background: color-mix(in srgb, var(--tcolor, var(--primary-color)) 18%, var(--ha-card-background, var(--card-background-color))); display: flex; align-items: center; justify-content: center; flex: 0 0 36px; }
       .icon-wrap ha-icon { --mdc-icon-size: 22px; color: var(--tcolor, var(--primary-color)); }
       .nt-title { margin: 0; font-size: 14px; font-weight: 500; line-height: 20px; }
       .nt-sub { margin: 0; font-size: 12px; color: var(--secondary-text-color); line-height: 16px; }
       .btn { font-weight: 600; border-radius: var(--stc-chip-radius); padding: 6px 10px; font-size: 12px; border: none; cursor: pointer; }
+      .btn:disabled { opacity: 0.5; cursor: not-allowed; }
       .btn.disabled { opacity: 0.5; pointer-events: none; }
       .btn-preset { background: var(--secondary-background-color, rgba(0,0,0,.08)); color: var(--primary-text-color); }
       .btn-ghost { background: var(--card-background-color); border: 1px solid var(--divider-color); color: var(--primary-text-color); }
@@ -4713,6 +4892,22 @@ const layout = this._config.layout;
       .buttons-grid { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; width: 100%; box-sizing: border-box; }
       .buttons-grid .btn { flex: 0 0 auto; min-width: 68px; }
       .display { text-align: center; font-size: 36px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; margin: 8px 0; }
+      .duration-entry { width: 100%; min-width: 0; }
+      .duration-mode { display: flex; width: fit-content; max-width: 100%; padding: 3px; margin: 0 auto 12px; border: 1px solid var(--divider-color); border-radius: var(--stc-chip-radius); gap: 4px; background: var(--secondary-background-color, rgba(0,0,0,.04)); }
+      .duration-mode-btn { border: 0; border-radius: inherit; padding: 8px 14px; font: inherit; font-size: 12px; font-weight: 600; color: var(--secondary-text-color); background: transparent; cursor: pointer; }
+      .duration-mode-btn[aria-pressed="true"] { color: var(--primary-color); background: color-mix(in srgb, var(--primary-color) 14%, transparent); }
+      .duration-keypad { max-width: 288px; margin-inline: auto; border-radius: 12px; }
+      .duration-display-row { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; margin-block: 4px 12px; }
+      .duration-readout { display: inline-flex; justify-content: center; gap: 8px; font-size: 28px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--primary-text-color); }
+      .duration-readout small { font-size: 12px; font-weight: 400; color: var(--secondary-text-color); margin-inline-start: 2px; }
+      .duration-clear { border: 0; background: transparent; color: var(--primary-color); padding: 8px; font: inherit; font-size: 12px; cursor: pointer; }
+      .duration-key-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+      .duration-key { min-height: 44px; padding: 8px; border: 0; border-radius: 12px; background: var(--secondary-background-color, rgba(0,0,0,.06)); color: var(--primary-text-color); font: inherit; font-size: 20px; font-variant-numeric: tabular-nums; cursor: pointer; touch-action: manipulation; }
+      .duration-key ha-icon { --mdc-icon-size: 22px; }
+      .duration-key:hover:not(:disabled) { background: color-mix(in srgb, var(--primary-color) 14%, var(--secondary-background-color, transparent)); }
+      .duration-key:active:not(:disabled) { background: color-mix(in srgb, var(--primary-color) 24%, transparent); }
+      .duration-key:disabled, .duration-clear:disabled { opacity: 0.4; cursor: not-allowed; }
+      .duration-entry :focus-visible, .picker-actions .btn:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 2px; }
       .picker-actions { display: flex; gap: 12px; width: 100%; margin: 16px auto 0; box-sizing: border-box; }
       .picker-actions .btn { flex: 1; }
       .text-input { width: 90%; text-align: center; padding: 8px 12px; font-size: 14px; border-radius: var(--stc-chip-radius); color: var(--primary-text-color); background: var(--card-background-color); border: 1px solid var(--divider-color); outline: none; margin: 0 auto; display: block; }
@@ -5018,6 +5213,8 @@ class SimpleTimerCardEditor extends i$1 {
     if (value === this._config[key]) return;
     if (key === "style") {
       this._updateConfig({ style: _normalizeCardStyle(value) }, true);
+    } else if (key === "custom_timer_input") {
+      this._updateConfig({ custom_timer_input: normalizeTimerInput(value) }, true);
     } else if (key === "progress_mode") {
       const modes = ["drain", "fill", "milestones"];
       this._updateConfig({ progress_mode: modes.includes(value) ? value : "drain" }, true);
@@ -5346,6 +5543,7 @@ _pinnedTimerValueChanged(ev, index) {
       sort_by: "time_left",
       sort_order: "asc",
       default_new_timer_duration_mins: 15,
+      custom_timer_input: "stepper",
       time_format: "hms",
       time_format_units: ["days","hours","minutes","seconds"],
       expire_action: "keep",
@@ -5634,6 +5832,10 @@ _pinnedTimerValueChanged(ev, index) {
     // children. We set both .options and keep the slotted items as a fallback
     // for older HA. Keep these in sync with the slotted items below.
     const SELECT_OPTIONS = {
+      custom_timer_input: [
+        { value: "stepper", label: "Buttons (+ / -)" },
+        { value: "keypad", label: "Keypad" },
+      ],
       layout: [
         { value: "horizontal", label: "Horizontal" },
         { value: "vertical", label: "Vertical" },
@@ -5817,8 +6019,15 @@ _pinnedTimerValueChanged(ev, index) {
     `;
 
     const defaultsContent = b`
+      <ha-select label="Custom timer input" helper="Initial input mode. Switch between buttons and keypad directly on the card."
+        naturalMenuWidth fixedMenuPosition .value=${normalizeTimerInput(this._config.custom_timer_input)}
+        .configValue=${"custom_timer_input"} .options=${SELECT_OPTIONS.custom_timer_input}
+        @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
+        <mwc-list-item value="stepper">Buttons (+ / -)</mwc-list-item>
+        <mwc-list-item value="keypad">Keypad</mwc-list-item>
+      </ha-select>
       <div class="row">
-        ${this._tf({ label: "Default duration (minutes)", type: "number", min: "0", helper: "Starting value when the user opens the custom timer input.", value: this._config.default_new_timer_duration_mins ?? 15, configValue: "default_new_timer_duration_mins", change: this._valueChanged })}
+        ${this._tf({ label: "Default duration (minutes)", type: "number", min: "0", helper: "Starting value for the +/- buttons. Keypad entry starts at zero.", value: this._config.default_new_timer_duration_mins ?? 15, configValue: "default_new_timer_duration_mins", change: this._valueChanged })}
         ${this._tf({ label: "Snooze duration (minutes)", type: "number", min: "0", helper: "Minutes added when the user taps Snooze on an expired timer.", value: this._config.snooze_duration ?? 5, configValue: "snooze_duration", change: this._valueChanged })}
       </div>
 

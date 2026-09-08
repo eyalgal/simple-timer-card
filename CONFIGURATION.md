@@ -262,7 +262,8 @@ auto_dismiss_writable: false
 
 | Name                              | Type    | Default                | Description                                                                                  |
 | --------------------------------- | ------- | ---------------------- | -------------------------------------------------------------------------------------------- |
-| `default_new_timer_duration_mins` | number  | `15`                   | Starting value (in minutes) for the **Custom timer** duration input. Set `0` to start empty. |
+| `default_new_timer_duration_mins` | number  | `15`                   | Starting value (in minutes) for the **Custom timer** +/- buttons. Set `0` to start empty. Keypad entry always starts at zero. |
+| `custom_timer_input`             | string  | `stepper`              | Initial custom input: `stepper` (+/- buttons) or `keypad`. Users can switch modes directly on the card. |
 | `snooze_duration`                 | number  | `5`                    | Minutes added when the user taps **Snooze** on an expired timer                              |
 | `default_timer_icon`              | string  | `mdi:timer-outline`    | Default icon for entities that do not specify one                                            |
 | `default_timer_color`             | string  | `var(--primary-color)` | Default color for entities that do not specify one (any CSS color or HA variable)            |
@@ -290,6 +291,37 @@ minute_buttons: [1, 5, 10]
 | `timer_presets`      | array   | `[5, 15, 30]` | Quick-start presets. Numbers are minutes; suffix with `s` for seconds (e.g. `90s`)                         |
 | `timer_name_presets` | array   | `[]`          | Suggested labels offered in the custom-name picker                                                         |
 | `minute_buttons`     | array   | `[1, 5, 10]`  | +/− adjustment buttons next to the custom timer duration input. Numbers are minutes; suffix `s` for seconds |
+
+---
+
+### Custom timer input
+
+The custom timer form has a **Buttons / Keypad** switch. It is available in both
+layouts, including when adding another timer while one is running. Switching
+keeps the duration and timer name; it does not change the saved card configuration
+or the timer storage key. The choice lasts until the card is recreated.
+
+Choose the initial mode in the editor under **Timer defaults & behavior → Custom
+timer input**, or in YAML:
+
+```yaml
+custom_timer_input: keypad
+```
+
+- **Buttons** keeps the existing `minute_buttons` increments and starts at
+  `default_new_timer_duration_mins` (15 by default).
+- **Keypad** starts at `00h 00m 00s`. Digits enter from the right: `1`, `5`, `9`
+  gives `00h 01m 59s`. `5`, `00` gives five minutes; `1`, `00`, `00` gives one hour.
+- Backspace removes the last digit. **Clear** resets to zero. **Start** is disabled
+  at zero. Entries such as `90` seconds are kept as typed while editing and
+  normalized to `1m 30s` when starting or switching to Buttons.
+- While the keypad is focused, number keys, Backspace and Delete work too. Enter
+  starts the timer when the keypad area itself is focused; on a focused button,
+  Enter activates that button. Typing a timer name is unaffected.
+- Hours expand for longer durations, up to the existing 365-day limit. The digits
+  and keypad keep the same order in right-to-left languages.
+
+Quick-start presets, pinned timers, and existing-timer editing are unchanged.
 
 ---
 
@@ -328,7 +360,7 @@ pinned_timers:
 
 ---
 
-## �️ Tap, hold & double-tap actions
+## 👆 Tap, hold & double-tap actions
 
 Standard Home Assistant `tap_action` / `hold_action` / `double_tap_action` configs, supported at both card level and per entity row.
 

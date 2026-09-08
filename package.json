@@ -7,7 +7,8 @@
     "example": "examples"
   },
   "scripts": {
-    "build": "rollup -c"
+    "build": "rollup -c",
+    "test": "npm run build && node --test tests/*.test.mjs"
   },
   "repository": {
     "type": "git",
@@ -24,6 +25,7 @@
   "devDependencies": {
     "@rollup/plugin-node-resolve": "^16.0.3",
     "@rollup/plugin-terser": "^0.4.4",
+    "jsdom": "26.1.0",
     "lit": "^3.3.2",
     "rollup": "^4.56.0"
   }
