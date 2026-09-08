@@ -90,15 +90,6 @@ Input validation and sanitization, safe audio URL handling, rate limiting for ac
 
 ---
 
-## 🙏 Credits
-
-The `circle_horizontal` layout was inspired by the compact style in
-[TimeFlow Card](https://github.com/Rishi8078/TimeFlow-Card) by
-[@Rishi8078](https://github.com/Rishi8078). Worth a look if you want countdowns
-to dates and events rather than timers.
-
----
-
 ## ❤️ Support
 
 If you enjoy this card and want to support its development:
