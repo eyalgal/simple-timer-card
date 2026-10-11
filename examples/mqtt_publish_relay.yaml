@@ -1,0 +1,54 @@
+# CUSTOMIZATION TEMPLATE: admin-installed MQTT relay for non-admin card users.
+# Paste context: one automation in the HA automation editor's Edit in YAML view.
+# Keep all policy variables and validation INSIDE action: manual calls can supply
+# variables and skip top-level conditions. Never accept a topic from the caller.
+alias: Simple Timer Card MQTT Relay
+description: Publish validated timer snapshots and events to administrator-selected topics.
+mode: queued
+max: 100
+trigger: []
+condition: []
+action:
+  - variables:
+      timer_topic: simple_timer_card/timers
+      state_topic: simple_timer_card/timers/state
+      events_topic: simple_timer_card/events
+      allowed_events: [created, started, expired, cancelled, paused, resumed, snoozed, finished]
+      request: "{{ stc_request | default(none) }}"
+  - if:
+      - condition: template
+        value_template: >-
+          {% if request is not mapping %}
+            {{ true }}
+          {% else %}
+            {% set operation = request.get('operation') %}
+            {% set payload = request.get('payload') %}
+            {% set is_list = payload is sequence and payload is not string and payload is not mapping %}
+            {% set envelope = payload is mapping
+              and payload.get('version') == 1
+              and payload.get('lastUpdated') is integer
+              and payload.get('timers') is sequence
+              and payload.get('timers') is not string
+              and payload.get('timers') is not mapping
+              and payload.get('deleted') is sequence
+              and payload.get('deleted') is not string
+              and payload.get('deleted') is not mapping %}
+            {% set valid = (operation == 'store' and (is_list or envelope))
+              or (operation == 'state' and payload is mapping
+                and payload.get('version') in [1, 2] and payload.get('t') is integer)
+              or (operation == 'event' and payload is mapping
+                and request.get('event') in allowed_events
+                and payload.get('event') == request.get('event')) %}
+            {{ not valid or (payload | to_json | length) > 262144 }}
+          {% endif %}
+    then:
+      - stop: "Invalid Simple Timer Card MQTT relay request: check operation, payload shape and size (262144 JSON characters maximum)."
+        error: true
+  - service: mqtt.publish
+    data:
+      topic: >-
+        {{ timer_topic if request.operation == 'store'
+           else state_topic if request.operation == 'state'
+           else events_topic ~ '/' ~ request.event }}
+      payload: "{{ request.payload | to_json }}"
+      retain: "{{ request.operation != 'event' }}"

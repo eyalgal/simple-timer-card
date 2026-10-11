@@ -40,6 +40,15 @@ that arbitrary configuration, integrations, or MQTT writers are safe.
   IDs, sources, deadlines and revisions do not authenticate the sender.
 - Revisions and deletion tombstones provide best-effort reconciliation, not
   tamper protection, transactional writes, or guaranteed notification delivery.
+- HA 2026.10+ requires an admin for direct MQTT publishing. The optional
+  [non-admin relay](examples/mqtt_publish_relay.yaml) delegates writes only to
+  administrator-selected timer topics. Its topic policy and payload validation
+  must remain inside its actions, not caller-overridable variables or skippable
+  top-level conditions. Users allowed to invoke it can modify that timer store
+  and emit allowed timer events; do not treat these events as authenticated facts.
+- Relay validation limits payload shape/size, not every timer field or writer
+  identity. Grant control of the relay only to appropriate users. Never embed
+  an admin token or broker credentials in dashboard/card configuration.
 
 ### Throttling
 - Some actions are throttled per card instance, typically for one second, with a

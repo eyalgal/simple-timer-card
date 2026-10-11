@@ -66,6 +66,22 @@ test("simple mode contains four essential sections including timer storage", asy
   }
 });
 
+test("MQTT relay picker preserves nested settings, sensor shorthand and clearing", async () => {
+  const mqtt = { topic: "kitchen/timers", state_topic: "kitchen/state", events_topic: "kitchen/events" };
+  const { editor, events } = await mount({ default_timer_entity: "sensor.timer_store", mqtt, storage_namespace: "kitchen" });
+  const field = control(editor, "mqtt.publish_automation");
+  assert.ok(available(editor, field));
+  assert.deepEqual(field.includeDomains, ["automation"]);
+  field.dispatchEvent(new CustomEvent("value-changed", { detail: { value: "automation.timer_relay" }, bubbles: true }));
+  await editor.updateComplete;
+  assert.deepEqual(events.at(-1).mqtt, { ...mqtt, publish_automation: "automation.timer_relay" });
+  assert.equal(events.at(-1).default_timer_entity, "sensor.timer_store");
+  assert.equal(events.at(-1).storage_namespace, "kitchen");
+  control(editor, "mqtt.publish_automation").dispatchEvent(new CustomEvent("value-changed", { detail: { value: "" }, bubbles: true }));
+  await editor.updateComplete;
+  assert.deepEqual(events.at(-1).mqtt, mqtt);
+});
+
 test("appearance contains each display and ordering control once in both editor modes", async () => {
   const saved = {
     title: "Kitchen", style: "circle_horizontal", layout: "vertical", language: "he",

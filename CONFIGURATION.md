@@ -670,6 +670,37 @@ If using all default topics, `default_timer_entity: sensor.simple_timer_store`
 remains a shorthand for MQTT storage. The three topics are independent: changing
 `mqtt.topic` does not automatically change the state or event topic.
 
+#### Non-admin publishing (v2.9.1 pre-release)
+
+Home Assistant 2026.10+ restricts `mqtt.publish` to administrators. Install the
+[relay automation](examples/mqtt_publish_relay.yaml) as an administrator, then
+add its actual entity ID to the existing `mqtt` mapping:
+
+```yaml
+mqtt:
+  sensor_entity: sensor.simple_timer_store
+  publish_automation: automation.simple_timer_card_mqtt_relay
+```
+
+The same card configuration works for both account types: administrators still
+publish directly; non-admins call the configured automation. Without a relay,
+non-admins retain direct publishing on known HA versions before 2026.10; on
+2026.10+ (or an unknown version) writes are stopped with a setup warning.
+Missing user information also pauses publishing rather than assuming admin access.
+
+The relay handles storage, state markers and events. Its administrator-selected
+topics must match the card's three topics; the caller cannot choose arbitrary
+broker topics. The visual editor exposes the relay under **Timer storage** when
+MQTT is selected. Adding only this setting does not change automatic storage
+namespaces or pinned IDs.
+
+Permission failures stop subsequent writes until the dashboard is reloaded or
+the user/transport configuration changes. Warnings are deduplicated per card.
+There is **no automatic fallback to local storage**: a visible/cached timer does
+not prove that MQTT was updated. A successful automation trigger also does not
+confirm MQTT delivery; inspect its trace and the shared sensor when testing.
+See the [full setup and test checklist](mqtt-hybrid-model.md#non-admin-users-ha-202610).
+
 #### Multi-device reconciliation
 
 MQTT uses best-effort multi-device reconciliation. In the default compatibility
@@ -737,6 +768,7 @@ native timers need different `timer.*` entities.
 | `mqtt.topic`           | string | `simple_timer_card/timers` | Retained timer payload topic, matching sensor `json_attributes_topic` |
 | `mqtt.state_topic`     | string | `simple_timer_card/timers/state` | State/version marker topic, matching sensor `state_topic` |
 | `mqtt.events_topic`    | string | `simple_timer_card/events` | Non-retained event prefix, followed by `/started`, `/expired`, etc. |
+| `mqtt.publish_automation` | string | unset | Optional enabled `automation.*` relay for non-admin users; ignored for administrators. Requires the supplied backend automation and matching topics. |
 
 ---
 
