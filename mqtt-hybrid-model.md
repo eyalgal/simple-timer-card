@@ -103,6 +103,60 @@ instead of turning them into an empty timer list that could clear the ledger.
 `store_valid` validates the envelope only, not writer identity or freshness.
 Broker disconnection can still leave a previously valid snapshot visible.
 
+### Non-admin users (HA 2026.10+)
+
+**Available since v2.9.1:** HA 2026.10 makes direct `mqtt.publish` calls admin-only.
+An administrator must install the
+[MQTT publish relay automation](examples/mqtt_publish_relay.yaml) for restricted
+dashboard users. This is separate from the backend notification monitor below.
+
+1. In **Settings > Automations & scenes**, create an empty automation, select
+   **Edit in YAML**, and paste the example as one automation (not a dashboard
+   card or a top-level `automation:` block).
+2. In its first action, set `timer_topic`, `state_topic`, and `events_topic` to
+   match the card and sensor. The defaults match this guide. Keep the validation
+   **inside the actions**; manual triggers can skip top-level conditions and can
+   supply variables, so the topic allowlist must also stay inside the actions.
+3. Save, leave the automation enabled, and verify its actual entity ID.
+   The suggested alias normally produces `automation.simple_timer_card_mqtt_relay`,
+   but HA can assign a suffix. The non-admin account needs permission to control it.
+4. Add `publish_automation: automation.simple_timer_card_mqtt_relay` to the
+   card's existing `mqtt:` mapping, or select it under **Timer storage** in the
+   visual editor. Keep the existing sensor, topics and namespace.
+5. Fully reload the dashboard under each test account.
+
+Administrators continue using `mqtt.publish` directly. Non-admins use
+`automation.trigger` with a `variables.stc_request` object containing `operation`
+(`store`, `state`, or `event`), `payload`, and, for events, `event`. The automation
+chooses the topic and retain flag, not the caller. It supports both storage
+compatibility formats, retains snapshots/state markers, and never retains events.
+Requests exceeding **262144 characters after JSON encoding** are rejected.
+`mode: queued` serializes accepted relay runs, with a maximum of 100 queued/running
+runs; overflows are logged by HA. This does not make multi-client writes transactional.
+
+A plain script wrapping `mqtt.publish` is not equivalent: scripts keep the
+caller's user context. The relay relies on HA's automation runner creating a
+new action context. This permission behavior must be tested on the target HA
+version; it is not a promise about future HA authorization changes.
+
+#### Verification checklist
+
+- As an **admin**, confirm the existing direct path still works.
+- As a **non-admin**, start both a preset and a custom timer; check that the
+  shared sensor's `timers` attribute changes and another device sees the timer.
+- Pause, resume, cancel, and let a timer expire. Verify the relevant non-retained
+  event topics and any event-based automations. Check storage on both devices.
+- Check the relay's **Traces** and HA logs for publish errors. A successful
+  `automation.trigger` response alone is not proof of successful MQTT delivery.
+- With no relay configured, a non-admin on HA 2026.10+ should see one setup
+  warning rather than repeated unauthorized publishes. Missing/disabled relays
+  also warn. After a permission rejection, fix permissions and reload to retry.
+
+The card does not silently switch to local storage. Its existing display cache
+can still contain unsynced changes after a failed write. Reads continue through
+the MQTT sensor; this relay does not grant MQTT subscriptions, arbitrary topic
+access, durable scheduling, or delivery guarantees.
+
 ## 2. Card setup and one notification owner
 
 This is a **dashboard card mapping** for the card YAML editor. In a dashboard

@@ -136,3 +136,27 @@ test("HACS artifact and supported release versions agree", () => {
   assert.ok(source.includes(`* Version: ${version}`));
   assert.match(read(join(root, "SECURITY.md")), /Latest stable/);
 });
+
+test("MQTT relay fixes destinations and validation inside queued actions", () => {
+  const [relay] = yamlDocuments(read(join(root, "examples/mqtt_publish_relay.yaml")), "MQTT relay");
+  assert.equal(relay.mode, "queued");
+  assert.equal(relay.max, 100);
+  assert.deepEqual(relay.trigger, []);
+  assert.deepEqual(relay.condition, []);
+  assert.equal(relay.variables, undefined);
+  const policy = relay.action[0].variables;
+  assert.equal(policy.timer_topic, "simple_timer_card/timers");
+  assert.equal(policy.state_topic, "simple_timer_card/timers/state");
+  assert.equal(policy.events_topic, "simple_timer_card/events");
+  const source = read(join(root, "src/simple-timer-card.js"));
+  const emitted = [...new Set([...source.matchAll(/_publishTimerEvent\("([^"]+)"/g)].map(match => match[1]))].sort();
+  assert.deepEqual([...policy.allowed_events].sort(), emitted);
+  const validation = relay.action[1];
+  assert.match(validation.if[0].value_template, /262144/);
+  assert.equal(validation.then[0].error, true);
+  const publish = relay.action[2];
+  assert.equal(publish.service, "mqtt.publish");
+  assert.doesNotMatch(publish.data.topic, /request\.topic/);
+  assert.equal(publish.data.retain, "{{ request.operation != 'event' }}");
+  assert.equal(publish.data.payload, "{{ request.payload | to_json }}");
+});

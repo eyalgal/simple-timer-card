@@ -96,12 +96,12 @@ function editDurationDigits(digits, key) {
  *
  * Author: eyalgal
  * License: MIT
- * Version: 2.9.0
+ * Version: 2.9.1
  * For more information, visit: https://github.com/eyalgal/simple-timer-card
  */
 
 
-const cardVersion="2.9.0";
+const cardVersion="2.9.1";
 
 const DAY_IN_MS = 86400000;
 const YEAR_IN_MS = 365 * DAY_IN_MS;
@@ -161,6 +161,13 @@ function _pruneTombstones(tombstones, now = Date.now()) {
 // namespace keeps its timers without colliding with a differently configured
 // card on the same dashboard.
 function _stableConfigHash(config) {
+  // Changing the publish transport must not rename existing pinned timers.
+  if (config.mqtt?.publish_automation) {
+    const mqtt = { ...config.mqtt };
+    delete mqtt.publish_automation;
+    config = { ...config, mqtt };
+    if (Object.keys(mqtt).length === 0) delete config.mqtt;
+  }
   const seen = new WeakSet();
   const ordered = (v) => {
     if (v === null || typeof v !== "object") return v;
@@ -713,6 +720,10 @@ class SimpleTimerCard extends i$2 {
     this._mqttAwaitingFresh = false;
     this._mqttReconnectedAt = 0;
     this._mqttWakeBaseline = 0;
+    this._mqttPublishQueue = Promise.resolve();
+    this._mqttPublishContext = null;
+    this._mqttPublishBlocked = false;
+    this._mqttPublishErrors = new Set();
     this._ui = {
       noTimerHorizontalOpen: false,
       noTimerVerticalOpen: false,
@@ -801,7 +812,7 @@ class SimpleTimerCard extends i$2 {
       config.default_timer_entity.startsWith("sensor.");
     const hasExplicitMqttConfig = !!(
       config.mqtt &&
-      (config.mqtt.topic || config.mqtt.sensor_entity || config.mqtt.state_topic || config.mqtt.events_topic)
+      (config.mqtt.topic || config.mqtt.sensor_entity || config.mqtt.state_topic || config.mqtt.events_topic || config.mqtt.publish_automation)
     );
     const legacyWantsMqtt =
       legacyMqttSensorEntity &&
@@ -817,9 +828,13 @@ class SimpleTimerCard extends i$2 {
       topic: "simple_timer_card/timers",
       state_topic: "simple_timer_card/timers/state",
       events_topic: "simple_timer_card/events",
-      sensor_entity: legacyWantsMqtt ? config.default_timer_entity : null,
+      sensor_entity: legacyMqttSensorEntity ? config.default_timer_entity : null,
       ...config.mqtt,
     };
+    if (mqttConfig.publish_automation != null && mqttConfig.publish_automation !== "" &&
+        (typeof mqttConfig.publish_automation !== "string" || !/^automation\.[a-z0-9_]+$/.test(mqttConfig.publish_automation))) {
+      throw new Error("mqtt.publish_automation must be an automation entity ID.");
+    }
     const layout = (config.layout || "horizontal").toLowerCase() === "vertical" ? "vertical" : "horizontal";
     const style = _normalizeCardStyle(config.style);
     const progressModeOptions = ["drain", "fill", "milestones"];
@@ -1138,6 +1153,76 @@ class SimpleTimerCard extends i$2 {
     }
   }
 
+  _reportMqttPublishError(message) {
+    if (this._mqttPublishErrors.has(message)) return;
+    this._mqttPublishErrors.add(message);
+    console.warn("[simple-timer-card]", message);
+    this._toast(message);
+  }
+
+  _publishMqtt(operation, payload, event) {
+    let serialized;
+    try {
+      serialized = JSON.stringify(payload);
+      if (typeof serialized !== "string") throw new Error("Missing MQTT payload.");
+    } catch (error) {
+      this._reportMqttPublishError(`MQTT data could not be serialized: ${error.message}`);
+      return Promise.resolve(false);
+    }
+    const hass = this.hass;
+    const mqtt = { ...this._config.mqtt };
+    const context = JSON.stringify([hass?.user?.id, hass?.user?.is_admin, hass?.config?.version, mqtt]);
+
+    // Serialize writes so one denied request also stops already queued writes.
+    this._mqttPublishQueue = this._mqttPublishQueue.then(async () => {
+      if (context !== this._mqttPublishContext) {
+        this._mqttPublishContext = context;
+        this._mqttPublishBlocked = false;
+        this._mqttPublishErrors.clear();
+      }
+      if (this._mqttPublishBlocked) return false;
+      const admin = hass?.user?.is_admin;
+      if (typeof admin !== "boolean") {
+        this._reportMqttPublishError("MQTT publishing is paused until Home Assistant user information is available. Reload the dashboard if this persists.");
+        return false;
+      }
+      const automation = !admin && mqtt.publish_automation;
+      const version = /^(\d+)\.(\d+)\./.exec(hass.config?.version || "");
+      const legacyPublish = version && (Number(version[1]) < 2026 || (Number(version[1]) === 2026 && Number(version[2]) < 10));
+      if (!admin && !automation && !legacyPublish) {
+        this._reportMqttPublishError("MQTT changes are not synced: non-admin users need mqtt.publish_automation on Home Assistant 2026.10+. Ask an administrator to install the MQTT relay automation.");
+        return false;
+      }
+      if (automation && hass.states?.[automation]?.state !== "on") {
+        this._reportMqttPublishError(`MQTT changes are not synced: ${automation} must exist, be enabled, and be accessible to this user.`);
+        return false;
+      }
+      try {
+        if (automation) {
+          const request = { operation, payload: JSON.parse(serialized) };
+          if (event) request.event = event;
+          await hass.callService("automation", "trigger", {
+            entity_id: automation,
+            skip_condition: false,
+            variables: { stc_request: request },
+          });
+        } else {
+          const topic = operation === "store" ? mqtt.topic : operation === "state" ? mqtt.state_topic : `${mqtt.events_topic || "simple_timer_card/events"}/${event}`;
+          await hass.callService("mqtt", "publish", { topic, payload: serialized, retain: operation !== "event" });
+        }
+        return true;
+      } catch (error) {
+        const unauthorized = /unauthorized|not authorized/i.test(`${error?.code || ""} ${error?.message || error}`);
+        if (unauthorized) this._mqttPublishBlocked = true;
+        this._reportMqttPublishError(unauthorized
+          ? "MQTT publishing was denied. Further writes are paused; check the user's relay permissions and reload the dashboard after fixing them."
+          : `MQTT publish request failed; changes may not be synced. Check Home Assistant and the relay trace. ${error?.message || error}`);
+        return false;
+      }
+    });
+    return this._mqttPublishQueue;
+  }
+
   _saveTimersToStorage_mqtt(timers, tombstones = null) {
     try {
       const timersArr = Array.isArray(timers) ? timers : [];
@@ -1151,29 +1236,19 @@ class SimpleTimerCard extends i$2 {
         const compat = (this._config?.compatibility_mode || "2.1.1");
         if (compat && compat !== "latest") {
           const payloadObj = { timers: timersArr, version: 1, lastUpdated, deleted: tombs };
-          this.hass.callService("mqtt", "publish", {
-            topic,
-            payload: JSON.stringify(payloadObj),
-            retain: true,
-          });
+          this._publishMqtt("store", payloadObj);
         } else {
-          this.hass.callService("mqtt", "publish", {
-            topic,
-            payload: JSON.stringify(timersArr),
-            retain: true,
-          });
+          this._publishMqtt("store", timersArr);
         }
       }
 
       const stateTopic = this._config?.mqtt?.state_topic;
       if (stateTopic) {
-        this.hass.callService("mqtt", "publish", {
-          topic: stateTopic,
-          payload: JSON.stringify({ version: (this._config?.compatibility_mode && this._config.compatibility_mode !== "latest") ? 1 : 2, t: lastUpdated }),
-          retain: true,
-        });
+        this._publishMqtt("state", { version: (this._config?.compatibility_mode && this._config.compatibility_mode !== "latest") ? 1 : 2, t: lastUpdated });
       }
-    } catch (e) {}
+    } catch (error) {
+      this._reportMqttPublishError(`MQTT changes could not be saved: ${error.message}`);
+    }
   }
 
   _updateTimerInStorage_mqtt(timerId, updates) {
@@ -2495,11 +2570,7 @@ class SimpleTimerCard extends i$2 {
         payload.remaining_ms = timer.remaining_ms ?? timer.remaining;
       }
 
-      this.hass.callService("mqtt", "publish", {
-        topic: `${this._config?.mqtt?.events_topic || "simple_timer_card/events"}/${event}`,
-        payload: JSON.stringify(payload),
-        retain: false,
-      });
+      return this._publishMqtt("event", payload, event);
     }
   }
 
@@ -5154,6 +5225,7 @@ class SimpleTimerCardEditor extends i$2 {
       }).filter(v => v !== null);
       if (value.length === 0) value = [5, 15, 30];
     }
+
     if (key === "minute_buttons" && typeof value === "string") {
       value = value.split(",").map(v => v.trim()).filter(v => v).map(v => {
         const m = v.toLowerCase().match(/^(\d+)\s*([smhd])?$/);
@@ -5181,6 +5253,14 @@ class SimpleTimerCardEditor extends i$2 {
     }
     if (hasChecked) this._updateConfig({ [key]: value }, true);
     else this._updateConfig({ [key]: value });
+  }
+
+  _mqttAutomationChanged(ev) {
+    const mqtt = { ...(this._config.mqtt || {}) };
+    const value = ev.detail?.value;
+    if (value) mqtt.publish_automation = value;
+    else delete mqtt.publish_automation;
+    this._updateConfig({ mqtt }, true);
   }
 
   _detailValueChanged(ev) {
@@ -5843,7 +5923,7 @@ _pinnedTimerValueChanged(ev, index) {
     const entityPickerReady = !!customElements.get("ha-entity-picker");
     const target = this._config.default_timer_entity || "";
     const storage = String(this._config.storage || "").toLowerCase();
-    const hasMqtt = !!(this._config.mqtt && ["topic", "sensor_entity", "state_topic", "events_topic"].some(key => this._config.mqtt[key]));
+    const hasMqtt = !!(this._config.mqtt && ["topic", "sensor_entity", "state_topic", "events_topic", "publish_automation"].some(key => this._config.mqtt[key]));
     const storageType = target.startsWith("timer.") ? "timer"
       : target.startsWith("input_text.") || target.startsWith("text.") ? "helper"
       : storage === "local" ? "local"
@@ -6262,6 +6342,18 @@ _pinnedTimerValueChanged(ev, index) {
         <small class="storage-description">${this._getStorageDescription(storageType)}</small>
       </div>
 
+      ${storageType === "mqtt" ? b`
+        <ha-entity-picker
+          .hass=${this.hass}
+          .value=${this._config.mqtt?.publish_automation || ""}
+          .configValue=${"mqtt.publish_automation"}
+          .includeDomains=${["automation"]}
+          @value-changed=${this._mqttAutomationChanged}
+          label="MQTT publish automation (non-admin users)"
+          help-text="Install the relay from the MQTT guide first. Administrators still publish directly."
+          allow-custom-entity
+        ></ha-entity-picker>
+      ` : ""}
       <p class="hint advanced">Custom MQTT topics, storage namespaces and compatibility options can be set in YAML. See the configuration guide for storage setup.</p>
       ${this._config.auto_voice_pe === true ? b`
         <ha-entity-picker
