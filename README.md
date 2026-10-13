@@ -48,7 +48,7 @@ resources:
     type: module
 ```
 
-### Testing v2.9.1 (pre-release)
+### Updating to v2.9.1
 
 v2.9.1 adds an optional MQTT publish relay for non-admin users on Home Assistant
 2026.10+. Administrators keep the existing direct publish path. Non-admin users
@@ -56,9 +56,9 @@ need an administrator to install the example automation and set
 `mqtt.publish_automation` in the card. **Updating the card alone is not enough.**
 See [non-admin MQTT setup and testing](mqtt-hybrid-model.md#non-admin-users-ha-202610).
 
-Select v2.9.1 using HACS's redownload/version selector (enable pre-release versions
-if needed), or use the release asset, then fully reload every testing dashboard.
-This is a test release; v2.9.0 remains the stable release.
+v2.9.1 is the stable release. Update through HACS or use the release asset, then
+fully reload the dashboard. If you already run the v2.9.1 pre-release, the card
+build and relay configuration are unchanged.
 
 ### Updating to v2.9.0
 

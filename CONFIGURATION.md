@@ -670,7 +670,7 @@ If using all default topics, `default_timer_entity: sensor.simple_timer_store`
 remains a shorthand for MQTT storage. The three topics are independent: changing
 `mqtt.topic` does not automatically change the state or event topic.
 
-#### Non-admin publishing (v2.9.1 pre-release)
+#### Non-admin publishing (v2.9.1)
 
 Home Assistant 2026.10+ restricts `mqtt.publish` to administrators. Install the
 [relay automation](examples/mqtt_publish_relay.yaml) as an administrator, then

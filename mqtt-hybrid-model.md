@@ -105,7 +105,7 @@ Broker disconnection can still leave a previously valid snapshot visible.
 
 ### Non-admin users (HA 2026.10+)
 
-**v2.9.1 pre-release:** HA 2026.10 makes direct `mqtt.publish` calls admin-only.
+**Available since v2.9.1:** HA 2026.10 makes direct `mqtt.publish` calls admin-only.
 An administrator must install the
 [MQTT publish relay automation](examples/mqtt_publish_relay.yaml) for restricted
 dashboard users. This is separate from the backend notification monitor below.
@@ -139,7 +139,7 @@ caller's user context. The relay relies on HA's automation runner creating a
 new action context. This permission behavior must be tested on the target HA
 version; it is not a promise about future HA authorization changes.
 
-#### Pre-release test checklist
+#### Verification checklist
 
 - As an **admin**, confirm the existing direct path still works.
 - As a **non-admin**, start both a preset and a custom timer; check that the
