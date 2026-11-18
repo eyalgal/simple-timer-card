@@ -48,6 +48,14 @@ resources:
     type: module
 ```
 
+### Updating to v2.9.2 (pre-release)
+
+v2.9.2 makes **Dismiss** on a ringing Google Home timer also call
+`google_home.delete_timer`, so the speaker stops ringing instead of only hiding
+the timer on the card ([#119](https://github.com/eyalgal/simple-timer-card/issues/119)).
+No configuration changes are needed. Alexa timers are still dismissed on the
+card only.
+
 ### Updating to v2.9.1
 
 v2.9.1 adds an optional MQTT publish relay for non-admin users on Home Assistant

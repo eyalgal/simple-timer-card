@@ -5,7 +5,7 @@
  *
  * Author: eyalgal
  * License: MIT
- * Version: 2.9.1
+ * Version: 2.9.2
  * For more information, visit: https://github.com/eyalgal/simple-timer-card
  */
 
@@ -15,7 +15,7 @@ import { ifDefined } from "lit/directives/if-defined.js";
 import { live } from "lit/directives/live.js";
 import { MAX_TIMER_SECONDS, normalizeTimerInput, durationDigitFields, durationDigitsToSeconds, secondsToDurationDigits, editDurationDigits } from "./duration-input.js";
 
-const cardVersion="2.9.1";
+const cardVersion="2.9.2";
 
 const DAY_IN_MS = 86400000;
 const YEAR_IN_MS = 365 * DAY_IN_MS;
