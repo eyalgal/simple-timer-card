@@ -157,7 +157,9 @@ Discovered entities are added to anything in `entities:`, never duplicated, and
 carry no per-entity options. List an entity explicitly if you want to override
 its icon, colour or name. Both providers are read-only, so discovered timers can
 be dismissed from this card once they ring but not started or paused from it.
-Dismissal does not stop the timer or alarm on the speaker. The Alexa Media Player
+Dismissing a Google Home timer also calls `google_home.delete_timer`, so it
+stops ringing on the speaker. Dismissing an Alexa timer only hides it on the
+card; the speaker keeps ringing. The Alexa Media Player
 or Google Home integration must already expose the timer sensors in Home Assistant.
 
 ### Per-source icon and colour

@@ -1411,6 +1411,7 @@ class SimpleTimerCard extends i$2 {
         id: `google-${entityId}-${item.timer_id ?? idx}`,
         source: "google",
         source_entity: entityId,
+        google_timer_id: item.timer_id ?? null,
         label,
         icon: hasCustomIcon ? entityConf.icon : (paused ? "mdi:timer-pause" : "mdi:timer"),
         color: hasCustomColor ? entityConf.color : (paused ? "var(--warning-color)" : "var(--primary-color)"),
@@ -3376,6 +3377,12 @@ class SimpleTimerCard extends i$2 {
     } else if (timer.source === "timer") {
       this.hass.callService("timer", "finish", { entity_id: timer.source_entity });
     } else {
+      if (timer.source === "google" && timer.google_timer_id && this.hass?.services?.google_home?.delete_timer) {
+        Promise.resolve(this.hass.callService("google_home", "delete_timer", {
+          entity_id: timer.source_entity,
+          timer_id: String(timer.google_timer_id),
+        })).catch(() => this._toast("Could not dismiss the timer on Google Home."));
+      }
       this._dismissed.add(`${timer.source_entity}:${timer.id}`);
       this.requestUpdate();
     }
