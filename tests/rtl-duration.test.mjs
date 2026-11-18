@@ -14,7 +14,7 @@ async function mount(config = {}, states = {}) {
   const card = document.createElement("simple-timer-card");
   card.setConfig({ type: "custom:simple-timer-card", storage_namespace: "rtl-test", language: "he", ...config });
   const calls = [];
-  card.hass = { states, services: {}, language: "he", connected: true, callService: (...args) => { calls.push(args); return Promise.resolve(); } };
+  card.hass = { states, services: {}, language: "he", connected: true, user: { id: "tester", is_admin: true }, config: { version: "2026.10.0" }, callService: (...args) => { calls.push(args); return Promise.resolve(); } };
   card._unlockAudioHandler = () => {};
   document.body.append(card);
   await card.updateComplete;
@@ -132,6 +132,7 @@ test("RTL presentation does not leak markup or directional controls into MQTT da
   }
   card.shadowRoot.querySelector(".text-input").value = "תה Tea 2!";
   card.shadowRoot.querySelector(".picker-actions .btn-primary").click();
+  await card._mqttPublishQueue;
   const publish = calls.find(call => call[0] === "mqtt" && call[1] === "publish" && call[2].topic === "rtl/timers");
   assert.ok(publish);
   const [timer] = JSON.parse(publish[2].payload).timers;
