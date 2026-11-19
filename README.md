@@ -30,9 +30,9 @@ No dashboard clutter. No duplicated cards. Just timers.
 
 ## 📦 Installation
 
-### HACS (recommended)
+### Marketplace (fka HACS) (recommended)
 
-Simple Timer Card is available in **HACS**.
+Simple Timer Card is available in **Marketplace (fka HACS)**.
 
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=eyalgal&repository=simple-timer-card)
 
@@ -48,13 +48,17 @@ resources:
     type: module
 ```
 
-### Updating to v2.9.2 (pre-release)
+### Updating to v2.9.2
 
 v2.9.2 makes **Dismiss** on a ringing Google Home timer also call
 `google_home.delete_timer`, so the speaker stops ringing instead of only hiding
 the timer on the card ([#119](https://github.com/eyalgal/simple-timer-card/issues/119)).
 No configuration changes are needed. Alexa timers are still dismissed on the
 card only.
+
+v2.9.2 is the stable release. Update through Marketplace (fka HACS) or use the
+release asset, then fully reload the dashboard. If you already run the v2.9.2
+pre-release, the card build is unchanged.
 
 ### Updating to v2.9.1
 
@@ -64,15 +68,11 @@ need an administrator to install the example automation and set
 `mqtt.publish_automation` in the card. **Updating the card alone is not enough.**
 See [non-admin MQTT setup and testing](mqtt-hybrid-model.md#non-admin-users-ha-202610).
 
-v2.9.1 is the stable release. Update through HACS or use the release asset, then
-fully reload the dashboard. If you already run the v2.9.1 pre-release, the card
-build and relay configuration are unchanged.
-
 ### Updating to v2.9.0
 
 Existing cards keep their +/- input and discovery remains opt-in. The old
 `style: circle` value still works as the vertical circle layout. If you tested
-a v2.9.0 pre-release, redownload v2.9.0 in HACS and fully reload the dashboard:
+a v2.9.0 pre-release, redownload v2.9.0 in Marketplace (fka HACS) and fully reload the dashboard:
 the version number is unchanged, so an update notice may not appear.
 
 ---
