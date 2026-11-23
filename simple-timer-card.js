@@ -7483,7 +7483,6 @@ _pinnedTimerValueChanged(ev, index) {
         ${types.map((o) => b`<mwc-list-item value=${o.value}>${o.label}</mwc-list-item>`)}
       </ha-select>
       ${type === "device" ? b`
-        <div class="row">
           <ha-entity-picker
             .hass=${this.hass}
             .value=${entity}
@@ -7498,11 +7497,9 @@ _pinnedTimerValueChanged(ev, index) {
               ${serviceOptions.map((o) => b`<mwc-list-item value=${o.value}>${o.label}</mwc-list-item>`)}
             </ha-select>
           ` : ""}
-        </div>
       ` : ""}
       ${type === "command" ? this._tf({ label: "Command", value: conf.command, placeholder: "turn off the air purifier", helper: "What you would say to Assist.", change: (e) => patch({ command: e.target.value }) }) : ""}
       ${type === "announce" ? b`
-        <div class="row">
           <ha-entity-picker
             .hass=${this.hass}
             .value=${conf.announce || ""}
@@ -7512,7 +7509,6 @@ _pinnedTimerValueChanged(ev, index) {
             @value-changed=${(e) => patch({ announce: e.detail.value || "" })}
           ></ha-entity-picker>
           ${this._tf({ label: "Message (optional)", value: conf.message, placeholder: "Your timer is done", helper: "Without a message it says the timer's name, then \"is done\".", change: (e) => patch({ message: e.target.value }) })}
-        </div>
       ` : ""}
       ${type === "custom" ? b`<p class="hint">This action list is edited in YAML.</p>` : ""}
     `;
@@ -8178,9 +8174,10 @@ _pinnedTimerValueChanged(ev, index) {
             <mwc-list-item value="minutes">Minutes</mwc-list-item>
             <mwc-list-item value="seconds">Seconds</mwc-list-item>
           </ha-select>
-          <ha-formfield label="Pulse active milestone">
+          <label class="toggle-row">
             <ha-switch .checked=${this._config.milestone_pulse !== false} .configValue=${"milestone_pulse"} @change=${this._valueChanged}></ha-switch>
-          </ha-formfield>
+            <div class="toggle-text"><span class="toggle-title">Pulse active milestone</span></div>
+          </label>
         </div>
         </div>
       ` : ""}
@@ -8286,9 +8283,10 @@ _pinnedTimerValueChanged(ev, index) {
                   </div>
                 ` : ""}
 
-                <ha-formfield label="Enable specific audio">
+                <label class="toggle-row">
                   <ha-switch .checked=${t?.audio_enabled === true} .configValue=${"audio_enabled"} @change=${(e) => this._pinnedTimerValueChanged(e, index)}></ha-switch>
-                </ha-formfield>
+                  <div class="toggle-text"><span class="toggle-title">Enable specific audio</span></div>
+                </label>
 
                 ${t?.audio_enabled ? b`
                   <div class="row">
@@ -8296,9 +8294,10 @@ _pinnedTimerValueChanged(ev, index) {
                     ${this._tf({ label: "Repeat count", type: "number", min: "1", max: "10", value: t?.audio_repeat_count ?? 1, configValue: "audio_repeat_count", change: (e) => this._pinnedTimerValueChanged(e, index) })}
                   </div>
 
-                  <ha-formfield label="Play until dismissed or snoozed">
+                  <label class="toggle-row">
                     <ha-switch .checked=${t?.audio_play_until_dismissed === true} .configValue=${"audio_play_until_dismissed"} @change=${(e) => this._pinnedTimerValueChanged(e, index)}></ha-switch>
-                  </ha-formfield>
+                    <div class="toggle-text"><span class="toggle-title">Play until dismissed or snoozed</span></div>
+                  </label>
                 ` : ""}
 
                 <div class="row-actions-label">Custom action buttons</div>
@@ -8619,9 +8618,10 @@ _pinnedTimerValueChanged(ev, index) {
                     (conf.mode && conf.mode !== "auto") ? conf.mode : ((detectedMode && detectedMode !== "unknown") ? detectedMode : null)
                   )}
 
-                  <ha-formfield label="Enable entity-specific audio">
+                  <label class="toggle-row">
                     <ha-switch .checked=${conf.audio_enabled === true} .configValue=${"audio_enabled"} @change=${(e) => this._entityValueChanged(e, index)}></ha-switch>
-                  </ha-formfield>
+                    <div class="toggle-text"><span class="toggle-title">Enable entity-specific audio</span></div>
+                  </label>
 
                   ${conf.audio_enabled ? b`
                     <div class="row">
@@ -8632,19 +8632,22 @@ _pinnedTimerValueChanged(ev, index) {
 
                   ${(conf.mode === "timer" || (isAuto && detectedMode === "timer")) ? b`
                     <div class="advanced">
-                    <ha-formfield label="Keep visible when idle">
+                    <label class="toggle-row">
                       <ha-switch .checked=${conf.keep_timer_visible_when_idle === true} .configValue=${"keep_timer_visible_when_idle"} @change=${(e) => this._entityValueChanged(e, index)}></ha-switch>
-                    </ha-formfield>
-                    <ha-formfield label="Hide action buttons">
+                      <div class="toggle-text"><span class="toggle-title">Keep visible when idle</span></div>
+                    </label>
+                    <label class="toggle-row">
                       <ha-switch .checked=${conf.hide_timer_actions === true} .configValue=${"hide_timer_actions"} @change=${(e) => this._entityValueChanged(e, index)}></ha-switch>
-                    </ha-formfield>
+                      <div class="toggle-text"><span class="toggle-title">Hide action buttons</span></div>
+                    </label>
                     </div>
                   ` : ""}
                   ${(conf.mode === "timer_list" || (isAuto && detectedMode === "timer_list")) ? b`
                     <div class="advanced">
-                    <ha-formfield label="Hide action buttons">
+                    <label class="toggle-row">
                       <ha-switch .checked=${conf.hide_timer_actions === true} .configValue=${"hide_timer_actions"} @change=${(e) => this._entityValueChanged(e, index)}></ha-switch>
-                    </ha-formfield>
+                      <div class="toggle-text"><span class="toggle-title">Hide action buttons</span></div>
+                    </label>
                     </div>
                   ` : ""}
                   <div class="advanced">
@@ -8752,14 +8755,15 @@ _pinnedTimerValueChanged(ev, index) {
     return b`
       <div class="editor-toolbar">
         ${this._renderSearchInput()}
-        <ha-formfield label="Advanced" class="advanced-toggle" title="Remembered in this browser">
+        <label class="advanced-toggle" title="Remembered in this browser">
+          <span>Advanced</span>
           <ha-switch
             data-editor-advanced
             aria-label="Advanced editor options"
             .checked=${this._showAdvanced}
             @change=${(e) => this._setEditorMode(!!e.target.checked)}
           ></ha-switch>
-        </ha-formfield>
+        </label>
       </div>
       <p class="editor-mode-hint">${isSearching ? "Searching all settings, including advanced options." : this._showAdvanced ? "All settings shown. Switch off Advanced for the essentials." : "Essentials only. Advanced settings stay active when hidden."}</p>
       <p class="hint search-empty" role="status" hidden>No matching settings. Try a section name or enable the related feature first.</p>
@@ -8832,9 +8836,13 @@ _pinnedTimerValueChanged(ev, index) {
       .buttons-editor { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
       .button-row { border: 1px solid var(--divider-color); border-radius: 8px; padding: 8px; padding-inline-end: 44px; display: flex; flex-direction: column; gap: 8px; position: relative; }
       .editor-toolbar .advanced-toggle {
-        font-size: 13px;
-        color: var(--secondary-text-color);
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        color: var(--primary-text-color);
         flex-shrink: 0;
+        cursor: pointer;
       }
 
       .card-config:not(.show-advanced):not(.is-searching) .advanced { display: none !important; }
@@ -8890,8 +8898,11 @@ _pinnedTimerValueChanged(ev, index) {
       .side-by-side > * { flex: 1 1 150px; min-width: 0; }
       .mode-field { display: flex; flex-direction: column; gap: 4px; }
       .mode-field > ha-select { width: 100%; }
-      .finish-action { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 8px; background: var(--secondary-background-color, rgba(0,0,0,.04)); }
-      .finish-action > ha-select { width: 100%; }
+      .finish-action { display: flex; flex-direction: column; gap: 8px; }
+      .finish-action > ha-select,
+      .finish-action > ha-entity-picker,
+      .finish-action > ha-textfield,
+      .finish-action > ha-input { width: 100%; }
 
       /* DO NOT force display:block on these. HA's ha-textfield uses
          :host { display: inline-flex } internally; overriding it breaks its
