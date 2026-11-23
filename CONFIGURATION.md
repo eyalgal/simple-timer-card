@@ -684,8 +684,26 @@ notify:
 
 ## 💾 Storage & persistence
 
-Where the card creates or persists user-created timers. Choose a target under
-**Timer storage** in either editor mode. Custom MQTT topics and namespaces use YAML.
+Where the card creates or persists user-created timers. Choose **Save new
+timers in** under **Timer storage**: this browser, MQTT, or the
+[Simple Timer Card integration](#-companion-integration). A **New timer target**
+overrides it with a native timer, a speaker's timer list or a text helper.
+Custom MQTT topics and namespaces use YAML.
+
+### Simple Timer Card integration
+
+With the [companion integration](#-companion-integration) installed, store
+every new timer in Home Assistant:
+
+```yaml
+storage: integration
+```
+
+Timers keep running with every dashboard closed, show the same on every device,
+survive restarts and can do something when they end. The card shows the
+integration's timers without listing its entity. Until the integration is
+installed, new timers are saved in this browser instead, and browser timers
+started earlier keep showing until they end.
 
 ### Native Home Assistant timer
 
@@ -847,7 +865,7 @@ native timers need different `timer.*` entities.
 | Name                   | Type   | Default | Description                                                                                            |
 | ---------------------- | ------ | ------- | ------------------------------------------------------------------------------------------------------ |
 | `default_timer_entity` | string | `null`  | Native `timer.*` target, legacy text/helper store, or MQTT sensor. A single configured native timer can be selected automatically. |
-| `storage`              | string | auto    | Force a backend: `local` or `mqtt`. Usually auto-detected from `default_timer_entity`.                 |
+| `storage`              | string | auto    | Force a backend: `local`, `mqtt` or `integration`. Without it, `local` or `mqtt` is detected from `default_timer_entity`. |
 | `storage_namespace`    | string | auto    | Explicit local-store namespace and pinned-ID prefix. Does not isolate MQTT topics. See precedence above. |
 | `mqtt.sensor_entity`   | string | -       | MQTT sensor entity holding state                                                                       |
 | `mqtt.topic`           | string | `simple_timer_card/timers` | Retained timer payload topic, matching sensor `json_attributes_topic` |
@@ -891,12 +909,21 @@ entities:
 | `auto_discover_timer_lists` | boolean | `false` | Show every timer list without listing it. |
 | `default_timer_entity`      | string  | `null`  | A `timer_list.*` entity here receives timers started from the card. |
 | `default_timer_area`        | string  | `null`  | Area ID. New timers start on the timer list in that area, such as the kitchen Voice PE, when `default_timer_entity` is not set. |
-| `target_picker`             | string  | `auto`  | **Start on** chips in the custom timer panel: `auto` (two or more timer lists), `always`, or `never`. **This card** keeps the timer in the card's own storage. |
+| `target_picker`             | string  | `auto`  | The **Starts on** line in the custom timer panel: `auto` (two or more timer lists), `always`, or `never`. |
+
+**Starts on.** With two or more timer lists, the custom timer panel shows one
+line, such as *Starts on Kitchen Voice PE*. Tap it to pick another place from a
+list sorted by room; with more than five, a search box finds a speaker or room.
+The list holds every timer list, *Home Assistant* for the integration, and
+*This browser* or *MQTT* for the card's own storage. With `storage: integration`
+there is no browser entry. A timer that does something when it ends always
+starts on Home Assistant.
 
 **Starting timers.** Presets, the custom timer input and pinned timers create
-a timer on the list picked under **Start on**, then `default_timer_entity`,
-then the timer list in `default_timer_area`, then the only timer list in
-`entities:` when no single native `timer.*` is listed. On a voice
+a timer on the list picked under **Starts on**, then `default_timer_entity`,
+then the timer list in `default_timer_area`, then the integration with
+`storage: integration`, then the only timer list in `entities:` when no single
+native `timer.*` is listed. On a voice
 satellite the timer also shows and rings on the device. The card sends a name
 only when you give one, such as a custom name or a pinned timer's name, so the
 satellite does not announce preset labels.
@@ -990,12 +1017,11 @@ running timers.
 
 ### On the card
 
-List the entity, or make it the default target so every new timer is stored in
-Home Assistant:
+Choose it as storage so every new timer is stored in Home Assistant:
 
 ```yaml
 type: custom:simple-timer-card
-default_timer_entity: sensor.simple_timer_card_timers
+storage: integration
 device_timers:                      # Optional one-tap quick actions.
   - entity: fan.air_purifier        # Default action: turn off.
   - entity: light.porch

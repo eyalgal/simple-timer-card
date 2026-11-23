@@ -235,6 +235,7 @@ const TRANSLATIONS = {
     second: "second", seconds: "seconds",
     more_timers: "+{n} more", show_less: "Show less", start_on: "Start on", when_done: "When done",
     just_a_timer: "Just a timer", this_card: "This card", then_action: "then {action}", run_command: "Command",
+    starts_on: "Starts on", ha_server: "Home Assistant", ha_server_desc: "Keeps running with no dashboard open", this_browser: "This browser", this_browser_desc: "Only on this device", mqtt_desc: "Shared through MQTT", search_targets: "Search speakers or rooms", for_the_action: "needed for the action",
     control_device: "Device", command_placeholder: "e.g. turn off the air purifier", choose_device: "Device", choose_action: "Action",
     needs_companion: "Install the Simple Timer Card integration to run actions when timers end.", timer_start_failed: "Could not start the timer: {error}", action_not_supported: "This timer doesn't support that.", group_other: "Other",
     group_voice: "Voice", group_pinned: "Pinned", group_since: "Since", group_template: "Template",
@@ -281,6 +282,7 @@ const TRANSLATIONS = {
     second: "Sekunde", seconds: "Sekunden",
     more_timers: "+{n} weitere", show_less: "Weniger anzeigen", start_on: "Starten auf", when_done: "Danach",
     just_a_timer: "Nur ein Timer", this_card: "Diese Karte", then_action: "danach {action}", run_command: "Befehl",
+    starts_on: "Startet auf", ha_server: "Home Assistant", ha_server_desc: "Läuft auch ohne geöffnetes Dashboard", this_browser: "Dieser Browser", this_browser_desc: "Nur auf diesem Gerät", mqtt_desc: "Über MQTT geteilt", search_targets: "Lautsprecher oder Räume suchen", for_the_action: "für die Aktion nötig",
     control_device: "Gerät", command_placeholder: "z. B. Luftreiniger ausschalten", choose_device: "Gerät", choose_action: "Aktion",
     needs_companion: "Installiere die Simple-Timer-Card-Integration, um beim Ablauf Aktionen auszuführen.", timer_start_failed: "Timer konnte nicht gestartet werden: {error}", action_not_supported: "Dieser Timer unterstützt das nicht.", group_other: "Sonstige",
     group_voice: "Sprache", group_pinned: "Angeheftet", group_since: "Seit", group_template: "Vorlage",
@@ -327,6 +329,7 @@ const TRANSLATIONS = {
     second: "segundo", seconds: "segundos",
     more_timers: "+{n} más", show_less: "Mostrar menos", start_on: "Iniciar en", when_done: "Al terminar",
     just_a_timer: "Solo un temporizador", this_card: "Esta tarjeta", then_action: "después {action}", run_command: "Comando",
+    starts_on: "Se inicia en", ha_server: "Home Assistant", ha_server_desc: "Sigue funcionando sin un panel abierto", this_browser: "Este navegador", this_browser_desc: "Solo en este dispositivo", mqtt_desc: "Compartido por MQTT", search_targets: "Buscar altavoces o habitaciones", for_the_action: "necesario para la acción",
     control_device: "Dispositivo", command_placeholder: "p. ej. apaga el purificador", choose_device: "Dispositivo", choose_action: "Acción",
     needs_companion: "Instala la integración Simple Timer Card para ejecutar acciones al terminar los temporizadores.", timer_start_failed: "No se pudo iniciar el temporizador: {error}", action_not_supported: "Este temporizador no admite esa acción.", group_other: "Otros",
     group_voice: "Voz", group_pinned: "Fijados", group_since: "Desde", group_template: "Plantilla",
@@ -373,6 +376,7 @@ const TRANSLATIONS = {
     second: "sekund", seconds: "sekunder",
     more_timers: "+{n} mere", show_less: "Vis mindre", start_on: "Start på", when_done: "Når den er færdig",
     just_a_timer: "Kun en timer", this_card: "Dette kort", then_action: "derefter {action}", run_command: "Kommando",
+    starts_on: "Starter på", ha_server: "Home Assistant", ha_server_desc: "Kører videre uden et åbent dashboard", this_browser: "Denne browser", this_browser_desc: "Kun på denne enhed", mqtt_desc: "Delt via MQTT", search_targets: "Søg efter højttalere eller rum", for_the_action: "kræves til handlingen",
     control_device: "Enhed", command_placeholder: "f.eks. sluk luftrenseren", choose_device: "Enhed", choose_action: "Handling",
     needs_companion: "Installer Simple Timer Card-integrationen for at udføre handlinger, når timere slutter.", timer_start_failed: "Kunne ikke starte timeren: {error}", action_not_supported: "Denne timer understøtter ikke det.", group_other: "Andet",
     group_voice: "Stemme", group_pinned: "Fastgjort", group_since: "Siden", group_template: "Skabelon",
@@ -419,6 +423,7 @@ const TRANSLATIONS = {
     second: "secondo", seconds: "secondi",
     more_timers: "+{n} altri", show_less: "Mostra meno", start_on: "Avvia su", when_done: "Al termine",
     just_a_timer: "Solo un timer", this_card: "Questa scheda", then_action: "poi {action}", run_command: "Comando",
+    starts_on: "Si avvia su", ha_server: "Home Assistant", ha_server_desc: "Continua anche senza una dashboard aperta", this_browser: "Questo browser", this_browser_desc: "Solo su questo dispositivo", mqtt_desc: "Condiviso tramite MQTT", search_targets: "Cerca altoparlanti o stanze", for_the_action: "necessario per l'azione",
     control_device: "Dispositivo", command_placeholder: "es. spegni il purificatore", choose_device: "Dispositivo", choose_action: "Azione",
     needs_companion: "Installa l'integrazione Simple Timer Card per eseguire azioni allo scadere dei timer.", timer_start_failed: "Impossibile avviare il timer: {error}", action_not_supported: "Questo timer non lo supporta.", group_other: "Altro",
     group_voice: "Voce", group_pinned: "Fissati", group_since: "Da", group_template: "Modello",
@@ -465,6 +470,7 @@ const TRANSLATIONS = {
     second: "seconde", seconds: "secondes",
     more_timers: "+{n} de plus", show_less: "Afficher moins", start_on: "Démarrer sur", when_done: "À la fin",
     just_a_timer: "Juste un minuteur", this_card: "Cette carte", then_action: "puis {action}", run_command: "Commande",
+    starts_on: "Démarre sur", ha_server: "Home Assistant", ha_server_desc: "Continue même sans tableau de bord ouvert", this_browser: "Ce navigateur", this_browser_desc: "Uniquement sur cet appareil", mqtt_desc: "Partagé via MQTT", search_targets: "Rechercher des enceintes ou des pièces", for_the_action: "requis pour l'action",
     control_device: "Appareil", command_placeholder: "ex. éteins le purificateur", choose_device: "Appareil", choose_action: "Action",
     needs_companion: "Installez l'intégration Simple Timer Card pour lancer des actions à la fin des minuteurs.", timer_start_failed: "Impossible de démarrer le minuteur : {error}", action_not_supported: "Ce minuteur ne le permet pas.", group_other: "Autres",
     group_voice: "Voix", group_pinned: "Épinglés", group_since: "Depuis", group_template: "Modèle",
@@ -511,6 +517,7 @@ const TRANSLATIONS = {
     second: "שנייה", seconds: "שניות",
     more_timers: "+{n} נוספים", show_less: "הצג פחות", start_on: "הפעלה ב", when_done: "בסיום",
     just_a_timer: "טיימר בלבד", this_card: "הכרטיס הזה", then_action: "ואז {action}", run_command: "פקודה",
+    starts_on: "מופעל ב", ha_server: "Home Assistant", ha_server_desc: "ממשיך לפעול גם בלי לוח בקרה פתוח", this_browser: "הדפדפן הזה", this_browser_desc: "רק במכשיר הזה", mqtt_desc: "משותף דרך MQTT", search_targets: "חיפוש רמקולים או חדרים", for_the_action: "נדרש לפעולה",
     control_device: "מכשיר", command_placeholder: "למשל: כבה את מטהר האוויר", choose_device: "מכשיר", choose_action: "פעולה",
     needs_companion: "כדי להפעיל פעולות בסיום טיימר יש להתקין את האינטגרציה Simple Timer Card.", timer_start_failed: "לא ניתן להפעיל את הטיימר: {error}", action_not_supported: "הטיימר הזה לא תומך בזה.", group_other: "אחר",
     group_voice: "קולי", group_pinned: "מוצמדים", group_since: "מאז", group_template: "תבנית",
@@ -557,6 +564,7 @@ const TRANSLATIONS = {
     second: "sekunda", seconds: "sekund",
     more_timers: "+{n} więcej", show_less: "Pokaż mniej", start_on: "Uruchom na", when_done: "Po zakończeniu",
     just_a_timer: "Tylko minutnik", this_card: "Ta karta", then_action: "potem {action}", run_command: "Polecenie",
+    starts_on: "Uruchamia się na", ha_server: "Home Assistant", ha_server_desc: "Działa także bez otwartego pulpitu", this_browser: "Ta przeglądarka", this_browser_desc: "Tylko na tym urządzeniu", mqtt_desc: "Udostępniane przez MQTT", search_targets: "Szukaj głośników lub pomieszczeń", for_the_action: "wymagane do akcji",
     control_device: "Urządzenie", command_placeholder: "np. wyłącz oczyszczacz", choose_device: "Urządzenie", choose_action: "Akcja",
     needs_companion: "Zainstaluj integrację Simple Timer Card, aby uruchamiać akcje po zakończeniu minutników.", timer_start_failed: "Nie udało się uruchomić minutnika: {error}", action_not_supported: "Ten minutnik tego nie obsługuje.", group_other: "Inne",
     group_voice: "Głos", group_pinned: "Przypięte", group_since: "Od", group_template: "Szablon",
@@ -603,6 +611,7 @@ const TRANSLATIONS = {
     second: "seconde", seconds: "seconden",
     more_timers: "+{n} meer", show_less: "Minder tonen", start_on: "Starten op", when_done: "Als klaar",
     just_a_timer: "Alleen een timer", this_card: "Deze kaart", then_action: "daarna {action}", run_command: "Opdracht",
+    starts_on: "Start op", ha_server: "Home Assistant", ha_server_desc: "Blijft lopen zonder open dashboard", this_browser: "Deze browser", this_browser_desc: "Alleen op dit apparaat", mqtt_desc: "Gedeeld via MQTT", search_targets: "Zoek speakers of ruimtes", for_the_action: "nodig voor de actie",
     control_device: "Apparaat", command_placeholder: "bijv. zet de luchtreiniger uit", choose_device: "Apparaat", choose_action: "Actie",
     needs_companion: "Installeer de Simple Timer Card-integratie om acties uit te voeren als timers aflopen.", timer_start_failed: "Kan de timer niet starten: {error}", action_not_supported: "Deze timer ondersteunt dat niet.", group_other: "Overig",
     group_voice: "Spraak", group_pinned: "Vastgezet", group_since: "Sinds", group_template: "Sjabloon",
@@ -649,6 +658,7 @@ const TRANSLATIONS = {
     second: "sekund", seconds: "sekunder",
     more_timers: "+{n} till", show_less: "Visa mindre", start_on: "Starta på", when_done: "När klar",
     just_a_timer: "Bara en timer", this_card: "Det här kortet", then_action: "sedan {action}", run_command: "Kommando",
+    starts_on: "Startar på", ha_server: "Home Assistant", ha_server_desc: "Fortsätter utan öppen instrumentpanel", this_browser: "Den här webbläsaren", this_browser_desc: "Bara på den här enheten", mqtt_desc: "Delas via MQTT", search_targets: "Sök högtalare eller rum", for_the_action: "krävs för åtgärden",
     control_device: "Enhet", command_placeholder: "t.ex. stäng av luftrenaren", choose_device: "Enhet", choose_action: "Åtgärd",
     needs_companion: "Installera integrationen Simple Timer Card för att köra åtgärder när timrar tar slut.", timer_start_failed: "Kunde inte starta timern: {error}", action_not_supported: "Den här timern stöder inte det.", group_other: "Övrigt",
     group_voice: "Röst", group_pinned: "Fästa", group_since: "Sedan", group_template: "Mall",
@@ -852,9 +862,13 @@ class SimpleTimerCard extends LitElement {
     const compat = (config.compatibility_mode || config.compat_mode || "2.1.1");
     config.compatibility_mode = compat;
     const requestedStorage = (config.storage || "").toLowerCase();
+    // The companion integration is a sensor too, but never MQTT storage.
+    const companionTarget = typeof config.default_timer_entity === "string" &&
+      (config.default_timer_entity.startsWith("sensor.simple_timer_card_timers") ||
+        this.hass?.states?.[config.default_timer_entity]?.attributes?.simple_timer_card_api != null);
     const legacyMqttSensorEntity =
       typeof config.default_timer_entity === "string" &&
-      config.default_timer_entity.startsWith("sensor.");
+      config.default_timer_entity.startsWith("sensor.") && !companionTarget;
     const hasExplicitMqttConfig = !!(
       config.mqtt &&
       (config.mqtt.topic || config.mqtt.sensor_entity || config.mqtt.state_topic || config.mqtt.events_topic || config.mqtt.publish_automation)
@@ -866,7 +880,7 @@ class SimpleTimerCard extends LitElement {
       !hasExplicitMqttConfig;
     const isMqtt = requestedStorage === "mqtt" || hasExplicitMqttConfig || legacyWantsMqtt;
     const autoStorage =
-      requestedStorage === "local" || requestedStorage === "mqtt"
+      requestedStorage === "local" || requestedStorage === "mqtt" || requestedStorage === "integration"
         ? requestedStorage
         : (isMqtt ? "mqtt" : "local");
     const mqttConfig = {
@@ -1321,7 +1335,7 @@ class SimpleTimerCard extends LitElement {
   }
 
   _loadTimersFromStorage(sourceHint = null) {
-    const storage = sourceHint || this._config.storage;
+    const storage = sourceHint || this._cardStorage();
     const adapter = this._getStorageAdapter(storage);
     const rawTimers = adapter ? adapter.load() : [];
     if (!Array.isArray(rawTimers)) return [];
@@ -1393,25 +1407,25 @@ class SimpleTimerCard extends LitElement {
   }
 
   _saveTimersToStorage(timers, sourceHint = null) {
-    const storage = sourceHint || this._config.storage;
+    const storage = sourceHint || this._cardStorage();
     if (storage === "mqtt") return this._saveTimersToStorage_mqtt(timers);
     if (storage === "local") return this._saveTimersToStorage_local(timers);
   }
 
   _updateTimerInStorage(timerId, updates, sourceHint = null) {
-    const storage = sourceHint || this._config.storage;
+    const storage = sourceHint || this._cardStorage();
     if (storage === "mqtt") return this._updateTimerInStorage_mqtt(timerId, updates);
     if (storage === "local") return this._updateTimerInStorage_local(timerId, updates);
   }
 
   _removeTimerFromStorage(timerId, sourceHint = null) {
-    const storage = sourceHint || this._config.storage;
+    const storage = sourceHint || this._cardStorage();
     if (storage === "mqtt") return this._removeTimerFromStorage_mqtt(timerId);
     if (storage === "local") return this._removeTimerFromStorage_local(timerId);
   }
 
   _addTimerToStorage(timer) {
-    const storage = timer.source || this._config.storage;
+    const storage = timer.source || this._cardStorage();
     const timers = this._loadTimersFromStorage(storage);
     if (storage === "mqtt") {
       const tombs = this._readMqttCacheState().tombstones;
@@ -2054,6 +2068,17 @@ class SimpleTimerCard extends LitElement {
     return Object.keys(this.hass?.states || {}).filter((id) => this._isCompanionList(id)).sort()[0] || null;
   }
 
+  // storage: integration sends every new timer to the companion. Without the
+  // companion installed, new timers fall back to this browser.
+  _integrationStorageList() {
+    return this._config?.storage === "integration" ? this._companionList() : null;
+  }
+
+  // The card's own storage backend; integration storage falls back to local.
+  _cardStorage() {
+    return this._config?.storage === "mqtt" ? "mqtt" : "local";
+  }
+
   _syncTimerListSubscriptions(wanted) {
     for (const entityId of [...this._timerLists.keys()]) {
       if (!wanted.has(entityId)) this._dropTimerList(entityId);
@@ -2334,6 +2359,8 @@ class SimpleTimerCard extends LitElement {
       const inArea = this._timerListsInArea(areaId);
       if (inArea.length) return inArea[0];
     }
+    const integration = this._integrationStorageList();
+    if (integration) return integration;
     const lists = [];
     for (const entityConf of Array.isArray(this._config?.entities) ? this._config.entities : []) {
       const entityId = typeof entityConf === "string" ? entityConf : entityConf?.entity;
@@ -2372,12 +2399,19 @@ class SimpleTimerCard extends LitElement {
   _activeTargetChoice() {
     const choice = this._targetChoice;
     if (!choice) return null;
-    if (choice === "card") return this._showTargetPicker() ? { kind: "card" } : null;
+    if (choice === "card") return this._showTargetPicker() && this._config?.storage !== "integration" ? { kind: "card" } : null;
     if (choice.startsWith("list:")) {
       const entity = choice.slice(5);
       return this._pickerTimerLists().includes(entity) ? { kind: "timer_list", entity } : null;
     }
     return null;
+  }
+
+  _currentTargetValue() {
+    const active = this._activeTargetChoice();
+    if (active) return active.kind === "card" ? "card" : `list:${active.entity}`;
+    const list = this._resolveTimerListTarget(null);
+    return list ? `list:${list}` : "card";
   }
 
   _timerListChipLabel(entityId) {
@@ -2388,29 +2422,87 @@ class SimpleTimerCard extends LitElement {
     });
   }
 
-  _renderTargetPicker(which) {
-    const showLists = this._showTargetPicker();
-    const actions = this._renderActionEntry(which);
-    if (!showLists) return actions;
-    const active = this._activeTargetChoice();
-    const defaultList = this._resolveTimerListTarget(null);
-    const listSelected = (id) => (active ? active.kind === "timer_list" && active.entity === id : defaultList === id);
-    const cardSelected = active ? active.kind === "card" : !defaultList;
-    const pick = (value) => { this._targetChoice = value; };
+  _targetDestination(entityId) {
+    if (this._isCompanionList(entityId)) {
+      return {
+        value: `list:${entityId}`, icon: "mdi:home-assistant", order: 0,
+        title: this._localize("ha_server"), sub: this._localize("ha_server_desc"), search: "home assistant",
+      };
+    }
+    const info = this._registryInfo(entityId);
+    const title = this._timerListChipLabel(entityId);
+    const sub = [info.area, info.device && info.device !== title ? info.device : null].filter(Boolean).join(" · ");
+    return {
+      value: `list:${entityId}`, icon: "mdi:account-voice", order: 1, title, sub, area: info.area || "",
+      search: [title, info.area, info.device, entityId].filter(Boolean).join(" ").toLowerCase(),
+    };
+  }
+
+  // Every place a new timer can start, as rows for the Start on list. Speakers
+  // are sorted by area so a house full of them stays easy to scan.
+  _targetDestinations() {
+    const out = this._pickerTimerLists().map((id) => this._targetDestination(id));
+    if (this._config?.storage !== "integration") {
+      const mqtt = this._cardStorage() === "mqtt";
+      out.push({
+        value: "card", order: 2, icon: mqtt ? "mdi:server-network" : "mdi:web",
+        title: mqtt ? "MQTT" : this._localize("this_browser"),
+        sub: this._localize(mqtt ? "mqtt_desc" : "this_browser_desc"),
+        search: `${mqtt ? "mqtt" : this._localize("this_browser")} ${this._localize("this_card")}`.toLowerCase(),
+      });
+    }
+    return out.sort((a, b) => a.order - b.order || String(a.area || "").localeCompare(String(b.area || "")) || a.title.localeCompare(b.title));
+  }
+
+  // One quiet line under the panel instead of a chip per speaker.
+  _renderTargetLine(which) {
+    if (!this._showTargetPicker()) return "";
+    const companion = this._companionList();
+    const forAction = !!(companion && this._actionPickerEnabled() && this._actionDraftSpec());
+    const value = forAction ? `list:${companion}` : this._currentTargetValue();
+    const dest = this._targetDestinations().find((d) => d.value === value) ||
+      (value.startsWith("list:") ? this._targetDestination(value.slice(5)) : null);
+    if (!dest) return "";
+    const text = html`<span class="target-text">${this._localize("starts_on")} <strong>${dest.title}</strong>${forAction ? html` · ${this._localize("for_the_action")}` : ""}</span>`;
     return html`
-      <div class="picker-section">
-        <span class="picker-section-label">${this._localize("start_on")}</span>
-        <div class="duration-mode segmented" role="group" aria-label=${this._localize("start_on")}>
-          ${this._pickerTimerLists().map((id) => html`
-            <button type="button" class="duration-mode-btn" aria-pressed=${String(listSelected(id))}
-              @click=${() => pick(`list:${id}`)}>${this._timerListChipLabel(id)}</button>
-          `)}
-          <button type="button" class="duration-mode-btn" aria-pressed=${String(cardSelected)}
-            @click=${() => pick("card")}>${this._localize("this_card")}</button>
-        </div>
+      <div class="action-entry">
+        ${forAction
+          ? html`<span class="target-link static"><ha-icon icon=${dest.icon}></ha-icon>${text}</span>`
+          : html`<button type="button" class="target-link" @click=${() => this._openActionWizard(which, "target")}>
+              <ha-icon icon=${dest.icon}></ha-icon>${text}<ha-icon class="chevron" icon="mdi:chevron-down"></ha-icon>
+            </button>`}
       </div>
-      ${actions}
     `;
+  }
+
+  _renderTargetList() {
+    const all = this._targetDestinations();
+    const query = String(this._targetQuery || "").trim().toLowerCase();
+    const current = this._currentTargetValue();
+    const shown = query ? all.filter((d) => d.search.includes(query) || d.title.toLowerCase().includes(query)) : all;
+    const pick = (value) => { this._targetChoice = value; this._targetQuery = ""; this._closeActionWizard(true); };
+    return html`
+      ${all.length > 5 ? html`
+        <input class="text-input wizard-input" type="search"
+          .value=${this._targetQuery || ""}
+          placeholder=${this._localize("search_targets")}
+          aria-label=${this._localize("search_targets")}
+          @input=${(e) => { this._targetQuery = e.target.value; this.requestUpdate(); }}>` : ""}
+      <div class="wizard-list" role="listbox" aria-label=${this._localize("start_on")}>
+        ${shown.map((d) => html`
+          <button type="button" class="wizard-row ${d.value === current ? "selected" : ""}" role="option"
+            aria-selected=${String(d.value === current)} @click=${() => pick(d.value)}>
+            <ha-icon class="row-icon" icon=${d.icon}></ha-icon>
+            <span class="row-text"><span class="row-title">${d.title}</span>${d.sub ? html`<span class="row-sub">${d.sub}</span>` : ""}</span>
+            ${d.value === current ? html`<ha-icon class="row-check" icon="mdi:check"></ha-icon>` : ""}
+          </button>
+        `)}
+      </div>
+    `;
+  }
+
+  _renderTargetPicker(which) {
+    return html`${this._renderActionEntry(which)}${this._renderTargetLine(which)}`;
   }
 
   // === Action timers via the companion integration (v3.0.0) ===
@@ -2578,6 +2670,7 @@ class SimpleTimerCard extends LitElement {
 
   _closeActionWizard(keep) {
     if (!keep && this._wizardPrev) this._actionDraft = this._wizardPrev;
+    this._targetQuery = "";
     this._wizardPrev = null;
     this._actionWizard = null;
   }
@@ -2649,6 +2742,7 @@ class SimpleTimerCard extends LitElement {
     const draft = this._actionDraft || { mode: "none" };
     const back = { device: "type", command: "type", action: "device" }[step];
     const titles = {
+      target: this._localize("start_on"),
       type: this._localize("when_it_ends"),
       device: this._localize("control_device_title"),
       action: this._localize("what_to_do"),
@@ -2667,7 +2761,9 @@ class SimpleTimerCard extends LitElement {
       </div>
     `;
     let body;
-    if (step === "type") {
+    if (step === "target") {
+      body = this._renderTargetList();
+    } else if (step === "type") {
       const favorites = this._favoriteActions();
       body = html`
         <div class="wizard-list">
@@ -3097,6 +3193,10 @@ class SimpleTimerCard extends LitElement {
     const deviceSources = new Set();
     const sources = [...this._config.entities, ...this._discoverTimerEntities()];
     const defaultEntity = this._config.default_timer_entity;
+    const integrationList = this._integrationStorageList();
+    if (integrationList && !sources.some((e) => (typeof e === "string" ? e : e?.entity) === integrationList)) {
+      sources.push({ entity: integrationList, mode: "timer_list" });
+    }
     // Timers created on a default timer list must show even if it is not listed.
     if (this._isTimerListEntity(defaultEntity) &&
         !sources.some((e) => (typeof e === "string" ? e : e?.entity) === defaultEntity)) {
@@ -3147,8 +3247,10 @@ class SimpleTimerCard extends LitElement {
         try { collected.push(...this._parseHelper(defaultEntity, stDefault, { mode: "helper" })); } catch (e) {}
       }
     }
-    if (this._config.storage === "local" || this._config.storage === "mqtt") {
-      const storageTimers = this._loadTimersFromStorage();
+    // Integration storage still shows browser timers: ones started before the
+    // switch, or while the integration was not installed.
+    if (["local", "mqtt", "integration"].includes(this._config.storage)) {
+      const storageTimers = this._loadTimersFromStorage(this._cardStorage());
       if (this._config.storage === "mqtt" && this._mqttLastLoadSource !== "sensor") {
         // Cache/shadow data can be stale after wake-up. Keep rendering it, but
         // block automatic expiry mutations until a fresh sensor snapshot arrives.
@@ -3621,6 +3723,7 @@ class SimpleTimerCard extends LitElement {
     // entity configured on the card (ambiguous when there are several).
     const def = this._config?.default_timer_entity;
     if (typeof def === "string" && def.startsWith("timer.")) return def;
+    if (this._integrationStorageList()) return null;
     try {
       const cfg = Array.isArray(this._config?.entities) ? this._config.entities : [];
       const nativeTimers = [];
@@ -3653,7 +3756,7 @@ class SimpleTimerCard extends LitElement {
   }
 
   _publishTimerEvent(event, timer) {
-    if (this._config.storage === "mqtt" || this._config.default_timer_entity?.startsWith("sensor.")) {
+    if (this._config.storage === "mqtt" || (this._config.default_timer_entity?.startsWith("sensor.") && !this._isCompanionList(this._config.default_timer_entity))) {
       const payload = {
         id: timer.id,
         label: timer.label,
@@ -6416,6 +6519,14 @@ const layout = this._config.layout;
       .action-link { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border: 0; background: none; color: var(--primary-color); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; border-radius: var(--stc-chip-radius); }
       .action-link:hover { background: color-mix(in srgb, var(--primary-color) 10%, transparent); }
       .action-link ha-icon { --mdc-icon-size: 18px; }
+      .target-link { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; min-width: 0; padding: 4px 8px; border: 0; background: none; color: var(--secondary-text-color); font: inherit; font-size: 12px; cursor: pointer; border-radius: var(--stc-chip-radius); }
+      .target-link:hover { background: var(--secondary-background-color, rgba(0,0,0,.06)); }
+      .target-link.static { cursor: default; }
+      .target-link.static:hover { background: none; }
+      .target-link ha-icon { --mdc-icon-size: 16px; flex: 0 0 auto; }
+      .target-link strong { color: var(--primary-text-color); font-weight: 600; }
+      .target-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+      .action-entry + .action-entry { margin-top: 2px; }
       .action-pill { display: inline-flex; align-items: center; max-width: 100%; border-radius: var(--stc-chip-radius); background: color-mix(in srgb, var(--primary-color) 14%, var(--card-background-color)); color: var(--primary-color); }
       .action-pill button { border: 0; background: none; color: inherit; font: inherit; cursor: pointer; display: inline-flex; align-items: center; }
       .action-pill-main { gap: 8px; min-width: 0; padding: 7px 4px 7px 12px; font-size: 13px; font-weight: 600; }
@@ -6434,6 +6545,8 @@ const layout = this._config.layout;
       .wizard-row.compact { padding: 8px 12px; }
       .wizard-row:hover { background: color-mix(in srgb, var(--primary-color) 12%, var(--secondary-background-color, transparent)); }
       .wizard-row .row-icon { --mdc-icon-size: 22px; color: var(--primary-color); flex: 0 0 auto; }
+      .wizard-row.selected { box-shadow: inset 0 0 0 1.5px var(--primary-color); }
+      .wizard-row .row-check { --mdc-icon-size: 20px; color: var(--primary-color); flex: 0 0 auto; }
       .row-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
       .row-title { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .row-sub { font-size: 12px; color: var(--secondary-text-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -6696,11 +6809,38 @@ class SimpleTimerCardEditor extends LitElement {
   }
 
   _mqttAutomationChanged(ev) {
+    this._mqttFieldChanged("publish_automation", ev);
+  }
+
+  _mqttFieldChanged(field, ev) {
     const mqtt = { ...(this._config.mqtt || {}) };
     const value = ev.detail?.value;
-    if (value) mqtt.publish_automation = value;
-    else delete mqtt.publish_automation;
+    if (value) mqtt[field] = value;
+    else delete mqtt[field];
     this._updateConfig({ mqtt }, true);
+  }
+
+  // Leaving MQTT keeps the old sensor under mqtt.sensor_entity, so a legacy
+  // sensor target does not keep overriding the new storage.
+  _storageChanged(ev) {
+    if (!this._config) return;
+    ev.stopPropagation();
+    const target = ev.target;
+    let value = ev?.detail?.value;
+    if ((value === undefined || value === null) && ev?.detail && typeof ev.detail.index === "number" && Array.isArray(target?.options)) {
+      value = target.options[ev.detail.index]?.value;
+    }
+    if (value === undefined || value === null) value = target.value;
+    if (!["local", "mqtt", "integration"].includes(value) || value === this._config.storage) return;
+    const patch = { storage: value };
+    const def = this._config.default_timer_entity;
+    const defIsMqttSensor = typeof def === "string" && def.startsWith("sensor.") &&
+      !SimpleTimerCard.prototype._isCompanionList.call(this, def) && !def.startsWith("sensor.simple_timer_card_timers");
+    if (value !== "mqtt" && defIsMqttSensor) {
+      patch.default_timer_entity = "";
+      patch.mqtt = { ...(this._config.mqtt || {}), sensor_entity: def };
+    }
+    this._updateConfig(patch, true);
   }
 
   _detailValueChanged(ev) {
@@ -7488,11 +7628,17 @@ _pinnedTimerValueChanged(ev, index) {
     const target = this._config.default_timer_entity || "";
     const storage = String(this._config.storage || "").toLowerCase();
     const hasMqtt = !!(this._config.mqtt && ["topic", "sensor_entity", "state_topic", "events_topic", "publish_automation"].some(key => this._config.mqtt[key]));
-    const storageType = target.startsWith("timer.") ? "timer"
-      : (target.startsWith("timer_list.") || SimpleTimerCard.prototype._isCompanionList.call(this, target)) ? "timer_list"
+    const companionInstalled = Object.keys(this.hass.states || {}).some((id) => SimpleTimerCard.prototype._isCompanionList.call(this, id));
+    const targetIsCompanion = SimpleTimerCard.prototype._isCompanionList.call(this, target) || target.startsWith("sensor.simple_timer_card_timers");
+    const storageChoice = storage === "integration" ? "integration"
+      : storage === "local" ? "local"
+      : storage === "mqtt" || hasMqtt || (target.startsWith("sensor.") && !targetIsCompanion) ? "mqtt" : "local";
+    const storageType = (storage === "integration" && (!target || targetIsCompanion)) ? "integration"
+      : target.startsWith("timer.") ? "timer"
+      : (target.startsWith("timer_list.") || targetIsCompanion) ? "timer_list"
       : target.startsWith("input_text.") || target.startsWith("text.") ? "helper"
       : storage === "local" ? "local"
-      : storage === "mqtt" || hasMqtt || target.startsWith("sensor.") ? "mqtt" : "local";
+      : storageChoice;
     const showMilestonesSection = this._config.progress_mode === "milestones";
     const stepperAvailable = normalizeTimerInput(this._config.custom_timer_input) === "stepper" || this._config.show_timer_input_selector === true;
 
@@ -7590,6 +7736,11 @@ _pinnedTimerValueChanged(ev, index) {
         { value: "device", label: "Device name" },
         { value: "area", label: "Area name" },
         { value: "none", label: "Hidden" },
+      ],
+      storage: [
+        { value: "local", label: "This browser" },
+        { value: "mqtt", label: "MQTT" },
+        { value: "integration", label: "Simple Timer Card integration" },
       ],
       target_picker: [
         { value: "auto", label: "Auto (when several timer lists)" },
@@ -7940,13 +8091,30 @@ _pinnedTimerValueChanged(ev, index) {
     `;
 
     const storageContent = html`
+      <ha-select label="Save new timers in" naturalMenuWidth fixedMenuPosition .value=${storageChoice} .configValue=${"storage"} .options=${SELECT_OPTIONS.storage} @selected=${this._storageChanged} @closed=${(e) => e.stopPropagation()}>
+        ${SELECT_OPTIONS.storage.map((o) => html`<mwc-list-item value=${o.value}>${o.label}</mwc-list-item>`)}
+      </ha-select>
+      ${storageChoice === "integration" && !companionInstalled ? html`
+        <p class="hint warning">The Simple Timer Card integration is not installed, so new timers are saved in this browser for now. See <a href="https://github.com/eyalgal/simple-timer-card/blob/main/CONFIGURATION.md#-companion-integration" target="_blank" rel="noopener">how to install it</a>.</p>
+      ` : ""}
+      ${storageChoice === "mqtt" && !target.startsWith("sensor.") ? html`
+        <ha-entity-picker
+          .hass=${this.hass}
+          .value=${this._config.mqtt?.sensor_entity || ""}
+          .includeDomains=${["sensor"]}
+          @value-changed=${(ev) => this._mqttFieldChanged("sensor_entity", ev)}
+          label="MQTT sensor"
+          help-text="The sensor that holds the timers. See the MQTT guide to create it."
+          allow-custom-entity
+        ></ha-entity-picker>
+      ` : ""}
       <ha-entity-picker
         .hass=${this.hass}
         .value=${this._config.default_timer_entity || ""}
         .configValue=${"default_timer_entity"}
         @value-changed=${this._detailValueChanged}
         label="New timer target (optional)"
-        help-text="Use a native timer, timer list, text helper, or MQTT sensor. Leave empty for browser storage or automatic selection of a single listed timer or timer list."
+        help-text="Overrides the storage above: a native timer, a speaker's timer list or a text helper. Leave empty to use the storage above."
         allow-custom-entity
         .includeDomains=${["timer", "timer_list", "input_text", "text", "sensor"]}
       ></ha-entity-picker>
@@ -8306,6 +8474,7 @@ _pinnedTimerValueChanged(ev, index) {
     switch (storage) {
       case "timer": return "Native Home Assistant Timer";
       case "timer_list": return "Home Assistant Timer List or Simple Timer Card integration";
+      case "integration": return "Simple Timer Card integration";
       case "local": return "Local Browser Storage";
       case "helper": return "Helper Entities";
       case "mqtt": return "MQTT";
@@ -8316,6 +8485,7 @@ _pinnedTimerValueChanged(ev, index) {
   _getStorageDescription(storage) {
     switch (storage) {
       case "timer": return "New timers use timer.start on the selected Home Assistant timer entity.";
+      case "integration": return "Timers are kept in Home Assistant, so they keep running with no dashboard open, survive restarts and can do something when they end.";
       case "timer_list": return "New timers are created on the selected timer list. On a voice satellite they show and ring on the device. The Simple Timer Card integration keeps them in Home Assistant across restarts.";
       case "local": return "Timers are stored locally in your browser and persist across sessions.";
       case "helper": return "Timers are stored in Home Assistant helper entities (input_text/text).";

@@ -23,7 +23,7 @@ No dashboard clutter. No duplicated cards. Just timers.
 * **Quick actions**: Presets, pinned one‑tap timers, and custom timers with a keypad or +/- buttons, plus an optional on-card input switch
 * **Visual progress styles**: Bars, fills, and circles (vertical or horizontal) with drain, fill, or milestone modes
 * **Simple editor**: Sources, storage, appearance, and timer input in one place, with a remembered Advanced mode for specialist settings
-* **Persistent storage**: Local timers survive reloads in the same browser; MQTT shares timers across devices
+* **Persistent storage**: Local timers survive reloads in the same browser; MQTT or the companion integration share timers across devices
 * **Audio & notifications**: Optional sounds, snooze, cleanup, and push notifications while the card is running; a backend monitor is needed when all dashboards are closed
 * **Theme aware & multilingual**: Matches your Home Assistant theme; English, German, Spanish, Danish, Italian, French, Hebrew (RTL), Polish, Dutch, and Swedish
 * **[Spook](https://spook.boo/) fallback**: Automatically falls back to Spook's `timer.set_duration` for non-admin users
@@ -64,9 +64,10 @@ v3.0.0 also adds:
 * An optional **companion integration** keeps timers in Home Assistant, runs a
   command or any device action when a timer ends ("turn off the air purifier in
   30 minutes") with every dashboard closed, and shows delayed voice commands as
-  timers. MQTT and the other storage options keep working unchanged. See
+  timers. Choose it with `storage: integration`, next to browser and MQTT
+  storage, which keep working unchanged. See
   [Companion integration](CONFIGURATION.md#-companion-integration).
-* **Start-on picker** and **default area** for choosing which satellite a new
+* A **Starts on** line and **default area** for choosing which speaker a new
   timer starts on, plus device or area labels and `group_by`.
 * **Browser voice satellites** (Voice Satellite Card integration), **count-up
   rows** ("fed 1h 40m ago") and **template rows** from Jinja.

@@ -82,6 +82,19 @@ test("MQTT relay picker preserves nested settings, sensor shorthand and clearing
   assert.deepEqual(events.at(-1).mqtt, mqtt);
 });
 
+test("storage offers the integration and moves a legacy MQTT sensor target out of the way", async () => {
+  const { editor, events } = await mount({ default_timer_entity: "sensor.timer_store" });
+  const field = control(editor, "storage");
+  assert.ok(available(editor, field));
+  assert.equal(field.value, "mqtt");
+  field.dispatchEvent(new CustomEvent("selected", { detail: { value: "integration" }, bubbles: true }));
+  await editor.updateComplete;
+  assert.equal(events.at(-1).storage, "integration");
+  assert.equal(events.at(-1).default_timer_entity, undefined);
+  assert.equal(events.at(-1).mqtt.sensor_entity, "sensor.timer_store");
+  assert.ok(editor.shadowRoot.querySelector(".hint.warning"), "warns that the integration is not installed");
+});
+
 test("appearance contains each display and ordering control once in both editor modes", async () => {
   const saved = {
     title: "Kitchen", style: "circle_horizontal", layout: "vertical", language: "he",

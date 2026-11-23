@@ -169,3 +169,57 @@ test("the wizard picks a device and action, and closing it keeps the previous ch
   card._closeActionWizard(false);
   assert.equal(card._actionDraftSpec().key, "fan.air_purifier:fan.turn_off");
 });
+
+test("integration storage sends every new timer to the companion and shows its timers unlisted", async () => {
+  const { card, ws, calls } = makeCard({ storage: "integration", entities: ["timer.kitchen"] },
+    { states: { "timer.kitchen": { state: "idle", attributes: { friendly_name: "Kitchen" } } } });
+  card._updateTimers();
+  assert.ok(card._knownTimerLists.includes(LIST));
+  card._createPresetTimer(5);
+  card._lastActionTime.clear();
+  card._createAndSaveTimer(120, "Tea");
+  await flush();
+  assert.deepEqual(ws.map((m) => [m.domain, m.target.entity_id]), [["simple_timer_card", LIST], ["simple_timer_card", LIST]]);
+  assert.equal(calls.length, 0, "the listed native timer is not used");
+  assert.equal(card._loadTimersFromStorage_local().length, 0);
+});
+
+test("integration storage falls back to this browser without the companion", () => {
+  const { card, ws } = makeCard({ storage: "integration" }, { companion: false });
+  card._createAndSaveTimer(120, "Tea");
+  assert.equal(ws.length, 0);
+  card._updateTimers();
+  assert.deepEqual(card._timers.map((t) => [t.source, t.label]), [["local", "Tea"]]);
+});
+
+test("the companion as default target is not mistaken for MQTT storage", () => {
+  const { card } = makeCard({ default_timer_entity: LIST });
+  assert.equal(card._config.storage, "local");
+  assert.equal(card._config.mqtt.sensor_entity, null);
+});
+
+test("Start on lists the server first, then speakers by area, and hides this browser with integration storage", () => {
+  const speakers = {};
+  const entities = {};
+  for (const [id, area] of [["office", "office"], ["kitchen", "kitchen"], ["bedroom", "bedroom"]]) {
+    speakers[`timer_list.${id}`] = { state: "0", attributes: { friendly_name: `${id} timers`, supported_features: 63 } };
+    entities[`timer_list.${id}`] = { area_id: area };
+  }
+  const run = (storage) => {
+    const { card } = makeCard({ storage, auto_discover_timer_lists: true }, { states: speakers });
+    card.hass.entities = entities;
+    card.hass.areas = { office: { name: "Office" }, kitchen: { name: "Kitchen" }, bedroom: { name: "Bedroom" } };
+    card._updateTimers();
+    return card;
+  };
+  const card = run("integration");
+  assert.deepEqual(card._targetDestinations().map((d) => d.value),
+    [`list:${LIST}`, "list:timer_list.bedroom", "list:timer_list.kitchen", "list:timer_list.office"]);
+  assert.equal(card._currentTargetValue(), `list:${LIST}`);
+  card._targetQuery = "kitch";
+  card._openActionWizard("horizontal", "target");
+  assert.equal(card._actionWizard.step, "target");
+  card._closeActionWizard(false);
+  assert.equal(card._targetQuery, "");
+  assert.equal(run("local")._targetDestinations().at(-1).value, "card");
+});
