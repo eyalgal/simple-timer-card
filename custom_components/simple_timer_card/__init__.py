@@ -16,7 +16,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.start import async_at_started
 from homeassistant.helpers.typing import ConfigType
 
-from . import voice, websocket
+from . import announce, voice, websocket
 from .actions import async_run_action
 from .const import (
     CONF_CAPTURE_VOICE,
@@ -34,6 +34,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Register the websocket API once."""
     hass.data.setdefault(DOMAIN, {})
     websocket.async_setup(hass)
+    announce.async_setup(hass)
     return True
 
 

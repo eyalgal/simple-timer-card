@@ -24,6 +24,7 @@ T = {
         "invalid_duration": "The duration must be longer than zero.",
         "not_understood": "Home Assistant did not understand \"{command}\".",
         "both": "Use a command or actions, not both.",
+        "no_tts": "No text-to-speech engine is available to announce on {entity_id}.",
         "statuses": {"active": "Running", "paused": "Paused", "finished": "Finished", "cancelled": "Cancelled"},
         "fields": {
             "timer_id": ("Timer ID", "The ID of the timer."),
@@ -38,6 +39,8 @@ T = {
             "color": ("Color", "Color shown on the card."),
             "metadata": ("Metadata", "Extra data stored with the timer, such as card options."),
             "status": ("Status", "Only return timers with these statuses."),
+            "entity_id": ("Speaker", "The speaker to announce on: a media player or voice satellite."),
+            "message": ("Message", "What to say."),
         },
         "services": {
             "create_timer": ("Create timer", "Starts a timer that can run a command or actions when it ends."),
@@ -50,6 +53,7 @@ T = {
             "subtract_time": ("Subtract time", "Removes time from a timer. Removing more than is left finishes it."),
             "restart_timer": ("Restart timer", "Runs a timer again, keeping its name and action."),
             "get_timers": ("Get timers", "Returns the timers in the list."),
+            "announce": ("Announce", "Says a message on a speaker, using the voice of the preferred Assist pipeline."),
         },
     },
     "de": {
@@ -66,6 +70,7 @@ T = {
         "invalid_duration": "Die Dauer muss größer als null sein.",
         "not_understood": "Home Assistant hat „{command}“ nicht verstanden.",
         "both": "Verwende einen Befehl oder Aktionen, nicht beides.",
+        "no_tts": "Keine Sprachausgabe verfügbar, um auf {entity_id} anzusagen.",
         "statuses": {"active": "Läuft", "paused": "Pausiert", "finished": "Beendet", "cancelled": "Abgebrochen"},
         "fields": {
             "timer_id": ("Timer-ID", "Die ID des Timers."),
@@ -80,6 +85,8 @@ T = {
             "color": ("Farbe", "Farbe auf der Karte."),
             "metadata": ("Metadaten", "Zusätzliche Daten zum Timer, etwa Kartenoptionen."),
             "status": ("Status", "Nur Timer mit diesem Status zurückgeben."),
+            "entity_id": ("Lautsprecher", "Der Lautsprecher für die Ansage: ein Mediaplayer oder Sprachsatellit."),
+            "message": ("Nachricht", "Was gesagt werden soll."),
         },
         "services": {
             "create_timer": ("Timer erstellen", "Startet einen Timer, der beim Ablauf einen Befehl oder Aktionen ausführen kann."),
@@ -92,6 +99,7 @@ T = {
             "subtract_time": ("Zeit abziehen", "Zieht Zeit von einem Timer ab. Mehr als die Restzeit beendet ihn."),
             "restart_timer": ("Timer neu starten", "Startet einen Timer erneut mit Name und Aktion."),
             "get_timers": ("Timer abrufen", "Gibt die Timer der Liste zurück."),
+            "announce": ("Ansagen", "Spricht eine Nachricht auf einem Lautsprecher, mit der Stimme der bevorzugten Assist-Pipeline."),
         },
     },
     "es": {
@@ -108,6 +116,7 @@ T = {
         "invalid_duration": "La duración debe ser mayor que cero.",
         "not_understood": "Home Assistant no ha entendido «{command}».",
         "both": "Usa un comando o acciones, no ambos.",
+        "no_tts": "No hay ningún motor de texto a voz para anunciar en {entity_id}.",
         "statuses": {"active": "En marcha", "paused": "En pausa", "finished": "Terminado", "cancelled": "Cancelado"},
         "fields": {
             "timer_id": ("ID del temporizador", "El ID del temporizador."),
@@ -122,6 +131,8 @@ T = {
             "color": ("Color", "Color que se muestra en la tarjeta."),
             "metadata": ("Metadatos", "Datos adicionales del temporizador, como opciones de la tarjeta."),
             "status": ("Estado", "Devolver solo temporizadores con estos estados."),
+            "entity_id": ("Altavoz", "El altavoz donde anunciar: un reproductor multimedia o un satélite de voz."),
+            "message": ("Mensaje", "Qué decir."),
         },
         "services": {
             "create_timer": ("Crear temporizador", "Inicia un temporizador que puede ejecutar un comando o acciones al terminar."),
@@ -134,6 +145,7 @@ T = {
             "subtract_time": ("Quitar tiempo", "Quita tiempo a un temporizador. Quitar más del que queda lo termina."),
             "restart_timer": ("Reiniciar temporizador", "Vuelve a iniciar un temporizador con su nombre y acción."),
             "get_timers": ("Obtener temporizadores", "Devuelve los temporizadores de la lista."),
+            "announce": ("Anunciar", "Dice un mensaje en un altavoz con la voz de la canalización de Assist preferida."),
         },
     },
     "da": {
@@ -150,6 +162,7 @@ T = {
         "invalid_duration": "Varigheden skal være længere end nul.",
         "not_understood": "Home Assistant forstod ikke \"{command}\".",
         "both": "Brug en kommando eller handlinger, ikke begge.",
+        "no_tts": "Ingen tekst-til-tale er tilgængelig til at annoncere på {entity_id}.",
         "statuses": {"active": "Kører", "paused": "På pause", "finished": "Færdig", "cancelled": "Annulleret"},
         "fields": {
             "timer_id": ("Timer-ID", "Timerens ID."),
@@ -164,6 +177,8 @@ T = {
             "color": ("Farve", "Farve på kortet."),
             "metadata": ("Metadata", "Ekstra data gemt med timeren, f.eks. kortindstillinger."),
             "status": ("Status", "Returner kun timere med disse statusser."),
+            "entity_id": ("Højttaler", "Højttaleren der skal annonceres på: en medieafspiller eller stemmesatellit."),
+            "message": ("Besked", "Hvad der skal siges."),
         },
         "services": {
             "create_timer": ("Opret timer", "Starter en timer, der kan udføre en kommando eller handlinger, når den slutter."),
@@ -176,6 +191,7 @@ T = {
             "subtract_time": ("Træk tid fra", "Trækker tid fra en timer. Mere end resten afslutter den."),
             "restart_timer": ("Genstart timer", "Kører en timer igen med samme navn og handling."),
             "get_timers": ("Hent timere", "Returnerer timerne på listen."),
+            "announce": ("Annoncér", "Siger en besked på en højttaler med stemmen fra den foretrukne Assist-pipeline."),
         },
     },
     "it": {
@@ -192,6 +208,7 @@ T = {
         "invalid_duration": "La durata deve essere maggiore di zero.",
         "not_understood": "Home Assistant non ha capito \"{command}\".",
         "both": "Usa un comando o delle azioni, non entrambi.",
+        "no_tts": "Nessun motore di sintesi vocale disponibile per annunciare su {entity_id}.",
         "statuses": {"active": "In corso", "paused": "In pausa", "finished": "Terminato", "cancelled": "Annullato"},
         "fields": {
             "timer_id": ("ID timer", "L'ID del timer."),
@@ -206,6 +223,8 @@ T = {
             "color": ("Colore", "Colore mostrato nella scheda."),
             "metadata": ("Metadati", "Dati aggiuntivi salvati con il timer, come le opzioni della scheda."),
             "status": ("Stato", "Restituisci solo i timer con questi stati."),
+            "entity_id": ("Altoparlante", "L'altoparlante su cui annunciare: un lettore multimediale o un satellite vocale."),
+            "message": ("Messaggio", "Cosa dire."),
         },
         "services": {
             "create_timer": ("Crea timer", "Avvia un timer che alla fine può eseguire un comando o delle azioni."),
@@ -218,6 +237,7 @@ T = {
             "subtract_time": ("Togli tempo", "Toglie tempo a un timer. Toglierne più del rimanente lo termina."),
             "restart_timer": ("Riavvia timer", "Riavvia un timer mantenendo nome e azione."),
             "get_timers": ("Ottieni timer", "Restituisce i timer dell'elenco."),
+            "announce": ("Annuncia", "Pronuncia un messaggio su un altoparlante con la voce della pipeline Assist preferita."),
         },
     },
     "fr": {
@@ -234,6 +254,7 @@ T = {
         "invalid_duration": "La durée doit être supérieure à zéro.",
         "not_understood": "Home Assistant n'a pas compris « {command} ».",
         "both": "Utilisez une commande ou des actions, pas les deux.",
+        "no_tts": "Aucun moteur de synthèse vocale n'est disponible pour annoncer sur {entity_id}.",
         "statuses": {"active": "En cours", "paused": "En pause", "finished": "Terminé", "cancelled": "Annulé"},
         "fields": {
             "timer_id": ("ID du minuteur", "L'ID du minuteur."),
@@ -248,6 +269,8 @@ T = {
             "color": ("Couleur", "Couleur affichée sur la carte."),
             "metadata": ("Métadonnées", "Données supplémentaires du minuteur, comme les options de la carte."),
             "status": ("Statut", "Ne renvoyer que les minuteurs avec ces statuts."),
+            "entity_id": ("Enceinte", "L'enceinte sur laquelle annoncer : un lecteur multimédia ou un satellite vocal."),
+            "message": ("Message", "Ce qu'il faut dire."),
         },
         "services": {
             "create_timer": ("Créer un minuteur", "Démarre un minuteur qui peut lancer une commande ou des actions à la fin."),
@@ -260,6 +283,7 @@ T = {
             "subtract_time": ("Retirer du temps", "Retire du temps à un minuteur. En retirer plus que le reste le termine."),
             "restart_timer": ("Relancer le minuteur", "Relance un minuteur avec son nom et son action."),
             "get_timers": ("Obtenir les minuteurs", "Renvoie les minuteurs de la liste."),
+            "announce": ("Annoncer", "Prononce un message sur une enceinte avec la voix du pipeline Assist préféré."),
         },
     },
     "he": {
@@ -276,6 +300,7 @@ T = {
         "invalid_duration": "משך הזמן חייב להיות גדול מאפס.",
         "not_understood": "Home Assistant לא הבין את \"{command}\".",
         "both": "יש להשתמש בפקודה או בפעולות, לא בשתיהן.",
+        "no_tts": "אין מנוע הקראה זמין להכרזה ב-{entity_id}.",
         "statuses": {"active": "פועל", "paused": "מושהה", "finished": "הסתיים", "cancelled": "בוטל"},
         "fields": {
             "timer_id": ("מזהה טיימר", "המזהה של הטיימר."),
@@ -290,6 +315,8 @@ T = {
             "color": ("צבע", "הצבע שמוצג בכרטיס."),
             "metadata": ("נתונים נוספים", "נתונים נוספים שנשמרים עם הטיימר, כמו הגדרות כרטיס."),
             "status": ("סטטוס", "להחזיר רק טיימרים בסטטוסים האלה."),
+            "entity_id": ("רמקול", "הרמקול להכרזה: נגן מדיה או לוויין קולי."),
+            "message": ("הודעה", "מה להגיד."),
         },
         "services": {
             "create_timer": ("יצירת טיימר", "מפעיל טיימר שיכול להריץ פקודה או פעולות בסיום."),
@@ -302,6 +329,7 @@ T = {
             "subtract_time": ("הפחתת זמן", "מפחית זמן מטיימר. הפחתה של יותר מהנותר מסיימת אותו."),
             "restart_timer": ("הפעלה מחדש", "מפעיל טיימר מחדש עם אותו שם ופעולה."),
             "get_timers": ("קבלת טיימרים", "מחזיר את הטיימרים ברשימה."),
+            "announce": ("הכרזה", "משמיע הודעה ברמקול, בקול של צינור Assist המועדף."),
         },
     },
     "pl": {
@@ -318,6 +346,7 @@ T = {
         "invalid_duration": "Czas trwania musi być większy od zera.",
         "not_understood": "Home Assistant nie zrozumiał „{command}”.",
         "both": "Użyj polecenia albo akcji, nie obu.",
+        "no_tts": "Brak silnika zamiany tekstu na mowę do ogłoszenia na {entity_id}.",
         "statuses": {"active": "Działa", "paused": "Wstrzymany", "finished": "Zakończony", "cancelled": "Anulowany"},
         "fields": {
             "timer_id": ("ID minutnika", "ID minutnika."),
@@ -332,6 +361,8 @@ T = {
             "color": ("Kolor", "Kolor pokazywany na karcie."),
             "metadata": ("Metadane", "Dodatkowe dane minutnika, np. opcje karty."),
             "status": ("Stan", "Zwracaj tylko minutniki w tych stanach."),
+            "entity_id": ("Głośnik", "Głośnik do ogłoszenia: odtwarzacz multimediów lub satelita głosowy."),
+            "message": ("Wiadomość", "Co powiedzieć."),
         },
         "services": {
             "create_timer": ("Utwórz minutnik", "Uruchamia minutnik, który po zakończeniu może wykonać polecenie lub akcje."),
@@ -344,6 +375,7 @@ T = {
             "subtract_time": ("Odejmij czas", "Odejmuje czas od minutnika. Odjęcie więcej niż zostało kończy go."),
             "restart_timer": ("Uruchom ponownie", "Uruchamia minutnik ponownie z tą samą nazwą i akcją."),
             "get_timers": ("Pobierz minutniki", "Zwraca minutniki z listy."),
+            "announce": ("Ogłoś", "Wypowiada wiadomość na głośniku głosem preferowanego potoku Assist."),
         },
     },
     "nl": {
@@ -360,6 +392,7 @@ T = {
         "invalid_duration": "De duur moet groter zijn dan nul.",
         "not_understood": "Home Assistant begreep \"{command}\" niet.",
         "both": "Gebruik een opdracht of acties, niet allebei.",
+        "no_tts": "Er is geen tekst-naar-spraak beschikbaar om om te roepen op {entity_id}.",
         "statuses": {"active": "Loopt", "paused": "Gepauzeerd", "finished": "Afgelopen", "cancelled": "Geannuleerd"},
         "fields": {
             "timer_id": ("Timer-ID", "Het ID van de timer."),
@@ -374,6 +407,8 @@ T = {
             "color": ("Kleur", "Kleur op de kaart."),
             "metadata": ("Metadata", "Extra gegevens bij de timer, zoals kaartopties."),
             "status": ("Status", "Alleen timers met deze status teruggeven."),
+            "entity_id": ("Speaker", "De speaker om op om te roepen: een mediaspeler of spraaksatelliet."),
+            "message": ("Bericht", "Wat er gezegd moet worden."),
         },
         "services": {
             "create_timer": ("Timer maken", "Start een timer die bij het aflopen een opdracht of acties kan uitvoeren."),
@@ -386,6 +421,7 @@ T = {
             "subtract_time": ("Tijd aftrekken", "Haalt tijd van een timer af. Meer dan er over is beëindigt hem."),
             "restart_timer": ("Timer herstarten", "Start een timer opnieuw met dezelfde naam en actie."),
             "get_timers": ("Timers ophalen", "Geeft de timers in de lijst terug."),
+            "announce": ("Omroepen", "Spreekt een bericht uit op een speaker met de stem van de voorkeurs-Assist-pipeline."),
         },
     },
     "sv": {
@@ -402,6 +438,7 @@ T = {
         "invalid_duration": "Varaktigheten måste vara större än noll.",
         "not_understood": "Home Assistant förstod inte \"{command}\".",
         "both": "Använd ett kommando eller åtgärder, inte båda.",
+        "no_tts": "Ingen text-till-tal finns för att meddela på {entity_id}.",
         "statuses": {"active": "Pågår", "paused": "Pausad", "finished": "Klar", "cancelled": "Avbruten"},
         "fields": {
             "timer_id": ("Timer-ID", "Timerns ID."),
@@ -416,6 +453,8 @@ T = {
             "color": ("Färg", "Färg som visas på kortet."),
             "metadata": ("Metadata", "Extra data som sparas med timern, till exempel kortinställningar."),
             "status": ("Status", "Returnera bara timrar med dessa statusar."),
+            "entity_id": ("Högtalare", "Högtalaren att meddela på: en mediaspelare eller röstsatellit."),
+            "message": ("Meddelande", "Vad som ska sägas."),
         },
         "services": {
             "create_timer": ("Skapa timer", "Startar en timer som kan köra ett kommando eller åtgärder när den är klar."),
@@ -428,6 +467,7 @@ T = {
             "subtract_time": ("Dra av tid", "Drar av tid från en timer. Mer än det som återstår avslutar den."),
             "restart_timer": ("Starta om timer", "Kör en timer igen med samma namn och åtgärd."),
             "get_timers": ("Hämta timrar", "Returnerar timrarna i listan."),
+            "announce": ("Meddela", "Säger ett meddelande på en högtalare med rösten från den föredragna Assist-pipelinen."),
         },
     },
 }
@@ -443,6 +483,7 @@ SERVICE_FIELDS = {
     "subtract_time": ["timer_id", "duration_add"],
     "restart_timer": ["timer_id", "duration_restart"],
     "get_timers": ["status"],
+    "announce": ["entity_id", "message"],
 }
 
 
@@ -477,6 +518,7 @@ def build(lang: dict) -> dict:
             "invalid_duration": {"message": lang["invalid_duration"]},
             "command_not_understood": {"message": lang["not_understood"]},
             "command_and_actions": {"message": lang["both"]},
+            "no_tts": {"message": lang["no_tts"]},
         },
         "selector": {"status": {"options": lang["statuses"]}},
         "services": services,

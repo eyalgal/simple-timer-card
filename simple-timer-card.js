@@ -2665,33 +2665,30 @@ class SimpleTimerCard extends i$2 {
 
   // === Announce on a speaker (v3.0.0) ===
   //
-  // Voice satellites announce natively, Alexa Media Player speakers through
-  // notify.alexa_media, and other media players through a TTS entity.
+  // The companion's announce service picks the method when the timer ends:
+  // satellites announce natively, Alexa Media Player speakers through
+  // notify.alexa_media, other media players through TTS with the preferred
+  // Assist pipeline's voice.
 
-  _ttsEntity() {
-    const ids = Object.keys(this.hass?.states || {}).filter((id) => id.startsWith("tts.")).sort();
-    return ids.includes("tts.home_assistant_cloud") ? "tts.home_assistant_cloud" : (ids[0] || null);
+  _canAnnounceOn(entityId) {
+    const domain = String(entityId || "").split(".")[0];
+    if (domain === "assist_satellite") return true;
+    if (domain !== "media_player") return false;
+    if (this.hass?.entities?.[entityId]?.platform === "alexa_media") return true;
+    return Object.keys(this.hass?.states || {}).some((id) => id.startsWith("tts."));
   }
 
   _announceActions(entityId, message) {
-    const domain = String(entityId || "").split(".")[0];
-    if (domain === "assist_satellite") {
-      return [{ action: "assist_satellite.announce", target: { entity_id: entityId }, data: { message } }];
-    }
-    if (domain !== "media_player") return null;
-    if (this.hass?.entities?.[entityId]?.platform === "alexa_media" && this.hass?.services?.notify?.alexa_media) {
-      return [{ action: "notify.alexa_media", data: { message, target: [entityId], data: { type: "announce" } } }];
-    }
-    const tts = this._ttsEntity();
-    if (!tts) return null;
-    return [{ action: "tts.speak", target: { entity_id: tts }, data: { media_player_entity_id: entityId, message } }];
+    if (!this._canAnnounceOn(entityId)) return null;
+    return [{ action: `${COMPANION_DOMAIN}.announce`, data: { entity_id: entityId, message } }];
   }
 
   // The speaker an announce step speaks on, or null for other actions.
   _announceTarget(step) {
     const service = step?.action || step?.service;
     let id = null;
-    if (service === "assist_satellite.announce") id = step.target?.entity_id ?? step.entity_id;
+    if (service === `${COMPANION_DOMAIN}.announce`) id = step.data?.entity_id;
+    else if (service === "assist_satellite.announce") id = step.target?.entity_id ?? step.entity_id;
     else if (service === "notify.alexa_media") id = step.data?.target;
     else if (service === "tts.speak") id = step.data?.media_player_entity_id;
     else return null;
@@ -2707,7 +2704,7 @@ class SimpleTimerCard extends i$2 {
       if (domain === "assist_satellite") {
         if (!(features & 1)) continue;
       } else if (domain === "media_player") {
-        if (!(features & 512) || !this._announceActions(id, "-")) continue;
+        if (!(features & 512) || !this._canAnnounceOn(id)) continue;
       } else continue;
       if (this.hass?.entities?.[id]?.hidden) continue;
       const info = this._registryInfo(id);

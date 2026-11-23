@@ -52,6 +52,9 @@
     },
     "command_and_actions": {
       "message": "Utilisez une commande ou des actions, pas les deux."
+    },
+    "no_tts": {
+      "message": "Aucun moteur de synthèse vocale n'est disponible pour annoncer sur {entity_id}."
     }
   },
   "selector": {
@@ -202,6 +205,20 @@
         "status": {
           "name": "Statut",
           "description": "Ne renvoyer que les minuteurs avec ces statuts."
+        }
+      }
+    },
+    "announce": {
+      "name": "Annoncer",
+      "description": "Prononce un message sur une enceinte avec la voix du pipeline Assist préféré.",
+      "fields": {
+        "entity_id": {
+          "name": "Enceinte",
+          "description": "L'enceinte sur laquelle annoncer : un lecteur multimédia ou un satellite vocal."
+        },
+        "message": {
+          "name": "Message",
+          "description": "Ce qu'il faut dire."
         }
       }
     }

@@ -52,6 +52,9 @@
     },
     "command_and_actions": {
       "message": "Använd ett kommando eller åtgärder, inte båda."
+    },
+    "no_tts": {
+      "message": "Ingen text-till-tal finns för att meddela på {entity_id}."
     }
   },
   "selector": {
@@ -202,6 +205,20 @@
         "status": {
           "name": "Status",
           "description": "Returnera bara timrar med dessa statusar."
+        }
+      }
+    },
+    "announce": {
+      "name": "Meddela",
+      "description": "Säger ett meddelande på en högtalare med rösten från den föredragna Assist-pipelinen.",
+      "fields": {
+        "entity_id": {
+          "name": "Högtalare",
+          "description": "Högtalaren att meddela på: en mediaspelare eller röstsatellit."
+        },
+        "message": {
+          "name": "Meddelande",
+          "description": "Vad som ska sägas."
         }
       }
     }

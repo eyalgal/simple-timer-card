@@ -52,6 +52,9 @@
     },
     "command_and_actions": {
       "message": "Verwende einen Befehl oder Aktionen, nicht beides."
+    },
+    "no_tts": {
+      "message": "Keine Sprachausgabe verfügbar, um auf {entity_id} anzusagen."
     }
   },
   "selector": {
@@ -202,6 +205,20 @@
         "status": {
           "name": "Status",
           "description": "Nur Timer mit diesem Status zurückgeben."
+        }
+      }
+    },
+    "announce": {
+      "name": "Ansagen",
+      "description": "Spricht eine Nachricht auf einem Lautsprecher, mit der Stimme der bevorzugten Assist-Pipeline.",
+      "fields": {
+        "entity_id": {
+          "name": "Lautsprecher",
+          "description": "Der Lautsprecher für die Ansage: ein Mediaplayer oder Sprachsatellit."
+        },
+        "message": {
+          "name": "Nachricht",
+          "description": "Was gesagt werden soll."
         }
       }
     }

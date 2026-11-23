@@ -52,6 +52,9 @@
     },
     "command_and_actions": {
       "message": "Gebruik een opdracht of acties, niet allebei."
+    },
+    "no_tts": {
+      "message": "Er is geen tekst-naar-spraak beschikbaar om om te roepen op {entity_id}."
     }
   },
   "selector": {
@@ -202,6 +205,20 @@
         "status": {
           "name": "Status",
           "description": "Alleen timers met deze status teruggeven."
+        }
+      }
+    },
+    "announce": {
+      "name": "Omroepen",
+      "description": "Spreekt een bericht uit op een speaker met de stem van de voorkeurs-Assist-pipeline.",
+      "fields": {
+        "entity_id": {
+          "name": "Speaker",
+          "description": "De speaker om op om te roepen: een mediaspeler of spraaksatelliet."
+        },
+        "message": {
+          "name": "Bericht",
+          "description": "Wat er gezegd moet worden."
         }
       }
     }

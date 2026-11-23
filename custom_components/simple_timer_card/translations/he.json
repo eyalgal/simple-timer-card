@@ -52,6 +52,9 @@
     },
     "command_and_actions": {
       "message": "יש להשתמש בפקודה או בפעולות, לא בשתיהן."
+    },
+    "no_tts": {
+      "message": "אין מנוע הקראה זמין להכרזה ב-{entity_id}."
     }
   },
   "selector": {
@@ -202,6 +205,20 @@
         "status": {
           "name": "סטטוס",
           "description": "להחזיר רק טיימרים בסטטוסים האלה."
+        }
+      }
+    },
+    "announce": {
+      "name": "הכרזה",
+      "description": "משמיע הודעה ברמקול, בקול של צינור Assist המועדף.",
+      "fields": {
+        "entity_id": {
+          "name": "רמקול",
+          "description": "הרמקול להכרזה: נגן מדיה או לוויין קולי."
+        },
+        "message": {
+          "name": "הודעה",
+          "description": "מה להגיד."
         }
       }
     }

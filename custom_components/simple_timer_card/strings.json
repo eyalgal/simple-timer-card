@@ -52,6 +52,9 @@
     },
     "command_and_actions": {
       "message": "Use a command or actions, not both."
+    },
+    "no_tts": {
+      "message": "No text-to-speech engine is available to announce on {entity_id}."
     }
   },
   "selector": {
@@ -202,6 +205,20 @@
         "status": {
           "name": "Status",
           "description": "Only return timers with these statuses."
+        }
+      }
+    },
+    "announce": {
+      "name": "Announce",
+      "description": "Says a message on a speaker, using the voice of the preferred Assist pipeline.",
+      "fields": {
+        "entity_id": {
+          "name": "Speaker",
+          "description": "The speaker to announce on: a media player or voice satellite."
+        },
+        "message": {
+          "name": "Message",
+          "description": "What to say."
         }
       }
     }

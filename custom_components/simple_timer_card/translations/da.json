@@ -52,6 +52,9 @@
     },
     "command_and_actions": {
       "message": "Brug en kommando eller handlinger, ikke begge."
+    },
+    "no_tts": {
+      "message": "Ingen tekst-til-tale er tilgængelig til at annoncere på {entity_id}."
     }
   },
   "selector": {
@@ -202,6 +205,20 @@
         "status": {
           "name": "Status",
           "description": "Returner kun timere med disse statusser."
+        }
+      }
+    },
+    "announce": {
+      "name": "Annoncér",
+      "description": "Siger en besked på en højttaler med stemmen fra den foretrukne Assist-pipeline.",
+      "fields": {
+        "entity_id": {
+          "name": "Højttaler",
+          "description": "Højttaleren der skal annonceres på: en medieafspiller eller stemmesatellit."
+        },
+        "message": {
+          "name": "Besked",
+          "description": "Hvad der skal siges."
         }
       }
     }

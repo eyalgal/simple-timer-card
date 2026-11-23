@@ -52,6 +52,9 @@
     },
     "command_and_actions": {
       "message": "Użyj polecenia albo akcji, nie obu."
+    },
+    "no_tts": {
+      "message": "Brak silnika zamiany tekstu na mowę do ogłoszenia na {entity_id}."
     }
   },
   "selector": {
@@ -202,6 +205,20 @@
         "status": {
           "name": "Stan",
           "description": "Zwracaj tylko minutniki w tych stanach."
+        }
+      }
+    },
+    "announce": {
+      "name": "Ogłoś",
+      "description": "Wypowiada wiadomość na głośniku głosem preferowanego potoku Assist.",
+      "fields": {
+        "entity_id": {
+          "name": "Głośnik",
+          "description": "Głośnik do ogłoszenia: odtwarzacz multimediów lub satelita głosowy."
+        },
+        "message": {
+          "name": "Wiadomość",
+          "description": "Co powiedzieć."
         }
       }
     }

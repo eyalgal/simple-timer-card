@@ -87,3 +87,17 @@ get_timers:
             - finished
             - cancelled
           translation_key: status
+announce:
+  fields:
+    entity_id:
+      required: true
+      selector:
+        entity:
+          domain:
+            - media_player
+            - assist_satellite
+    message:
+      required: true
+      example: The pasta is done
+      selector:
+        text:

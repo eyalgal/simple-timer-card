@@ -1076,9 +1076,13 @@ it.
 | `on_finish` | object | none | On a pinned timer: `entity` and `service`, `command`, `announce` and `message`, or `actions` (a Home Assistant action list). |
 | `action_timers` | boolean | `true` | Set `false` to hide **Do something when it ends**. |
 
-Announcements use `assist_satellite.announce` on voice satellites,
-`notify.alexa_media` on Alexa Media Player speakers, and `tts.speak` with your
-TTS engine (Home Assistant Cloud first) on other media players.
+Announcements go through the integration's `simple_timer_card.announce`
+action, which picks the method when the timer ends: `assist_satellite.announce`
+on voice satellites, `notify.alexa_media` on Alexa Media Player speakers, and
+`tts.speak` on other media players with the voice of your preferred Assist
+pipeline. If that voice is not available, it uses another installed engine,
+such as Piper, and skips Home Assistant Cloud without an active subscription.
+The action can also be used in your own automations.
 
 Commands need the target entity to be exposed to Assist, as with any voice
 command. Device actions run as the user who started the timer, so Home

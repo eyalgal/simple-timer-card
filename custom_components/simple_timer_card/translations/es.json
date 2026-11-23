@@ -52,6 +52,9 @@
     },
     "command_and_actions": {
       "message": "Usa un comando o acciones, no ambos."
+    },
+    "no_tts": {
+      "message": "No hay ningún motor de texto a voz para anunciar en {entity_id}."
     }
   },
   "selector": {
@@ -202,6 +205,20 @@
         "status": {
           "name": "Estado",
           "description": "Devolver solo temporizadores con estos estados."
+        }
+      }
+    },
+    "announce": {
+      "name": "Anunciar",
+      "description": "Dice un mensaje en un altavoz con la voz de la canalización de Assist preferida.",
+      "fields": {
+        "entity_id": {
+          "name": "Altavoz",
+          "description": "El altavoz donde anunciar: un reproductor multimedia o un satélite de voz."
+        },
+        "message": {
+          "name": "Mensaje",
+          "description": "Qué decir."
         }
       }
     }

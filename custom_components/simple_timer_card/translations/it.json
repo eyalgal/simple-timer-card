@@ -52,6 +52,9 @@
     },
     "command_and_actions": {
       "message": "Usa un comando o delle azioni, non entrambi."
+    },
+    "no_tts": {
+      "message": "Nessun motore di sintesi vocale disponibile per annunciare su {entity_id}."
     }
   },
   "selector": {
@@ -202,6 +205,20 @@
         "status": {
           "name": "Stato",
           "description": "Restituisci solo i timer con questi stati."
+        }
+      }
+    },
+    "announce": {
+      "name": "Annuncia",
+      "description": "Pronuncia un messaggio su un altoparlante con la voce della pipeline Assist preferita.",
+      "fields": {
+        "entity_id": {
+          "name": "Altoparlante",
+          "description": "L'altoparlante su cui annunciare: un lettore multimediale o un satellite vocale."
+        },
+        "message": {
+          "name": "Messaggio",
+          "description": "Cosa dire."
         }
       }
     }

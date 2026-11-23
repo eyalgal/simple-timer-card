@@ -5,3 +5,5 @@ package-lock.json
 dist/
 build/
 node_modules
+__pycache__/
+*.pyc

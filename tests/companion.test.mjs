@@ -222,7 +222,7 @@ test("Put on a speaker lists only speakers, by kind and area, and hides the acti
   assert.equal(card._targetQuery, "");
 });
 
-test("announce on a speaker uses the right service for each kind of speaker", async () => {
+test("announce on a speaker lists speakers that can speak and goes through the companion", async () => {
   const { card, ws } = makeCard({}, { states: {
     "assist_satellite.kitchen": { state: "idle", attributes: { friendly_name: "Kitchen satellite", supported_features: 1 } },
     "media_player.echo": { state: "idle", attributes: { friendly_name: "Kitchen Echo", supported_features: 318399 } },
@@ -233,13 +233,16 @@ test("announce on a speaker uses the right service for each kind of speaker", as
   card.hass.entities = { "media_player.echo": { platform: "alexa_media" } };
   card.hass.services.notify = { alexa_media: {} };
   assert.deepEqual(card._searchAnnounceSpeakers("").sort(), ["assist_satellite.kitchen", "media_player.echo", "media_player.sonos"]);
-  assert.equal(card._announceActions("assist_satellite.kitchen", "hi")[0].action, "assist_satellite.announce");
-  assert.deepEqual(card._announceActions("media_player.echo", "hi")[0].data, { message: "hi", target: ["media_player.echo"], data: { type: "announce" } });
-  assert.deepEqual(card._announceActions("media_player.sonos", "hi")[0], { action: "tts.speak", target: { entity_id: "tts.home_assistant_cloud" }, data: { media_player_entity_id: "media_player.sonos", message: "hi" } });
+  assert.deepEqual(card._announceActions("media_player.sonos", "hi"),
+    [{ action: "simple_timer_card.announce", data: { entity_id: "media_player.sonos", message: "hi" } }]);
+  delete card.hass.states["tts.home_assistant_cloud"];
+  assert.equal(card._canAnnounceOn("media_player.sonos"), false, "needs a TTS engine");
+  assert.equal(card._canAnnounceOn("media_player.echo"), true, "Alexa announces without TTS");
+  card.hass.states["tts.home_assistant_cloud"] = { state: "unknown", attributes: {} };
 
   card._setActionDraft({ mode: "announce", speaker: "media_player.sonos" });
   assert.equal(card._actionSummary(card._actionDraftSpec()), "Announce on Dining Sonos");
   card._createAndSaveTimer(300, "Pasta");
   await flush();
-  assert.equal(ws[0].service_data.actions[0].data.message, "Pasta is done");
+  assert.deepEqual(ws[0].service_data.actions, [{ action: "simple_timer_card.announce", data: { entity_id: "media_player.sonos", message: "Pasta is done" } }]);
 });
