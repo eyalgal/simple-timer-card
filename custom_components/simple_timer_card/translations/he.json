@@ -1,0 +1,209 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Simple Timer Card",
+        "description": "שומר טיימרים ב-Home Assistant, כך שהם ממשיכים לרוץ ויכולים להפעיל פעולה בסיום, גם כשאף לוח בקרה לא פתוח.",
+        "data": {
+          "capture_voice_commands": "הצגת פקודות קוליות מושהות כטיימרים",
+          "late_action_minutes": "הפעלת פעולות באיחור של עד (דקות)"
+        },
+        "data_description": {
+          "capture_voice_commands": "פקודות כמו \"כבה את האורות בעוד 10 דקות\" מופיעות בכרטיס ואפשר להשהות או לבטל אותן.",
+          "late_action_minutes": "אם טיימר הסתיים בזמן ש-Home Assistant היה כבוי, הפעולה שלו עדיין תופעל באתחול אם האיחור אינו גדול מזה. 0 מדלג על פעולות באיחור."
+        }
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Simple Timer Card כבר מוגדר."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "אפשרויות טיימר",
+        "data": {
+          "capture_voice_commands": "הצגת פקודות קוליות מושהות כטיימרים",
+          "late_action_minutes": "הפעלת פעולות באיחור של עד (דקות)"
+        },
+        "data_description": {
+          "capture_voice_commands": "פקודות כמו \"כבה את האורות בעוד 10 דקות\" מופיעות בכרטיס ואפשר להשהות או לבטל אותן.",
+          "late_action_minutes": "אם טיימר הסתיים בזמן ש-Home Assistant היה כבוי, הפעולה שלו עדיין תופעל באתחול אם האיחור אינו גדול מזה. 0 מדלג על פעולות באיחור."
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "timers": {
+        "name": "טיימרים"
+      }
+    }
+  },
+  "exceptions": {
+    "timer_not_found": {
+      "message": "אין טיימר עם המזהה {timer_id}."
+    },
+    "invalid_duration": {
+      "message": "משך הזמן חייב להיות גדול מאפס."
+    },
+    "command_not_understood": {
+      "message": "Home Assistant לא הבין את \"{command}\"."
+    },
+    "command_and_actions": {
+      "message": "יש להשתמש בפקודה או בפעולות, לא בשתיהן."
+    }
+  },
+  "selector": {
+    "status": {
+      "options": {
+        "active": "פועל",
+        "paused": "מושהה",
+        "finished": "הסתיים",
+        "cancelled": "בוטל"
+      }
+    }
+  },
+  "services": {
+    "create_timer": {
+      "name": "יצירת טיימר",
+      "description": "מפעיל טיימר שיכול להריץ פקודה או פעולות בסיום.",
+      "fields": {
+        "duration": {
+          "name": "משך",
+          "description": "כמה זמן הטיימר רץ."
+        },
+        "name": {
+          "name": "שם",
+          "description": "השם שמוצג בכרטיס."
+        },
+        "command": {
+          "name": "פקודה",
+          "description": "מה לומר ל-Home Assistant בסיום, למשל \"כבה את מטהר האוויר\"."
+        },
+        "actions": {
+          "name": "פעולות",
+          "description": "פעולות להפעלה בסיום."
+        },
+        "language": {
+          "name": "שפה",
+          "description": "שפת הפקודה. ברירת המחדל היא השפה של Home Assistant."
+        },
+        "icon": {
+          "name": "סמל",
+          "description": "הסמל שמוצג בכרטיס."
+        },
+        "color": {
+          "name": "צבע",
+          "description": "הצבע שמוצג בכרטיס."
+        },
+        "metadata": {
+          "name": "נתונים נוספים",
+          "description": "נתונים נוספים שנשמרים עם הטיימר, כמו הגדרות כרטיס."
+        }
+      }
+    },
+    "pause_timer": {
+      "name": "השהיית טיימר",
+      "description": "משהה טיימר פועל.",
+      "fields": {
+        "timer_id": {
+          "name": "מזהה טיימר",
+          "description": "המזהה של הטיימר."
+        }
+      }
+    },
+    "unpause_timer": {
+      "name": "חידוש טיימר",
+      "description": "מחדש טיימר מושהה.",
+      "fields": {
+        "timer_id": {
+          "name": "מזהה טיימר",
+          "description": "המזהה של הטיימר."
+        }
+      }
+    },
+    "cancel_timer": {
+      "name": "ביטול טיימר",
+      "description": "עוצר טיימר בלי להפעיל את הפעולה שלו.",
+      "fields": {
+        "timer_id": {
+          "name": "מזהה טיימר",
+          "description": "המזהה של הטיימר."
+        }
+      }
+    },
+    "finish_timer": {
+      "name": "סיום טיימר",
+      "description": "מסיים טיימר עכשיו ומפעיל את הפעולה שלו.",
+      "fields": {
+        "timer_id": {
+          "name": "מזהה טיימר",
+          "description": "המזהה של הטיימר."
+        }
+      }
+    },
+    "remove_timer": {
+      "name": "הסרת טיימר",
+      "description": "מסיר טיימר מהרשימה.",
+      "fields": {
+        "timer_id": {
+          "name": "מזהה טיימר",
+          "description": "המזהה של הטיימר."
+        }
+      }
+    },
+    "add_time": {
+      "name": "הוספת זמן",
+      "description": "מוסיף זמן לטיימר.",
+      "fields": {
+        "timer_id": {
+          "name": "מזהה טיימר",
+          "description": "המזהה של הטיימר."
+        },
+        "duration": {
+          "name": "משך",
+          "description": "כמה זמן להוסיף או להפחית."
+        }
+      }
+    },
+    "subtract_time": {
+      "name": "הפחתת זמן",
+      "description": "מפחית זמן מטיימר. הפחתה של יותר מהנותר מסיימת אותו.",
+      "fields": {
+        "timer_id": {
+          "name": "מזהה טיימר",
+          "description": "המזהה של הטיימר."
+        },
+        "duration": {
+          "name": "משך",
+          "description": "כמה זמן להוסיף או להפחית."
+        }
+      }
+    },
+    "restart_timer": {
+      "name": "הפעלה מחדש",
+      "description": "מפעיל טיימר מחדש עם אותו שם ופעולה.",
+      "fields": {
+        "timer_id": {
+          "name": "מזהה טיימר",
+          "description": "המזהה של הטיימר."
+        },
+        "duration": {
+          "name": "משך",
+          "description": "אורך חדש. ברירת המחדל היא המשך המקורי."
+        }
+      }
+    },
+    "get_timers": {
+      "name": "קבלת טיימרים",
+      "description": "מחזיר את הטיימרים ברשימה.",
+      "fields": {
+        "status": {
+          "name": "סטטוס",
+          "description": "להחזיר רק טיימרים בסטטוסים האלה."
+        }
+      }
+    }
+  }
+}

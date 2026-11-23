@@ -1,0 +1,13 @@
+{
+  "domain": "simple_timer_card",
+  "name": "Simple Timer Card",
+  "codeowners": ["@eyalgal"],
+  "config_flow": true,
+  "dependencies": ["conversation", "intent", "websocket_api"],
+  "documentation": "https://github.com/eyalgal/simple-timer-card/blob/main/CONFIGURATION.md#-companion-integration",
+  "integration_type": "service",
+  "iot_class": "local_push",
+  "issue_tracker": "https://github.com/eyalgal/simple-timer-card/issues",
+  "single_config_entry": true,
+  "version": "3.0.0"
+}

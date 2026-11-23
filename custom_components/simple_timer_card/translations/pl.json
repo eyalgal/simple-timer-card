@@ -1,0 +1,209 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Simple Timer Card",
+        "description": "Przechowuje minutniki w Home Assistant, aby działały dalej i mogły uruchomić akcję po zakończeniu, nawet bez otwartego pulpitu.",
+        "data": {
+          "capture_voice_commands": "Pokazuj opóźnione polecenia głosowe jako minutniki",
+          "late_action_minutes": "Uruchamiaj spóźnione akcje do (minut)"
+        },
+        "data_description": {
+          "capture_voice_commands": "Polecenia takie jak „wyłącz światła za 10 minut” pojawiają się na karcie i można je wstrzymać lub anulować.",
+          "late_action_minutes": "Jeśli minutnik zakończył się, gdy Home Assistant był zatrzymany, jego akcja uruchomi się przy starcie, o ile opóźnienie nie przekracza tej wartości. 0 pomija spóźnione akcje."
+        }
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Simple Timer Card jest już skonfigurowany."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opcje minutników",
+        "data": {
+          "capture_voice_commands": "Pokazuj opóźnione polecenia głosowe jako minutniki",
+          "late_action_minutes": "Uruchamiaj spóźnione akcje do (minut)"
+        },
+        "data_description": {
+          "capture_voice_commands": "Polecenia takie jak „wyłącz światła za 10 minut” pojawiają się na karcie i można je wstrzymać lub anulować.",
+          "late_action_minutes": "Jeśli minutnik zakończył się, gdy Home Assistant był zatrzymany, jego akcja uruchomi się przy starcie, o ile opóźnienie nie przekracza tej wartości. 0 pomija spóźnione akcje."
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "timers": {
+        "name": "Minutniki"
+      }
+    }
+  },
+  "exceptions": {
+    "timer_not_found": {
+      "message": "Brak minutnika o ID {timer_id}."
+    },
+    "invalid_duration": {
+      "message": "Czas trwania musi być większy od zera."
+    },
+    "command_not_understood": {
+      "message": "Home Assistant nie zrozumiał „{command}”."
+    },
+    "command_and_actions": {
+      "message": "Użyj polecenia albo akcji, nie obu."
+    }
+  },
+  "selector": {
+    "status": {
+      "options": {
+        "active": "Działa",
+        "paused": "Wstrzymany",
+        "finished": "Zakończony",
+        "cancelled": "Anulowany"
+      }
+    }
+  },
+  "services": {
+    "create_timer": {
+      "name": "Utwórz minutnik",
+      "description": "Uruchamia minutnik, który po zakończeniu może wykonać polecenie lub akcje.",
+      "fields": {
+        "duration": {
+          "name": "Czas trwania",
+          "description": "Jak długo działa minutnik."
+        },
+        "name": {
+          "name": "Nazwa",
+          "description": "Nazwa pokazywana na karcie."
+        },
+        "command": {
+          "name": "Polecenie",
+          "description": "Co powiedzieć Home Assistant po zakończeniu, np. „wyłącz oczyszczacz”."
+        },
+        "actions": {
+          "name": "Akcje",
+          "description": "Akcje uruchamiane po zakończeniu."
+        },
+        "language": {
+          "name": "Język",
+          "description": "Język polecenia. Domyślnie język Home Assistant."
+        },
+        "icon": {
+          "name": "Ikona",
+          "description": "Ikona pokazywana na karcie."
+        },
+        "color": {
+          "name": "Kolor",
+          "description": "Kolor pokazywany na karcie."
+        },
+        "metadata": {
+          "name": "Metadane",
+          "description": "Dodatkowe dane minutnika, np. opcje karty."
+        }
+      }
+    },
+    "pause_timer": {
+      "name": "Wstrzymaj minutnik",
+      "description": "Wstrzymuje działający minutnik.",
+      "fields": {
+        "timer_id": {
+          "name": "ID minutnika",
+          "description": "ID minutnika."
+        }
+      }
+    },
+    "unpause_timer": {
+      "name": "Wznów minutnik",
+      "description": "Wznawia wstrzymany minutnik.",
+      "fields": {
+        "timer_id": {
+          "name": "ID minutnika",
+          "description": "ID minutnika."
+        }
+      }
+    },
+    "cancel_timer": {
+      "name": "Anuluj minutnik",
+      "description": "Zatrzymuje minutnik bez uruchamiania akcji.",
+      "fields": {
+        "timer_id": {
+          "name": "ID minutnika",
+          "description": "ID minutnika."
+        }
+      }
+    },
+    "finish_timer": {
+      "name": "Zakończ minutnik",
+      "description": "Kończy minutnik teraz i uruchamia jego akcję.",
+      "fields": {
+        "timer_id": {
+          "name": "ID minutnika",
+          "description": "ID minutnika."
+        }
+      }
+    },
+    "remove_timer": {
+      "name": "Usuń minutnik",
+      "description": "Usuwa minutnik z listy.",
+      "fields": {
+        "timer_id": {
+          "name": "ID minutnika",
+          "description": "ID minutnika."
+        }
+      }
+    },
+    "add_time": {
+      "name": "Dodaj czas",
+      "description": "Dodaje czas do minutnika.",
+      "fields": {
+        "timer_id": {
+          "name": "ID minutnika",
+          "description": "ID minutnika."
+        },
+        "duration": {
+          "name": "Czas trwania",
+          "description": "Ile czasu dodać lub odjąć."
+        }
+      }
+    },
+    "subtract_time": {
+      "name": "Odejmij czas",
+      "description": "Odejmuje czas od minutnika. Odjęcie więcej niż zostało kończy go.",
+      "fields": {
+        "timer_id": {
+          "name": "ID minutnika",
+          "description": "ID minutnika."
+        },
+        "duration": {
+          "name": "Czas trwania",
+          "description": "Ile czasu dodać lub odjąć."
+        }
+      }
+    },
+    "restart_timer": {
+      "name": "Uruchom ponownie",
+      "description": "Uruchamia minutnik ponownie z tą samą nazwą i akcją.",
+      "fields": {
+        "timer_id": {
+          "name": "ID minutnika",
+          "description": "ID minutnika."
+        },
+        "duration": {
+          "name": "Czas trwania",
+          "description": "Nowa długość. Domyślnie pierwotny czas."
+        }
+      }
+    },
+    "get_timers": {
+      "name": "Pobierz minutniki",
+      "description": "Zwraca minutniki z listy.",
+      "fields": {
+        "status": {
+          "name": "Stan",
+          "description": "Zwracaj tylko minutniki w tych stanach."
+        }
+      }
+    }
+  }
+}

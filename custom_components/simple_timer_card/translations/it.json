@@ -1,0 +1,209 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Simple Timer Card",
+        "description": "Conserva i timer in Home Assistant, così continuano a funzionare e possono eseguire un'azione alla fine, anche senza dashboard aperte.",
+        "data": {
+          "capture_voice_commands": "Mostra i comandi vocali differiti come timer",
+          "late_action_minutes": "Esegui azioni in ritardo fino a (minuti)"
+        },
+        "data_description": {
+          "capture_voice_commands": "Comandi come \"spegni le luci tra 10 minuti\" compaiono nella scheda e si possono mettere in pausa o annullare.",
+          "late_action_minutes": "Se un timer è scaduto mentre Home Assistant era fermo, la sua azione viene eseguita all'avvio se il ritardo non supera questo valore. 0 salta le azioni in ritardo."
+        }
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Simple Timer Card è già configurato."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opzioni timer",
+        "data": {
+          "capture_voice_commands": "Mostra i comandi vocali differiti come timer",
+          "late_action_minutes": "Esegui azioni in ritardo fino a (minuti)"
+        },
+        "data_description": {
+          "capture_voice_commands": "Comandi come \"spegni le luci tra 10 minuti\" compaiono nella scheda e si possono mettere in pausa o annullare.",
+          "late_action_minutes": "Se un timer è scaduto mentre Home Assistant era fermo, la sua azione viene eseguita all'avvio se il ritardo non supera questo valore. 0 salta le azioni in ritardo."
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "timers": {
+        "name": "Timer"
+      }
+    }
+  },
+  "exceptions": {
+    "timer_not_found": {
+      "message": "Nessun timer con ID {timer_id}."
+    },
+    "invalid_duration": {
+      "message": "La durata deve essere maggiore di zero."
+    },
+    "command_not_understood": {
+      "message": "Home Assistant non ha capito \"{command}\"."
+    },
+    "command_and_actions": {
+      "message": "Usa un comando o delle azioni, non entrambi."
+    }
+  },
+  "selector": {
+    "status": {
+      "options": {
+        "active": "In corso",
+        "paused": "In pausa",
+        "finished": "Terminato",
+        "cancelled": "Annullato"
+      }
+    }
+  },
+  "services": {
+    "create_timer": {
+      "name": "Crea timer",
+      "description": "Avvia un timer che alla fine può eseguire un comando o delle azioni.",
+      "fields": {
+        "duration": {
+          "name": "Durata",
+          "description": "Quanto dura il timer."
+        },
+        "name": {
+          "name": "Nome",
+          "description": "Nome mostrato nella scheda."
+        },
+        "command": {
+          "name": "Comando",
+          "description": "Cosa dire a Home Assistant alla fine, ad esempio \"spegni il purificatore\"."
+        },
+        "actions": {
+          "name": "Azioni",
+          "description": "Azioni da eseguire alla fine."
+        },
+        "language": {
+          "name": "Lingua",
+          "description": "Lingua del comando. Predefinita: la lingua di Home Assistant."
+        },
+        "icon": {
+          "name": "Icona",
+          "description": "Icona mostrata nella scheda."
+        },
+        "color": {
+          "name": "Colore",
+          "description": "Colore mostrato nella scheda."
+        },
+        "metadata": {
+          "name": "Metadati",
+          "description": "Dati aggiuntivi salvati con il timer, come le opzioni della scheda."
+        }
+      }
+    },
+    "pause_timer": {
+      "name": "Metti in pausa il timer",
+      "description": "Mette in pausa un timer in corso.",
+      "fields": {
+        "timer_id": {
+          "name": "ID timer",
+          "description": "L'ID del timer."
+        }
+      }
+    },
+    "unpause_timer": {
+      "name": "Riprendi timer",
+      "description": "Riprende un timer in pausa.",
+      "fields": {
+        "timer_id": {
+          "name": "ID timer",
+          "description": "L'ID del timer."
+        }
+      }
+    },
+    "cancel_timer": {
+      "name": "Annulla timer",
+      "description": "Ferma un timer senza eseguire la sua azione.",
+      "fields": {
+        "timer_id": {
+          "name": "ID timer",
+          "description": "L'ID del timer."
+        }
+      }
+    },
+    "finish_timer": {
+      "name": "Termina timer",
+      "description": "Termina subito un timer ed esegue la sua azione.",
+      "fields": {
+        "timer_id": {
+          "name": "ID timer",
+          "description": "L'ID del timer."
+        }
+      }
+    },
+    "remove_timer": {
+      "name": "Rimuovi timer",
+      "description": "Rimuove un timer dall'elenco.",
+      "fields": {
+        "timer_id": {
+          "name": "ID timer",
+          "description": "L'ID del timer."
+        }
+      }
+    },
+    "add_time": {
+      "name": "Aggiungi tempo",
+      "description": "Aggiunge tempo a un timer.",
+      "fields": {
+        "timer_id": {
+          "name": "ID timer",
+          "description": "L'ID del timer."
+        },
+        "duration": {
+          "name": "Durata",
+          "description": "Quanto tempo aggiungere o togliere."
+        }
+      }
+    },
+    "subtract_time": {
+      "name": "Togli tempo",
+      "description": "Toglie tempo a un timer. Toglierne più del rimanente lo termina.",
+      "fields": {
+        "timer_id": {
+          "name": "ID timer",
+          "description": "L'ID del timer."
+        },
+        "duration": {
+          "name": "Durata",
+          "description": "Quanto tempo aggiungere o togliere."
+        }
+      }
+    },
+    "restart_timer": {
+      "name": "Riavvia timer",
+      "description": "Riavvia un timer mantenendo nome e azione.",
+      "fields": {
+        "timer_id": {
+          "name": "ID timer",
+          "description": "L'ID del timer."
+        },
+        "duration": {
+          "name": "Durata",
+          "description": "Nuova durata. Predefinita: quella originale."
+        }
+      }
+    },
+    "get_timers": {
+      "name": "Ottieni timer",
+      "description": "Restituisce i timer dell'elenco.",
+      "fields": {
+        "status": {
+          "name": "Stato",
+          "description": "Restituisci solo i timer con questi stati."
+        }
+      }
+    }
+  }
+}

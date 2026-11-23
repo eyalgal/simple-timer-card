@@ -210,76 +210,6 @@ test("template rows subscribe to render_template and become read-only timers", a
   assert.equal(printer.duration_ms, 3600000);
 });
 
-function mqttCard(config = {}) {
-  return makeCard({
-    storage: "mqtt",
-    storage_namespace: "device-timer-test",
-    mqtt: { sensor_entity: "sensor.simple_timer_store" },
-    device_timers: [{ entity: "fan.air_purifier" }, { entity: "light.porch", service: "turn_on", name: "Porch light on" }, { entity: "bad id" }],
-    ...config,
-  }, { states: { "fan.air_purifier": { state: "on", attributes: { friendly_name: "Air purifier" } } } });
-}
-
-test("device timers store an allowlisted on_finish action in the MQTT record", () => {
-  const { card } = mqttCard();
-  assert.deepEqual(card._deviceTimers().map((d) => d.key), ["fan.air_purifier:turn_off", "light.porch:turn_on"]);
-  card._targetChoice = "device:fan.air_purifier:turn_off";
-  assert.equal(card._createAndSaveTimer(1800, ""), true);
-  const [record] = card._loadTimersFromStorage();
-  assert.deepEqual(record.on_finish, { entity_id: "fan.air_purifier", service: "turn_off" });
-  assert.equal(record.label, "Air purifier");
-  assert.equal(record.end_ts - record.start_ts, 1800000);
-  card._updateTimers();
-  assert.equal(card._timers[0].context_label, "turns off Air purifier");
-});
-
-test("device timers refuse to start without MQTT storage", () => {
-  const { card, warnings } = makeCard({ device_timers: ["fan.air_purifier"] });
-  card._targetChoice = "device:fan.air_purifier:turn_off";
-  assert.equal(card._createAndSaveTimer(60, ""), false);
-  assert.equal(card._loadTimersFromStorage().length, 0);
-  assert.equal(warnings.length, 1);
-});
-
-test("finishing a device timer moves its deadline, and dismiss waits for the backend", async () => {
-  const { card } = mqttCard();
-  card._targetChoice = "device:fan.air_purifier:turn_off";
-  card._createAndSaveTimer(600, "");
-  card._updateTimers();
-  const [timer] = card._timers;
-  assert.equal(card._getTimerRenderState(timer, "bar_horizontal").supportsSnooze, false);
-  card._handleFinish(timer);
-  const [record] = card._loadTimersFromStorage();
-  assert.ok(Date.now() - record.end_ts < 1000);
-
-  card._updateTimers();
-  card._handleDismiss(card._timers[0]);
-  assert.equal(card._loadTimersFromStorage().length, 1);
-  assert.ok(card._dismissed.has(`${record.source_entity}:${record.id}`));
-});
-
-test("a pinned timer with on_finish starts a device timer", () => {
-  const { card } = mqttCard({ pinned_timers: [{ id: "purifier", name: "Purifier 30m", duration: "30m", on_finish: { entity: "fan.air_purifier", service: "turn_off" } }] });
-  const [pinned] = card._getPinnedTimers();
-  card._handleStart(pinned);
-  const [record] = card._loadTimersFromStorage();
-  assert.deepEqual(record.on_finish, { entity_id: "fan.air_purifier", service: "turn_off" });
-  assert.equal(record.label, "Purifier 30m");
-  assert.equal(record.pinned_id, pinned.pinned_id);
-});
-
-test("the device action monitor only runs allowlisted actions and claims after acting", () => {
-  const monitor = parse(readFileSync(new URL("../examples/mqtt_device_action_monitor.yaml", import.meta.url), "utf8"));
-  assert.ok(Object.keys(monitor.variables.allowed_actions).length > 0);
-  assert.match(monitor.action[1].variables.scan, /entity in allowed_actions/);
-  assert.match(monitor.action[1].variables.scan, /now_ms - end_ts <= max_late_ms/);
-  const sequence = monitor.action.find((step) => step.repeat).repeat.sequence;
-  const actIndex = sequence.findIndex((step) => step.service === "homeassistant.{{ repeat.item.service }}");
-  const claimIndex = sequence.findIndex((step) => step.service === "input_text.set_value");
-  assert.ok(actIndex >= 0 && claimIndex > actIndex);
-  assert.equal(monitor.mode, "single");
-});
-
 test("the timer list blueprint watches every event type and filters by name", () => {
   const customTags = [{ tag: "!input", resolve: (value) => ({ input: value }) }];
   const text = readFileSync(new URL("../blueprints/automation/simple_timer_card/timer_list_event.yaml", import.meta.url), "utf8");
@@ -293,12 +223,3 @@ test("the timer list blueprint watches every event type and filters by name", ()
   assert.match(blueprint.conditions[1].value_template, /trigger\.timer\.name/);
 });
 
-test("a device choice applies once, to the custom timer only", () => {
-  const { card } = mqttCard();
-  card._targetChoice = "device:fan.air_purifier:turn_off";
-  card._createPresetTimer(5);
-  assert.equal(card._loadTimersFromStorage()[0].on_finish, undefined);
-  card._createAndSaveTimer(60, "");
-  assert.equal(card._targetChoice, null);
-  assert.equal(card._loadTimersFromStorage().filter((t) => t.on_finish).length, 1);
-});

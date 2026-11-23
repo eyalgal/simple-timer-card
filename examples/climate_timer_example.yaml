@@ -7,7 +7,7 @@
 # MQTT storage, and climate entities supporting climate.turn_off. Verify that
 # action and replace climate.study/climate.bedroom with actual entity IDs.
 # This is a convenience action, NOT a safety-critical shutoff or backend scheduler.
-# For a backend-run alternative, see device timers and mqtt_device_action_monitor.yaml.
+# For a backend-run alternative, see the companion integration in CONFIGURATION.md.
 # A closed/suspended frontend cannot publish expiry; the hybrid notification
 # monitor does not emit these events or provide a backend climate scheduler.
 #

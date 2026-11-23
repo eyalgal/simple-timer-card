@@ -18,7 +18,7 @@ No dashboard clutter. No duplicated cards. Just timers.
 
 * **Every timer in one card**: Native `timer.*`, voice timers (timer lists), Alexa, Google Home, helpers, MQTT, timestamps, and local timers
 * **Voice timers**: Show, start, pause, extend and cancel Voice PE and other voice satellite timers, with no custom firmware
-* **Device timers**: "Turn off the air purifier in 30 minutes", with the action run by Home Assistant even when no dashboard is open
+* **Optional companion integration**: Timers kept in Home Assistant that can run any action when they end ("turn off the air purifier in 30 minutes"), plus delayed voice commands shown as timers
 * **Auto-discovery**: Optionally pick up voice satellite, Alexa and Google Home timers without listing every device
 * **Quick actions**: Presets, pinned one‑tap timers, and custom timers with a keypad or +/- buttons, plus an optional on-card input switch
 * **Visual progress styles**: Bars, fills, and circles (vertical or horizontal) with drain, fill, or milestone modes
@@ -61,9 +61,11 @@ snooze and dismiss them, with stock firmware and no template sensors. Turn on
 
 v3.0.0 also adds:
 
-* **Device timers**: "turn off the air purifier in 30 minutes", run by Home
-  Assistant even with every dashboard closed (needs MQTT storage). See
-  [Device timers](CONFIGURATION.md#-device-timers).
+* An optional **companion integration** keeps timers in Home Assistant, runs a
+  command or any device action when a timer ends ("turn off the air purifier in
+  30 minutes") with every dashboard closed, and shows delayed voice commands as
+  timers. MQTT and the other storage options keep working unchanged. See
+  [Companion integration](CONFIGURATION.md#-companion-integration).
 * **Start-on picker** and **default area** for choosing which satellite a new
   timer starts on, plus device or area labels and `group_by`.
 * **Browser voice satellites** (Voice Satellite Card integration), **count-up

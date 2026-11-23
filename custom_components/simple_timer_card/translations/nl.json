@@ -1,0 +1,209 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Simple Timer Card",
+        "description": "Bewaart timers in Home Assistant, zodat ze blijven lopen en een actie kunnen uitvoeren als ze aflopen, ook zonder geopend dashboard.",
+        "data": {
+          "capture_voice_commands": "Uitgestelde spraakopdrachten als timers tonen",
+          "late_action_minutes": "Te late acties uitvoeren tot (minuten)"
+        },
+        "data_description": {
+          "capture_voice_commands": "Opdrachten zoals \"doe de lampen over 10 minuten uit\" verschijnen op de kaart en kunnen worden gepauzeerd of geannuleerd.",
+          "late_action_minutes": "Als een timer afliep terwijl Home Assistant gestopt was, wordt de actie bij het opstarten nog uitgevoerd als die niet later is dan dit. 0 slaat te late acties over."
+        }
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Simple Timer Card is al ingesteld."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Timeropties",
+        "data": {
+          "capture_voice_commands": "Uitgestelde spraakopdrachten als timers tonen",
+          "late_action_minutes": "Te late acties uitvoeren tot (minuten)"
+        },
+        "data_description": {
+          "capture_voice_commands": "Opdrachten zoals \"doe de lampen over 10 minuten uit\" verschijnen op de kaart en kunnen worden gepauzeerd of geannuleerd.",
+          "late_action_minutes": "Als een timer afliep terwijl Home Assistant gestopt was, wordt de actie bij het opstarten nog uitgevoerd als die niet later is dan dit. 0 slaat te late acties over."
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "timers": {
+        "name": "Timers"
+      }
+    }
+  },
+  "exceptions": {
+    "timer_not_found": {
+      "message": "Geen timer met ID {timer_id}."
+    },
+    "invalid_duration": {
+      "message": "De duur moet groter zijn dan nul."
+    },
+    "command_not_understood": {
+      "message": "Home Assistant begreep \"{command}\" niet."
+    },
+    "command_and_actions": {
+      "message": "Gebruik een opdracht of acties, niet allebei."
+    }
+  },
+  "selector": {
+    "status": {
+      "options": {
+        "active": "Loopt",
+        "paused": "Gepauzeerd",
+        "finished": "Afgelopen",
+        "cancelled": "Geannuleerd"
+      }
+    }
+  },
+  "services": {
+    "create_timer": {
+      "name": "Timer maken",
+      "description": "Start een timer die bij het aflopen een opdracht of acties kan uitvoeren.",
+      "fields": {
+        "duration": {
+          "name": "Duur",
+          "description": "Hoe lang de timer loopt."
+        },
+        "name": {
+          "name": "Naam",
+          "description": "Naam op de kaart."
+        },
+        "command": {
+          "name": "Opdracht",
+          "description": "Wat aan Home Assistant wordt gezegd als de timer afloopt, bijvoorbeeld \"zet de luchtreiniger uit\"."
+        },
+        "actions": {
+          "name": "Acties",
+          "description": "Acties die worden uitgevoerd als de timer afloopt."
+        },
+        "language": {
+          "name": "Taal",
+          "description": "Taal van de opdracht. Standaard de taal van Home Assistant."
+        },
+        "icon": {
+          "name": "Pictogram",
+          "description": "Pictogram op de kaart."
+        },
+        "color": {
+          "name": "Kleur",
+          "description": "Kleur op de kaart."
+        },
+        "metadata": {
+          "name": "Metadata",
+          "description": "Extra gegevens bij de timer, zoals kaartopties."
+        }
+      }
+    },
+    "pause_timer": {
+      "name": "Timer pauzeren",
+      "description": "Pauzeert een lopende timer.",
+      "fields": {
+        "timer_id": {
+          "name": "Timer-ID",
+          "description": "Het ID van de timer."
+        }
+      }
+    },
+    "unpause_timer": {
+      "name": "Timer hervatten",
+      "description": "Hervat een gepauzeerde timer.",
+      "fields": {
+        "timer_id": {
+          "name": "Timer-ID",
+          "description": "Het ID van de timer."
+        }
+      }
+    },
+    "cancel_timer": {
+      "name": "Timer annuleren",
+      "description": "Stopt een timer zonder de actie uit te voeren.",
+      "fields": {
+        "timer_id": {
+          "name": "Timer-ID",
+          "description": "Het ID van de timer."
+        }
+      }
+    },
+    "finish_timer": {
+      "name": "Timer beëindigen",
+      "description": "Beëindigt een timer nu en voert de actie uit.",
+      "fields": {
+        "timer_id": {
+          "name": "Timer-ID",
+          "description": "Het ID van de timer."
+        }
+      }
+    },
+    "remove_timer": {
+      "name": "Timer verwijderen",
+      "description": "Verwijdert een timer uit de lijst.",
+      "fields": {
+        "timer_id": {
+          "name": "Timer-ID",
+          "description": "Het ID van de timer."
+        }
+      }
+    },
+    "add_time": {
+      "name": "Tijd toevoegen",
+      "description": "Voegt tijd toe aan een timer.",
+      "fields": {
+        "timer_id": {
+          "name": "Timer-ID",
+          "description": "Het ID van de timer."
+        },
+        "duration": {
+          "name": "Duur",
+          "description": "Hoeveel tijd er bij of af gaat."
+        }
+      }
+    },
+    "subtract_time": {
+      "name": "Tijd aftrekken",
+      "description": "Haalt tijd van een timer af. Meer dan er over is beëindigt hem.",
+      "fields": {
+        "timer_id": {
+          "name": "Timer-ID",
+          "description": "Het ID van de timer."
+        },
+        "duration": {
+          "name": "Duur",
+          "description": "Hoeveel tijd er bij of af gaat."
+        }
+      }
+    },
+    "restart_timer": {
+      "name": "Timer herstarten",
+      "description": "Start een timer opnieuw met dezelfde naam en actie.",
+      "fields": {
+        "timer_id": {
+          "name": "Timer-ID",
+          "description": "Het ID van de timer."
+        },
+        "duration": {
+          "name": "Duur",
+          "description": "Nieuwe lengte. Standaard de oorspronkelijke duur."
+        }
+      }
+    },
+    "get_timers": {
+      "name": "Timers ophalen",
+      "description": "Geeft de timers in de lijst terug.",
+      "fields": {
+        "status": {
+          "name": "Status",
+          "description": "Alleen timers met deze status teruggeven."
+        }
+      }
+    }
+  }
+}

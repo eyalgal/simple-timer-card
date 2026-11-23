@@ -1,0 +1,89 @@
+create_timer:
+  target:
+    entity:
+      integration: simple_timer_card
+  fields:
+    duration:
+      required: true
+      example: "00:30:00"
+      selector:
+        duration:
+    name:
+      example: Purifier
+      selector:
+        text:
+    command:
+      example: Turn off the air purifier
+      selector:
+        text:
+    actions:
+      selector:
+        action:
+    language:
+      example: en
+      selector:
+        language:
+    icon:
+      selector:
+        icon:
+    color:
+      example: "#ff9800"
+      selector:
+        text:
+    metadata:
+      selector:
+        object:
+pause_timer: &timer_id_only
+  target:
+    entity:
+      integration: simple_timer_card
+  fields:
+    timer_id:
+      required: true
+      selector:
+        text:
+unpause_timer: *timer_id_only
+cancel_timer: *timer_id_only
+finish_timer: *timer_id_only
+remove_timer: *timer_id_only
+add_time: &timer_duration
+  target:
+    entity:
+      integration: simple_timer_card
+  fields:
+    timer_id:
+      required: true
+      selector:
+        text:
+    duration:
+      required: true
+      selector:
+        duration:
+subtract_time: *timer_duration
+restart_timer:
+  target:
+    entity:
+      integration: simple_timer_card
+  fields:
+    timer_id:
+      required: true
+      selector:
+        text:
+    duration:
+      selector:
+        duration:
+get_timers:
+  target:
+    entity:
+      integration: simple_timer_card
+  fields:
+    status:
+      selector:
+        select:
+          multiple: true
+          options:
+            - active
+            - paused
+            - finished
+            - cancelled
+          translation_key: status

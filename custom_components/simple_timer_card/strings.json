@@ -1,0 +1,209 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Simple Timer Card",
+        "description": "Keeps timers in Home Assistant, so they keep running and can run an action when they finish, even with no dashboard open.",
+        "data": {
+          "capture_voice_commands": "Show delayed voice commands as timers",
+          "late_action_minutes": "Run late actions for up to (minutes)"
+        },
+        "data_description": {
+          "capture_voice_commands": "Commands like \"turn off the lights in 10 minutes\" appear on the card and can be paused or cancelled.",
+          "late_action_minutes": "If a timer ended while Home Assistant was stopped, its action still runs at startup when it is no later than this. 0 skips late actions."
+        }
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Simple Timer Card is already set up."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Timer options",
+        "data": {
+          "capture_voice_commands": "Show delayed voice commands as timers",
+          "late_action_minutes": "Run late actions for up to (minutes)"
+        },
+        "data_description": {
+          "capture_voice_commands": "Commands like \"turn off the lights in 10 minutes\" appear on the card and can be paused or cancelled.",
+          "late_action_minutes": "If a timer ended while Home Assistant was stopped, its action still runs at startup when it is no later than this. 0 skips late actions."
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "timers": {
+        "name": "Timers"
+      }
+    }
+  },
+  "exceptions": {
+    "timer_not_found": {
+      "message": "No timer with ID {timer_id}."
+    },
+    "invalid_duration": {
+      "message": "The duration must be longer than zero."
+    },
+    "command_not_understood": {
+      "message": "Home Assistant did not understand \"{command}\"."
+    },
+    "command_and_actions": {
+      "message": "Use a command or actions, not both."
+    }
+  },
+  "selector": {
+    "status": {
+      "options": {
+        "active": "Running",
+        "paused": "Paused",
+        "finished": "Finished",
+        "cancelled": "Cancelled"
+      }
+    }
+  },
+  "services": {
+    "create_timer": {
+      "name": "Create timer",
+      "description": "Starts a timer that can run a command or actions when it ends.",
+      "fields": {
+        "duration": {
+          "name": "Duration",
+          "description": "How long the timer runs."
+        },
+        "name": {
+          "name": "Name",
+          "description": "Name shown on the card."
+        },
+        "command": {
+          "name": "Command",
+          "description": "What to say to Home Assistant when the timer ends, for example \"turn off the air purifier\"."
+        },
+        "actions": {
+          "name": "Actions",
+          "description": "Actions to run when the timer ends."
+        },
+        "language": {
+          "name": "Language",
+          "description": "Language of the command. Defaults to the Home Assistant language."
+        },
+        "icon": {
+          "name": "Icon",
+          "description": "Icon shown on the card."
+        },
+        "color": {
+          "name": "Color",
+          "description": "Color shown on the card."
+        },
+        "metadata": {
+          "name": "Metadata",
+          "description": "Extra data stored with the timer, such as card options."
+        }
+      }
+    },
+    "pause_timer": {
+      "name": "Pause timer",
+      "description": "Pauses a running timer.",
+      "fields": {
+        "timer_id": {
+          "name": "Timer ID",
+          "description": "The ID of the timer."
+        }
+      }
+    },
+    "unpause_timer": {
+      "name": "Resume timer",
+      "description": "Resumes a paused timer.",
+      "fields": {
+        "timer_id": {
+          "name": "Timer ID",
+          "description": "The ID of the timer."
+        }
+      }
+    },
+    "cancel_timer": {
+      "name": "Cancel timer",
+      "description": "Stops a timer without running its action.",
+      "fields": {
+        "timer_id": {
+          "name": "Timer ID",
+          "description": "The ID of the timer."
+        }
+      }
+    },
+    "finish_timer": {
+      "name": "Finish timer",
+      "description": "Ends a timer now and runs its action.",
+      "fields": {
+        "timer_id": {
+          "name": "Timer ID",
+          "description": "The ID of the timer."
+        }
+      }
+    },
+    "remove_timer": {
+      "name": "Remove timer",
+      "description": "Removes a timer from the list.",
+      "fields": {
+        "timer_id": {
+          "name": "Timer ID",
+          "description": "The ID of the timer."
+        }
+      }
+    },
+    "add_time": {
+      "name": "Add time",
+      "description": "Adds time to a timer.",
+      "fields": {
+        "timer_id": {
+          "name": "Timer ID",
+          "description": "The ID of the timer."
+        },
+        "duration": {
+          "name": "Duration",
+          "description": "How much time to add or subtract."
+        }
+      }
+    },
+    "subtract_time": {
+      "name": "Subtract time",
+      "description": "Removes time from a timer. Removing more than is left finishes it.",
+      "fields": {
+        "timer_id": {
+          "name": "Timer ID",
+          "description": "The ID of the timer."
+        },
+        "duration": {
+          "name": "Duration",
+          "description": "How much time to add or subtract."
+        }
+      }
+    },
+    "restart_timer": {
+      "name": "Restart timer",
+      "description": "Runs a timer again, keeping its name and action.",
+      "fields": {
+        "timer_id": {
+          "name": "Timer ID",
+          "description": "The ID of the timer."
+        },
+        "duration": {
+          "name": "Duration",
+          "description": "New length. Defaults to the original duration."
+        }
+      }
+    },
+    "get_timers": {
+      "name": "Get timers",
+      "description": "Returns the timers in the list.",
+      "fields": {
+        "status": {
+          "name": "Status",
+          "description": "Only return timers with these statuses."
+        }
+      }
+    }
+  }
+}

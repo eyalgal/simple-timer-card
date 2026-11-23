@@ -6,6 +6,11 @@ by polling stored MQTT deadlines in Home Assistant (HA). It is intended for smal
 non-critical workloads. Validate the YAML, templates, entities, and actions in your
 own installation before enabling it.
 
+> **Optional alternative (v3.0.0).** MQTT storage keeps working as described
+> here. If you would rather keep timers in Home Assistant itself, with actions
+> such as "turn off the air purifier" when a timer ends and no polling monitor,
+> see the [companion integration](CONFIGURATION.md#-companion-integration).
+
 The frontend still creates, controls, and displays timers. The backend monitor
 below is the **only timer-notification path for this store**, whether a card is
 open or closed. It calls your notification service directly. It neither listens
@@ -439,35 +444,6 @@ max_exceeded: silent
   guarantee** and no transaction covering MQTT, notification delivery, and helper
   state. The final snapshot check narrows races but cannot eliminate them.
 
-## Device timers
-
-**Available since v3.0.0.** A [device timer](CONFIGURATION.md#-device-timers)
-stores the action to run in its MQTT record:
-`on_finish: {entity_id: fan.air_purifier, service: turn_off}`. A second monitor
-reads the same store and runs that action when the timer ends, whether or not a
-dashboard is open. It complements the notification monitor above and does not
-replace it.
-
-1. Create a second **Text** helper with maximum length **255**, for example
-   `input_text.simple_timer_card_device_actions_processed`. While the monitor is
-   disabled, initialize it once to `{"v1":true,"done":[]}`. Do not share it with
-   the notification monitor.
-2. Paste [examples/mqtt_device_action_monitor.yaml](examples/mqtt_device_action_monitor.yaml)
-   into the single-automation YAML editor. Set `sensor_entity`,
-   `processed_helper` and `allowed_actions`.
-3. Add the same entities to the card's `device_timers:`.
-
-`allowed_actions` is the security boundary. The stored record is untrusted
-input, so the monitor ignores any entity or service that is not listed there,
-even if a card or another MQTT publisher wrote it. Actions run through
-`homeassistant.turn_on`, `turn_off` or `toggle`. Timers more than
-`max_late_ms` overdue (10 minutes by default), for example after a long outage,
-are skipped rather than run late.
-
-The claims, polling and limitations below apply to this monitor too. The
-notification monitor also alerts for device timers, because they are ordinary
-stored timers.
-
 ## Limitations
 
 - **Polling/restarts:** normally up to five seconds plus service/runtime delays.
@@ -504,4 +480,5 @@ stored timers.
 - [examples/climate_timer_example.yaml](examples/climate_timer_example.yaml) uses
   an exact full `pinned_id` allowlist for a frontend-driven convenience action.
   It does not derive climate entity IDs from names and is not a backend shutoff
-  guarantee. Prefer [device timers](#device-timers), which run from the backend.
+  guarantee. For actions that run in Home Assistant with no dashboard open, see
+  the [companion integration](CONFIGURATION.md#-companion-integration).

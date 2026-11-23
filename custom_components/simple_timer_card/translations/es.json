@@ -1,0 +1,209 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Simple Timer Card",
+        "description": "Guarda los temporizadores en Home Assistant para que sigan en marcha y puedan ejecutar una acción al terminar, incluso sin ningún panel abierto.",
+        "data": {
+          "capture_voice_commands": "Mostrar comandos de voz diferidos como temporizadores",
+          "late_action_minutes": "Ejecutar acciones atrasadas hasta (minutos)"
+        },
+        "data_description": {
+          "capture_voice_commands": "Comandos como «apaga las luces en 10 minutos» aparecen en la tarjeta y se pueden pausar o cancelar.",
+          "late_action_minutes": "Si un temporizador terminó con Home Assistant detenido, su acción se ejecuta al arrancar si el retraso no supera este valor. 0 omite las acciones atrasadas."
+        }
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Simple Timer Card ya está configurado."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opciones de temporizador",
+        "data": {
+          "capture_voice_commands": "Mostrar comandos de voz diferidos como temporizadores",
+          "late_action_minutes": "Ejecutar acciones atrasadas hasta (minutos)"
+        },
+        "data_description": {
+          "capture_voice_commands": "Comandos como «apaga las luces en 10 minutos» aparecen en la tarjeta y se pueden pausar o cancelar.",
+          "late_action_minutes": "Si un temporizador terminó con Home Assistant detenido, su acción se ejecuta al arrancar si el retraso no supera este valor. 0 omite las acciones atrasadas."
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "timers": {
+        "name": "Temporizadores"
+      }
+    }
+  },
+  "exceptions": {
+    "timer_not_found": {
+      "message": "No hay ningún temporizador con el ID {timer_id}."
+    },
+    "invalid_duration": {
+      "message": "La duración debe ser mayor que cero."
+    },
+    "command_not_understood": {
+      "message": "Home Assistant no ha entendido «{command}»."
+    },
+    "command_and_actions": {
+      "message": "Usa un comando o acciones, no ambos."
+    }
+  },
+  "selector": {
+    "status": {
+      "options": {
+        "active": "En marcha",
+        "paused": "En pausa",
+        "finished": "Terminado",
+        "cancelled": "Cancelado"
+      }
+    }
+  },
+  "services": {
+    "create_timer": {
+      "name": "Crear temporizador",
+      "description": "Inicia un temporizador que puede ejecutar un comando o acciones al terminar.",
+      "fields": {
+        "duration": {
+          "name": "Duración",
+          "description": "Cuánto dura el temporizador."
+        },
+        "name": {
+          "name": "Nombre",
+          "description": "Nombre que se muestra en la tarjeta."
+        },
+        "command": {
+          "name": "Comando",
+          "description": "Lo que se dirá a Home Assistant al terminar, por ejemplo «apaga el purificador»."
+        },
+        "actions": {
+          "name": "Acciones",
+          "description": "Acciones que se ejecutan al terminar."
+        },
+        "language": {
+          "name": "Idioma",
+          "description": "Idioma del comando. Por defecto, el de Home Assistant."
+        },
+        "icon": {
+          "name": "Icono",
+          "description": "Icono que se muestra en la tarjeta."
+        },
+        "color": {
+          "name": "Color",
+          "description": "Color que se muestra en la tarjeta."
+        },
+        "metadata": {
+          "name": "Metadatos",
+          "description": "Datos adicionales del temporizador, como opciones de la tarjeta."
+        }
+      }
+    },
+    "pause_timer": {
+      "name": "Pausar temporizador",
+      "description": "Pausa un temporizador en marcha.",
+      "fields": {
+        "timer_id": {
+          "name": "ID del temporizador",
+          "description": "El ID del temporizador."
+        }
+      }
+    },
+    "unpause_timer": {
+      "name": "Reanudar temporizador",
+      "description": "Reanuda un temporizador en pausa.",
+      "fields": {
+        "timer_id": {
+          "name": "ID del temporizador",
+          "description": "El ID del temporizador."
+        }
+      }
+    },
+    "cancel_timer": {
+      "name": "Cancelar temporizador",
+      "description": "Detiene un temporizador sin ejecutar su acción.",
+      "fields": {
+        "timer_id": {
+          "name": "ID del temporizador",
+          "description": "El ID del temporizador."
+        }
+      }
+    },
+    "finish_timer": {
+      "name": "Terminar temporizador",
+      "description": "Termina un temporizador ahora y ejecuta su acción.",
+      "fields": {
+        "timer_id": {
+          "name": "ID del temporizador",
+          "description": "El ID del temporizador."
+        }
+      }
+    },
+    "remove_timer": {
+      "name": "Quitar temporizador",
+      "description": "Quita un temporizador de la lista.",
+      "fields": {
+        "timer_id": {
+          "name": "ID del temporizador",
+          "description": "El ID del temporizador."
+        }
+      }
+    },
+    "add_time": {
+      "name": "Añadir tiempo",
+      "description": "Añade tiempo a un temporizador.",
+      "fields": {
+        "timer_id": {
+          "name": "ID del temporizador",
+          "description": "El ID del temporizador."
+        },
+        "duration": {
+          "name": "Duración",
+          "description": "Cuánto tiempo añadir o quitar."
+        }
+      }
+    },
+    "subtract_time": {
+      "name": "Quitar tiempo",
+      "description": "Quita tiempo a un temporizador. Quitar más del que queda lo termina.",
+      "fields": {
+        "timer_id": {
+          "name": "ID del temporizador",
+          "description": "El ID del temporizador."
+        },
+        "duration": {
+          "name": "Duración",
+          "description": "Cuánto tiempo añadir o quitar."
+        }
+      }
+    },
+    "restart_timer": {
+      "name": "Reiniciar temporizador",
+      "description": "Vuelve a iniciar un temporizador con su nombre y acción.",
+      "fields": {
+        "timer_id": {
+          "name": "ID del temporizador",
+          "description": "El ID del temporizador."
+        },
+        "duration": {
+          "name": "Duración",
+          "description": "Nueva duración. Por defecto, la original."
+        }
+      }
+    },
+    "get_timers": {
+      "name": "Obtener temporizadores",
+      "description": "Devuelve los temporizadores de la lista.",
+      "fields": {
+        "status": {
+          "name": "Estado",
+          "description": "Devolver solo temporizadores con estos estados."
+        }
+      }
+    }
+  }
+}

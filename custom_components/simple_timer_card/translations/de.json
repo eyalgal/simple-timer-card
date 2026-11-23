@@ -1,0 +1,209 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Simple Timer Card",
+        "description": "Speichert Timer in Home Assistant, damit sie weiterlaufen und beim Ablauf eine Aktion ausführen können, auch ohne geöffnetes Dashboard.",
+        "data": {
+          "capture_voice_commands": "Verzögerte Sprachbefehle als Timer anzeigen",
+          "late_action_minutes": "Verspätete Aktionen ausführen bis zu (Minuten)"
+        },
+        "data_description": {
+          "capture_voice_commands": "Befehle wie „Schalte das Licht in 10 Minuten aus“ erscheinen auf der Karte und können pausiert oder abgebrochen werden.",
+          "late_action_minutes": "Ist ein Timer abgelaufen, während Home Assistant gestoppt war, wird seine Aktion beim Start noch ausgeführt, sofern sie nicht später ist. 0 überspringt verspätete Aktionen."
+        }
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Simple Timer Card ist bereits eingerichtet."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Timer-Optionen",
+        "data": {
+          "capture_voice_commands": "Verzögerte Sprachbefehle als Timer anzeigen",
+          "late_action_minutes": "Verspätete Aktionen ausführen bis zu (Minuten)"
+        },
+        "data_description": {
+          "capture_voice_commands": "Befehle wie „Schalte das Licht in 10 Minuten aus“ erscheinen auf der Karte und können pausiert oder abgebrochen werden.",
+          "late_action_minutes": "Ist ein Timer abgelaufen, während Home Assistant gestoppt war, wird seine Aktion beim Start noch ausgeführt, sofern sie nicht später ist. 0 überspringt verspätete Aktionen."
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "timers": {
+        "name": "Timer"
+      }
+    }
+  },
+  "exceptions": {
+    "timer_not_found": {
+      "message": "Kein Timer mit der ID {timer_id}."
+    },
+    "invalid_duration": {
+      "message": "Die Dauer muss größer als null sein."
+    },
+    "command_not_understood": {
+      "message": "Home Assistant hat „{command}“ nicht verstanden."
+    },
+    "command_and_actions": {
+      "message": "Verwende einen Befehl oder Aktionen, nicht beides."
+    }
+  },
+  "selector": {
+    "status": {
+      "options": {
+        "active": "Läuft",
+        "paused": "Pausiert",
+        "finished": "Beendet",
+        "cancelled": "Abgebrochen"
+      }
+    }
+  },
+  "services": {
+    "create_timer": {
+      "name": "Timer erstellen",
+      "description": "Startet einen Timer, der beim Ablauf einen Befehl oder Aktionen ausführen kann.",
+      "fields": {
+        "duration": {
+          "name": "Dauer",
+          "description": "Wie lange der Timer läuft."
+        },
+        "name": {
+          "name": "Name",
+          "description": "Name auf der Karte."
+        },
+        "command": {
+          "name": "Befehl",
+          "description": "Was Home Assistant beim Ablauf gesagt wird, z. B. „Schalte den Luftreiniger aus“."
+        },
+        "actions": {
+          "name": "Aktionen",
+          "description": "Aktionen, die beim Ablauf ausgeführt werden."
+        },
+        "language": {
+          "name": "Sprache",
+          "description": "Sprache des Befehls. Standard ist die Sprache von Home Assistant."
+        },
+        "icon": {
+          "name": "Symbol",
+          "description": "Symbol auf der Karte."
+        },
+        "color": {
+          "name": "Farbe",
+          "description": "Farbe auf der Karte."
+        },
+        "metadata": {
+          "name": "Metadaten",
+          "description": "Zusätzliche Daten zum Timer, etwa Kartenoptionen."
+        }
+      }
+    },
+    "pause_timer": {
+      "name": "Timer pausieren",
+      "description": "Pausiert einen laufenden Timer.",
+      "fields": {
+        "timer_id": {
+          "name": "Timer-ID",
+          "description": "Die ID des Timers."
+        }
+      }
+    },
+    "unpause_timer": {
+      "name": "Timer fortsetzen",
+      "description": "Setzt einen pausierten Timer fort.",
+      "fields": {
+        "timer_id": {
+          "name": "Timer-ID",
+          "description": "Die ID des Timers."
+        }
+      }
+    },
+    "cancel_timer": {
+      "name": "Timer abbrechen",
+      "description": "Stoppt einen Timer, ohne seine Aktion auszuführen.",
+      "fields": {
+        "timer_id": {
+          "name": "Timer-ID",
+          "description": "Die ID des Timers."
+        }
+      }
+    },
+    "finish_timer": {
+      "name": "Timer beenden",
+      "description": "Beendet einen Timer sofort und führt seine Aktion aus.",
+      "fields": {
+        "timer_id": {
+          "name": "Timer-ID",
+          "description": "Die ID des Timers."
+        }
+      }
+    },
+    "remove_timer": {
+      "name": "Timer entfernen",
+      "description": "Entfernt einen Timer aus der Liste.",
+      "fields": {
+        "timer_id": {
+          "name": "Timer-ID",
+          "description": "Die ID des Timers."
+        }
+      }
+    },
+    "add_time": {
+      "name": "Zeit hinzufügen",
+      "description": "Fügt einem Timer Zeit hinzu.",
+      "fields": {
+        "timer_id": {
+          "name": "Timer-ID",
+          "description": "Die ID des Timers."
+        },
+        "duration": {
+          "name": "Dauer",
+          "description": "Wie viel Zeit hinzugefügt oder abgezogen wird."
+        }
+      }
+    },
+    "subtract_time": {
+      "name": "Zeit abziehen",
+      "description": "Zieht Zeit von einem Timer ab. Mehr als die Restzeit beendet ihn.",
+      "fields": {
+        "timer_id": {
+          "name": "Timer-ID",
+          "description": "Die ID des Timers."
+        },
+        "duration": {
+          "name": "Dauer",
+          "description": "Wie viel Zeit hinzugefügt oder abgezogen wird."
+        }
+      }
+    },
+    "restart_timer": {
+      "name": "Timer neu starten",
+      "description": "Startet einen Timer erneut mit Name und Aktion.",
+      "fields": {
+        "timer_id": {
+          "name": "Timer-ID",
+          "description": "Die ID des Timers."
+        },
+        "duration": {
+          "name": "Dauer",
+          "description": "Neue Länge. Standard ist die ursprüngliche Dauer."
+        }
+      }
+    },
+    "get_timers": {
+      "name": "Timer abrufen",
+      "description": "Gibt die Timer der Liste zurück.",
+      "fields": {
+        "status": {
+          "name": "Status",
+          "description": "Nur Timer mit diesem Status zurückgeben."
+        }
+      }
+    }
+  }
+}

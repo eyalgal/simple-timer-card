@@ -61,7 +61,7 @@ notification payloads, remain YAML-only.
 12. [Push notification fallback](#-push-notification-fallback)
 13. [Storage & persistence](#-storage--persistence)
 14. [Voice timers (timer lists)](#-voice-timers-timer-lists)
-15. [Device timers](#-device-timers)
+15. [Companion integration](#-companion-integration)
 16. [Voice PE integration (legacy)](#-voice-pe-integration)
 17. [Compatibility mode](#-compatibility-mode)
 18. [Language support](#-language-support)
@@ -957,26 +957,52 @@ satellite still rings. The actions can use `trigger.timer.name` and
 
 ---
 
-## 🔌 Device timers
+## 🧩 Companion integration
 
-"Turn off the air purifier in 30 minutes": a countdown on the card that you
-can pause, extend or cancel, followed by an action on a device. Home Assistant
-runs the action, so it happens even when every dashboard is closed.
+The card works on its own. The optional **Simple Timer Card integration** adds
+what a dashboard card cannot do by itself:
 
-Device timers use [MQTT storage](mqtt-hybrid-model.md) and the
-[device action monitor](mqtt-hybrid-model.md#device-timers). The monitor reads
-the stored timers every 5 seconds and runs only the entity actions you allow.
+* **Server-side timers.** Timers live in Home Assistant, keep running with every
+  dashboard closed, show the same on every device, and survive restarts.
+* **Actions when a timer ends.** Run a command such as "turn off the air
+  purifier", or any Home Assistant action on any device. Home Assistant runs
+  it, as the user who started the timer.
+* **Delayed voice commands as timers.** "Turn off the lights in 10 minutes"
+  normally runs hidden inside Home Assistant. With the option on, it appears on
+  the card, where you can pause, extend or cancel it. This works in every
+  language Assist supports, and Assist answers exactly as before.
+
+Existing storage (browser, helpers, native timers and MQTT) keeps working
+unchanged. The integration is only needed for these extras.
+
+### Install
+
+Copy `custom_components/simple_timer_card` from this repository into your
+Home Assistant `config/custom_components` folder, restart Home Assistant, then
+add **Simple Timer Card** under **Settings > Devices & services**. It creates
+one entity, `sensor.simple_timer_card_timers`, whose state is the number of
+running timers.
+
+| Option | Default | Description |
+| ------ | ------- | ----------- |
+| Show delayed voice commands as timers | on | Capture "turn off the lights in 10 minutes" and similar commands. Turn off to leave them to Home Assistant. |
+| Run late actions for up to | 10 min | If a timer ended while Home Assistant was stopped, its action still runs at startup when it is no later than this. |
+
+### On the card
+
+List the entity, or make it the default target so every new timer is stored in
+Home Assistant:
 
 ```yaml
 type: custom:simple-timer-card
-storage: mqtt
-mqtt:
-  sensor_entity: sensor.simple_timer_store
-device_timers:
-  - entity: fan.air_purifier          # Turn off by default.
+default_timer_entity: sensor.simple_timer_card_timers
+device_timers:                      # Optional one-tap quick actions.
+  - entity: fan.air_purifier        # Default action: turn off.
   - entity: light.porch
     service: turn_on
     name: Porch light on
+  - command: lock the front door
+    name: Lock up
 pinned_timers:
   - id: purifier_30
     name: Purifier off in 30m
@@ -986,20 +1012,54 @@ pinned_timers:
       service: turn_off
 ```
 
+When the integration is installed, the custom timer panel shows **When done**:
+
+* **Just a timer**: no action.
+* **Command**: type what you would say to Assist, for example "turn off the
+  air purifier". The card checks that Home Assistant understands it before the
+  timer starts.
+* **Device**: pick any entity, then any of its actions that need no extra
+  input, such as turn on, turn off, open, close, lock or pause.
+* Quick actions from `device_timers` appear as one-tap chips.
+
+The choice applies to that one timer. The row shows what will happen, for
+example *12:34 · then Turn off Air purifier*. **Cancel** stops the timer
+without running the action, **Finish** runs it now, and **Snooze** and
+**Restart** keep it.
+
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `device_timers` | list | none | Devices offered under **When done** in the custom timer panel, for that one timer. Each entry has `entity`, `service` (`turn_off`, `turn_on` or `toggle`, default `turn_off`), and optional `name` and `icon`. |
-| `on_finish` | object | none | On a pinned timer: `entity` and `service` to run when it finishes. |
+| `device_timers` | list | none | Quick actions. Each entry is `entity` with an optional `service` (default `turn_off`; a name such as `open_cover` or a full action such as `cover.open_cover`), or `command`. Both accept `name` and `icon`. |
+| `on_finish` | object | none | On a pinned timer: `entity` and `service`, `command`, or `actions` (a Home Assistant action list). |
+| `action_timers` | boolean | `true` | Set `false` to hide **When done**. |
 
-* The row shows what will happen, for example *12:34 · turns off Air purifier*.
-* **Cancel** stops the timer without running the action. **Finish** runs it
-  now. Pause, resume and add/reduce work as usual. Device timers have no snooze.
-* The action runs within about 5 seconds of the timer ending, up to 10
-  minutes late after a Home Assistant restart, and only if the monitor's
-  allowlist includes that entity and service.
-* Finished device timers stay in storage for at least 60 seconds, even when
-  dismissed, so the monitor always sees them.
-* Without MQTT storage the card refuses to start device timers.
+Commands need the target entity to be exposed to Assist, as with any voice
+command. Device actions run as the user who started the timer, so Home
+Assistant's permissions apply.
+
+### Actions and events
+
+The entity offers `simple_timer_card.create_timer` (with `duration` and an
+optional `name`, `command`, `actions`, `icon`, `color` and `metadata`),
+`pause_timer`, `unpause_timer`, `cancel_timer`, `finish_timer`, `add_time`,
+`subtract_time`, `restart_timer`, `remove_timer` and `get_timers`. Every change
+fires a `simple_timer_card_timer` event with `event` (`created`, `finished`,
+`cancelled`, ...), `entity_id` and the `timer`, so automations can react:
+
+```yaml
+triggers:
+  - trigger: event
+    event_type: simple_timer_card_timer
+    event_data:
+      event: finished
+conditions:
+  - condition: template
+    value_template: "{{ trigger.event.data.timer.name == 'Laundry' }}"
+actions:
+  - action: notify.notify
+    data:
+      message: Laundry is done
+```
 
 ---
 

@@ -1,0 +1,209 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Simple Timer Card",
+        "description": "Gemmer timere i Home Assistant, så de bliver ved med at køre og kan udføre en handling, når de slutter, også uden et åbent dashboard.",
+        "data": {
+          "capture_voice_commands": "Vis forsinkede stemmekommandoer som timere",
+          "late_action_minutes": "Udfør forsinkede handlinger op til (minutter)"
+        },
+        "data_description": {
+          "capture_voice_commands": "Kommandoer som \"sluk lyset om 10 minutter\" vises på kortet og kan sættes på pause eller annulleres.",
+          "late_action_minutes": "Hvis en timer sluttede, mens Home Assistant var stoppet, udføres handlingen stadig ved opstart, hvis den ikke er senere end dette. 0 springer forsinkede handlinger over."
+        }
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Simple Timer Card er allerede sat op."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Timerindstillinger",
+        "data": {
+          "capture_voice_commands": "Vis forsinkede stemmekommandoer som timere",
+          "late_action_minutes": "Udfør forsinkede handlinger op til (minutter)"
+        },
+        "data_description": {
+          "capture_voice_commands": "Kommandoer som \"sluk lyset om 10 minutter\" vises på kortet og kan sættes på pause eller annulleres.",
+          "late_action_minutes": "Hvis en timer sluttede, mens Home Assistant var stoppet, udføres handlingen stadig ved opstart, hvis den ikke er senere end dette. 0 springer forsinkede handlinger over."
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "timers": {
+        "name": "Timere"
+      }
+    }
+  },
+  "exceptions": {
+    "timer_not_found": {
+      "message": "Ingen timer med ID {timer_id}."
+    },
+    "invalid_duration": {
+      "message": "Varigheden skal være længere end nul."
+    },
+    "command_not_understood": {
+      "message": "Home Assistant forstod ikke \"{command}\"."
+    },
+    "command_and_actions": {
+      "message": "Brug en kommando eller handlinger, ikke begge."
+    }
+  },
+  "selector": {
+    "status": {
+      "options": {
+        "active": "Kører",
+        "paused": "På pause",
+        "finished": "Færdig",
+        "cancelled": "Annulleret"
+      }
+    }
+  },
+  "services": {
+    "create_timer": {
+      "name": "Opret timer",
+      "description": "Starter en timer, der kan udføre en kommando eller handlinger, når den slutter.",
+      "fields": {
+        "duration": {
+          "name": "Varighed",
+          "description": "Hvor længe timeren kører."
+        },
+        "name": {
+          "name": "Navn",
+          "description": "Navn på kortet."
+        },
+        "command": {
+          "name": "Kommando",
+          "description": "Hvad der siges til Home Assistant, når timeren slutter, f.eks. \"sluk luftrenseren\"."
+        },
+        "actions": {
+          "name": "Handlinger",
+          "description": "Handlinger, der udføres, når timeren slutter."
+        },
+        "language": {
+          "name": "Sprog",
+          "description": "Kommandoens sprog. Standard er Home Assistants sprog."
+        },
+        "icon": {
+          "name": "Ikon",
+          "description": "Ikon på kortet."
+        },
+        "color": {
+          "name": "Farve",
+          "description": "Farve på kortet."
+        },
+        "metadata": {
+          "name": "Metadata",
+          "description": "Ekstra data gemt med timeren, f.eks. kortindstillinger."
+        }
+      }
+    },
+    "pause_timer": {
+      "name": "Sæt timer på pause",
+      "description": "Sætter en kørende timer på pause.",
+      "fields": {
+        "timer_id": {
+          "name": "Timer-ID",
+          "description": "Timerens ID."
+        }
+      }
+    },
+    "unpause_timer": {
+      "name": "Genoptag timer",
+      "description": "Genoptager en timer på pause.",
+      "fields": {
+        "timer_id": {
+          "name": "Timer-ID",
+          "description": "Timerens ID."
+        }
+      }
+    },
+    "cancel_timer": {
+      "name": "Annuller timer",
+      "description": "Stopper en timer uden at udføre handlingen.",
+      "fields": {
+        "timer_id": {
+          "name": "Timer-ID",
+          "description": "Timerens ID."
+        }
+      }
+    },
+    "finish_timer": {
+      "name": "Afslut timer",
+      "description": "Afslutter en timer nu og udfører handlingen.",
+      "fields": {
+        "timer_id": {
+          "name": "Timer-ID",
+          "description": "Timerens ID."
+        }
+      }
+    },
+    "remove_timer": {
+      "name": "Fjern timer",
+      "description": "Fjerner en timer fra listen.",
+      "fields": {
+        "timer_id": {
+          "name": "Timer-ID",
+          "description": "Timerens ID."
+        }
+      }
+    },
+    "add_time": {
+      "name": "Tilføj tid",
+      "description": "Lægger tid til en timer.",
+      "fields": {
+        "timer_id": {
+          "name": "Timer-ID",
+          "description": "Timerens ID."
+        },
+        "duration": {
+          "name": "Varighed",
+          "description": "Hvor meget tid der lægges til eller trækkes fra."
+        }
+      }
+    },
+    "subtract_time": {
+      "name": "Træk tid fra",
+      "description": "Trækker tid fra en timer. Mere end resten afslutter den.",
+      "fields": {
+        "timer_id": {
+          "name": "Timer-ID",
+          "description": "Timerens ID."
+        },
+        "duration": {
+          "name": "Varighed",
+          "description": "Hvor meget tid der lægges til eller trækkes fra."
+        }
+      }
+    },
+    "restart_timer": {
+      "name": "Genstart timer",
+      "description": "Kører en timer igen med samme navn og handling.",
+      "fields": {
+        "timer_id": {
+          "name": "Timer-ID",
+          "description": "Timerens ID."
+        },
+        "duration": {
+          "name": "Varighed",
+          "description": "Ny længde. Standard er den oprindelige varighed."
+        }
+      }
+    },
+    "get_timers": {
+      "name": "Hent timere",
+      "description": "Returnerer timerne på listen.",
+      "fields": {
+        "status": {
+          "name": "Status",
+          "description": "Returner kun timere med disse statusser."
+        }
+      }
+    }
+  }
+}

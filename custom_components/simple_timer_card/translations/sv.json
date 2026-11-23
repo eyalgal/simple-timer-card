@@ -1,0 +1,209 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Simple Timer Card",
+        "description": "Sparar timrar i Home Assistant så att de fortsätter gå och kan köra en åtgärd när de är klara, även utan öppen instrumentpanel.",
+        "data": {
+          "capture_voice_commands": "Visa fördröjda röstkommandon som timrar",
+          "late_action_minutes": "Kör sena åtgärder upp till (minuter)"
+        },
+        "data_description": {
+          "capture_voice_commands": "Kommandon som \"släck lamporna om 10 minuter\" visas på kortet och kan pausas eller avbrytas.",
+          "late_action_minutes": "Om en timer tog slut medan Home Assistant var stoppat körs åtgärden ändå vid start, om den inte är senare än så här. 0 hoppar över sena åtgärder."
+        }
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Simple Timer Card är redan konfigurerat."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Timeralternativ",
+        "data": {
+          "capture_voice_commands": "Visa fördröjda röstkommandon som timrar",
+          "late_action_minutes": "Kör sena åtgärder upp till (minuter)"
+        },
+        "data_description": {
+          "capture_voice_commands": "Kommandon som \"släck lamporna om 10 minuter\" visas på kortet och kan pausas eller avbrytas.",
+          "late_action_minutes": "Om en timer tog slut medan Home Assistant var stoppat körs åtgärden ändå vid start, om den inte är senare än så här. 0 hoppar över sena åtgärder."
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "timers": {
+        "name": "Timrar"
+      }
+    }
+  },
+  "exceptions": {
+    "timer_not_found": {
+      "message": "Ingen timer med ID {timer_id}."
+    },
+    "invalid_duration": {
+      "message": "Varaktigheten måste vara större än noll."
+    },
+    "command_not_understood": {
+      "message": "Home Assistant förstod inte \"{command}\"."
+    },
+    "command_and_actions": {
+      "message": "Använd ett kommando eller åtgärder, inte båda."
+    }
+  },
+  "selector": {
+    "status": {
+      "options": {
+        "active": "Pågår",
+        "paused": "Pausad",
+        "finished": "Klar",
+        "cancelled": "Avbruten"
+      }
+    }
+  },
+  "services": {
+    "create_timer": {
+      "name": "Skapa timer",
+      "description": "Startar en timer som kan köra ett kommando eller åtgärder när den är klar.",
+      "fields": {
+        "duration": {
+          "name": "Varaktighet",
+          "description": "Hur länge timern går."
+        },
+        "name": {
+          "name": "Namn",
+          "description": "Namn som visas på kortet."
+        },
+        "command": {
+          "name": "Kommando",
+          "description": "Vad som sägs till Home Assistant när timern är klar, till exempel \"stäng av luftrenaren\"."
+        },
+        "actions": {
+          "name": "Åtgärder",
+          "description": "Åtgärder som körs när timern är klar."
+        },
+        "language": {
+          "name": "Språk",
+          "description": "Kommandots språk. Standard är Home Assistants språk."
+        },
+        "icon": {
+          "name": "Ikon",
+          "description": "Ikon som visas på kortet."
+        },
+        "color": {
+          "name": "Färg",
+          "description": "Färg som visas på kortet."
+        },
+        "metadata": {
+          "name": "Metadata",
+          "description": "Extra data som sparas med timern, till exempel kortinställningar."
+        }
+      }
+    },
+    "pause_timer": {
+      "name": "Pausa timer",
+      "description": "Pausar en pågående timer.",
+      "fields": {
+        "timer_id": {
+          "name": "Timer-ID",
+          "description": "Timerns ID."
+        }
+      }
+    },
+    "unpause_timer": {
+      "name": "Återuppta timer",
+      "description": "Återupptar en pausad timer.",
+      "fields": {
+        "timer_id": {
+          "name": "Timer-ID",
+          "description": "Timerns ID."
+        }
+      }
+    },
+    "cancel_timer": {
+      "name": "Avbryt timer",
+      "description": "Stoppar en timer utan att köra åtgärden.",
+      "fields": {
+        "timer_id": {
+          "name": "Timer-ID",
+          "description": "Timerns ID."
+        }
+      }
+    },
+    "finish_timer": {
+      "name": "Avsluta timer",
+      "description": "Avslutar en timer nu och kör åtgärden.",
+      "fields": {
+        "timer_id": {
+          "name": "Timer-ID",
+          "description": "Timerns ID."
+        }
+      }
+    },
+    "remove_timer": {
+      "name": "Ta bort timer",
+      "description": "Tar bort en timer från listan.",
+      "fields": {
+        "timer_id": {
+          "name": "Timer-ID",
+          "description": "Timerns ID."
+        }
+      }
+    },
+    "add_time": {
+      "name": "Lägg till tid",
+      "description": "Lägger till tid på en timer.",
+      "fields": {
+        "timer_id": {
+          "name": "Timer-ID",
+          "description": "Timerns ID."
+        },
+        "duration": {
+          "name": "Varaktighet",
+          "description": "Hur mycket tid som läggs till eller dras av."
+        }
+      }
+    },
+    "subtract_time": {
+      "name": "Dra av tid",
+      "description": "Drar av tid från en timer. Mer än det som återstår avslutar den.",
+      "fields": {
+        "timer_id": {
+          "name": "Timer-ID",
+          "description": "Timerns ID."
+        },
+        "duration": {
+          "name": "Varaktighet",
+          "description": "Hur mycket tid som läggs till eller dras av."
+        }
+      }
+    },
+    "restart_timer": {
+      "name": "Starta om timer",
+      "description": "Kör en timer igen med samma namn och åtgärd.",
+      "fields": {
+        "timer_id": {
+          "name": "Timer-ID",
+          "description": "Timerns ID."
+        },
+        "duration": {
+          "name": "Varaktighet",
+          "description": "Ny längd. Standard är den ursprungliga."
+        }
+      }
+    },
+    "get_timers": {
+      "name": "Hämta timrar",
+      "description": "Returnerar timrarna i listan.",
+      "fields": {
+        "status": {
+          "name": "Status",
+          "description": "Returnera bara timrar med dessa statusar."
+        }
+      }
+    }
+  }
+}

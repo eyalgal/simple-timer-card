@@ -1,0 +1,209 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Simple Timer Card",
+        "description": "Conserve les minuteurs dans Home Assistant pour qu'ils continuent de tourner et puissent lancer une action à la fin, même sans tableau de bord ouvert.",
+        "data": {
+          "capture_voice_commands": "Afficher les commandes vocales différées comme minuteurs",
+          "late_action_minutes": "Exécuter les actions en retard jusqu'à (minutes)"
+        },
+        "data_description": {
+          "capture_voice_commands": "Les commandes comme « éteins les lumières dans 10 minutes » apparaissent sur la carte et peuvent être mises en pause ou annulées.",
+          "late_action_minutes": "Si un minuteur s'est terminé pendant l'arrêt de Home Assistant, son action est lancée au démarrage si le retard ne dépasse pas cette valeur. 0 ignore les actions en retard."
+        }
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Simple Timer Card est déjà configuré."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Options des minuteurs",
+        "data": {
+          "capture_voice_commands": "Afficher les commandes vocales différées comme minuteurs",
+          "late_action_minutes": "Exécuter les actions en retard jusqu'à (minutes)"
+        },
+        "data_description": {
+          "capture_voice_commands": "Les commandes comme « éteins les lumières dans 10 minutes » apparaissent sur la carte et peuvent être mises en pause ou annulées.",
+          "late_action_minutes": "Si un minuteur s'est terminé pendant l'arrêt de Home Assistant, son action est lancée au démarrage si le retard ne dépasse pas cette valeur. 0 ignore les actions en retard."
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "timers": {
+        "name": "Minuteurs"
+      }
+    }
+  },
+  "exceptions": {
+    "timer_not_found": {
+      "message": "Aucun minuteur avec l'ID {timer_id}."
+    },
+    "invalid_duration": {
+      "message": "La durée doit être supérieure à zéro."
+    },
+    "command_not_understood": {
+      "message": "Home Assistant n'a pas compris « {command} »."
+    },
+    "command_and_actions": {
+      "message": "Utilisez une commande ou des actions, pas les deux."
+    }
+  },
+  "selector": {
+    "status": {
+      "options": {
+        "active": "En cours",
+        "paused": "En pause",
+        "finished": "Terminé",
+        "cancelled": "Annulé"
+      }
+    }
+  },
+  "services": {
+    "create_timer": {
+      "name": "Créer un minuteur",
+      "description": "Démarre un minuteur qui peut lancer une commande ou des actions à la fin.",
+      "fields": {
+        "duration": {
+          "name": "Durée",
+          "description": "Durée du minuteur."
+        },
+        "name": {
+          "name": "Nom",
+          "description": "Nom affiché sur la carte."
+        },
+        "command": {
+          "name": "Commande",
+          "description": "Ce qui sera dit à Home Assistant à la fin, par exemple « éteins le purificateur »."
+        },
+        "actions": {
+          "name": "Actions",
+          "description": "Actions à lancer à la fin."
+        },
+        "language": {
+          "name": "Langue",
+          "description": "Langue de la commande. Par défaut, celle de Home Assistant."
+        },
+        "icon": {
+          "name": "Icône",
+          "description": "Icône affichée sur la carte."
+        },
+        "color": {
+          "name": "Couleur",
+          "description": "Couleur affichée sur la carte."
+        },
+        "metadata": {
+          "name": "Métadonnées",
+          "description": "Données supplémentaires du minuteur, comme les options de la carte."
+        }
+      }
+    },
+    "pause_timer": {
+      "name": "Mettre en pause",
+      "description": "Met en pause un minuteur en cours.",
+      "fields": {
+        "timer_id": {
+          "name": "ID du minuteur",
+          "description": "L'ID du minuteur."
+        }
+      }
+    },
+    "unpause_timer": {
+      "name": "Reprendre",
+      "description": "Reprend un minuteur en pause.",
+      "fields": {
+        "timer_id": {
+          "name": "ID du minuteur",
+          "description": "L'ID du minuteur."
+        }
+      }
+    },
+    "cancel_timer": {
+      "name": "Annuler le minuteur",
+      "description": "Arrête un minuteur sans lancer son action.",
+      "fields": {
+        "timer_id": {
+          "name": "ID du minuteur",
+          "description": "L'ID du minuteur."
+        }
+      }
+    },
+    "finish_timer": {
+      "name": "Terminer le minuteur",
+      "description": "Termine un minuteur maintenant et lance son action.",
+      "fields": {
+        "timer_id": {
+          "name": "ID du minuteur",
+          "description": "L'ID du minuteur."
+        }
+      }
+    },
+    "remove_timer": {
+      "name": "Supprimer le minuteur",
+      "description": "Retire un minuteur de la liste.",
+      "fields": {
+        "timer_id": {
+          "name": "ID du minuteur",
+          "description": "L'ID du minuteur."
+        }
+      }
+    },
+    "add_time": {
+      "name": "Ajouter du temps",
+      "description": "Ajoute du temps à un minuteur.",
+      "fields": {
+        "timer_id": {
+          "name": "ID du minuteur",
+          "description": "L'ID du minuteur."
+        },
+        "duration": {
+          "name": "Durée",
+          "description": "Temps à ajouter ou retirer."
+        }
+      }
+    },
+    "subtract_time": {
+      "name": "Retirer du temps",
+      "description": "Retire du temps à un minuteur. En retirer plus que le reste le termine.",
+      "fields": {
+        "timer_id": {
+          "name": "ID du minuteur",
+          "description": "L'ID du minuteur."
+        },
+        "duration": {
+          "name": "Durée",
+          "description": "Temps à ajouter ou retirer."
+        }
+      }
+    },
+    "restart_timer": {
+      "name": "Relancer le minuteur",
+      "description": "Relance un minuteur avec son nom et son action.",
+      "fields": {
+        "timer_id": {
+          "name": "ID du minuteur",
+          "description": "L'ID du minuteur."
+        },
+        "duration": {
+          "name": "Durée",
+          "description": "Nouvelle durée. Par défaut, la durée d'origine."
+        }
+      }
+    },
+    "get_timers": {
+      "name": "Obtenir les minuteurs",
+      "description": "Renvoie les minuteurs de la liste.",
+      "fields": {
+        "status": {
+          "name": "Statut",
+          "description": "Ne renvoyer que les minuteurs avec ces statuts."
+        }
+      }
+    }
+  }
+}
