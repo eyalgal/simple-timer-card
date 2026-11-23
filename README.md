@@ -18,7 +18,7 @@ No dashboard clutter. No duplicated cards. Just timers.
 
 * **Every timer in one card**: Native `timer.*`, voice timers (timer lists), Alexa, Google Home, helpers, MQTT, timestamps, and local timers
 * **Voice timers**: Show, start, pause, extend and cancel Voice PE and other voice satellite timers, with no custom firmware
-* **Optional companion integration**: Timers kept in Home Assistant that can run any action when they end ("turn off the air purifier in 30 minutes"), plus delayed voice commands shown as timers
+* **Optional [companion integration](https://github.com/eyalgal/simple-timer-card-integration)**: Timers kept in Home Assistant that can run any action when they end ("turn off the air purifier in 30 minutes"), plus delayed voice commands shown as timers
 * **Auto-discovery**: Optionally pick up voice satellite, Alexa and Google Home timers without listing every device
 * **Quick actions**: Presets, pinned one‑tap timers, and custom timers with a keypad or +/- buttons, plus an optional on-card input switch
 * **Visual progress styles**: Bars, fills, and circles (vertical or horizontal) with drain, fill, or milestone modes
@@ -61,11 +61,12 @@ snooze and dismiss them, with stock firmware and no template sensors. Turn on
 
 v3.0.0 also adds:
 
-* An optional **companion integration** keeps timers in Home Assistant, runs a
+* An optional **[companion integration](https://github.com/eyalgal/simple-timer-card-integration)** keeps timers in Home Assistant, runs a
   command or any device action when a timer ends ("turn off the air purifier in
   30 minutes") with every dashboard closed, and shows delayed voice commands as
   timers. Choose it with `storage: integration`, next to browser and MQTT
-  storage, which keep working unchanged. See
+  storage, which keep working unchanged. Install it from its
+  [own repository](https://github.com/eyalgal/simple-timer-card-integration), then see
   [Companion integration](CONFIGURATION.md#-companion-integration).
 * **Put on a speaker** and **default area** for running a timer on a voice
   speaker, and **Announce on a speaker** (Sonos, Echo, Nest…) when a timer
