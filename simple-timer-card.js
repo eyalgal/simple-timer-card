@@ -6072,7 +6072,8 @@ class SimpleTimerCard extends i$2 {
     } else {
       timeStr = this._formatTimeString(t);
     }
-    if (t.context_label) timeStr = `${timeStr} · ${t.context_label}`;
+    // "then Turn off …" describes what is still to come, so an ended timer drops it.
+    if (t.context_label && !(t.context_is_action && (ring || isFinished))) timeStr = `${timeStr} · ${t.context_label}`;
     let circleValues;
     if (isCircleStyle) {
       const progressMode = this._config.progress_mode === "drain" ? "drain" : "fill";
@@ -6487,6 +6488,7 @@ class SimpleTimerCard extends i$2 {
         const summary = this._actionSummary(action);
         if (summary && summary.toLowerCase() !== String(t.label || "").toLowerCase()) {
           t.context_label = this._localize("then_action").replace("{action}", summary);
+          t.context_is_action = true;
         }
         continue;
       }

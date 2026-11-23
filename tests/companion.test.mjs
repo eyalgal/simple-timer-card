@@ -137,6 +137,9 @@ test("action timers are labelled with what they will do", async () => {
   assert.equal(byId.a.context_label, undefined);
   assert.equal(byId.b.label, "Purifier");
   assert.equal(byId.b.context_label, "then Turn off Air purifier");
+  const style = card._config.style;
+  assert.match(card._getTimerRenderState(byId.b, style).timeStr, /then Turn off Air purifier$/);
+  assert.doesNotMatch(card._getTimerRenderState({ ...byId.b, remaining: 0 }, style).timeStr, /then/, "an ended timer drops it");
 });
 
 test("every localized key exists in every language", () => {
