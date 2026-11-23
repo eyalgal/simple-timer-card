@@ -18,6 +18,7 @@ No dashboard clutter. No duplicated cards. Just timers.
 
 * **Every timer in one card**: Native `timer.*`, voice timers (timer lists), Alexa, Google Home, helpers, MQTT, timestamps, and local timers
 * **Voice timers**: Show, start, pause, extend and cancel Voice PE and other voice satellite timers, with no custom firmware
+* **Device timers**: "Turn off the air purifier in 30 minutes", with the action run by Home Assistant even when no dashboard is open
 * **Auto-discovery**: Optionally pick up voice satellite, Alexa and Google Home timers without listing every device
 * **Quick actions**: Presets, pinned one‑tap timers, and custom timers with a keypad or +/- buttons, plus an optional on-card input switch
 * **Visual progress styles**: Bars, fills, and circles (vertical or horizontal) with drain, fill, or milestone modes
@@ -58,8 +59,21 @@ snooze and dismiss them, with stock firmware and no template sensors. Turn on
 **Auto-discover voice timers** in the editor, or see
 [Voice timers](CONFIGURATION.md#-voice-timers-timer-lists).
 
-This needs a Home Assistant version in which your satellite has a timer list.
-Existing configurations keep working unchanged. The custom-firmware Voice PE
+v3.0.0 also adds:
+
+* **Device timers**: "turn off the air purifier in 30 minutes", run by Home
+  Assistant even with every dashboard closed (needs MQTT storage). See
+  [Device timers](CONFIGURATION.md#-device-timers).
+* **Start-on picker** and **default area** for choosing which satellite a new
+  timer starts on, plus device or area labels and `group_by`.
+* **Browser voice satellites** (Voice Satellite Card integration), **count-up
+  rows** ("fed 1h 40m ago") and **template rows** from Jinja.
+* `ring_animation`, `hide_when_empty` and `max_rows` for wall tablets.
+* A [blueprint](blueprints/automation/simple_timer_card/timer_list_event.yaml)
+  for automations on voice timer events.
+
+Voice timers need a Home Assistant version in which your satellite has a timer
+list. Existing configurations keep working unchanged. The custom-firmware Voice PE
 setup (`mode: voice_pe`, `auto_voice_pe`) is now legacy; follow the
 [migration steps](CONFIGURATION.md#moving-from-the-legacy-voice-pe-setup) once
 your satellite has a timer list.

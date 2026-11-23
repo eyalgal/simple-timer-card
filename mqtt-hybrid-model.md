@@ -439,6 +439,35 @@ max_exceeded: silent
   guarantee** and no transaction covering MQTT, notification delivery, and helper
   state. The final snapshot check narrows races but cannot eliminate them.
 
+## Device timers
+
+**Available since v3.0.0.** A [device timer](CONFIGURATION.md#-device-timers)
+stores the action to run in its MQTT record:
+`on_finish: {entity_id: fan.air_purifier, service: turn_off}`. A second monitor
+reads the same store and runs that action when the timer ends, whether or not a
+dashboard is open. It complements the notification monitor above and does not
+replace it.
+
+1. Create a second **Text** helper with maximum length **255**, for example
+   `input_text.simple_timer_card_device_actions_processed`. While the monitor is
+   disabled, initialize it once to `{"v1":true,"done":[]}`. Do not share it with
+   the notification monitor.
+2. Paste [examples/mqtt_device_action_monitor.yaml](examples/mqtt_device_action_monitor.yaml)
+   into the single-automation YAML editor. Set `sensor_entity`,
+   `processed_helper` and `allowed_actions`.
+3. Add the same entities to the card's `device_timers:`.
+
+`allowed_actions` is the security boundary. The stored record is untrusted
+input, so the monitor ignores any entity or service that is not listed there,
+even if a card or another MQTT publisher wrote it. Actions run through
+`homeassistant.turn_on`, `turn_off` or `toggle`. Timers more than
+`max_late_ms` overdue (10 minutes by default), for example after a long outage,
+are skipped rather than run late.
+
+The claims, polling and limitations below apply to this monitor too. The
+notification monitor also alerts for device timers, because they are ordinary
+stored timers.
+
 ## Limitations
 
 - **Polling/restarts:** normally up to five seconds plus service/runtime delays.
@@ -475,4 +504,4 @@ max_exceeded: silent
 - [examples/climate_timer_example.yaml](examples/climate_timer_example.yaml) uses
   an exact full `pinned_id` allowlist for a frontend-driven convenience action.
   It does not derive climate entity IDs from names and is not a backend shutoff
-  guarantee.
+  guarantee. Prefer [device timers](#device-timers), which run from the backend.

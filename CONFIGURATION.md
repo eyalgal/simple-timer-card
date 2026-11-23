@@ -61,10 +61,11 @@ notification payloads, remain YAML-only.
 12. [Push notification fallback](#-push-notification-fallback)
 13. [Storage & persistence](#-storage--persistence)
 14. [Voice timers (timer lists)](#-voice-timers-timer-lists)
-15. [Voice PE integration (legacy)](#-voice-pe-integration)
-16. [Compatibility mode](#-compatibility-mode)
-17. [Language support](#-language-support)
-18. [Examples & help](#-examples--help)
+15. [Device timers](#-device-timers)
+16. [Voice PE integration (legacy)](#-voice-pe-integration)
+17. [Compatibility mode](#-compatibility-mode)
+18. [Language support](#-language-support)
+19. [Examples & help](#-examples--help)
 
 ---
 
@@ -105,6 +106,10 @@ show_active_header: true
 | `progress_mode`      | string  | `drain`          | How the progress indicator fills: `drain`, `fill`, or `milestones` (bar styles only)         |
 | `language`           | string  | auto             | UI language. Defaults to your Home Assistant language. See [Language support](#-language-support). |
 | `show_active_header` | boolean | `true`           | Show the "Active Timers" heading above running timers                                        |
+| `hide_when_empty`    | boolean | `false`          | Hide the whole card while there are no timers. It reappears when one starts. Pinned timers keep it visible, and it always shows while you edit the dashboard. |
+| `max_rows`           | number  | all              | Show this many timers, with a **+N more** button for the rest                                |
+| `group_by`           | string  | `none`           | Group timers under headers: `device`, `area`, `source`, or `none`. Headers appear only with two or more groups. |
+| `device_label`       | string  | `auto`           | Add the device or area to the status line of voice timers: `auto` (when the card shows two or more satellites, and not grouped by device or area), `device`, `area`, or `none` |
 
 ---
 
@@ -131,6 +136,9 @@ Mix and match freely. Mode is auto-detected by default.
 | ------------------------- | ----------------------------------------------- |
 | Native HA timer           | `timer.*`                                       |
 | Voice timers (timer list) | `timer_list.*`, for example Voice PE and other voice satellites (see [Voice timers](#-voice-timers-timer-lists)) |
+| Browser voice satellite   | `assist_satellite.*` from the Voice Satellite Card integration (see [Browser voice satellites](#browser-voice-satellites)) |
+| Count up                  | Any timestamp, shown as time since (see [Count-up rows](#count-up-rows)) |
+| Template rows             | Rows from a Jinja template (see [Template rows](#template-rows)) |
 | Alexa                     | `alexa_media_player` next-timer sensors         |
 | Google Home               | Timer sensors from the Google Home integration, identified by attributes |
 | Voice PE (legacy)         | Custom ESPHome/template sensors (see [Voice PE](#-voice-pe-integration)) |
@@ -156,6 +164,7 @@ auto_discover_timer_lists: true
 | `auto_discover_alexa`       | boolean | `false` | Pick up Alexa Media Player next-timer sensors without listing them.     |
 | `auto_discover_google`      | boolean | `false` | Pick up Google Home timer sensors by their attributes, including renamed entities. |
 | `auto_discover_timer_lists` | boolean | `false` | Pick up every `timer_list.*` entity, such as voice satellite timers. See [Voice timers](#-voice-timers-timer-lists). |
+| `auto_discover_voice_satellites` | boolean | `false` | Pick up browser satellites from the Voice Satellite Card integration. See [Browser voice satellites](#browser-voice-satellites). |
 
 Discovered entities are added to anything in `entities:`, never duplicated, and
 carry no per-entity options. List an entity explicitly if you want to override
@@ -187,8 +196,8 @@ source_styles:
     icon: mdi:microphone-message
 ```
 
-Keys are the source names: `alexa`, `google`, `timer_list`, `voice_pe`, `timer`, `helper`,
-`timestamp`, `minutes_attr`. Each accepts `icon`, `color`, or both.
+Keys are the source names: `alexa`, `google`, `timer_list`, `voice_satellite`, `count_up`,
+`dynamic` (template rows), `voice_pe`, `timer`, `helper`, `timestamp`, `minutes_attr`. Each accepts `icon`, `color`, or both.
 
 In the editor, enable **Advanced** and open **Icons & colors** for these settings.
 
@@ -212,7 +221,7 @@ so an entity listed in `entities:` with its own `icon:` still wins.
 | ------------------------------ | ------- | ------------ | ---------------------- | ---------------------------------------------------------------------------- |
 | `entity`                       | string  | **required** | Always                 | Entity ID                                                                    |
 | `name`                         | string  | auto         | Always                 | Override the displayed name                                                  |
-| `mode`                         | string  | `auto`       | Always                 | One of `auto`, `timer`, `timer_list`, `alexa`, `google`, `voice_pe`, `helper`, `timestamp`, `minutes_attr` |
+| `mode`                         | string  | `auto`       | Always                 | One of `auto`, `timer`, `timer_list`, `voice_satellite`, `count_up`, `alexa`, `google`, `voice_pe`, `helper`, `timestamp`, `minutes_attr` |
 | `icon`                         | string  | auto         | Always                 | Override the icon                                                            |
 | `color`                        | string  | auto         | Always                 | Override the color (any CSS color or HA theme variable)                      |
 | `expired_subtitle`             | string  | inherited    | Always                 | Override the message shown when this timer expires                           |
@@ -221,10 +230,65 @@ so an entity listed in `entities:` with its own `icon:` still wins.
 | `start_time_attr`              | string  | `start_time` | `mode: timestamp`      | Attribute on the entity holding the start timestamp                          |
 | `keep_timer_visible_when_idle` | boolean | `false`      | `mode: timer`          | Keep the row in view even when the timer is idle                             |
 | `hide_timer_actions`           | boolean | `false`      | `mode: timer` or `timer_list` | Hide the start / pause / cancel buttons                               |
+| `goal`                         | string  | none         | `mode: count_up`       | Duration such as `3h`. Shows progress and turns the row amber once it has passed. |
+| `attribute`                    | string  | state        | `mode: count_up`       | Read the start time from this attribute                                      |
+| `use_last_changed`             | boolean | `false`      | `mode: count_up`       | Count from when the entity last changed state                                |
 | `buttons`                      | list    | inherited    | Always                 | Extra action buttons for this row, see [Custom action buttons](#-custom-action-buttons) |
 | `audio_enabled`                | boolean | `false`      | Always                 | Enable an entity-specific expiry sound                                       |
 | `audio_file_url`               | string  | `""`         | `audio_enabled: true`  | URL or path to the audio file                                                |
 | `audio_repeat_count`           | number  | `1`          | `audio_enabled: true`  | How many times to play the audio                                             |
+
+### Browser voice satellites
+
+Wall tablets running the [Voice Satellite Card integration](https://github.com/jxlarrea/voice-satellite-card-integration)
+publish their timers on the `assist_satellite.*` entity. The card shows them
+read-only: start and stop them by voice on the tablet, which also rings.
+
+```yaml
+type: custom:simple-timer-card
+auto_discover_voice_satellites: true
+```
+
+If that integration moves to timer lists, use [Voice timers](#-voice-timers-timer-lists) instead.
+
+### Count-up rows
+
+`mode: count_up` shows how long ago something happened: the dishwasher
+finished, the baby was fed, the plants were watered. The start time is the
+entity's state (a timestamp), an `input_datetime`, an `attribute`, or the last
+state change with `use_last_changed: true`. Rows are read-only and never ring.
+
+```yaml
+entities:
+  - entity: input_datetime.baby_fed
+    mode: count_up
+    name: Fed
+    goal: 3h
+  - entity: binary_sensor.dishwasher
+    mode: count_up
+    use_last_changed: true
+```
+
+### Template rows
+
+`timers_template` is a Jinja template that Home Assistant renders and keeps up
+to date. It must return a JSON list. Each row needs a `name` plus either `end`
+(a countdown) or `since` (a count-up). Optional fields are `start` or `duration`
+for progress, `goal` for count-ups, `icon`, `color`, `id`, and
+`expired_subtitle`. Times can be ISO strings or epoch seconds or milliseconds.
+Invalid output shows no rows, at most 50 rows are shown, and rows are read-only.
+
+```yaml
+type: custom:simple-timer-card
+timers_template: >-
+  {% set ns = namespace(rows=[]) %}
+  {% if is_state('sensor.printer_status', 'printing') %}
+    {% set ns.rows = ns.rows + [{'name': 'Printer', 'end': states('sensor.printer_end_time'),
+                                 'start': states('sensor.printer_start_time'),
+                                 'icon': 'mdi:printer-3d'}] %}
+  {% endif %}
+  {{ ns.rows | tojson }}
+```
 
 ---
 
@@ -320,6 +384,7 @@ auto_dismiss_writable: false
 | `expire_action`                   | string  | `keep`                 | `keep` shows the expired timer until `expire_keep_for`; `remove` cleans it up; `dismiss` leaves it for manual dismissal. |
 | `expire_keep_for`                 | number  | `120`                  | Seconds to keep an expired timer visible (only when `expire_action: keep`)                   |
 | `auto_dismiss_writable`           | boolean | `false`                | Retained compatibility setting; currently does not add automatic helper cleanup. Use `expire_action` instead. |
+| `ring_animation`                  | string  | `none`                 | Animate ringing timers: `pulse` or `swing` (icon), `shake` or `hop` (row). Turned off when the system asks for reduced motion. |
 
 ---
 
@@ -825,10 +890,13 @@ entities:
 | --------------------------- | ------- | ------- | ----------- |
 | `auto_discover_timer_lists` | boolean | `false` | Show every timer list without listing it. |
 | `default_timer_entity`      | string  | `null`  | A `timer_list.*` entity here receives timers started from the card. |
+| `default_timer_area`        | string  | `null`  | Area ID. New timers start on the timer list in that area, such as the kitchen Voice PE, when `default_timer_entity` is not set. |
+| `target_picker`             | string  | `auto`  | **Start on** chips in the custom timer panel: `auto` (two or more timer lists), `always`, or `never`. **This card** keeps the timer in the card's own storage. |
 
 **Starting timers.** Presets, the custom timer input and pinned timers create
-a timer on `default_timer_entity`, or on the only timer list in `entities:`
-when no default is set and no single native `timer.*` is listed. On a voice
+a timer on the list picked under **Start on**, then `default_timer_entity`,
+then the timer list in `default_timer_area`, then the only timer list in
+`entities:` when no single native `timer.*` is listed. On a voice
 satellite the timer also shows and rings on the device. The card sends a name
 only when you give one, such as a custom name or a pinned timer's name, so the
 satellite does not announce preset labels.
@@ -866,6 +934,18 @@ that is already ringing; stop it on the device.
   not get a timer list, so the card cannot see their timers.
 * Non-admin users can view and control timer lists without extra setup.
 
+### Automations
+
+The [Voice timer event blueprint](blueprints/automation/simple_timer_card/timer_list_event.yaml)
+runs actions in Home Assistant when a timer on a timer list finishes, starts or
+is cancelled, even with every dashboard closed. Filter by timer name to tie a
+spoken timer to a device. For example, "set a timer called purifier for 30
+minutes" can turn the air purifier off when it finishes; note that the
+satellite still rings. The actions can use `trigger.timer.name` and
+`trigger.entity_id`.
+
+[Import the blueprint](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Feyalgal%2Fsimple-timer-card%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fsimple_timer_card%2Ftimer_list_event.yaml)
+
 ### Moving from the legacy Voice PE setup
 
 1. Update Home Assistant and check that the satellite has a *Timers* entity.
@@ -874,6 +954,52 @@ that is already ringing; stop it on the device.
    `auto_discover_timer_lists: true`.
 3. Optionally return the device to the stock firmware and delete the template
    sensors from the legacy guides.
+
+---
+
+## 🔌 Device timers
+
+"Turn off the air purifier in 30 minutes": a countdown on the card that you
+can pause, extend or cancel, followed by an action on a device. Home Assistant
+runs the action, so it happens even when every dashboard is closed.
+
+Device timers use [MQTT storage](mqtt-hybrid-model.md) and the
+[device action monitor](mqtt-hybrid-model.md#device-timers). The monitor reads
+the stored timers every 5 seconds and runs only the entity actions you allow.
+
+```yaml
+type: custom:simple-timer-card
+storage: mqtt
+mqtt:
+  sensor_entity: sensor.simple_timer_store
+device_timers:
+  - entity: fan.air_purifier          # Turn off by default.
+  - entity: light.porch
+    service: turn_on
+    name: Porch light on
+pinned_timers:
+  - id: purifier_30
+    name: Purifier off in 30m
+    duration: 30m
+    on_finish:
+      entity: fan.air_purifier
+      service: turn_off
+```
+
+| Name | Type | Default | Description |
+| ---- | ---- | ------- | ----------- |
+| `device_timers` | list | none | Devices offered under **When done** in the custom timer panel, for that one timer. Each entry has `entity`, `service` (`turn_off`, `turn_on` or `toggle`, default `turn_off`), and optional `name` and `icon`. |
+| `on_finish` | object | none | On a pinned timer: `entity` and `service` to run when it finishes. |
+
+* The row shows what will happen, for example *12:34 · turns off Air purifier*.
+* **Cancel** stops the timer without running the action. **Finish** runs it
+  now. Pause, resume and add/reduce work as usual. Device timers have no snooze.
+* The action runs within about 5 seconds of the timer ending, up to 10
+  minutes late after a Home Assistant restart, and only if the monitor's
+  allowlist includes that entity and service.
+* Finished device timers stay in storage for at least 60 seconds, even when
+  dismissed, so the monitor always sees them.
+* Without MQTT storage the card refuses to start device timers.
 
 ---
 
