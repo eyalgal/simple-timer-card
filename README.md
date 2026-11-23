@@ -8,7 +8,7 @@
 <img width="1000" alt="hero image" src="https://raw.githubusercontent.com/eyalgal/simple-timer-card/main/assets/readme-hero.png" />
 
 
-A **clean, powerful timer card for Home Assistant** that shows every timer you have in one place, whether it comes from a native `timer.*`, Alexa, Google Home, Voice PE, a helper, MQTT, or the card itself.
+A **clean, powerful timer card for Home Assistant** that shows every timer you have in one place, whether it comes from a native `timer.*`, a voice satellite such as Voice PE, Alexa, Google Home, a helper, MQTT, or the card itself.
 
 No dashboard clutter. No duplicated cards. Just timers.
 
@@ -16,8 +16,9 @@ No dashboard clutter. No duplicated cards. Just timers.
 
 ## 🚀 Highlights
 
-* **Every timer in one card**: Native `timer.*`, Alexa, Google Home, Voice PE, helpers, MQTT, timestamps, and local timers
-* **Auto-discovery**: Optionally pick up Alexa and Google Home timers without listing every speaker entity
+* **Every timer in one card**: Native `timer.*`, voice timers (timer lists), Alexa, Google Home, helpers, MQTT, timestamps, and local timers
+* **Voice timers**: Show, start, pause, extend and cancel Voice PE and other voice satellite timers, with no custom firmware
+* **Auto-discovery**: Optionally pick up voice satellite, Alexa and Google Home timers without listing every device
 * **Quick actions**: Presets, pinned one‑tap timers, and custom timers with a keypad or +/- buttons, plus an optional on-card input switch
 * **Visual progress styles**: Bars, fills, and circles (vertical or horizontal) with drain, fill, or milestone modes
 * **Simple editor**: Sources, storage, appearance, and timer input in one place, with a remembered Advanced mode for specialist settings
@@ -47,6 +48,21 @@ resources:
   - url: /local/simple-timer-card.js
     type: module
 ```
+
+### Updating to v3.0.0
+
+v3.0.0 adds **voice timers**. Home Assistant now keeps the timers on each voice
+satellite, such as Voice PE, in a timer list entity (`timer_list.*`). The card
+shows these timers and can start, pause, resume, add time to, finish, cancel,
+snooze and dismiss them, with stock firmware and no template sensors. Turn on
+**Auto-discover voice timers** in the editor, or see
+[Voice timers](CONFIGURATION.md#-voice-timers-timer-lists).
+
+This needs a Home Assistant version in which your satellite has a timer list.
+Existing configurations keep working unchanged. The custom-firmware Voice PE
+setup (`mode: voice_pe`, `auto_voice_pe`) is now legacy; follow the
+[migration steps](CONFIGURATION.md#moving-from-the-legacy-voice-pe-setup) once
+your satellite has a timer list.
 
 ### Updating to v2.9.2
 
@@ -94,13 +110,20 @@ entities:
   - timer.laundry
 ```
 
+To show and control the timers on your voice satellites:
+
+```yaml
+type: custom:simple-timer-card
+auto_discover_timer_lists: true
+```
+
 ---
 
 ## 📝 Configuration
 
 Everything else, including styles, presets, pinned timers, storage, audio, notifications and tap actions, is in [`CONFIGURATION.md`](CONFIGURATION.md).
 
-**Guides:** [Voice PE](voice-pe/voice-pe.md) and [Voice PE with ESPHome](voice-pe/voice-pe-esphome.md) · [MQTT hybrid storage](mqtt-hybrid-model.md)
+**Guides:** [Voice timers](CONFIGURATION.md#-voice-timers-timer-lists) · [MQTT hybrid storage](mqtt-hybrid-model.md) · Legacy: [Voice PE](voice-pe/voice-pe.md) and [Voice PE with ESPHome](voice-pe/voice-pe-esphome.md)
 
 ---
 

@@ -96,12 +96,12 @@ function editDurationDigits(digits, key) {
  *
  * Author: eyalgal
  * License: MIT
- * Version: 2.9.2
+ * Version: 3.0.0
  * For more information, visit: https://github.com/eyalgal/simple-timer-card
  */
 
 
-const cardVersion="2.9.2";
+const cardVersion="3.0.0";
 
 const DAY_IN_MS = 86400000;
 const YEAR_IN_MS = 365 * DAY_IN_MS;
@@ -117,6 +117,15 @@ const MQTT_WAKE_GAP_MS = 5000;
 const MQTT_RESYNC_GRACE_MS = 5000;
 // Retain deletion markers to reduce stale resurrection after a client wakes.
 const MQTT_TOMBSTONE_TTL_MS = 24 * 60 * 60 * 1000;
+
+// Home Assistant timer_list entities (voice satellite and mobile app timers).
+// Bits mirror TimerListEntityFeature in homeassistant/components/timer_list.
+const TIMER_LIST_FEATURE = { CREATE: 1, PAUSE: 2, CANCEL: 4, ADD_TIME: 8, REMOVE: 16, FINISH: 32 };
+// The entity state is the number of active timers. If the subscribed cache
+// disagrees for this long, the subscription is assumed stale and is renewed.
+const TIMER_LIST_RESYNC_MS = 3000;
+const TIMER_LIST_RETRY_MS = 30000;
+const TIMER_LIST_META_KEY = "simple-timer-card-timer-list-meta";
 
 function _cleanUndefined(obj) {
   if (!obj || typeof obj !== "object") return obj;
@@ -742,6 +751,10 @@ class SimpleTimerCard extends i$2 {
     this._editDuration = { h: 0, m: 0, s: 0 };
     this._audioUnlocked = false;
     this._unlockAudioHandler = this._unlockAudio.bind(this);
+    this._timerLists = new Map();
+    this._timerListMeta = this._loadTimerListMeta();
+    this._timerListConn = null;
+    this._onTimerListConnectionReady = () => this._resetTimerListSubscriptions();
   }
 
   _isActionThrottled(actionType, timerId = "global", throttleMs = 1000) {
@@ -879,6 +892,7 @@ class SimpleTimerCard extends i$2 {
       auto_voice_pe: false,
       auto_discover_alexa: false,
       auto_discover_google: false,
+      auto_discover_timer_lists: false,
       source_styles: {},
       expire_action: "keep",
       expire_keep_for: 120,
@@ -929,6 +943,7 @@ class SimpleTimerCard extends i$2 {
   disconnectedCallback() {
     super.disconnectedCallback();
     this._stopTimerUpdates();
+    this._teardownTimerLists();
     this.removeEventListener("pointerdown", this._unlockAudioHandler, { capture: true });
     this.removeEventListener("touchend", this._unlockAudioHandler, { capture: true });
     this.removeEventListener("click", this._unlockAudioHandler, { capture: true });
@@ -1432,13 +1447,14 @@ class SimpleTimerCard extends i$2 {
   _discoverTimerEntities() {
     const wantAlexa = this._config?.auto_discover_alexa === true;
     const wantGoogle = this._config?.auto_discover_google === true;
-    if (!wantAlexa && !wantGoogle) return [];
+    const wantTimerLists = this._config?.auto_discover_timer_lists === true;
+    if (!wantAlexa && !wantGoogle && !wantTimerLists) return [];
     const states = this.hass?.states;
     if (!states) return [];
 
     const now = Date.now();
     const cache = this._discoveryCache;
-    if (cache && now - cache.at < 2000 && cache.alexa === wantAlexa && cache.google === wantGoogle) {
+    if (cache && now - cache.at < 2000 && cache.alexa === wantAlexa && cache.google === wantGoogle && cache.timerLists === wantTimerLists) {
       return cache.entities;
     }
 
@@ -1451,7 +1467,12 @@ class SimpleTimerCard extends i$2 {
 
     const found = [];
     for (const entityId in states) {
-      if (configured.has(entityId) || !entityId.startsWith("sensor.")) continue;
+      if (configured.has(entityId)) continue;
+      if (entityId.startsWith("timer_list.")) {
+        if (wantTimerLists) found.push({ entity: entityId, mode: "timer_list" });
+        continue;
+      }
+      if (!entityId.startsWith("sensor.")) continue;
       const attrs = states[entityId]?.attributes;
       if (!attrs) continue;
       // Cheap attribute probe first, since this runs against every state.
@@ -1468,7 +1489,7 @@ class SimpleTimerCard extends i$2 {
       else if (mode === "alexa" && wantAlexa) found.push({ entity: entityId, mode: "alexa" });
     }
 
-    this._discoveryCache = { at: now, alexa: wantAlexa, google: wantGoogle, entities: found };
+    this._discoveryCache = { at: now, alexa: wantAlexa, google: wantGoogle, timerLists: wantTimerLists, entities: found };
     return found;
   }
 
@@ -1498,6 +1519,7 @@ class SimpleTimerCard extends i$2 {
 
   _detectMode(entityId, entityState, entityConf) {
     if (!entityState) return null;
+    if (entityId.startsWith("timer_list.")) return "timer_list";
     if (entityId.startsWith("timer.")) return "timer";
     if (entityId.startsWith("input_text.") || entityId.startsWith("text.")) return "helper";
     const attrs = entityState.attributes || {};
@@ -1937,6 +1959,376 @@ class SimpleTimerCard extends i$2 {
     }];
   }
 
+  // === Home Assistant timer lists (v3.0.0) ===
+  //
+  // A timer_list entity holds many timers. Its state is only the active count;
+  // the timers themselves come from the timer_list/item/subscribe websocket
+  // command, which sends a snapshot and then one change event per update.
+
+  _timerListFeatures(entityState) {
+    const raw = Number(entityState?.attributes?.supported_features) || 0;
+    const has = (bit) => (raw & bit) === bit;
+    return {
+      create: has(TIMER_LIST_FEATURE.CREATE),
+      pause: has(TIMER_LIST_FEATURE.PAUSE),
+      cancel: has(TIMER_LIST_FEATURE.CANCEL) || has(TIMER_LIST_FEATURE.REMOVE),
+      cancel_service: has(TIMER_LIST_FEATURE.CANCEL),
+      extend: has(TIMER_LIST_FEATURE.ADD_TIME),
+      remove: has(TIMER_LIST_FEATURE.REMOVE),
+      finish: has(TIMER_LIST_FEATURE.FINISH),
+      snooze: has(TIMER_LIST_FEATURE.CREATE),
+      restart: has(TIMER_LIST_FEATURE.CREATE) && (has(TIMER_LIST_FEATURE.REMOVE) || has(TIMER_LIST_FEATURE.CANCEL)),
+    };
+  }
+
+  _syncTimerListSubscriptions(wanted) {
+    for (const entityId of [...this._timerLists.keys()]) {
+      if (!wanted.has(entityId)) this._dropTimerList(entityId);
+    }
+    if (!wanted.size) return;
+    const conn = this.hass?.connection;
+    if (!conn || typeof conn.subscribeMessage !== "function") return;
+    if (this._timerListConn !== conn) {
+      this._unwatchTimerListConnection();
+      this._timerListConn = conn;
+      try { conn.addEventListener?.("ready", this._onTimerListConnectionReady); } catch (_) {}
+    }
+    const now = Date.now();
+    for (const entityId of wanted) {
+      const st = this.hass.states?.[entityId];
+      let sub = this._timerLists.get(entityId);
+      if (!st || st.state === "unavailable" || st.state === "unknown") {
+        // Timers live in memory and are lost when the entity is reloaded, and
+        // the old subscription stays attached to the removed entity object.
+        if (sub) this._dropTimerList(entityId);
+        continue;
+      }
+      if (sub && sub.conn !== conn) {
+        this._dropTimerList(entityId);
+        sub = null;
+      }
+      if (sub?.status === "pending") continue;
+      if (sub?.status === "error" && now < sub.retryAt) continue;
+      if (sub?.status === "ready") {
+        const expected = Number(st.state);
+        let active = 0;
+        for (const item of sub.timers.values()) if (item.status === "active") active++;
+        if (!Number.isFinite(expected) || expected === active) {
+          sub.mismatchSince = null;
+          continue;
+        }
+        if (sub.mismatchSince == null) sub.mismatchSince = now;
+        if (now - sub.mismatchSince < TIMER_LIST_RESYNC_MS) continue;
+      }
+      this._subscribeTimerList(conn, entityId, sub);
+    }
+  }
+
+  _subscribeTimerList(conn, entityId, previous) {
+    if (previous) this._unsubscribeTimerList(previous);
+    // Keep the previous timers until the new snapshot replaces them, so a
+    // resync does not make a ringing timer disappear and ring again.
+    const sub = { conn, status: "pending", timers: previous?.timers || new Map(), unsub: null, retryAt: 0, mismatchSince: null };
+    this._timerLists.set(entityId, sub);
+    let pending;
+    try {
+      pending = conn.subscribeMessage(
+        (msg) => this._handleTimerListMessage(entityId, sub, msg),
+        { type: "timer_list/item/subscribe", entity_id: entityId },
+        { resubscribe: false }
+      );
+    } catch (err) {
+      pending = Promise.reject(err);
+    }
+    Promise.resolve(pending).then((unsub) => {
+      if (this._timerLists.get(entityId) !== sub) {
+        this._safeUnsubscribe(unsub);
+        return;
+      }
+      sub.unsub = unsub;
+    }, (err) => {
+      if (this._timerLists.get(entityId) !== sub) return;
+      sub.status = "error";
+      sub.retryAt = Date.now() + TIMER_LIST_RETRY_MS;
+      sub.timers = new Map();
+      if (!this._timerListWarned) {
+        this._timerListWarned = true;
+        console.warn(`simple-timer-card: could not subscribe to ${entityId}. This needs a Home Assistant version with timer lists.`, err);
+      }
+    });
+  }
+
+  _handleTimerListMessage(entityId, sub, msg) {
+    if (this._timerLists.get(entityId) !== sub || !msg) return;
+    const now = Date.now();
+    if (msg.type === "timers") {
+      const next = new Map();
+      for (const raw of Array.isArray(msg.timers) ? msg.timers : []) {
+        if (raw && raw.timer_id != null) next.set(String(raw.timer_id), { ...raw, timer_id: String(raw.timer_id), _received_at: now });
+      }
+      sub.timers = next;
+      sub.status = "ready";
+      sub.mismatchSince = null;
+      this._pruneTimerListMeta(entityId, next);
+    } else if (msg.type === "change" && msg.timer && msg.timer.timer_id != null) {
+      const timerId = String(msg.timer.timer_id);
+      if (msg.event_type === "removed") {
+        sub.timers.delete(timerId);
+        this._deleteTimerListMeta(entityId, timerId);
+      } else {
+        const item = { ...msg.timer, timer_id: timerId, _received_at: now };
+        if (msg.event_type === "finished") item._ended_local = now;
+        sub.timers.set(timerId, item);
+      }
+    } else {
+      return;
+    }
+    if (this.isConnected) this._updateTimers();
+  }
+
+  _unsubscribeTimerList(sub) {
+    if (!sub) return;
+    const unsub = sub.unsub;
+    sub.unsub = null;
+    this._safeUnsubscribe(unsub);
+  }
+
+  _safeUnsubscribe(unsub) {
+    if (typeof unsub !== "function") return;
+    try { Promise.resolve(unsub()).catch(() => {}); } catch (_) {}
+  }
+
+  _dropTimerList(entityId) {
+    const sub = this._timerLists.get(entityId);
+    this._timerLists.delete(entityId);
+    this._unsubscribeTimerList(sub);
+  }
+
+  _resetTimerListSubscriptions() {
+    // After a websocket reconnect, server-side subscriptions are gone. Mark
+    // every list for an immediate resubscribe while keeping its timers.
+    for (const sub of this._timerLists.values()) {
+      sub.unsub = null;
+      sub.status = "error";
+      sub.retryAt = 0;
+    }
+  }
+
+  _unwatchTimerListConnection() {
+    if (!this._timerListConn) return;
+    try { this._timerListConn.removeEventListener?.("ready", this._onTimerListConnectionReady); } catch (_) {}
+    this._timerListConn = null;
+  }
+
+  _teardownTimerLists() {
+    for (const entityId of [...this._timerLists.keys()]) this._dropTimerList(entityId);
+    this._unwatchTimerListConnection();
+  }
+
+  _timerListFinishedWindowMs(entityConf) {
+    const action = this._config?.expire_action;
+    if (action === "dismiss") return Infinity;
+    if (action === "remove") {
+      let audio;
+      if (entityConf && entityConf.audio_enabled !== undefined) audio = entityConf.audio_enabled === true;
+      else audio = this._config?.audio_enabled === true;
+      return audio ? (this._config.audio_completion_delay || 4) * 1000 : 0;
+    }
+    return (parseInt(this._config?.expire_keep_for, 10) || 120) * 1000;
+  }
+
+  _timerListBaseName(entityState, entityConf) {
+    if (entityConf?.name && String(entityConf.name).trim()) return String(entityConf.name).trim();
+    const friendly = entityState?.attributes?.friendly_name;
+    if (!friendly) return "";
+    return String(friendly).replace(/\s+timers?\s*$/i, "").trim();
+  }
+
+  _parseTimerList(entityId, entityState, entityConf) {
+    if (entityState?.state === "unavailable" || entityState?.state === "unknown") return [];
+    const sub = this._timerLists.get(entityId);
+    if (!sub || !sub.timers.size) return [];
+    const supports = this._timerListFeatures(entityState);
+    const baseName = this._timerListBaseName(entityState, entityConf);
+    const finishedWindowMs = this._timerListFinishedWindowMs(entityConf);
+    const now = Date.now();
+    const out = [];
+    for (const item of sub.timers.values()) {
+      const status = item.status;
+      if (status !== "active" && status !== "paused" && status !== "finished") continue;
+      const meta = this._timerListMeta.get(this._timerListMetaKey(entityId, item.timer_id)) || {};
+      const createdMs = Math.max(0, Number(item.created_duration) || 0) * 1000;
+      const totalMs = Math.max(createdMs, Math.max(0, Number(item.total_duration) || 0) * 1000);
+      const name = item.name != null && String(item.name).trim() ? this._sanitizeText(String(item.name).trim()) : "";
+      const durationText = this._formatDurationDisplay(createdMs);
+      const label = name || (baseName ? this._sanitizeText(`${baseName} - ${durationText}`) : this._formatTimerLabel(Math.round(createdMs / 1000)));
+      const timer = {
+        id: `timer_list:${entityId}:${item.timer_id}`,
+        source: "timer_list",
+        source_entity: entityId,
+        timer_list_timer_id: item.timer_id,
+        timer_list_name: name || null,
+        created_duration_ms: createdMs,
+        label,
+        name: label,
+        icon: meta.icon || entityConf?.icon || "mdi:timer",
+        color: meta.color || entityConf?.color || "var(--primary-color)",
+        duration: totalMs,
+        supports,
+        idle: false,
+        finished: false,
+      };
+      for (const key of ["pinned_id", "buttons", "expired_subtitle", "audio_enabled", "audio_file_url", "audio_repeat_count", "audio_play_until_dismissed"]) {
+        if (meta[key] !== undefined) timer[key] = meta[key];
+      }
+      if (status === "paused") {
+        const remainingMs = Math.max(0, Number(item.paused_remaining ?? item.remaining) || 0) * 1000;
+        out.push({ ...timer, paused: true, end: remainingMs, remaining_ms: remainingMs });
+      } else if (status === "active") {
+        const remainingMs = Math.max(0, Number(item.remaining) || 0) * 1000;
+        out.push({ ...timer, paused: false, end: item._received_at + remainingMs });
+      } else {
+        const parsedEnd = Date.parse(item.ended_at);
+        const endedAt = item._ended_local || (Number.isFinite(parsedEnd) ? parsedEnd : item._received_at);
+        if (now - endedAt > finishedWindowMs) continue;
+        out.push({ ...timer, paused: false, end: Math.min(endedAt, now) });
+      }
+    }
+    return out;
+  }
+
+  _timerListMetaKey(entityId, timerId) {
+    return `${entityId}|${timerId}`;
+  }
+
+  _loadTimerListMeta() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(TIMER_LIST_META_KEY) || "{}");
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) return new Map(Object.entries(parsed));
+    } catch (_) {}
+    return new Map();
+  }
+
+  _saveTimerListMeta() {
+    try {
+      if (this._timerListMeta.size) localStorage.setItem(TIMER_LIST_META_KEY, JSON.stringify(Object.fromEntries(this._timerListMeta)));
+      else localStorage.removeItem(TIMER_LIST_META_KEY);
+    } catch (_) {}
+  }
+
+  _setTimerListMeta(entityId, timerId, meta) {
+    const clean = _cleanUndefined({ ...meta });
+    if (!clean || !Object.keys(clean).length) return;
+    this._timerListMeta.set(this._timerListMetaKey(entityId, timerId), clean);
+    this._saveTimerListMeta();
+  }
+
+  _deleteTimerListMeta(entityId, timerId) {
+    if (this._timerListMeta.delete(this._timerListMetaKey(entityId, timerId))) this._saveTimerListMeta();
+  }
+
+  _pruneTimerListMeta(entityId, timers) {
+    const prefix = `${entityId}|`;
+    let changed = false;
+    for (const key of [...this._timerListMeta.keys()]) {
+      if (key.startsWith(prefix) && !timers.has(key.slice(prefix.length))) {
+        this._timerListMeta.delete(key);
+        changed = true;
+      }
+    }
+    if (changed) this._saveTimerListMeta();
+  }
+
+  // Explicit default_timer_entity first, then a single timer list listed in
+  // entities, mirroring how a single native timer.* is picked.
+  _resolveTimerListTarget(explicit) {
+    if (typeof explicit === "string" && explicit) return explicit.startsWith("timer_list.") ? explicit : null;
+    const def = this._config?.default_timer_entity;
+    if (typeof def === "string" && def) return def.startsWith("timer_list.") ? def : null;
+    const lists = [];
+    for (const entityConf of Array.isArray(this._config?.entities) ? this._config.entities : []) {
+      const entityId = typeof entityConf === "string" ? entityConf : entityConf?.entity;
+      const mode = typeof entityConf === "string" ? null : entityConf?.mode;
+      if (entityId && entityId.startsWith("timer_list.") && (!mode || mode === "auto" || mode === "timer_list")) lists.push(entityId);
+    }
+    return lists.length === 1 ? lists[0] : null;
+  }
+
+  _timerListMetaFromOverrides(overrides = {}) {
+    const meta = {};
+    for (const key of ["pinned_id", "icon", "color", "expired_subtitle", "audio_enabled", "audio_file_url", "audio_repeat_count", "audio_play_until_dismissed"]) {
+      if (overrides[key] !== undefined && overrides[key] !== null && overrides[key] !== "") meta[key] = overrides[key];
+    }
+    if (Array.isArray(overrides.buttons) && overrides.buttons.length) meta.buttons = overrides.buttons;
+    return meta;
+  }
+
+  async _createTimerListTimer(entityId, durationMs, name, meta = {}) {
+    if (!this.hass || !entityId) return null;
+    const seconds = Math.max(1, Math.ceil(Number(durationMs) / 1000));
+    const serviceData = { duration: this._formatDurationForService(seconds) };
+    const cleanName = name != null && String(name).trim() ? String(name).trim() : "";
+    if (cleanName) serviceData.name = cleanName;
+    try {
+      let timerId = null;
+      if (typeof this.hass.callWS === "function") {
+        const result = await this.hass.callWS({
+          type: "call_service",
+          domain: "timer_list",
+          service: "create_timer",
+          service_data: serviceData,
+          target: { entity_id: entityId },
+          return_response: true,
+        });
+        const response = result?.response?.[entityId] ?? result?.response;
+        if (response?.timer_id != null) timerId = String(response.timer_id);
+      } else {
+        await this.hass.callService("timer_list", "create_timer", { entity_id: entityId, ...serviceData });
+      }
+      if (timerId) this._setTimerListMeta(entityId, timerId, meta);
+      this._publishTimerEvent("started", { source: "timer_list", source_entity: entityId, label: cleanName || this._formatTimerLabel(seconds), duration: seconds * 1000 });
+      return timerId || "";
+    } catch (err) {
+      this._toast(`Could not start the timer: ${err?.message || "unknown error"}`);
+      return null;
+    }
+  }
+
+  _callTimerListService(timer, service, data = {}, { notifyOnError = true } = {}) {
+    if (!this.hass || !timer?.source_entity || timer.timer_list_timer_id == null) return Promise.resolve();
+    try {
+      const result = this.hass.callService(
+        "timer_list",
+        service,
+        { entity_id: timer.source_entity, timer_id: String(timer.timer_list_timer_id), ...data },
+        undefined,
+        notifyOnError
+      );
+      // Home Assistant shows its own error toast when notifyOnError is true.
+      return Promise.resolve(result).catch(() => {});
+    } catch (_) {
+      return Promise.resolve();
+    }
+  }
+
+  _timerListUnsupported(action) {
+    this._toast(`This timer list does not support ${action}.`);
+  }
+
+  // Timer lists have no restart, so snooze and restart start a replacement
+  // timer with the same name and card-side options, then drop the old one.
+  async _replaceTimerListTimer(timer, durationMs) {
+    const metaKey = this._timerListMetaKey(timer.source_entity, timer.timer_list_timer_id);
+    const meta = this._timerListMeta.get(metaKey) || {};
+    const created = await this._createTimerListTimer(timer.source_entity, durationMs, timer.timer_list_name || "", meta);
+    if (created === null) return;
+    this._dismissed.add(`${timer.source_entity}:${timer.id}`);
+    const features = timer.supports || {};
+    if (features.remove) await this._callTimerListService(timer, "remove_timer", {}, { notifyOnError: false });
+    else if (features.cancel_service) await this._callTimerListService(timer, "cancel_timer", {}, { notifyOnError: false });
+    this.requestUpdate();
+  }
+
   _parseHMSToMs(timeStr) {
     if (!timeStr) return 0;
     const parts = timeStr.split(":").map((p) => parseInt(p, 10));
@@ -2016,7 +2408,15 @@ class SimpleTimerCard extends i$2 {
     if (!this.hass) return;
     this._ensureAutoVoicePEEntities();
     const collected = [];
-    for (const entityConfig of [...this._config.entities, ...this._discoverTimerEntities()]) {
+    const wantedTimerLists = new Set();
+    const sources = [...this._config.entities, ...this._discoverTimerEntities()];
+    const defaultEntity = this._config.default_timer_entity;
+    // Timers created on a default timer list must show even if it is not listed.
+    if (typeof defaultEntity === "string" && defaultEntity.startsWith("timer_list.") &&
+        !sources.some((e) => (typeof e === "string" ? e : e?.entity) === defaultEntity)) {
+      sources.push({ entity: defaultEntity, mode: "timer_list" });
+    }
+    for (const entityConfig of sources) {
       const entityId = typeof entityConfig === "string" ? entityConfig : entityConfig.entity;
       const conf = typeof entityConfig === "string" ? {} : entityConfig;
       const st = this.hass.states[entityId];
@@ -2032,13 +2432,17 @@ class SimpleTimerCard extends i$2 {
         else if (mode === "helper") collected.push(...this._parseHelper(entityId, st, styled));
         else if (mode === "google") collected.push(...this._parseGoogle(entityId, st, styled));
         else if (mode === "timer") collected.push(...this._parseTimer(entityId, st, styled));
+        else if (mode === "timer_list") {
+          wantedTimerLists.add(entityId);
+          collected.push(...this._parseTimerList(entityId, st, styled));
+        }
         else if (mode === "voice_pe") collected.push(...this._parseVoicePE(entityId, st, styled));
         else if (mode === "minutes_attr") collected.push(...this._parseMinutesAttr(entityId, st, styled));
         else if (mode === "timestamp") collected.push(...this._parseTimestamp(entityId, st, styled));
       } catch (e) {}
     }
+    this._syncTimerListSubscriptions(wantedTimerLists);
 
-    const defaultEntity = this._config.default_timer_entity;
     if (defaultEntity && (defaultEntity.startsWith("input_text.") || defaultEntity.startsWith("text."))) {
       const stDefault = this.hass.states[defaultEntity];
       if (stDefault) {
@@ -2150,6 +2554,9 @@ class SimpleTimerCard extends i$2 {
     for (const timer of [...this._timers]) {
       if (timer.idle || timer.remaining > 0 || timer.paused) continue;
       if (timer.source === "mqtt" && timer._mqtt_untrusted) continue;
+      // Finished timer-list timers are hidden by _parseTimerList once the
+      // expire window passes, so automatic expiry never removes them from HA.
+      if (timer.source === "timer_list") continue;
       const action = this._config.expire_action;
       if (action === "dismiss") continue;
       if (action === "keep") {
@@ -2661,6 +3068,12 @@ class SimpleTimerCard extends i$2 {
     if (durationMs <= 0) return;
     const validation = this._validateTimerInput(durationMs, label);
     if (!validation.valid) return;
+    const timerListTarget = this._resolveTimerListTarget(resolvedTargetEntity);
+    if (timerListTarget) {
+      this._createTimerListTimer(timerListTarget, durationMs, label);
+      this.requestUpdate();
+      return;
+    }
     const now = Date.now();
     const endTime = now + durationMs;
     const newTimer = {
@@ -2795,11 +3208,20 @@ class SimpleTimerCard extends i$2 {
 
     // Start a native HA timer.* entity through the timer.start service so the
     // standard timer.started / timer.finished events fire for automations.
-    const nativeTimerTarget = (targetEntity && targetEntity.startsWith("timer.")) ? targetEntity : this._resolveNativeTimerTarget();
+    const explicitTimerList = (targetEntity && targetEntity.startsWith("timer_list.")) ? targetEntity : null;
+    const nativeTimerTarget = explicitTimerList ? null : ((targetEntity && targetEntity.startsWith("timer.")) ? targetEntity : this._resolveNativeTimerTarget());
     if (nativeTimerTarget) {
       const serviceDuration = this._formatDurationForService(Math.round(durationMs / 1000));
       this.hass.callService("timer", "start", { entity_id: nativeTimerTarget, duration: serviceDuration });
       this._publishTimerEvent("started", { source: "timer", source_entity: nativeTimerTarget, label, duration: durationMs });
+      this.requestUpdate();
+      return;
+    }
+
+    const timerListTarget = this._resolveTimerListTarget(targetEntity);
+    if (timerListTarget) {
+      const userProvidedName = overrides?.voice_pe_name && String(overrides.voice_pe_name).trim() ? String(overrides.voice_pe_name).trim() : "";
+      this._createTimerListTimer(timerListTarget, durationMs, userProvidedName, this._timerListMetaFromOverrides(overrides));
       this.requestUpdate();
       return;
     }
@@ -3036,6 +3458,16 @@ class SimpleTimerCard extends i$2 {
       return;
     }
 
+    if (timer.source === "timer_list") {
+      const features = timer.supports || {};
+      if (!features.cancel) return this._timerListUnsupported("cancelling");
+      this._stopAudioForTimer(timer.id);
+      this._publishTimerEvent("cancelled", timer);
+      // Removing an active timer also cancels it on the satellite.
+      this._callTimerListService(timer, features.cancel_service ? "cancel_timer" : "remove_timer");
+      return;
+    }
+
     this._publishTimerEvent("cancelled", timer);
     if (timer.source === "helper") {
       this._mutateHelper(timer.source_entity, (data) => { data.timers = data.timers.filter((t) => t.id !== timer.id); });
@@ -3057,6 +3489,13 @@ class SimpleTimerCard extends i$2 {
       }
       this._publishTimerEvent("paused", timer);
       this._sendVoicePECommand(timer.control_entity, `pause:${String(timer.voice_pe_timer_id).trim()}`);
+      return;
+    }
+
+    if (timer.source === "timer_list") {
+      if (!timer.supports?.pause) return this._timerListUnsupported("pausing");
+      this._publishTimerEvent("paused", timer);
+      this._callTimerListService(timer, "pause_timer");
       return;
     }
 
@@ -3100,6 +3539,13 @@ class SimpleTimerCard extends i$2 {
       return;
     }
 
+    if (timer.source === "timer_list") {
+      if (!timer.supports?.pause) return this._timerListUnsupported("resuming");
+      this._publishTimerEvent("resumed", timer);
+      this._callTimerListService(timer, "unpause_timer");
+      return;
+    }
+
     this._publishTimerEvent("resumed", timer);
     if (timer.source === "helper") {
       const now = Date.now();
@@ -3132,7 +3578,7 @@ class SimpleTimerCard extends i$2 {
 
   _togglePause(t, e) {
     e?.stopPropagation?.();
-    if (!["helper", "local", "mqtt", "timer"].includes(t.source)) return;
+    if (!["helper", "local", "mqtt", "timer", "timer_list"].includes(t.source)) return;
     t.paused ? this._handleResume(t) : this._handlePause(t);
   }
 
@@ -3316,7 +3762,7 @@ class SimpleTimerCard extends i$2 {
             this._handleStart(ourTimer);
             return;
           }
-          if (["helper", "local", "mqtt", "timer", "voice_pe"].includes(ourTimer.source)) {
+          if (["helper", "local", "mqtt", "timer", "timer_list", "voice_pe"].includes(ourTimer.source)) {
             if (ourTimer.idle) {
               // Idle HA timer.* opens the inline editor (matches the
               // no-tap-action default). Other idle sources start in place.
@@ -3370,6 +3816,14 @@ class SimpleTimerCard extends i$2 {
   _handleDismiss(timer) {
     this._ringingTimers.delete(timer.id);
     this._stopAudioForTimer(timer.id);
+    if (timer.source === "timer_list") {
+      // Hide right away; removing it from Home Assistant clears it on every
+      // dashboard. A satellite that is still ringing has to be stopped there.
+      this._dismissed.add(`${timer.source_entity}:${timer.id}`);
+      if (timer.supports?.remove) this._callTimerListService(timer, "remove_timer", {}, { notifyOnError: false });
+      this.requestUpdate();
+      return;
+    }
     if (timer.source === "helper") {
       this._mutateHelper(timer.source_entity, (data) => { data.timers = data.timers.filter((t) => t.id !== timer.id); });
     } else if (["local", "mqtt"].includes(timer.source)) {
@@ -3400,6 +3854,11 @@ class SimpleTimerCard extends i$2 {
     }
     const newDurationMs = snoozeMinutes * 60000;
     const newEndTime = Date.now() + newDurationMs;
+    if (timer.source === "timer_list") {
+      if (!timer.supports?.snooze) return this._timerListUnsupported("snoozing");
+      this._replaceTimerListTimer(timer, newDurationMs);
+      return;
+    }
     if (timer.source === "helper") {
       const now = Date.now();
       this._mutateHelper(timer.source_entity, (data) => {
@@ -3438,6 +3897,14 @@ class SimpleTimerCard extends i$2 {
     if (this._isActionThrottled("add_time", t.id, 200)) return;
     const deltaMs = Math.round(Number(deltaSeconds) * 1000);
     if (!Number.isFinite(deltaMs) || deltaMs === 0) return;
+    if (t.source === "timer_list") {
+      if (!t.supports?.extend) return this._timerListUnsupported("changing the time");
+      const seconds = Math.round(Math.abs(deltaMs) / 1000);
+      if (!seconds) return;
+      // Subtracting more than is left finishes the timer in Home Assistant.
+      this._callTimerListService(t, deltaMs > 0 ? "add_time" : "subtract_time", { duration: this._formatDurationForService(seconds) });
+      return;
+    }
     const curRemaining = Math.max(0, Number(t.remaining_ms) || 0);
     const newRemaining = curRemaining + deltaMs;
     const now = Date.now();
@@ -3484,6 +3951,15 @@ class SimpleTimerCard extends i$2 {
 
   _handleRestart(t) {
     if (this._isActionThrottled("restart", t.id, 300)) return;
+    if (t.source === "timer_list") {
+      if (!t.supports?.restart) return this._timerListUnsupported("restarting");
+      const originalMs = Math.max(0, Number(t.created_duration_ms) || Number(t.duration) || 0);
+      if (originalMs <= 0) { this._toast("This timer has no duration to restart."); return; }
+      this._ringingTimers.delete(t.id);
+      this._stopAudioForTimer(t.id);
+      this._replaceTimerListTimer(t, originalMs);
+      return;
+    }
     const durationMs = Math.max(0, Number(t.duration) || 0);
     if (durationMs <= 0) { this._toast("This timer has no duration to restart."); return; }
     const now = Date.now();
@@ -3798,11 +4274,20 @@ class SimpleTimerCard extends i$2 {
 
     // Start a native HA timer.* entity through the timer.start service so the
     // standard timer.started / timer.finished events fire for automations.
-    const nativeTimerTarget = (targetEntity && targetEntity.startsWith("timer.")) ? targetEntity : this._resolveNativeTimerTarget();
+    const explicitTimerList = (targetEntity && targetEntity.startsWith("timer_list.")) ? targetEntity : null;
+    const nativeTimerTarget = explicitTimerList ? null : ((targetEntity && targetEntity.startsWith("timer.")) ? targetEntity : this._resolveNativeTimerTarget());
     if (nativeTimerTarget) {
       const serviceDuration = this._formatDurationForService(Math.round(durationMs / 1000));
       this.hass.callService("timer", "start", { entity_id: nativeTimerTarget, duration: serviceDuration });
       this._publishTimerEvent("started", { source: "timer", source_entity: nativeTimerTarget, label: finalLabel, duration: durationMs });
+      this.requestUpdate();
+      return true;
+    }
+
+    const timerListTarget = this._resolveTimerListTarget(targetEntity);
+    if (timerListTarget) {
+      const userProvidedName = label && String(label).trim() ? this._sanitizeText(String(label).trim()) : "";
+      this._createTimerListTimer(timerListTarget, durationMs, userProvidedName);
       this.requestUpdate();
       return true;
     }
@@ -4116,7 +4601,7 @@ class SimpleTimerCard extends i$2 {
         return this._renderInlineEditor(t, style);
     }
     const state = this._getTimerRenderState(t, style);
-    const { isPaused, isIdle, isFinished, color, icon, ring, pct, pctLeft, isCircleStyle, isCircleHorizontal, isFillStyle, supportsPause, supportsManualControls, timeStr, circleValues, supportsReadOnlyDismiss } = state;
+    const { isPaused, isIdle, isFinished, color, icon, ring, pct, pctLeft, isCircleStyle, isCircleHorizontal, isFillStyle, supportsPause, supportsManualControls, supportsSnooze, timeStr, circleValues, supportsReadOnlyDismiss } = state;
     const isCircleTile = isCircleStyle && !isCircleHorizontal;
     const baseClasses = isFillStyle ? "card item" : (isCircleTile ? "item vtile" : "item bar");
     const finishedClasses = isFillStyle ? "card item finished" : (isCircleTile ? "item vtile" : "card item bar");
@@ -4145,7 +4630,7 @@ class SimpleTimerCard extends i$2 {
               <div class="vstatus up">${timeStr}</div>
               <div class="vactions">
                 ${supportsManualControls ? b`
-                  <button class="chip" @click=${() => this._handleSnooze(t)}>${this._localize("snooze")}</button>
+                  ${supportsSnooze ? b`<button class="chip" @click=${() => this._handleSnooze(t)}>${this._localize("snooze")}</button>` : ""}
                   <button class="chip" @click=${() => this._handleDismiss(t)}>${this._localize("dismiss")}</button>
                 ` : supportsReadOnlyDismiss ? b`
                   <button class="chip" @click=${() => this._handleDismiss(t)}>${this._localize("dismiss")}</button>
@@ -4166,7 +4651,7 @@ class SimpleTimerCard extends i$2 {
             </div>
             ${supportsManualControls ? b`
               <div class="chips">
-                <button class="chip" @click=${() => this._handleSnooze(t)}>${this._localize("snooze")}</button>
+                ${supportsSnooze ? b`<button class="chip" @click=${() => this._handleSnooze(t)}>${this._localize("snooze")}</button>` : ""}
                 <button class="chip" @click=${() => this._handleDismiss(t)}>${this._localize("dismiss")}</button>
               </div>
             ` : supportsReadOnlyDismiss ? b`
@@ -4449,6 +4934,12 @@ class SimpleTimerCard extends i$2 {
       this._sendVoicePECommand(t.control_entity, `cancel:${String(t.voice_pe_timer_id).trim()}`);
       return;
     }
+    if (t.source === "timer_list") {
+      if (!t.supports?.finish) return this._timerListUnsupported("finishing");
+      this._publishTimerEvent("finished", t);
+      this._callTimerListService(t, "finish_timer");
+      return;
+    }
     this._publishTimerEvent("finished", t);
     if (t.source === "helper") {
       this._mutateHelper(t.source_entity, (data) => { data.timers = data.timers.filter((x) => x.id !== t.id); });
@@ -4482,12 +4973,15 @@ class SimpleTimerCard extends i$2 {
     const isCircleStyle = _isCircleStyle(style);
     const isCircleHorizontal = style === "circle_horizontal";
     const isFillStyle = style.startsWith("fill_");
-    const supportsPause = ["helper", "local", "mqtt", "timer"].includes(t.source) || (t.source === "voice_pe" && !!(t.control_entity && String(t.control_entity).trim() && t.voice_pe_timer_id && String(t.voice_pe_timer_id).trim()));
+    const isTimerList = t.source === "timer_list";
+    const supportsPause = (["helper", "local", "mqtt", "timer"].includes(t.source) || (t.source === "voice_pe" && !!(t.control_entity && String(t.control_entity).trim() && t.voice_pe_timer_id && String(t.voice_pe_timer_id).trim()))) || (isTimerList && t.supports?.pause === true);
     const entityConf = this._getEntityConfig(t.source_entity);
     const hideTimerActions = entityConf?.hide_timer_actions === true;
     const isTimerSource = t.source === "timer";
-    const supportsManualControls = (((["local", "mqtt", "timer", "helper"].includes(t.source)) || t.kind === "template" || t.source === "template") && !(isTimerSource && hideTimerActions)) || (t.source === "voice_pe" && !!(t.control_entity && String(t.control_entity).trim()));
-    const supportsReadOnlyDismiss = ring && ["timestamp", "minutes_attr", "alexa", "google"].includes(t.source);
+    const timerListControls = isTimerList && !hideTimerActions && !!(t.supports && (t.supports.pause || t.supports.cancel || t.supports.finish || t.supports.extend));
+    const supportsManualControls = (((["local", "mqtt", "timer", "helper"].includes(t.source)) || t.kind === "template" || t.source === "template") && !(isTimerSource && hideTimerActions)) || (t.source === "voice_pe" && !!(t.control_entity && String(t.control_entity).trim())) || timerListControls;
+    const supportsSnooze = supportsManualControls && (!isTimerList || t.supports?.snooze === true);
+    const supportsReadOnlyDismiss = ring && (["timestamp", "minutes_attr", "alexa", "google"].includes(t.source) || (isTimerList && !supportsManualControls));
     let timeStr;
     if (isIdle) timeStr = t.duration ? this._formatDuration(t.duration, "ms") : this._localize("ready");
     else if (isPaused) timeStr = `${this._formatDuration(t.remaining, "ms")} (${this._localize("paused")})`;
@@ -4510,7 +5004,7 @@ class SimpleTimerCard extends i$2 {
     return {
       isPaused, isIdle, isFinished, color, icon, ring, pct, pctLeft,
       isCircleStyle, isCircleHorizontal, isFillStyle,
-      supportsPause, supportsManualControls, timeStr,
+      supportsPause, supportsManualControls, supportsSnooze, timeStr,
       circleValues, supportsReadOnlyDismiss
     };
   }
@@ -4607,7 +5101,7 @@ class SimpleTimerCard extends i$2 {
         return this._renderInlineEditor(t, style);
     }
     const state = this._getTimerRenderState(t, style);
-    const { isPaused, isIdle, isFinished, color, icon, ring, pct, pctLeft, isCircleStyle, isFillStyle, supportsPause, supportsManualControls, timeStr, circleValues, supportsReadOnlyDismiss } = state;
+    const { isPaused, isIdle, isFinished, color, icon, ring, pct, pctLeft, isCircleStyle, isFillStyle, supportsPause, supportsManualControls, supportsSnooze, timeStr, circleValues, supportsReadOnlyDismiss } = state;
     const baseClasses = style.startsWith("fill_") ? "card item vtile" : "item vtile";
 
     const isRunning = !t.idle && !t.paused && !t.finished;
@@ -4628,7 +5122,7 @@ class SimpleTimerCard extends i$2 {
             <div class="vstatus up">${timeStr}</div>
             <div class="vactions-center">
               ${supportsManualControls ? b`
-                <button class="chip" @click=${() => this._handleSnooze(t)}>${this._localize("snooze")}</button>
+                ${supportsSnooze ? b`<button class="chip" @click=${() => this._handleSnooze(t)}>${this._localize("snooze")}</button>` : ""}
                 <button class="chip" @click=${() => this._handleDismiss(t)}>${this._localize("dismiss")}</button>
               ` : supportsReadOnlyDismiss ? b`
                 <button class="chip" @click=${() => this._handleDismiss(t)}>${this._localize("dismiss")}</button>
@@ -5450,6 +5944,10 @@ _pinnedTimerValueChanged(ev, index) {
       case "local":
       case "mqtt":
         return new Set(["finish", "add", "reduce", "restart", "pause"]);
+      case "timer_list":
+        // Each preset maps to a timer_list action. Lists that lack the
+        // matching supported feature show a notice at run time.
+        return new Set(["finish", "add", "reduce", "restart", "pause"]);
       case "voice_pe":
         // Voice PE can finish/pause/resume but has no notion of changing duration.
         return new Set(["finish", "pause"]);
@@ -5893,7 +6391,8 @@ _pinnedTimerValueChanged(ev, index) {
     const sources = [
       { key: "alexa", label: "Alexa" },
       { key: "google", label: "Google Home" },
-      { key: "voice_pe", label: "Voice PE" },
+      { key: "timer_list", label: "Timer list (voice timers)" },
+      { key: "voice_pe", label: "Voice PE (legacy)" },
       { key: "timer", label: "Native timer" },
       { key: "helper", label: "Helper" },
       { key: "timestamp", label: "Timestamp sensor" },
@@ -5932,6 +6431,7 @@ _pinnedTimerValueChanged(ev, index) {
     const storage = String(this._config.storage || "").toLowerCase();
     const hasMqtt = !!(this._config.mqtt && ["topic", "sensor_entity", "state_topic", "events_topic", "publish_automation"].some(key => this._config.mqtt[key]));
     const storageType = target.startsWith("timer.") ? "timer"
+      : target.startsWith("timer_list.") ? "timer_list"
       : target.startsWith("input_text.") || target.startsWith("text.") ? "helper"
       : storage === "local" ? "local"
       : storage === "mqtt" || hasMqtt || target.startsWith("sensor.") ? "mqtt" : "local";
@@ -6019,7 +6519,8 @@ _pinnedTimerValueChanged(ev, index) {
         { value: "alexa", label: "Alexa" },
         { value: "google", label: "Google Home" },
         { value: "timer", label: "Timer" },
-        { value: "voice_pe", label: "Voice PE" },
+        { value: "timer_list", label: "Timer list (voice timers)" },
+        { value: "voice_pe", label: "Voice PE (legacy)" },
         { value: "helper", label: "Helper (input_text/text)" },
         { value: "timestamp", label: "Timestamp sensor" },
         { value: "minutes_attr", label: "Minutes attribute" },
@@ -6339,9 +6840,9 @@ _pinnedTimerValueChanged(ev, index) {
         .configValue=${"default_timer_entity"}
         @value-changed=${this._detailValueChanged}
         label="New timer target (optional)"
-        help-text="Use a native timer, text helper, or MQTT sensor. Leave empty for browser storage or automatic native timer selection."
+        help-text="Use a native timer, timer list, text helper, or MQTT sensor. Leave empty for browser storage or automatic selection of a single listed timer or timer list."
         allow-custom-entity
-        .includeDomains=${["timer", "input_text", "text", "sensor"]}
+        .includeDomains=${["timer", "timer_list", "input_text", "text", "sensor"]}
       ></ha-entity-picker>
 
       <div class="storage-info">
@@ -6395,10 +6896,18 @@ _pinnedTimerValueChanged(ev, index) {
       </label>
 
       <label class="toggle-row">
+        <ha-switch .checked=${this._config.auto_discover_timer_lists === true} .configValue=${"auto_discover_timer_lists"} @change=${this._valueChanged}></ha-switch>
+        <div class="toggle-text">
+          <span class="toggle-title">Auto-discover voice timers</span>
+          <span class="toggle-desc">Shows every timer list in Home Assistant, such as Voice PE and other voice satellites.</span>
+        </div>
+      </label>
+
+      <label class="toggle-row">
         <ha-switch .checked=${this._config.auto_voice_pe === true} .configValue=${"auto_voice_pe"} @change=${this._valueChanged}></ha-switch>
         <div class="toggle-text">
-          <span class="toggle-title">Auto-detect Voice PE timers</span>
-          <span class="toggle-desc">Requires the Voice PE sensor setup. Used when the entity list is empty.</span>
+          <span class="toggle-title">Legacy Voice PE sensors</span>
+          <span class="toggle-desc">Only for the custom ESPHome firmware setup. Not needed when your satellite has a timer list.</span>
         </div>
       </label>
     `;
@@ -6438,14 +6947,15 @@ _pinnedTimerValueChanged(ev, index) {
                         <mwc-list-item value="alexa">Alexa</mwc-list-item>
                         <mwc-list-item value="google">Google Home</mwc-list-item>
                         <mwc-list-item value="timer">Timer</mwc-list-item>
-                        <mwc-list-item value="voice_pe">Voice PE</mwc-list-item>
+                        <mwc-list-item value="timer_list">Timer list (voice timers)</mwc-list-item>
+                        <mwc-list-item value="voice_pe">Voice PE (legacy)</mwc-list-item>
                         <mwc-list-item value="helper">Helper (input_text/text)</mwc-list-item>
                         <mwc-list-item value="timestamp">Timestamp sensor</mwc-list-item>
                         <mwc-list-item value="minutes_attr">Minutes attribute</mwc-list-item>
                       </ha-select>
                       ${isAuto && detectedMode ? b`
                         <div class="helper-text">
-                          Detected mode: <strong>${detectedMode === "unknown" ? "Unknown" : detectedMode.charAt(0).toUpperCase() + detectedMode.slice(1)}</strong>
+                          Detected mode: <strong>${detectedMode === "unknown" ? "Unknown" : (detectedMode.charAt(0).toUpperCase() + detectedMode.slice(1)).replace(/_/g, " ")}</strong>
                         </div>
                       ` : ""}
                     </div>
@@ -6501,6 +7011,13 @@ _pinnedTimerValueChanged(ev, index) {
                     <ha-formfield label="Keep visible when idle">
                       <ha-switch .checked=${conf.keep_timer_visible_when_idle === true} .configValue=${"keep_timer_visible_when_idle"} @change=${(e) => this._entityValueChanged(e, index)}></ha-switch>
                     </ha-formfield>
+                    <ha-formfield label="Hide action buttons">
+                      <ha-switch .checked=${conf.hide_timer_actions === true} .configValue=${"hide_timer_actions"} @change=${(e) => this._entityValueChanged(e, index)}></ha-switch>
+                    </ha-formfield>
+                    </div>
+                  ` : ""}
+                  ${(conf.mode === "timer_list" || (isAuto && detectedMode === "timer_list")) ? b`
+                    <div class="advanced">
                     <ha-formfield label="Hide action buttons">
                       <ha-switch .checked=${conf.hide_timer_actions === true} .configValue=${"hide_timer_actions"} @change=${(e) => this._entityValueChanged(e, index)}></ha-switch>
                     </ha-formfield>
@@ -6640,6 +7157,7 @@ _pinnedTimerValueChanged(ev, index) {
   _getStorageDisplayName(storage) {
     switch (storage) {
       case "timer": return "Native Home Assistant Timer";
+      case "timer_list": return "Home Assistant Timer List";
       case "local": return "Local Browser Storage";
       case "helper": return "Helper Entities";
       case "mqtt": return "MQTT";
@@ -6650,6 +7168,7 @@ _pinnedTimerValueChanged(ev, index) {
   _getStorageDescription(storage) {
     switch (storage) {
       case "timer": return "New timers use timer.start on the selected Home Assistant timer entity.";
+      case "timer_list": return "New timers are created on the selected timer list. On a voice satellite they show and ring on the device.";
       case "local": return "Timers are stored locally in your browser and persist across sessions.";
       case "helper": return "Timers are stored in Home Assistant helper entities (input_text/text).";
       case "mqtt": return "Timers are stored via MQTT for cross-device sync. The selected MQTT sensor or YAML topic configuration is used.";

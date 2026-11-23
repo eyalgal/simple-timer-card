@@ -1,5 +1,11 @@
 # Voice PE → ESPHome walkthrough (mirror-only / read-only timers)
 
+> **Legacy guide.** Home Assistant now exposes Voice PE timers as a timer list
+> entity (`timer_list.*`) that Simple Timer Card v3 reads and controls directly,
+> with stock firmware. If your Voice PE has a *Timers* entity, use
+> [Voice timers](../CONFIGURATION.md#-voice-timers-timer-lists) instead. This
+> guide is kept for Home Assistant versions without timer lists.
+
 This page explains the **mirror-only** (read-only) Voice PE integration.
 
 Use this if you only want to **display timers that were created by voice on the Voice PE device** in Home Assistant / Simple Timer Card.

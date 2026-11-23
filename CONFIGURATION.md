@@ -16,7 +16,7 @@ Simple mode shows four sections:
 
 | Section | Settings |
 | --- | --- |
-| **Timer sources** | Entity selection and Alexa, Google Home, and Voice PE discovery |
+| **Timer sources** | Entity selection and Alexa, Google Home, and voice timer (timer list) discovery |
 | **Timer storage** | Where new timers are created and the current storage type |
 | **Appearance** | Title, style, layout, progress, language, time format, and timer ordering |
 | **Timer input** | Input method, optional on-card switch, starting duration, increments, and quick-start presets |
@@ -25,7 +25,7 @@ Appearance includes the display and ordering controls in both editor modes.
 Progress milestone options appear when the progress mode is set to Milestones.
 
 Turn on **Advanced** for icons and colors, expiry behavior,
-pinned timers, audio, push notifications, Voice PE control details, and custom actions.
+pinned timers, audio, push notifications, legacy Voice PE control details, and custom actions.
 Per-entity overrides and timer-name suggestions also live in Advanced. Button
 settings are hidden in simple mode when the card uses a fixed keypad; they remain
 available in Advanced because native-timer editing also uses the increments.
@@ -60,10 +60,11 @@ notification payloads, remain YAML-only.
 11. [Audio notifications](#-audio-notifications)
 12. [Push notification fallback](#-push-notification-fallback)
 13. [Storage & persistence](#-storage--persistence)
-14. [Voice PE integration](#-voice-pe-integration)
-15. [Compatibility mode](#-compatibility-mode)
-16. [Language support](#-language-support)
-17. [Examples & help](#-examples--help)
+14. [Voice timers (timer lists)](#-voice-timers-timer-lists)
+15. [Voice PE integration (legacy)](#-voice-pe-integration)
+16. [Compatibility mode](#-compatibility-mode)
+17. [Language support](#-language-support)
+18. [Examples & help](#-examples--help)
 
 ---
 
@@ -129,34 +130,38 @@ Mix and match freely. Mode is auto-detected by default.
 | Source                    | Domain / hint                                   |
 | ------------------------- | ----------------------------------------------- |
 | Native HA timer           | `timer.*`                                       |
+| Voice timers (timer list) | `timer_list.*`, for example Voice PE and other voice satellites (see [Voice timers](#-voice-timers-timer-lists)) |
 | Alexa                     | `alexa_media_player` next-timer sensors         |
 | Google Home               | Timer sensors from the Google Home integration, identified by attributes |
-| Voice PE                  | Custom ESPHome/template sensors (see [Voice PE](#-voice-pe-integration)) |
+| Voice PE (legacy)         | Custom ESPHome/template sensors (see [Voice PE](#-voice-pe-integration)) |
 | Helper                    | `input_text.*`, `text.*`                        |
 | Timestamp sensor          | A sensor whose state is the timer's end timestamp |
 | Minutes attribute sensor  | Any sensor exposing a "minutes remaining" attribute     |
 
 ### Auto-discovery
 
-Alexa and Google Home expose one timer entity per speaker, which is tedious to
-list by hand and needs editing whenever a device is added. Both can be
-discovered instead:
+Alexa, Google Home and voice satellites expose one timer entity per device,
+which is tedious to list by hand and needs editing whenever a device is added.
+They can be discovered instead:
 
 ```yaml
 type: custom:simple-timer-card
 auto_discover_alexa: true
 auto_discover_google: true
+auto_discover_timer_lists: true
 ```
 
-| Name                   | Type    | Default | Description                                                            |
-| ---------------------- | ------- | ------- | ---------------------------------------------------------------------- |
-| `auto_discover_alexa`  | boolean | `false` | Pick up Alexa Media Player next-timer sensors without listing them.     |
-| `auto_discover_google` | boolean | `false` | Pick up Google Home timer sensors by their attributes, including renamed entities. |
+| Name                        | Type    | Default | Description                                                            |
+| --------------------------- | ------- | ------- | ---------------------------------------------------------------------- |
+| `auto_discover_alexa`       | boolean | `false` | Pick up Alexa Media Player next-timer sensors without listing them.     |
+| `auto_discover_google`      | boolean | `false` | Pick up Google Home timer sensors by their attributes, including renamed entities. |
+| `auto_discover_timer_lists` | boolean | `false` | Pick up every `timer_list.*` entity, such as voice satellite timers. See [Voice timers](#-voice-timers-timer-lists). |
 
 Discovered entities are added to anything in `entities:`, never duplicated, and
 carry no per-entity options. List an entity explicitly if you want to override
-its icon, colour or name. Both providers are read-only, so discovered timers can
-be dismissed from this card once they ring but not started or paused from it.
+its icon, colour or name. Alexa and Google Home are read-only, so discovered
+timers can be dismissed from this card once they ring but not started or paused
+from it. Timer lists can be controlled; see [Voice timers](#-voice-timers-timer-lists).
 Dismissing a Google Home timer also calls `google_home.delete_timer`, so it
 stops ringing on the speaker. Dismissing an Alexa timer only hides it on the
 card; the speaker keeps ringing. The Alexa Media Player
@@ -178,11 +183,11 @@ source_styles:
   google:
     icon: mdi:google-assistant
     color: "#4285f4"
-  voice_pe:
+  timer_list:
     icon: mdi:microphone-message
 ```
 
-Keys are the source names: `alexa`, `google`, `voice_pe`, `timer`, `helper`,
+Keys are the source names: `alexa`, `google`, `timer_list`, `voice_pe`, `timer`, `helper`,
 `timestamp`, `minutes_attr`. Each accepts `icon`, `color`, or both.
 
 In the editor, enable **Advanced** and open **Icons & colors** for these settings.
@@ -207,7 +212,7 @@ so an entity listed in `entities:` with its own `icon:` still wins.
 | ------------------------------ | ------- | ------------ | ---------------------- | ---------------------------------------------------------------------------- |
 | `entity`                       | string  | **required** | Always                 | Entity ID                                                                    |
 | `name`                         | string  | auto         | Always                 | Override the displayed name                                                  |
-| `mode`                         | string  | `auto`       | Always                 | One of `auto`, `timer`, `alexa`, `google`, `voice_pe`, `helper`, `timestamp`, `minutes_attr` |
+| `mode`                         | string  | `auto`       | Always                 | One of `auto`, `timer`, `timer_list`, `alexa`, `google`, `voice_pe`, `helper`, `timestamp`, `minutes_attr` |
 | `icon`                         | string  | auto         | Always                 | Override the icon                                                            |
 | `color`                        | string  | auto         | Always                 | Override the color (any CSS color or HA theme variable)                      |
 | `expired_subtitle`             | string  | inherited    | Always                 | Override the message shown when this timer expires                           |
@@ -215,7 +220,7 @@ so an entity listed in `entities:` with its own `icon:` still wins.
 | `start_time_entity`            | string  | self         | `mode: timestamp`      | Use another entity for the start timestamp                                   |
 | `start_time_attr`              | string  | `start_time` | `mode: timestamp`      | Attribute on the entity holding the start timestamp                          |
 | `keep_timer_visible_when_idle` | boolean | `false`      | `mode: timer`          | Keep the row in view even when the timer is idle                             |
-| `hide_timer_actions`           | boolean | `false`      | `mode: timer`          | Hide the start / pause / cancel buttons                                      |
+| `hide_timer_actions`           | boolean | `false`      | `mode: timer` or `timer_list` | Hide the start / pause / cancel buttons                               |
 | `buttons`                      | list    | inherited    | Always                 | Extra action buttons for this row, see [Custom action buttons](#-custom-action-buttons) |
 | `audio_enabled`                | boolean | `false`      | Always                 | Enable an entity-specific expiry sound                                       |
 | `audio_file_url`               | string  | `""`         | `audio_enabled: true`  | URL or path to the audio file                                                |
@@ -465,7 +470,7 @@ HA's `timer.*` domain has no `toggle` service, so when you set `tap_action: togg
 | -------------------------------------- | ------------------------------- |
 | Predefined (pinned) row                | Start                           |
 | Idle native HA `timer.*`               | Open the inline duration editor |
-| Running or paused native/helper/local/MQTT | Pause / resume               |
+| Running or paused native/timer list/helper/local/MQTT | Pause / resume    |
 | Idle non-native or Voice PE             | No supported toggle behavior; use built-in controls or an explicit service action |
 | Anything else                          | Falls through to `domain.toggle` |
 
@@ -523,9 +528,10 @@ For anything else, pass a full Home Assistant `ActionConfig` (`perform-action` /
 
 ### Preset availability
 
-Presets work for native `timer` entities, `input_text` / `text` helpers, and
-local / MQTT timers. Read-only Alexa, Google Home, timestamp, and mirrored Voice
-PE timers cannot be controlled this way. The per-entity editor filters its list
+Presets work for native `timer` entities, timer lists, `input_text` / `text`
+helpers, and local / MQTT timers. On a timer list, a preset that the list does
+not support shows a notice instead. Read-only Alexa, Google Home, timestamp, and
+mirrored Voice PE timers cannot be controlled this way. The per-entity editor filters its list
 by source; the card-level list keeps all presets.
 
 For controllable Voice PE local timers, `finish` sends a cancel command. Use the
@@ -629,9 +635,21 @@ timer automatically. With several native timers, choose a default to avoid
 ambiguity. Starting it again restarts that same entity, rather than creating a
 second timer. Voice PE local-control setup has its own targeting rules below.
 
+### Timer list
+
+To create timers on a voice satellite or another timer list, select it:
+
+```yaml
+default_timer_entity: timer_list.kitchen_voice_timers
+```
+
+Each start creates a new timer on the list, so several can run at once. If the
+card lists exactly one timer list and no native timer, it is selected
+automatically. See [Voice timers](#-voice-timers-timer-lists).
+
 ### Local (default)
 
-Without a native/helper/Voice PE target or MQTT backend, timers use browser
+Without a native/timer list/helper/Voice PE target or MQTT backend, timers use browser
 `localStorage`. They persist across reloads in the same browser and Home Assistant
 origin, but do not sync across devices. Clearing site data removes them.
 
@@ -774,7 +792,96 @@ native timers need different `timer.*` entities.
 
 ---
 
+## 🎙 Voice timers (timer lists)
+
+Home Assistant keeps the timers on a voice satellite in a **timer list** entity
+(`timer_list.*`). There is one per satellite, such as Voice PE or another
+ESPHome, Wyoming or VoIP satellite, and one per mobile app device. The card shows
+these timers and can control them. This works with stock Voice PE firmware and
+needs no template sensors.
+
+This requires a Home Assistant version in which your satellite has a timer list.
+Look for a *Timers* entity on the device page. Until then, use the
+[legacy Voice PE setup](#-voice-pe-integration).
+
+```yaml
+type: custom:simple-timer-card
+auto_discover_timer_lists: true
+default_timer_entity: timer_list.kitchen_voice_timers  # Optional: where new timers go.
+```
+
+Or list them to set names, icons and colours:
+
+```yaml
+type: custom:simple-timer-card
+entities:
+  - timer_list.kitchen_voice_timers
+  - entity: timer_list.bedroom_voice_timers
+    name: Bedroom
+    icon: mdi:bed
+```
+
+| Name                        | Type    | Default | Description |
+| --------------------------- | ------- | ------- | ----------- |
+| `auto_discover_timer_lists` | boolean | `false` | Show every timer list without listing it. |
+| `default_timer_entity`      | string  | `null`  | A `timer_list.*` entity here receives timers started from the card. |
+
+**Starting timers.** Presets, the custom timer input and pinned timers create
+a timer on `default_timer_entity`, or on the only timer list in `entities:`
+when no default is set and no single native `timer.*` is listed. On a voice
+satellite the timer also shows and rings on the device. The card sends a name
+only when you give one, such as a custom name or a pinned timer's name, so the
+satellite does not announce preset labels.
+
+**Labels.** A timer shows its name. Unnamed timers show the list's name and the
+duration they were set for, for example *Kitchen Voice - 5m*. A per-entity
+`name` replaces the list's name.
+
+**Controls.** Buttons follow the list's supported features. Actions the list
+does not support are hidden or show a notice.
+
+| On the card | Timer list action |
+| ----------- | ----------------- |
+| Pause / resume | `pause_timer` / `unpause_timer` |
+| Cancel (×) | `cancel_timer`, or `remove_timer` when the list cannot cancel |
+| `add` / `reduce` buttons | `add_time` / `subtract_time`. Reducing past the time left finishes the timer. |
+| `finish` button | `finish_timer`. A satellite rings as if the time ran out. |
+| Snooze | Starts a new timer with the same name for `snooze_duration`, then removes the finished one |
+| `restart` button | Starts a new timer for the original duration, then removes the old one |
+| Dismiss | `remove_timer`, which clears the timer on every dashboard |
+
+**Finished timers.** A finished timer rings on the card for the expire window:
+`expire_keep_for` with `expire_action: keep` (the default), until dismissed with
+`dismiss`, or for the audio delay with `remove`. After that the card hides it
+but leaves it in Home Assistant, which keeps the 10 most recent finished or
+cancelled timers per list. Dismissing on the card does not silence a satellite
+that is already ringing; stop it on the device.
+
+**Limits.**
+
+* Home Assistant keeps these timers in memory. A restart, or reloading the
+  satellite's integration, clears them, as with voice timers before timer lists.
+* Snooze and restart create a new timer, so automations see a new timer ID.
+* Custom satellite integrations that still use the older timer handler API do
+  not get a timer list, so the card cannot see their timers.
+* Non-admin users can view and control timer lists without extra setup.
+
+### Moving from the legacy Voice PE setup
+
+1. Update Home Assistant and check that the satellite has a *Timers* entity.
+2. Replace the `mode: voice_pe` sensors, `auto_voice_pe` and
+   `voice_pe_control_entity` with the timer list, or with
+   `auto_discover_timer_lists: true`.
+3. Optionally return the device to the stock firmware and delete the template
+   sensors from the legacy guides.
+
+---
+
 ## 🗣 Voice PE integration
+
+> **Legacy.** If your satellite has a timer list, use
+> [Voice timers](#-voice-timers-timer-lists) instead. This setup is kept for
+> Home Assistant versions without timer lists.
 
 Stock Voice PE firmware does not expose HA timer entities for this card. The
 custom ESPHome guides mirror native voice timers read-only, or additionally
