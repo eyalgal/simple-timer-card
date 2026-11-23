@@ -1073,6 +1073,11 @@ The panel then shows the choice as one pill, for example
 applies to that one timer. A command is checked before the timer starts, to
 make sure Home Assistant understands it.
 
+A timer that does something when it ends always runs in the integration, even
+on a card that saves its other timers in this browser or MQTT. Such a card shows
+the timers it started there, and not the integration's other timers. List the
+integration's entity, or use `storage: integration`, to show them all.
+
 While the timer runs, its row shows what will happen, for example
 *12:34 · then Turn off Air purifier*. **Cancel** stops the timer without
 running the action, **Finish** runs it now, and **Snooze** and **Restart** keep

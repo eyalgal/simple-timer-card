@@ -2263,7 +2263,15 @@ class SimpleTimerCard extends LitElement {
     return String(friendly).replace(/\s+timers?\s*$/i, "").trim();
   }
 
-  _parseTimerList(entityId, entityState, entityConf) {
+  // A browser or MQTT card still starts timers on the companion when they do
+  // something at the end, so it follows the ones it started, and only those.
+  _ownCompanionList(wanted) {
+    if (this._config?.storage === "integration") return null;
+    const companion = this._companionList();
+    return companion && !wanted.has(companion) ? companion : null;
+  }
+
+  _parseTimerList(entityId, entityState, entityConf, { ownOnly = false } = {}) {
     if (entityState?.state === "unavailable" || entityState?.state === "unknown") return [];
     const sub = this._timerLists.get(entityId);
     if (!sub || !sub.timers.size) return [];
@@ -2276,6 +2284,7 @@ class SimpleTimerCard extends LitElement {
       const status = item.status;
       if (status !== "active" && status !== "paused" && status !== "finished") continue;
       const serverMeta = item.metadata && typeof item.metadata === "object" ? item.metadata : {};
+      if (ownOnly && serverMeta.card !== this._storageNamespace) continue;
       const meta = { ...serverMeta, ...(this._timerListMeta.get(this._timerListMetaKey(entityId, item.timer_id)) || {}) };
       const action = item.action && typeof item.action === "object" ? item.action : null;
       const createdMs = Math.max(0, Number(item.created_duration) || 0) * 1000;
@@ -3010,7 +3019,8 @@ class SimpleTimerCard extends LitElement {
     if (domain === COMPANION_DOMAIN) {
       // The companion stores card options with the timer, so every dashboard sees them.
       Object.assign(serviceData, extra);
-      const metadata = _cleanUndefined({ ...meta, source: "card" });
+      // The tag lets a browser or MQTT card find the timers it started.
+      const metadata = _cleanUndefined({ ...meta, source: "card", card: this._storageNamespace });
       if (meta.icon) serviceData.icon = meta.icon;
       if (meta.color) serviceData.color = meta.color;
       serviceData.metadata = metadata;
@@ -3374,6 +3384,11 @@ class SimpleTimerCard extends LitElement {
         else if (mode === "minutes_attr") collected.push(...this._parseMinutesAttr(entityId, st, styled));
         else if (mode === "timestamp") collected.push(...this._parseTimestamp(entityId, st, styled));
       } catch (e) {}
+    }
+    const ownCompanion = this._ownCompanionList(wantedTimerLists);
+    if (ownCompanion) {
+      wantedTimerLists.add(ownCompanion);
+      try { collected.push(...this._parseTimerList(ownCompanion, this.hass.states[ownCompanion], { mode: "timer_list" }, { ownOnly: true })); } catch (e) {}
     }
     this._syncTimerListSubscriptions(wantedTimerLists);
     this._deviceSourceCount = deviceSources.size;

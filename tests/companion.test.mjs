@@ -259,3 +259,26 @@ test("a pinned timer announces its name on the chosen speaker", async () => {
   assert.deepEqual(ws[0].service_data.actions, [{ action: "simple_timer_card.announce", data: { entity_id: "media_player.garage", message: "Pasta is done" } }]);
   assert.equal(ws[0].service_data.name, "Pasta");
 });
+
+test("a browser-storage card follows the action timers it started on the companion, and only those", async () => {
+  const { card, subs, ws } = makeCard({ storage_namespace: "kitchen" });
+  card._setActionDraft({ mode: "device", entity: "fan.air_purifier", service: "fan.turn_off" });
+  card._createAndSaveTimer(60, "Purifier");
+  await flush();
+  assert.equal(ws[0].service_data.metadata.card, "kitchen");
+  card._updateTimers();
+  await flush();
+  assert.deepEqual(subs.map((s) => s.message.entity_id), [LIST]);
+  subs[0].callback({ type: "timers", timers: [
+    item({ timer_id: "mine", name: "Purifier", metadata: { source: "card", card: "kitchen" } }),
+    item({ timer_id: "other", name: "Elsewhere", metadata: { source: "card", card: "office" } }),
+    item({ timer_id: "voice", name: "Lights", source: "voice" }),
+  ] });
+  card._updateTimers();
+  assert.deepEqual(card._timers.map((t) => t.label), ["Purifier"]);
+  const [own] = card._timers;
+  assert.ok(own.remaining > 0, "it counts down");
+  card._timerLists.get(LIST).timers.set("mine", { ...card._timerLists.get(LIST).timers.get("mine"), status: "finished", remaining: 0 });
+  card._updateTimers();
+  assert.equal(card._timers[0].remaining, 0, "and reaches its ringing state");
+});
