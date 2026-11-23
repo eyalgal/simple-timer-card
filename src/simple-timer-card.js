@@ -6681,8 +6681,8 @@ const layout = this._config.layout;
       .head-title { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
       .card-header.with-more { display: flex; align-items: center; gap: 8px; }
       .more-badge { display: inline-flex; align-items: center; justify-content: center; gap: 0; height: 22px; min-width: 28px; padding: 0 8px; border: 0; border-radius: 11px; background: color-mix(in srgb, var(--primary-color) 14%, var(--card-background-color, #fff)); color: var(--primary-color); font: inherit; font-size: 12px; font-weight: 600; line-height: 1; cursor: pointer; flex-shrink: 0; }
-      .more-badge ha-icon { --mdc-icon-size: 16px; margin-inline-end: -4px; }
-      .more-badge span + ha-icon { margin-inline-start: 1px; }
+      .more-badge ha-icon { --mdc-icon-size: 16px; }
+      .more-badge span + ha-icon { margin-inline-start: 1px; margin-inline-end: -4px; }
       .more-below { display: flex; justify-content: center; padding: 2px 0 4px; }
       .more-badge:hover { background: color-mix(in srgb, var(--primary-color) 22%, var(--card-background-color, #fff)); }
       .picker-section { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 12px; }
