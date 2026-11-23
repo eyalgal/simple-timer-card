@@ -239,6 +239,11 @@ const TRANSLATIONS = {
     needs_companion: "Install the Simple Timer Card integration to run actions when timers end.", timer_start_failed: "Could not start the timer: {error}", action_not_supported: "This timer doesn't support that.", group_other: "Other",
     group_voice: "Voice", group_pinned: "Pinned", group_since: "Since", group_template: "Template",
     group_sensors: "Sensors", group_timers: "Timers", since: "{t} ago",
+    add_action: "Do something when it ends", when_it_ends: "When it ends", control_device_title: "Control a device",
+    control_device_desc: "Turn on or off, open, lock and more", run_command_title: "Say a command", run_command_desc: "Anything you would ask Assist, e.g. \"turn off the purifier\"",
+    quick_actions: "Quick actions", search_devices: "Search by name or room", what_to_do: "What should it do?",
+    type_to_search: "Type a name or room to find a device", back: "Back", done: "Done",
+    close: "Close",
   },
   de: {
     no_timers: "Keine Timer",
@@ -280,6 +285,11 @@ const TRANSLATIONS = {
     needs_companion: "Installiere die Simple-Timer-Card-Integration, um beim Ablauf Aktionen auszuführen.", timer_start_failed: "Timer konnte nicht gestartet werden: {error}", action_not_supported: "Dieser Timer unterstützt das nicht.", group_other: "Sonstige",
     group_voice: "Sprache", group_pinned: "Angeheftet", group_since: "Seit", group_template: "Vorlage",
     group_sensors: "Sensoren", group_timers: "Timer", since: "vor {t}",
+    add_action: "Etwas tun, wenn er abläuft", when_it_ends: "Wenn er abläuft", control_device_title: "Gerät steuern",
+    control_device_desc: "Ein- oder ausschalten, öffnen, sperren und mehr", run_command_title: "Befehl sprechen", run_command_desc: "Alles, was du Assist fragen würdest, z. B. „Luftreiniger aus“",
+    quick_actions: "Schnellaktionen", search_devices: "Nach Name oder Raum suchen", what_to_do: "Was soll passieren?",
+    type_to_search: "Name oder Raum eingeben, um ein Gerät zu finden", back: "Zurück", done: "Fertig",
+    close: "Schließen",
   },
   es: {
     no_timers: "Sin Temporizadores",
@@ -321,6 +331,11 @@ const TRANSLATIONS = {
     needs_companion: "Instala la integración Simple Timer Card para ejecutar acciones al terminar los temporizadores.", timer_start_failed: "No se pudo iniciar el temporizador: {error}", action_not_supported: "Este temporizador no admite esa acción.", group_other: "Otros",
     group_voice: "Voz", group_pinned: "Fijados", group_since: "Desde", group_template: "Plantilla",
     group_sensors: "Sensores", group_timers: "Temporizadores", since: "hace {t}",
+    add_action: "Hacer algo al terminar", when_it_ends: "Al terminar", control_device_title: "Controlar un dispositivo",
+    control_device_desc: "Encender o apagar, abrir, bloquear y más", run_command_title: "Decir un comando", run_command_desc: "Lo que le pedirías a Assist, p. ej. «apaga el purificador»",
+    quick_actions: "Acciones rápidas", search_devices: "Buscar por nombre o habitación", what_to_do: "¿Qué debe hacer?",
+    type_to_search: "Escribe un nombre o una habitación para encontrar un dispositivo", back: "Atrás", done: "Listo",
+    close: "Cerrar",
   },
   da: {
     no_timers: "Ingen timere",
@@ -362,6 +377,11 @@ const TRANSLATIONS = {
     needs_companion: "Installer Simple Timer Card-integrationen for at udføre handlinger, når timere slutter.", timer_start_failed: "Kunne ikke starte timeren: {error}", action_not_supported: "Denne timer understøtter ikke det.", group_other: "Andet",
     group_voice: "Stemme", group_pinned: "Fastgjort", group_since: "Siden", group_template: "Skabelon",
     group_sensors: "Sensorer", group_timers: "Timere", since: "for {t} siden",
+    add_action: "Gør noget, når den slutter", when_it_ends: "Når den slutter", control_device_title: "Styr en enhed",
+    control_device_desc: "Tænd eller sluk, åbn, lås og mere", run_command_title: "Sig en kommando", run_command_desc: "Alt, du ville bede Assist om, f.eks. \"sluk luftrenseren\"",
+    quick_actions: "Hurtige handlinger", search_devices: "Søg efter navn eller rum", what_to_do: "Hvad skal der ske?",
+    type_to_search: "Skriv et navn eller rum for at finde en enhed", back: "Tilbage", done: "Færdig",
+    close: "Luk",
   },
   it: {
     no_timers: "Nessun timer",
@@ -403,6 +423,11 @@ const TRANSLATIONS = {
     needs_companion: "Installa l'integrazione Simple Timer Card per eseguire azioni allo scadere dei timer.", timer_start_failed: "Impossibile avviare il timer: {error}", action_not_supported: "Questo timer non lo supporta.", group_other: "Altro",
     group_voice: "Voce", group_pinned: "Fissati", group_since: "Da", group_template: "Modello",
     group_sensors: "Sensori", group_timers: "Timer", since: "{t} fa",
+    add_action: "Fai qualcosa alla fine", when_it_ends: "Alla fine", control_device_title: "Controlla un dispositivo",
+    control_device_desc: "Accendi o spegni, apri, blocca e altro", run_command_title: "Dì un comando", run_command_desc: "Qualsiasi cosa chiederesti ad Assist, es. \"spegni il purificatore\"",
+    quick_actions: "Azioni rapide", search_devices: "Cerca per nome o stanza", what_to_do: "Cosa deve fare?",
+    type_to_search: "Scrivi un nome o una stanza per trovare un dispositivo", back: "Indietro", done: "Fatto",
+    close: "Chiudi",
   },
   fr: {
     no_timers: "Aucun minuteur",
@@ -444,6 +469,11 @@ const TRANSLATIONS = {
     needs_companion: "Installez l'intégration Simple Timer Card pour lancer des actions à la fin des minuteurs.", timer_start_failed: "Impossible de démarrer le minuteur : {error}", action_not_supported: "Ce minuteur ne le permet pas.", group_other: "Autres",
     group_voice: "Voix", group_pinned: "Épinglés", group_since: "Depuis", group_template: "Modèle",
     group_sensors: "Capteurs", group_timers: "Minuteurs", since: "il y a {t}",
+    add_action: "Faire quelque chose à la fin", when_it_ends: "À la fin", control_device_title: "Contrôler un appareil",
+    control_device_desc: "Allumer ou éteindre, ouvrir, verrouiller et plus", run_command_title: "Dire une commande", run_command_desc: "Tout ce que vous demanderiez à Assist, ex. « éteins le purificateur »",
+    quick_actions: "Actions rapides", search_devices: "Rechercher par nom ou pièce", what_to_do: "Que doit-il se passer ?",
+    type_to_search: "Saisissez un nom ou une pièce pour trouver un appareil", back: "Retour", done: "Terminé",
+    close: "Fermer",
   },
   he: {
     no_timers: "אין טיימרים",
@@ -485,6 +515,11 @@ const TRANSLATIONS = {
     needs_companion: "כדי להפעיל פעולות בסיום טיימר יש להתקין את האינטגרציה Simple Timer Card.", timer_start_failed: "לא ניתן להפעיל את הטיימר: {error}", action_not_supported: "הטיימר הזה לא תומך בזה.", group_other: "אחר",
     group_voice: "קולי", group_pinned: "מוצמדים", group_since: "מאז", group_template: "תבנית",
     group_sensors: "חיישנים", group_timers: "טיימרים", since: "לפני {t}",
+    add_action: "לעשות משהו בסיום", when_it_ends: "בסיום", control_device_title: "שליטה במכשיר",
+    control_device_desc: "הדלקה או כיבוי, פתיחה, נעילה ועוד", run_command_title: "אמירת פקודה", run_command_desc: "כל מה שהיית מבקש מ-Assist, למשל \"כבה את מטהר האוויר\"",
+    quick_actions: "פעולות מהירות", search_devices: "חיפוש לפי שם או חדר", what_to_do: "מה לעשות?",
+    type_to_search: "יש להקליד שם או חדר כדי למצוא מכשיר", back: "חזרה", done: "סיום",
+    close: "סגירה",
   },
   pl: {
     no_timers: "Brak minutników",
@@ -526,6 +561,11 @@ const TRANSLATIONS = {
     needs_companion: "Zainstaluj integrację Simple Timer Card, aby uruchamiać akcje po zakończeniu minutników.", timer_start_failed: "Nie udało się uruchomić minutnika: {error}", action_not_supported: "Ten minutnik tego nie obsługuje.", group_other: "Inne",
     group_voice: "Głos", group_pinned: "Przypięte", group_since: "Od", group_template: "Szablon",
     group_sensors: "Czujniki", group_timers: "Minutniki", since: "{t} temu",
+    add_action: "Zrób coś po zakończeniu", when_it_ends: "Po zakończeniu", control_device_title: "Steruj urządzeniem",
+    control_device_desc: "Włącz lub wyłącz, otwórz, zablokuj i więcej", run_command_title: "Powiedz polecenie", run_command_desc: "Wszystko, o co poprosiłbyś Assist, np. „wyłącz oczyszczacz”",
+    quick_actions: "Szybkie akcje", search_devices: "Szukaj po nazwie lub pokoju", what_to_do: "Co ma się stać?",
+    type_to_search: "Wpisz nazwę lub pokój, aby znaleźć urządzenie", back: "Wstecz", done: "Gotowe",
+    close: "Zamknij",
   },
   nl: {
     no_timers: "Geen timers",
@@ -567,6 +607,11 @@ const TRANSLATIONS = {
     needs_companion: "Installeer de Simple Timer Card-integratie om acties uit te voeren als timers aflopen.", timer_start_failed: "Kan de timer niet starten: {error}", action_not_supported: "Deze timer ondersteunt dat niet.", group_other: "Overig",
     group_voice: "Spraak", group_pinned: "Vastgezet", group_since: "Sinds", group_template: "Sjabloon",
     group_sensors: "Sensoren", group_timers: "Timers", since: "{t} geleden",
+    add_action: "Iets doen als hij afloopt", when_it_ends: "Als hij afloopt", control_device_title: "Een apparaat bedienen",
+    control_device_desc: "Aan of uit, openen, vergrendelen en meer", run_command_title: "Een opdracht zeggen", run_command_desc: "Alles wat je aan Assist zou vragen, bijv. \"zet de luchtreiniger uit\"",
+    quick_actions: "Snelle acties", search_devices: "Zoeken op naam of ruimte", what_to_do: "Wat moet er gebeuren?",
+    type_to_search: "Typ een naam of ruimte om een apparaat te vinden", back: "Terug", done: "Klaar",
+    close: "Sluiten",
   },
   sv: {
     no_timers: "Ingen timer",
@@ -608,6 +653,11 @@ const TRANSLATIONS = {
     needs_companion: "Installera integrationen Simple Timer Card för att köra åtgärder när timrar tar slut.", timer_start_failed: "Kunde inte starta timern: {error}", action_not_supported: "Den här timern stöder inte det.", group_other: "Övrigt",
     group_voice: "Röst", group_pinned: "Fästa", group_since: "Sedan", group_template: "Mall",
     group_sensors: "Sensorer", group_timers: "Timrar", since: "för {t} sedan",
+    add_action: "Gör något när den är klar", when_it_ends: "När den är klar", control_device_title: "Styr en enhet",
+    control_device_desc: "Slå på eller av, öppna, lås och mer", run_command_title: "Säg ett kommando", run_command_desc: "Allt du skulle be Assist om, t.ex. \"stäng av luftrenaren\"",
+    quick_actions: "Snabbåtgärder", search_devices: "Sök på namn eller rum", what_to_do: "Vad ska hända?",
+    type_to_search: "Skriv ett namn eller rum för att hitta en enhet", back: "Tillbaka", done: "Klar",
+    close: "Stäng",
   }
 };
 
@@ -631,6 +681,8 @@ class SimpleTimerCard extends LitElement {
       _editingTimerId: { state: true },
       _editDuration: { state: true },
       _targetChoice: { state: true },
+      _actionDraft: { state: true },
+      _actionWizard: { state: true },
     };
   }
 
@@ -2336,9 +2388,9 @@ class SimpleTimerCard extends LitElement {
     });
   }
 
-  _renderTargetPicker() {
+  _renderTargetPicker(which) {
     const showLists = this._showTargetPicker();
-    const actions = this._renderActionPicker();
+    const actions = this._renderActionEntry(which);
     if (!showLists) return actions;
     const active = this._activeTargetChoice();
     const defaultList = this._resolveTimerListTarget(null);
@@ -2460,11 +2512,13 @@ class SimpleTimerCard extends LitElement {
     const out = [];
     for (const [id, st] of Object.entries(this.hass?.states || {})) {
       if (!domains.has(id.split(".")[0]) || st?.state === "unavailable") continue;
+      if (!q) break;
       const name = String(st?.attributes?.friendly_name || id).toLowerCase();
+      const area = String(this._registryInfo(id).area || "").toLowerCase();
       let score;
-      if (!q) score = 2;
-      else if (name.startsWith(q)) score = 0;
+      if (name.startsWith(q)) score = 0;
       else if (name.includes(q) || id.includes(q)) score = 1;
+      else if (area.includes(q)) score = 2;
       else continue;
       out.push({ id, name, score });
     }
@@ -2486,80 +2540,201 @@ class SimpleTimerCard extends LitElement {
     this._actionDraft = { ...(this._actionDraft || { mode: "none" }), ...patch };
   }
 
-  _renderActionPicker() {
+  // The custom panel stays simple: one link (or a summary of the chosen
+  // action). Everything else happens in a short wizard inside the panel.
+  _renderActionEntry(which) {
     if (!this._actionPickerEnabled()) return "";
-    const draft = this._actionDraft || { mode: "none" };
-    const favorites = this._favoriteActions();
-    const mode = (value, label) => html`
-      <button type="button" class="duration-mode-btn" aria-pressed=${String(draft.mode === value)}
-        @click=${() => this._setActionDraft({ mode: value })}>${label}</button>`;
-    const services = draft.mode === "device" && draft.entity ? this._servicesForEntity(draft.entity) : [];
-    const selectedService = draft.service && services.includes(draft.service)
-      ? draft.service
-      : (services.find((sv) => sv.endsWith(".turn_off")) || services[0] || "");
-    if (draft.mode === "device" && selectedService && draft.service !== selectedService) {
-      this._actionDraft = { ...draft, service: selectedService };
-    }
-    return html`
-      <div class="picker-section" data-no-action>
-        <span class="picker-section-label">${this._localize("when_done")}</span>
-        <div class="duration-mode segmented" role="group" aria-label=${this._localize("when_done")}>
-          <button type="button" class="duration-mode-btn" aria-pressed=${String(draft.mode === "none")}
-            @click=${() => this._setActionDraft({ mode: "none" })}>${this._localize("just_a_timer")}</button>
-          ${mode("command", this._localize("run_command"))}
-          ${mode("device", this._localize("control_device"))}
+    const spec = this._actionDraftSpec();
+    if (!spec) {
+      return html`
+        <div class="action-entry">
+          <button type="button" class="action-link" @click=${() => this._openActionWizard(which, "type")}>
+            <ha-icon icon="mdi:plus-circle-outline"></ha-icon>${this._localize("add_action")}
+          </button>
         </div>
-        ${favorites.length ? html`
-          <div class="option-chips">
-            ${favorites.map((f) => {
-              const selected = draft.mode === `fav:${f.key}`;
-              return html`<button type="button" class="btn btn-preset" aria-pressed=${String(selected)}
-                @click=${() => this._setActionDraft({ mode: selected ? "none" : `fav:${f.key}` })}>${f.name || this._actionSummary(f)}</button>`;
-            })}
-          </div>
-        ` : ""}
-        ${draft.mode === "command" ? html`
-          <input class="text-input" type="text"
-            .value=${draft.command || ""}
-            placeholder=${this._localize("command_placeholder")}
-            aria-label=${this._localize("run_command")}
-            @input=${(e) => this._setActionDraft({ command: e.target.value })}>
-        ` : ""}
-        ${draft.mode === "device" ? html`
-          <div class="action-device">
-            ${draft.entity ? html`
-              <div class="option-chips">
-                <button type="button" class="btn btn-preset selected-entity" aria-pressed="true"
-                  title=${draft.entity}
-                  @click=${() => this._setActionDraft({ entity: "", service: "", query: "" })}>
-                  ${this._entityName(draft.entity)}<ha-icon icon="mdi:close" style="--mdc-icon-size:14px;"></ha-icon>
-                </button>
-              </div>
-            ` : html`
-              <input class="text-input" type="search"
-                .value=${draft.query || ""}
-                placeholder=${this._localize("choose_device")}
-                aria-label=${this._localize("choose_device")}
-                @input=${(e) => this._setActionDraft({ query: e.target.value })}>
-              <div class="option-chips">
-                ${this._searchActionEntities(draft.query).map((id) => html`
-                  <button type="button" class="btn btn-preset" title=${id}
-                    @click=${() => this._setActionDraft({ entity: id, service: "", query: "" })}>${this._entityName(id)}</button>
-                `)}
-              </div>
-            `}
-            ${services.length ? html`
-              <div class="option-chips" role="group" aria-label=${this._localize("choose_action")}>
-                ${services.map((sv) => html`
-                  <button type="button" class="btn btn-preset" aria-pressed=${String(sv === selectedService)}
-                    @click=${() => this._setActionDraft({ service: sv })}>${this._serviceLabel(sv)}</button>
-                `)}
-              </div>
-            ` : ""}
-          </div>
-        ` : ""}
+      `;
+    }
+    const draft = this._actionDraft || {};
+    const step = draft.mode === "command" ? "command" : (draft.mode === "device" ? "action" : "type");
+    return html`
+      <div class="action-entry">
+        <span class="action-pill">
+          <button type="button" class="action-pill-main" @click=${() => this._openActionWizard(which, step)}>
+            <ha-icon icon=${this._actionIcon(spec)}></ha-icon><span>${this._actionPillText(spec)}</span>
+          </button>
+          <button type="button" class="action-pill-clear" aria-label=${this._localize("close")}
+            @click=${() => { this._actionDraft = { mode: "none" }; }}>
+            <ha-icon icon="mdi:close"></ha-icon>
+          </button>
+        </span>
       </div>
     `;
+  }
+
+  _openActionWizard(which, step) {
+    this._wizardPrev = { ...(this._actionDraft || { mode: "none" }) };
+    this._actionWizard = { which, step };
+  }
+
+  _closeActionWizard(keep) {
+    if (!keep && this._wizardPrev) this._actionDraft = this._wizardPrev;
+    this._wizardPrev = null;
+    this._actionWizard = null;
+  }
+
+  _wizardStep(step) {
+    this._actionWizard = { ...this._actionWizard, step };
+  }
+
+  _domainIcon(entityId) {
+    const icons = {
+      light: "mdi:lightbulb", switch: "mdi:toggle-switch-variant", fan: "mdi:fan", cover: "mdi:window-shutter",
+      lock: "mdi:lock", climate: "mdi:thermostat", media_player: "mdi:cast", input_boolean: "mdi:toggle-switch-outline",
+      scene: "mdi:palette", script: "mdi:script-text-outline", vacuum: "mdi:robot-vacuum", valve: "mdi:valve",
+      humidifier: "mdi:air-humidifier", water_heater: "mdi:water-boiler", siren: "mdi:bullhorn", button: "mdi:gesture-tap-button",
+      input_button: "mdi:gesture-tap-button", automation: "mdi:robot", remote: "mdi:remote", lawn_mower: "mdi:robot-mower",
+    };
+    const st = this.hass?.states?.[entityId];
+    return st?.attributes?.icon || icons[String(entityId).split(".")[0]] || "mdi:devices";
+  }
+
+  _serviceIcon(service) {
+    const name = String(service || "").split(".")[1] || "";
+    const icons = {
+      turn_off: "mdi:power-off", turn_on: "mdi:power", toggle: "mdi:swap-horizontal", open_cover: "mdi:arrow-up-box",
+      close_cover: "mdi:arrow-down-box", stop_cover: "mdi:stop", lock: "mdi:lock", unlock: "mdi:lock-open-variant",
+      open: "mdi:lock-open-variant", media_pause: "mdi:pause", media_play: "mdi:play", media_stop: "mdi:stop",
+      media_play_pause: "mdi:play-pause", start: "mdi:play", stop: "mdi:stop", pause: "mdi:pause",
+      return_to_base: "mdi:home-import-outline", press: "mdi:gesture-tap", trigger: "mdi:play", open_valve: "mdi:valve-open",
+      close_valve: "mdi:valve-closed", volume_mute: "mdi:volume-off",
+    };
+    return icons[name] || "mdi:play-circle-outline";
+  }
+
+  _actionIcon(spec) {
+    if (spec?.icon) return spec.icon;
+    if (spec?.command) return "mdi:microphone-message";
+    const step = Array.isArray(spec?.actions) ? spec.actions[0] : null;
+    return this._serviceIcon(step?.action || step?.service);
+  }
+
+  // "Turn off · Air purifier, Living room": the area tells similar names apart.
+  _actionPillText(spec) {
+    if (spec.name) return spec.name;
+    if (spec.command) return `“${spec.command}”`;
+    if (spec.entity) {
+      const area = this._registryInfo(spec.entity).area;
+      return `${this._serviceLabel(spec.service)} · ${this._entityName(spec.entity)}${area ? `, ${area}` : ""}`;
+    }
+    return this._actionSummary(spec);
+  }
+
+  _renderEntityRow(entityId, onClick) {
+    const info = this._registryInfo(entityId);
+    const sub = [info.area, info.device && info.device !== this._entityName(entityId) ? info.device : null].filter(Boolean).join(" · ");
+    return html`
+      <button type="button" class="wizard-row" @click=${onClick}>
+        <ha-icon class="row-icon" icon=${this._domainIcon(entityId)}></ha-icon>
+        <span class="row-text">
+          <span class="row-title">${this._entityName(entityId)}</span>
+          ${sub ? html`<span class="row-sub">${sub}</span>` : ""}
+          <span class="row-id">${entityId}</span>
+        </span>
+      </button>
+    `;
+  }
+
+  _renderActionWizard() {
+    const step = this._actionWizard?.step || "type";
+    const draft = this._actionDraft || { mode: "none" };
+    const back = { device: "type", command: "type", action: "device" }[step];
+    const titles = {
+      type: this._localize("when_it_ends"),
+      device: this._localize("control_device_title"),
+      action: this._localize("what_to_do"),
+      command: this._localize("run_command_title"),
+    };
+    const head = html`
+      <div class="wizard-head">
+        ${back ? html`
+          <button type="button" class="wizard-icon-btn" aria-label=${this._localize("back")} @click=${() => this._wizardStep(back)}>
+            <ha-icon icon=${this._isRTL() ? "mdi:arrow-right" : "mdi:arrow-left"}></ha-icon>
+          </button>` : html`<span class="wizard-icon-spacer"></span>`}
+        <span class="wizard-title">${titles[step]}</span>
+        <button type="button" class="wizard-icon-btn" aria-label=${this._localize("close")} @click=${() => this._closeActionWizard(false)}>
+          <ha-icon icon="mdi:close"></ha-icon>
+        </button>
+      </div>
+    `;
+    let body;
+    if (step === "type") {
+      const favorites = this._favoriteActions();
+      body = html`
+        <div class="wizard-list">
+          <button type="button" class="wizard-row" @click=${() => { this._setActionDraft({ mode: "device" }); this._wizardStep(draft.entity ? "action" : "device"); }}>
+            <ha-icon class="row-icon" icon="mdi:power-plug-outline"></ha-icon>
+            <span class="row-text"><span class="row-title">${this._localize("control_device_title")}</span><span class="row-sub">${this._localize("control_device_desc")}</span></span>
+          </button>
+          <button type="button" class="wizard-row" @click=${() => { this._setActionDraft({ mode: "command" }); this._wizardStep("command"); }}>
+            <ha-icon class="row-icon" icon="mdi:microphone-message"></ha-icon>
+            <span class="row-text"><span class="row-title">${this._localize("run_command_title")}</span><span class="row-sub">${this._localize("run_command_desc")}</span></span>
+          </button>
+          ${favorites.length ? html`
+            <div class="wizard-section">${this._localize("quick_actions")}</div>
+            ${favorites.map((f) => html`
+              <button type="button" class="wizard-row" @click=${() => { this._actionDraft = { mode: `fav:${f.key}` }; this._closeActionWizard(true); }}>
+                <ha-icon class="row-icon" icon=${this._actionIcon(f)}></ha-icon>
+                <span class="row-text"><span class="row-title">${f.name || this._actionSummary(f)}</span>
+                  ${f.name ? html`<span class="row-sub">${this._actionSummary(f)}</span>` : ""}</span>
+              </button>
+            `)}
+          ` : ""}
+        </div>
+      `;
+    } else if (step === "device") {
+      const results = this._searchActionEntities(draft.query);
+      body = html`
+        <input class="text-input wizard-input" type="search" autofocus
+          .value=${draft.query || ""}
+          placeholder=${this._localize("search_devices")}
+          aria-label=${this._localize("search_devices")}
+          @input=${(e) => this._setActionDraft({ query: e.target.value })}>
+        <div class="wizard-list">
+          ${results.length
+            ? results.map((id) => this._renderEntityRow(id, () => { this._setActionDraft({ entity: id, service: "", query: "" }); this._wizardStep("action"); }))
+            : html`<div class="wizard-hint">${this._localize("type_to_search")}</div>`}
+        </div>
+      `;
+    } else if (step === "action") {
+      const services = this._servicesForEntity(draft.entity);
+      body = html`
+        ${draft.entity ? this._renderEntityRow(draft.entity, () => this._wizardStep("device")) : ""}
+        <div class="wizard-list">
+          ${services.map((sv) => html`
+            <button type="button" class="wizard-row compact" @click=${() => { this._setActionDraft({ mode: "device", service: sv }); this._closeActionWizard(true); }}>
+              <ha-icon class="row-icon" icon=${this._serviceIcon(sv)}></ha-icon>
+              <span class="row-text"><span class="row-title">${this._serviceLabel(sv)}</span></span>
+            </button>
+          `)}
+        </div>
+      `;
+    } else {
+      const ready = !!String(draft.command || "").trim();
+      body = html`
+        <input class="text-input wizard-input" type="text" autofocus
+          .value=${draft.command || ""}
+          placeholder=${this._localize("command_placeholder")}
+          aria-label=${this._localize("run_command_title")}
+          @input=${(e) => this._setActionDraft({ command: e.target.value })}
+          @keydown=${(e) => { if (e.key === "Enter" && String(e.target.value).trim()) { this._setActionDraft({ mode: "command" }); this._closeActionWizard(true); } }}>
+        <div class="wizard-hint">${this._localize("run_command_desc")}</div>
+        <div class="picker-actions">
+          <button type="button" class="btn btn-primary" ?disabled=${!ready}
+            @click=${() => { this._setActionDraft({ mode: "command" }); this._closeActionWizard(true); }}>${this._localize("done")}</button>
+        </div>
+      `;
+    }
+    return html`<div class="wizard">${head}${body}</div>`;
   }
 
   // Starts a timer that runs an action. Returns false when it cannot start.
@@ -5638,15 +5813,17 @@ class SimpleTimerCard extends LitElement {
       <div class=${custom ? "picker" : "active-picker"} data-duration-picker=${which} data-no-action
         ?inert=${!this._ui[openKey]} aria-hidden=${String(!this._ui[openKey])}
         @click=${(e) => e.stopPropagation()}>
+        ${this._actionWizard?.which === which ? this._renderActionWizard() : html`
         ${this._renderDurationInput(which)}
         ${this._renderTimerNameSelector(nameId, this._localize("timer_name_optional"))}
-        ${this._renderTargetPicker()}
+        ${this._renderTargetPicker(which)}
         <div class="picker-actions">
           <button type="button" class="btn btn-ghost"
             @click=${() => { this._ui[openKey] = false; this.requestUpdate(); }}>${this._localize("cancel")}</button>
           <button type="button" class="btn btn-primary" ?disabled=${!this._canStartCustomTimer(which)}
             @click=${() => custom ? this._startFromCustom(which) : this._startActive(which)}>${this._localize("start")}</button>
         </div>
+        `}
       </div>
     `;
   }
@@ -6169,7 +6346,7 @@ const layout = this._config.layout;
     return css`
       :host { --stc-chip-radius: 9999px; }
       ha-card { border-radius: var(--ha-card-border-radius, 12px); overflow: hidden; padding: 0; background: var(--ha-card-background, var(--card-background-color)); }
-      .grid { display: grid; grid-template-columns: 1fr; gap: 12px; padding: 0; margin: -1px 0; }
+      .grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 0; margin: -1px 0; }
       .card { background: transparent; position: relative; padding: 0 8px; box-sizing: border-box; }
       .card-content { position: relative; z-index: 1; display: flex; align-items: center; gap: 12px; padding: 0 4px; height: 40px; }
       .progress-fill { position: absolute; inset: 6px 0; height: auto; width: 0; left: 0; z-index: 0; transition: width 1s linear; background: var(--tcolor, var(--primary-color)); opacity: 0.25; border-radius: inherit; }
@@ -6235,6 +6412,35 @@ const layout = this._config.layout;
       .segmented { flex-wrap: wrap; justify-content: center; margin: 0 auto; }
       .segmented .duration-mode-btn { padding: 6px 12px; }
       .option-chips { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+      .action-entry { display: flex; justify-content: center; margin-top: 10px; }
+      .action-link { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border: 0; background: none; color: var(--primary-color); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; border-radius: var(--stc-chip-radius); }
+      .action-link:hover { background: color-mix(in srgb, var(--primary-color) 10%, transparent); }
+      .action-link ha-icon { --mdc-icon-size: 18px; }
+      .action-pill { display: inline-flex; align-items: center; max-width: 100%; border-radius: var(--stc-chip-radius); background: color-mix(in srgb, var(--primary-color) 14%, var(--card-background-color)); color: var(--primary-color); }
+      .action-pill button { border: 0; background: none; color: inherit; font: inherit; cursor: pointer; display: inline-flex; align-items: center; }
+      .action-pill-main { gap: 8px; min-width: 0; padding: 7px 4px 7px 12px; font-size: 13px; font-weight: 600; }
+      .action-pill-main span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .action-pill-clear { padding: 7px 10px 7px 6px; }
+      .action-pill ha-icon { --mdc-icon-size: 18px; flex: 0 0 auto; }
+      .wizard { display: flex; flex-direction: column; gap: 10px; padding: 4px 0; min-width: 0; }
+      .grid > div, .card, .picker, .active-picker { min-width: 0; }
+      .wizard-head { display: flex; align-items: center; gap: 8px; }
+      .wizard-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; font-size: 15px; font-weight: 600; color: var(--primary-text-color); }
+      .wizard-icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border: 0; border-radius: 50%; background: none; color: var(--secondary-text-color); cursor: pointer; }
+      .wizard-icon-btn:hover { background: var(--secondary-background-color, rgba(0,0,0,.06)); }
+      .wizard-icon-spacer { width: 36px; }
+      .wizard-list { display: flex; flex-direction: column; gap: 6px; max-height: 320px; overflow-y: auto; min-width: 0; }
+      .wizard-row { display: flex; align-items: center; gap: 12px; width: 100%; min-width: 0; box-sizing: border-box; padding: 10px 12px; border: 0; border-radius: 12px; background: var(--secondary-background-color, rgba(0,0,0,.05)); color: var(--primary-text-color); font: inherit; text-align: start; cursor: pointer; }
+      .wizard-row.compact { padding: 8px 12px; }
+      .wizard-row:hover { background: color-mix(in srgb, var(--primary-color) 12%, var(--secondary-background-color, transparent)); }
+      .wizard-row .row-icon { --mdc-icon-size: 22px; color: var(--primary-color); flex: 0 0 auto; }
+      .row-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+      .row-title { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .row-sub { font-size: 12px; color: var(--secondary-text-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .row-id { font-family: var(--code-font-family, ui-monospace, monospace); font-size: 11px; color: var(--secondary-text-color); opacity: .8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .wizard-section { font-size: 12px; font-weight: 600; color: var(--secondary-text-color); margin: 6px 4px 0; }
+      .wizard-hint { font-size: 12px; color: var(--secondary-text-color); text-align: center; padding: 8px; }
+      .wizard-input { width: 100%; box-sizing: border-box; }
       .btn-preset.selected, .btn-preset[aria-pressed="true"] { background: color-mix(in srgb, var(--primary-color) 16%, var(--card-background-color)); color: var(--primary-color); box-shadow: inset 0 0 0 1px var(--primary-color); }
       .action-device { display: flex; flex-direction: column; gap: 8px; width: 90%; }
       .action-device .text-input { width: 100%; box-sizing: border-box; }
@@ -6829,14 +7035,13 @@ _pinnedTimerValueChanged(ev, index) {
     const card = SimpleTimerCard.prototype;
     const hasCompanion = Object.keys(this.hass?.states || {}).some((id) => card._isCompanionList.call(this, id));
     return html`
-      <div class="advanced device-timers" data-search-terms="device_timers action_timers when done command companion">
-        <div class="row-actions-label">Actions when a timer ends</div>
-        <p class="hint">With the Simple Timer Card integration installed, the custom timer panel offers <strong>When done</strong>: run a command such as "turn off the air purifier", or any action on any device. Home Assistant runs it, even with every dashboard closed. Quick actions below appear there as one-tap chips.</p>
+      <div class="device-timers" data-search-terms="device_timers action_timers when done command companion">
+        <p class="hint">With the Simple Timer Card integration, the custom timer panel offers <strong>Do something when it ends</strong>: control any device or say a command. Home Assistant runs it, even with every dashboard closed. Quick actions appear there as one-tap shortcuts.</p>
         ${hasCompanion ? "" : html`<p class="hint warning">The Simple Timer Card integration is not installed, so these options have no effect.</p>`}
         <label class="toggle-row">
           <ha-switch .checked=${this._config.action_timers !== false} @change=${(e) => this._setActionTimers(e.target.checked)}></ha-switch>
           <div class="toggle-text">
-            <span class="toggle-title">Show "When done" in the custom timer panel</span>
+            <span class="toggle-title">Offer "Do something when it ends"</span>
           </div>
         </label>
         ${list.length === 0 ? html`<div class="no-entities">No quick actions yet. Add a device action or a command below.</div>` : ""}
@@ -6879,16 +7084,24 @@ _pinnedTimerValueChanged(ev, index) {
             </div>
           `;
         })}
-        <button class="add-button" @click=${() => this._setDeviceTimer(list.length, { entity: "" })}>
-          <ha-icon icon="mdi:plus"></ha-icon>
-          <span>Add device action</span>
-        </button>
-        <button class="add-button" @click=${() => this._setDeviceTimer(list.length, { command: "" })}>
-          <ha-icon icon="mdi:microphone-message"></ha-icon>
-          <span>Add command</span>
-        </button>
+        <div class="add-row">
+          <button class="add-button" @click=${() => this._setDeviceTimer(list.length, { entity: "" })}>
+            <ha-icon icon="mdi:plus"></ha-icon>
+            <span>Device action</span>
+          </button>
+          <button class="add-button" @click=${() => this._setDeviceTimer(list.length, { command: "" })}>
+            <ha-icon icon="mdi:plus"></ha-icon>
+            <span>Command</span>
+          </button>
+        </div>
       </div>
     `;
+  }
+
+  _showActionsPanel() {
+    const card = SimpleTimerCard.prototype;
+    return Object.keys(this.hass?.states || {}).some((id) => card._isCompanionList.call(this, id))
+      || Array.isArray(this._config?.device_timers) || this._config?.action_timers === false;
   }
 
   _setActionTimers(enabled) {
@@ -7447,7 +7660,7 @@ _pinnedTimerValueChanged(ev, index) {
         </div>
       </label>
 
-      <label class="toggle-row">
+      <label class="toggle-row advanced">
         <ha-switch .checked=${this._config.hide_when_empty === true} .configValue=${"hide_when_empty"} @change=${this._valueChanged}></ha-switch>
         <div class="toggle-text">
           <span class="toggle-title">Hide the card when there are no timers</span>
@@ -7753,8 +7966,6 @@ _pinnedTimerValueChanged(ev, index) {
         </ha-select>
       </div>
 
-      ${this._renderDeviceTimersEditor()}
-
       <div class="storage-info">
         <span class="storage-label">Storage type: <strong>${this._getStorageDisplayName(storageType)}</strong></span>
         <small class="storage-description">${this._getStorageDescription(storageType)}</small>
@@ -7809,11 +8020,11 @@ _pinnedTimerValueChanged(ev, index) {
         <ha-switch .checked=${this._config.auto_discover_timer_lists === true} .configValue=${"auto_discover_timer_lists"} @change=${this._valueChanged}></ha-switch>
         <div class="toggle-text">
           <span class="toggle-title">Auto-discover voice timers</span>
-          <span class="toggle-desc">Shows every timer list in Home Assistant, such as Voice PE and other voice satellites.</span>
+          <span class="toggle-desc">Voice PE and other voice satellites, plus the Simple Timer Card integration.</span>
         </div>
       </label>
 
-      <label class="toggle-row">
+      <label class="toggle-row advanced">
         <ha-switch .checked=${this._config.auto_discover_voice_satellites === true} .configValue=${"auto_discover_voice_satellites"} @change=${this._valueChanged}></ha-switch>
         <div class="toggle-text">
           <span class="toggle-title">Auto-discover browser voice satellites</span>
@@ -7833,7 +8044,7 @@ _pinnedTimerValueChanged(ev, index) {
         ></ha-selector>
       </div>
 
-      <label class="toggle-row">
+      <label class="toggle-row advanced">
         <ha-switch .checked=${this._config.auto_voice_pe === true} .configValue=${"auto_voice_pe"} @change=${this._valueChanged}></ha-switch>
         <div class="toggle-text">
           <span class="toggle-title">Legacy Voice PE sensors</span>
@@ -8083,6 +8294,7 @@ _pinnedTimerValueChanged(ev, index) {
         ${panel("styling", "Icons & colors", "mdi:palette-outline", stylingContent, { advanced: true })}
         ${panel("defaults", "When timers finish", "mdi:timer-check-outline", defaultsContent, { advanced: true })}
         ${panel("pinned", "Pinned timers", "mdi:pin-outline", pinnedContent, { advanced: true })}
+        ${this._showActionsPanel() ? panel("timer_actions", "Actions when timers end", "mdi:timer-play-outline", this._renderDeviceTimersEditor(), { advanced: true }) : ""}
         ${panel("audio", "Audio notifications", "mdi:volume-high", audioContent, { advanced: true })}
         ${panel("notify", "Push notifications", "mdi:bell-ring-outline", notifyContent, { advanced: true })}
         ${panel("actions", "Actions", "mdi:gesture-tap", actionsContent, { advanced: true })}
@@ -8331,6 +8543,7 @@ _pinnedTimerValueChanged(ev, index) {
         align-self: flex-start;
       }
       .add-button:hover { filter: brightness(1.08); }
+      .add-row { display: flex; flex-wrap: wrap; gap: 8px; }
       .add-button ha-icon { --mdc-icon-size: 18px; }
 
       .helper-text {

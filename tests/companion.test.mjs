@@ -153,3 +153,19 @@ test("every localized key exists in every language", () => {
     assert.deepEqual(missing, [], `${lang} is missing keys`);
   }
 });
+
+test("the wizard picks a device and action, and closing it keeps the previous choice", () => {
+  const { card } = makeCard({}, { states: { "fan.bedroom": { state: "off", attributes: { friendly_name: "Air purifier" } } } });
+  card._openActionWizard("horizontal", "type");
+  card._setActionDraft({ mode: "device", query: "air" });
+  assert.deepEqual(card._searchActionEntities("air").sort(), ["fan.air_purifier", "fan.bedroom"]);
+  card._setActionDraft({ entity: "fan.air_purifier", service: "fan.turn_off", query: "" });
+  card._closeActionWizard(true);
+  assert.equal(card._actionWizard, null);
+  assert.equal(card._actionDraftSpec().key, "fan.air_purifier:fan.turn_off");
+
+  card._openActionWizard("horizontal", "command");
+  card._setActionDraft({ mode: "command", command: "turn on the lights" });
+  card._closeActionWizard(false);
+  assert.equal(card._actionDraftSpec().key, "fan.air_purifier:fan.turn_off");
+});

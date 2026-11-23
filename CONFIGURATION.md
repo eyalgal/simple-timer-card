@@ -1012,26 +1012,29 @@ pinned_timers:
       service: turn_off
 ```
 
-When the integration is installed, the custom timer panel shows **When done**:
+When the integration is installed, the custom timer panel stays simple and adds
+one link: **Do something when it ends**. It opens a short wizard:
 
-* **Just a timer**: no action.
-* **Command**: type what you would say to Assist, for example "turn off the
-  air purifier". The card checks that Home Assistant understands it before the
-  timer starts.
-* **Device**: pick any entity, then any of its actions that need no extra
-  input, such as turn on, turn off, open, close, lock or pause.
-* Quick actions from `device_timers` appear as one-tap chips.
+1. **Control a device** or **Say a command**, or pick one of your quick actions.
+2. For a device, search by name or room. Each result shows its area, device and
+   entity ID, so similar names are easy to tell apart.
+3. Pick what it should do: turn on, turn off, open, lock and so on.
 
-The choice applies to that one timer. The row shows what will happen, for
-example *12:34 · then Turn off Air purifier*. **Cancel** stops the timer
-without running the action, **Finish** runs it now, and **Snooze** and
-**Restart** keep it.
+The panel then shows the choice as one pill, for example
+*Lock · Car, Driveway*. Tap it to change it, or × to remove it. The choice
+applies to that one timer. A command is checked before the timer starts, to
+make sure Home Assistant understands it.
+
+While the timer runs, its row shows what will happen, for example
+*12:34 · then Turn off Air purifier*. **Cancel** stops the timer without
+running the action, **Finish** runs it now, and **Snooze** and **Restart** keep
+it.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `device_timers` | list | none | Quick actions. Each entry is `entity` with an optional `service` (default `turn_off`; a name such as `open_cover` or a full action such as `cover.open_cover`), or `command`. Both accept `name` and `icon`. |
 | `on_finish` | object | none | On a pinned timer: `entity` and `service`, `command`, or `actions` (a Home Assistant action list). |
-| `action_timers` | boolean | `true` | Set `false` to hide **When done**. |
+| `action_timers` | boolean | `true` | Set `false` to hide **Do something when it ends**. |
 
 Commands need the target entity to be exposed to Assist, as with any voice
 command. Device actions run as the user who started the timer, so Home

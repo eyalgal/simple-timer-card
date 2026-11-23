@@ -58,10 +58,10 @@ test("simple mode contains four essential sections including timer storage", asy
   const { editor } = await mount();
   assert.deepEqual(sections(editor), ["entities", "storage", "appearance", "input"]);
   assert.deepEqual([...editor.shadowRoot.querySelectorAll("ha-expansion-panel[expanded]")].map(p => p.dataset.section), ["entities"]);
-  for (const key of ["title", "style", "layout", "language", "progress_mode", "show_active_header", "time_format", "time_format_units", "sort_by", "sort_order", "pinned_timers_position", "custom_timer_input", "show_timer_input_selector", "minute_buttons", "default_new_timer_duration_mins", "timer_presets", "auto_discover_google", "auto_discover_alexa", "auto_voice_pe", "default_timer_entity"]) {
+  for (const key of ["title", "style", "layout", "language", "progress_mode", "show_active_header", "time_format", "time_format_units", "sort_by", "sort_order", "pinned_timers_position", "custom_timer_input", "show_timer_input_selector", "minute_buttons", "default_new_timer_duration_mins", "timer_presets", "auto_discover_google", "auto_discover_alexa", "auto_discover_timer_lists", "default_timer_entity"]) {
     assert.ok(available(editor, control(editor, key)), `Expected simple field ${key}`);
   }
-  for (const key of ["default_timer_icon", "audio_enabled", "snooze_duration", "timer_name_presets"]) {
+  for (const key of ["default_timer_icon", "audio_enabled", "snooze_duration", "timer_name_presets", "auto_voice_pe", "auto_discover_voice_satellites", "hide_when_empty", "max_rows"]) {
     assert.equal(available(editor, control(editor, key)), false, `Expected advanced field ${key}`);
   }
 });
