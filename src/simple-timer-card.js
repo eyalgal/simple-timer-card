@@ -235,7 +235,8 @@ const TRANSLATIONS = {
     second: "second", seconds: "seconds",
     more_timers: "+{n} more", show_less: "Show less", start_on: "Start on", when_done: "When done",
     just_a_timer: "Just a timer", this_card: "This card", then_action: "then {action}", run_command: "Command",
-    starts_on: "Starts on", ha_server: "Home Assistant", ha_server_desc: "Keeps running with no dashboard open", this_browser: "This browser", this_browser_desc: "Only on this device", mqtt_desc: "Shared through MQTT", search_targets: "Search speakers or rooms", for_the_action: "needed for the action",
+    rings_on: "Rings on", dashboards: "Dashboards", dashboards_desc: "No speaker. Keeps running with dashboards closed", this_browser: "This browser", this_browser_desc: "Only on this device", mqtt_desc: "Shared with every dashboard", search_targets: "Search speakers or rooms", for_the_action: "needed for the action",
+    where_ring: "Where should it ring?", speakers: "Speakers", phones: "Phones",
     control_device: "Device", command_placeholder: "e.g. turn off the air purifier", choose_device: "Device", choose_action: "Action",
     needs_companion: "Install the Simple Timer Card integration to run actions when timers end.", timer_start_failed: "Could not start the timer: {error}", action_not_supported: "This timer doesn't support that.", group_other: "Other",
     group_voice: "Voice", group_pinned: "Pinned", group_since: "Since", group_template: "Template",
@@ -282,7 +283,8 @@ const TRANSLATIONS = {
     second: "Sekunde", seconds: "Sekunden",
     more_timers: "+{n} weitere", show_less: "Weniger anzeigen", start_on: "Starten auf", when_done: "Danach",
     just_a_timer: "Nur ein Timer", this_card: "Diese Karte", then_action: "danach {action}", run_command: "Befehl",
-    starts_on: "Startet auf", ha_server: "Home Assistant", ha_server_desc: "Läuft auch ohne geöffnetes Dashboard", this_browser: "Dieser Browser", this_browser_desc: "Nur auf diesem Gerät", mqtt_desc: "Über MQTT geteilt", search_targets: "Lautsprecher oder Räume suchen", for_the_action: "für die Aktion nötig",
+    rings_on: "Klingelt auf", dashboards: "Dashboards", dashboards_desc: "Kein Lautsprecher. Läuft auch bei geschlossenen Dashboards", this_browser: "Dieser Browser", this_browser_desc: "Nur auf diesem Gerät", mqtt_desc: "Mit allen Dashboards geteilt", search_targets: "Lautsprecher oder Räume suchen", for_the_action: "für die Aktion nötig",
+    where_ring: "Wo soll er klingeln?", speakers: "Lautsprecher", phones: "Telefone",
     control_device: "Gerät", command_placeholder: "z. B. Luftreiniger ausschalten", choose_device: "Gerät", choose_action: "Aktion",
     needs_companion: "Installiere die Simple-Timer-Card-Integration, um beim Ablauf Aktionen auszuführen.", timer_start_failed: "Timer konnte nicht gestartet werden: {error}", action_not_supported: "Dieser Timer unterstützt das nicht.", group_other: "Sonstige",
     group_voice: "Sprache", group_pinned: "Angeheftet", group_since: "Seit", group_template: "Vorlage",
@@ -329,7 +331,8 @@ const TRANSLATIONS = {
     second: "segundo", seconds: "segundos",
     more_timers: "+{n} más", show_less: "Mostrar menos", start_on: "Iniciar en", when_done: "Al terminar",
     just_a_timer: "Solo un temporizador", this_card: "Esta tarjeta", then_action: "después {action}", run_command: "Comando",
-    starts_on: "Se inicia en", ha_server: "Home Assistant", ha_server_desc: "Sigue funcionando sin un panel abierto", this_browser: "Este navegador", this_browser_desc: "Solo en este dispositivo", mqtt_desc: "Compartido por MQTT", search_targets: "Buscar altavoces o habitaciones", for_the_action: "necesario para la acción",
+    rings_on: "Suena en", dashboards: "Paneles", dashboards_desc: "Sin altavoz. Sigue funcionando con los paneles cerrados", this_browser: "Este navegador", this_browser_desc: "Solo en este dispositivo", mqtt_desc: "Compartido con todos los paneles", search_targets: "Buscar altavoces o habitaciones", for_the_action: "necesario para la acción",
+    where_ring: "¿Dónde debe sonar?", speakers: "Altavoces", phones: "Teléfonos",
     control_device: "Dispositivo", command_placeholder: "p. ej. apaga el purificador", choose_device: "Dispositivo", choose_action: "Acción",
     needs_companion: "Instala la integración Simple Timer Card para ejecutar acciones al terminar los temporizadores.", timer_start_failed: "No se pudo iniciar el temporizador: {error}", action_not_supported: "Este temporizador no admite esa acción.", group_other: "Otros",
     group_voice: "Voz", group_pinned: "Fijados", group_since: "Desde", group_template: "Plantilla",
@@ -376,7 +379,8 @@ const TRANSLATIONS = {
     second: "sekund", seconds: "sekunder",
     more_timers: "+{n} mere", show_less: "Vis mindre", start_on: "Start på", when_done: "Når den er færdig",
     just_a_timer: "Kun en timer", this_card: "Dette kort", then_action: "derefter {action}", run_command: "Kommando",
-    starts_on: "Starter på", ha_server: "Home Assistant", ha_server_desc: "Kører videre uden et åbent dashboard", this_browser: "Denne browser", this_browser_desc: "Kun på denne enhed", mqtt_desc: "Delt via MQTT", search_targets: "Søg efter højttalere eller rum", for_the_action: "kræves til handlingen",
+    rings_on: "Ringer på", dashboards: "Dashboards", dashboards_desc: "Ingen højttaler. Kører videre med lukkede dashboards", this_browser: "Denne browser", this_browser_desc: "Kun på denne enhed", mqtt_desc: "Delt med alle dashboards", search_targets: "Søg efter højttalere eller rum", for_the_action: "kræves til handlingen",
+    where_ring: "Hvor skal den ringe?", speakers: "Højttalere", phones: "Telefoner",
     control_device: "Enhed", command_placeholder: "f.eks. sluk luftrenseren", choose_device: "Enhed", choose_action: "Handling",
     needs_companion: "Installer Simple Timer Card-integrationen for at udføre handlinger, når timere slutter.", timer_start_failed: "Kunne ikke starte timeren: {error}", action_not_supported: "Denne timer understøtter ikke det.", group_other: "Andet",
     group_voice: "Stemme", group_pinned: "Fastgjort", group_since: "Siden", group_template: "Skabelon",
@@ -423,7 +427,8 @@ const TRANSLATIONS = {
     second: "secondo", seconds: "secondi",
     more_timers: "+{n} altri", show_less: "Mostra meno", start_on: "Avvia su", when_done: "Al termine",
     just_a_timer: "Solo un timer", this_card: "Questa scheda", then_action: "poi {action}", run_command: "Comando",
-    starts_on: "Si avvia su", ha_server: "Home Assistant", ha_server_desc: "Continua anche senza una dashboard aperta", this_browser: "Questo browser", this_browser_desc: "Solo su questo dispositivo", mqtt_desc: "Condiviso tramite MQTT", search_targets: "Cerca altoparlanti o stanze", for_the_action: "necessario per l'azione",
+    rings_on: "Suona su", dashboards: "Dashboard", dashboards_desc: "Nessun altoparlante. Continua con le dashboard chiuse", this_browser: "Questo browser", this_browser_desc: "Solo su questo dispositivo", mqtt_desc: "Condiviso con tutte le dashboard", search_targets: "Cerca altoparlanti o stanze", for_the_action: "necessario per l'azione",
+    where_ring: "Dove deve suonare?", speakers: "Altoparlanti", phones: "Telefoni",
     control_device: "Dispositivo", command_placeholder: "es. spegni il purificatore", choose_device: "Dispositivo", choose_action: "Azione",
     needs_companion: "Installa l'integrazione Simple Timer Card per eseguire azioni allo scadere dei timer.", timer_start_failed: "Impossibile avviare il timer: {error}", action_not_supported: "Questo timer non lo supporta.", group_other: "Altro",
     group_voice: "Voce", group_pinned: "Fissati", group_since: "Da", group_template: "Modello",
@@ -470,7 +475,8 @@ const TRANSLATIONS = {
     second: "seconde", seconds: "secondes",
     more_timers: "+{n} de plus", show_less: "Afficher moins", start_on: "Démarrer sur", when_done: "À la fin",
     just_a_timer: "Juste un minuteur", this_card: "Cette carte", then_action: "puis {action}", run_command: "Commande",
-    starts_on: "Démarre sur", ha_server: "Home Assistant", ha_server_desc: "Continue même sans tableau de bord ouvert", this_browser: "Ce navigateur", this_browser_desc: "Uniquement sur cet appareil", mqtt_desc: "Partagé via MQTT", search_targets: "Rechercher des enceintes ou des pièces", for_the_action: "requis pour l'action",
+    rings_on: "Sonne sur", dashboards: "Tableaux de bord", dashboards_desc: "Sans enceinte. Continue avec les tableaux de bord fermés", this_browser: "Ce navigateur", this_browser_desc: "Uniquement sur cet appareil", mqtt_desc: "Partagé avec tous les tableaux de bord", search_targets: "Rechercher des enceintes ou des pièces", for_the_action: "requis pour l'action",
+    where_ring: "Où doit-il sonner ?", speakers: "Enceintes", phones: "Téléphones",
     control_device: "Appareil", command_placeholder: "ex. éteins le purificateur", choose_device: "Appareil", choose_action: "Action",
     needs_companion: "Installez l'intégration Simple Timer Card pour lancer des actions à la fin des minuteurs.", timer_start_failed: "Impossible de démarrer le minuteur : {error}", action_not_supported: "Ce minuteur ne le permet pas.", group_other: "Autres",
     group_voice: "Voix", group_pinned: "Épinglés", group_since: "Depuis", group_template: "Modèle",
@@ -517,7 +523,8 @@ const TRANSLATIONS = {
     second: "שנייה", seconds: "שניות",
     more_timers: "+{n} נוספים", show_less: "הצג פחות", start_on: "הפעלה ב", when_done: "בסיום",
     just_a_timer: "טיימר בלבד", this_card: "הכרטיס הזה", then_action: "ואז {action}", run_command: "פקודה",
-    starts_on: "מופעל ב", ha_server: "Home Assistant", ha_server_desc: "ממשיך לפעול גם בלי לוח בקרה פתוח", this_browser: "הדפדפן הזה", this_browser_desc: "רק במכשיר הזה", mqtt_desc: "משותף דרך MQTT", search_targets: "חיפוש רמקולים או חדרים", for_the_action: "נדרש לפעולה",
+    rings_on: "יצלצל ב", dashboards: "לוחות בקרה", dashboards_desc: "בלי רמקול. ממשיך לפעול גם כשלוחות הבקרה סגורים", this_browser: "הדפדפן הזה", this_browser_desc: "רק במכשיר הזה", mqtt_desc: "משותף עם כל לוחות הבקרה", search_targets: "חיפוש רמקולים או חדרים", for_the_action: "נדרש לפעולה",
+    where_ring: "איפה לצלצל?", speakers: "רמקולים", phones: "טלפונים",
     control_device: "מכשיר", command_placeholder: "למשל: כבה את מטהר האוויר", choose_device: "מכשיר", choose_action: "פעולה",
     needs_companion: "כדי להפעיל פעולות בסיום טיימר יש להתקין את האינטגרציה Simple Timer Card.", timer_start_failed: "לא ניתן להפעיל את הטיימר: {error}", action_not_supported: "הטיימר הזה לא תומך בזה.", group_other: "אחר",
     group_voice: "קולי", group_pinned: "מוצמדים", group_since: "מאז", group_template: "תבנית",
@@ -564,7 +571,8 @@ const TRANSLATIONS = {
     second: "sekunda", seconds: "sekund",
     more_timers: "+{n} więcej", show_less: "Pokaż mniej", start_on: "Uruchom na", when_done: "Po zakończeniu",
     just_a_timer: "Tylko minutnik", this_card: "Ta karta", then_action: "potem {action}", run_command: "Polecenie",
-    starts_on: "Uruchamia się na", ha_server: "Home Assistant", ha_server_desc: "Działa także bez otwartego pulpitu", this_browser: "Ta przeglądarka", this_browser_desc: "Tylko na tym urządzeniu", mqtt_desc: "Udostępniane przez MQTT", search_targets: "Szukaj głośników lub pomieszczeń", for_the_action: "wymagane do akcji",
+    rings_on: "Zadzwoni na", dashboards: "Pulpity", dashboards_desc: "Bez głośnika. Działa także przy zamkniętych pulpitach", this_browser: "Ta przeglądarka", this_browser_desc: "Tylko na tym urządzeniu", mqtt_desc: "Udostępniane wszystkim pulpitom", search_targets: "Szukaj głośników lub pomieszczeń", for_the_action: "wymagane do akcji",
+    where_ring: "Gdzie ma zadzwonić?", speakers: "Głośniki", phones: "Telefony",
     control_device: "Urządzenie", command_placeholder: "np. wyłącz oczyszczacz", choose_device: "Urządzenie", choose_action: "Akcja",
     needs_companion: "Zainstaluj integrację Simple Timer Card, aby uruchamiać akcje po zakończeniu minutników.", timer_start_failed: "Nie udało się uruchomić minutnika: {error}", action_not_supported: "Ten minutnik tego nie obsługuje.", group_other: "Inne",
     group_voice: "Głos", group_pinned: "Przypięte", group_since: "Od", group_template: "Szablon",
@@ -611,7 +619,8 @@ const TRANSLATIONS = {
     second: "seconde", seconds: "seconden",
     more_timers: "+{n} meer", show_less: "Minder tonen", start_on: "Starten op", when_done: "Als klaar",
     just_a_timer: "Alleen een timer", this_card: "Deze kaart", then_action: "daarna {action}", run_command: "Opdracht",
-    starts_on: "Start op", ha_server: "Home Assistant", ha_server_desc: "Blijft lopen zonder open dashboard", this_browser: "Deze browser", this_browser_desc: "Alleen op dit apparaat", mqtt_desc: "Gedeeld via MQTT", search_targets: "Zoek speakers of ruimtes", for_the_action: "nodig voor de actie",
+    rings_on: "Gaat af op", dashboards: "Dashboards", dashboards_desc: "Geen speaker. Blijft lopen met gesloten dashboards", this_browser: "Deze browser", this_browser_desc: "Alleen op dit apparaat", mqtt_desc: "Gedeeld met alle dashboards", search_targets: "Zoek speakers of ruimtes", for_the_action: "nodig voor de actie",
+    where_ring: "Waar moet hij afgaan?", speakers: "Speakers", phones: "Telefoons",
     control_device: "Apparaat", command_placeholder: "bijv. zet de luchtreiniger uit", choose_device: "Apparaat", choose_action: "Actie",
     needs_companion: "Installeer de Simple Timer Card-integratie om acties uit te voeren als timers aflopen.", timer_start_failed: "Kan de timer niet starten: {error}", action_not_supported: "Deze timer ondersteunt dat niet.", group_other: "Overig",
     group_voice: "Spraak", group_pinned: "Vastgezet", group_since: "Sinds", group_template: "Sjabloon",
@@ -658,7 +667,8 @@ const TRANSLATIONS = {
     second: "sekund", seconds: "sekunder",
     more_timers: "+{n} till", show_less: "Visa mindre", start_on: "Starta på", when_done: "När klar",
     just_a_timer: "Bara en timer", this_card: "Det här kortet", then_action: "sedan {action}", run_command: "Kommando",
-    starts_on: "Startar på", ha_server: "Home Assistant", ha_server_desc: "Fortsätter utan öppen instrumentpanel", this_browser: "Den här webbläsaren", this_browser_desc: "Bara på den här enheten", mqtt_desc: "Delas via MQTT", search_targets: "Sök högtalare eller rum", for_the_action: "krävs för åtgärden",
+    rings_on: "Ringer på", dashboards: "Instrumentpaneler", dashboards_desc: "Ingen högtalare. Fortsätter med stängda instrumentpaneler", this_browser: "Den här webbläsaren", this_browser_desc: "Bara på den här enheten", mqtt_desc: "Delas med alla instrumentpaneler", search_targets: "Sök högtalare eller rum", for_the_action: "krävs för åtgärden",
+    where_ring: "Var ska den ringa?", speakers: "Högtalare", phones: "Telefoner",
     control_device: "Enhet", command_placeholder: "t.ex. stäng av luftrenaren", choose_device: "Enhet", choose_action: "Åtgärd",
     needs_companion: "Installera integrationen Simple Timer Card för att köra åtgärder när timrar tar slut.", timer_start_failed: "Kunde inte starta timern: {error}", action_not_supported: "Den här timern stöder inte det.", group_other: "Övrigt",
     group_voice: "Röst", group_pinned: "Fästa", group_since: "Sedan", group_template: "Mall",
@@ -2425,27 +2435,33 @@ class SimpleTimerCard extends LitElement {
   _targetDestination(entityId) {
     if (this._isCompanionList(entityId)) {
       return {
-        value: `list:${entityId}`, icon: "mdi:home-assistant", order: 0,
-        title: this._localize("ha_server"), sub: this._localize("ha_server_desc"), search: "home assistant",
+        value: `list:${entityId}`, icon: "mdi:view-dashboard-outline", order: 0,
+        title: this._localize("dashboards"), sub: this._localize("dashboards_desc"),
+        search: `${this._localize("dashboards")} simple timer card`.toLowerCase(),
       };
     }
     const info = this._registryInfo(entityId);
     const title = this._timerListChipLabel(entityId);
-    const sub = [info.area, info.device && info.device !== title ? info.device : null].filter(Boolean).join(" · ");
+    const ent = this.hass?.entities?.[entityId];
+    const dev = ent?.device_id ? this.hass?.devices?.[ent.device_id] : null;
+    const model = dev?.model && !title.toLowerCase().includes(String(dev.model).toLowerCase()) ? dev.model : null;
+    const phone = ent?.platform === "mobile_app";
+    const icon = phone ? "mdi:cellphone" : ent?.platform === "voip" ? "mdi:phone-classic" : "mdi:speaker";
     return {
-      value: `list:${entityId}`, icon: "mdi:account-voice", order: 1, title, sub, area: info.area || "",
-      search: [title, info.area, info.device, entityId].filter(Boolean).join(" ").toLowerCase(),
+      value: `list:${entityId}`, icon, order: phone ? 2 : 1, group: phone ? "phones" : "speakers", title,
+      sub: [info.area, model].filter(Boolean).join(" · "), area: info.area || "",
+      search: [title, info.area, info.device, model, entityId].filter(Boolean).join(" ").toLowerCase(),
     };
   }
 
-  // Every place a new timer can start, as rows for the Start on list. Speakers
-  // are sorted by area so a house full of them stays easy to scan.
+  // Every place a new timer can ring: dashboards first, then speakers and
+  // phones sorted by area so a house full of them stays easy to scan.
   _targetDestinations() {
     const out = this._pickerTimerLists().map((id) => this._targetDestination(id));
     if (this._config?.storage !== "integration") {
       const mqtt = this._cardStorage() === "mqtt";
       out.push({
-        value: "card", order: 2, icon: mqtt ? "mdi:server-network" : "mdi:web",
+        value: "card", order: 0, icon: mqtt ? "mdi:server-network" : "mdi:web",
         title: mqtt ? "MQTT" : this._localize("this_browser"),
         sub: this._localize(mqtt ? "mqtt_desc" : "this_browser_desc"),
         search: `${mqtt ? "mqtt" : this._localize("this_browser")} ${this._localize("this_card")}`.toLowerCase(),
@@ -2463,7 +2479,7 @@ class SimpleTimerCard extends LitElement {
     const dest = this._targetDestinations().find((d) => d.value === value) ||
       (value.startsWith("list:") ? this._targetDestination(value.slice(5)) : null);
     if (!dest) return "";
-    const text = html`<span class="target-text">${this._localize("starts_on")} <strong>${dest.title}</strong>${forAction ? html` · ${this._localize("for_the_action")}` : ""}</span>`;
+    const text = html`<span class="target-text">${this._localize("rings_on")} <strong>${dest.title}</strong>${forAction ? html` · ${this._localize("for_the_action")}` : ""}</span>`;
     return html`
       <div class="action-entry">
         ${forAction
@@ -2488,8 +2504,9 @@ class SimpleTimerCard extends LitElement {
           placeholder=${this._localize("search_targets")}
           aria-label=${this._localize("search_targets")}
           @input=${(e) => { this._targetQuery = e.target.value; this.requestUpdate(); }}>` : ""}
-      <div class="wizard-list" role="listbox" aria-label=${this._localize("start_on")}>
-        ${shown.map((d) => html`
+      <div class="wizard-list" role="listbox" aria-label=${this._localize("where_ring")}>
+        ${shown.map((d, i) => html`
+          ${!query && d.group && d.group !== shown[i - 1]?.group ? html`<div class="wizard-section">${this._localize(d.group)}</div>` : ""}
           <button type="button" class="wizard-row ${d.value === current ? "selected" : ""}" role="option"
             aria-selected=${String(d.value === current)} @click=${() => pick(d.value)}>
             <ha-icon class="row-icon" icon=${d.icon}></ha-icon>
@@ -2742,7 +2759,7 @@ class SimpleTimerCard extends LitElement {
     const draft = this._actionDraft || { mode: "none" };
     const back = { device: "type", command: "type", action: "device" }[step];
     const titles = {
-      target: this._localize("start_on"),
+      target: this._localize("where_ring"),
       type: this._localize("when_it_ends"),
       device: this._localize("control_device_title"),
       action: this._localize("what_to_do"),
@@ -6190,6 +6207,7 @@ class SimpleTimerCard extends LitElement {
   }
 
   _deviceNameFor(t) {
+    if (this._isCompanionList(t?.source_entity)) return this._localize("dashboards");
     const info = this._registryInfo(t.source_entity);
     return info.device || t.device_base_name || this.hass?.states?.[t.source_entity]?.attributes?.friendly_name || t.source_entity || "";
   }
@@ -6264,7 +6282,7 @@ class SimpleTimerCard extends LitElement {
         }
         continue;
       }
-      if (!show || mode === "none" || !this._isDeviceSource(t)) continue;
+      if (!show || mode === "none" || !this._isDeviceSource(t) || this._isCompanionList(t.source_entity)) continue;
       const info = this._registryInfo(t.source_entity);
       t.context_label = mode === "area" ? (info.area || this._deviceNameFor(t)) : this._deviceNameFor(t);
       if (t.short_label) {

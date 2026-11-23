@@ -198,7 +198,7 @@ test("the companion as default target is not mistaken for MQTT storage", () => {
   assert.equal(card._config.mqtt.sensor_entity, null);
 });
 
-test("Start on lists the server first, then speakers by area, and hides this browser with integration storage", () => {
+test("the ring-on list puts dashboards first, then speakers by area, and hides this browser with integration storage", () => {
   const speakers = {};
   const entities = {};
   for (const [id, area] of [["office", "office"], ["kitchen", "kitchen"], ["bedroom", "bedroom"]]) {
@@ -221,5 +221,8 @@ test("Start on lists the server first, then speakers by area, and hides this bro
   assert.equal(card._actionWizard.step, "target");
   card._closeActionWizard(false);
   assert.equal(card._targetQuery, "");
-  assert.equal(run("local")._targetDestinations().at(-1).value, "card");
+  assert.deepEqual(run("local")._targetDestinations().slice(0, 2).map((d) => d.value), [`list:${LIST}`, "card"]);
+  card.hass.entities["timer_list.office"].platform = "mobile_app";
+  assert.deepEqual(card._targetDestinations().map((d) => d.group || "dashboards"),
+    ["dashboards", "speakers", "speakers", "phones"]);
 });

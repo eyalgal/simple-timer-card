@@ -909,18 +909,25 @@ entities:
 | `auto_discover_timer_lists` | boolean | `false` | Show every timer list without listing it. |
 | `default_timer_entity`      | string  | `null`  | A `timer_list.*` entity here receives timers started from the card. |
 | `default_timer_area`        | string  | `null`  | Area ID. New timers start on the timer list in that area, such as the kitchen Voice PE, when `default_timer_entity` is not set. |
-| `target_picker`             | string  | `auto`  | The **Starts on** line in the custom timer panel: `auto` (two or more timer lists), `always`, or `never`. |
+| `target_picker`             | string  | `auto`  | The **Rings on** line in the custom timer panel: `auto` (two or more timer lists), `always`, or `never`. |
 
-**Starts on.** With two or more timer lists, the custom timer panel shows one
-line, such as *Starts on Kitchen Voice PE*. Tap it to pick another place from a
-list sorted by room; with more than five, a search box finds a speaker or room.
-The list holds every timer list, *Home Assistant* for the integration, and
-*This browser* or *MQTT* for the card's own storage. With `storage: integration`
-there is no browser entry. A timer that does something when it ends always
-starts on Home Assistant.
+**Rings on.** With two or more timer lists, the custom timer panel shows one
+line, such as *Rings on Kitchen Voice PE*. Tap it to answer **Where should it
+ring?** from a list:
+
+* **Dashboards**: the integration. No speaker; the timer rings on the card and
+  keeps running with dashboards closed.
+* **This browser** or **MQTT**: the card's own storage. Not offered with
+  `storage: integration`.
+* **Speakers**: every voice satellite, such as Voice PE, ESPHome, Wyoming and
+  VoIP, sorted by room and showing the model.
+* **Phones**: mobile app devices with a timer list.
+
+With more than five entries, a search box finds a speaker, room or model. A
+timer that does something when it ends always rings on Dashboards.
 
 **Starting timers.** Presets, the custom timer input and pinned timers create
-a timer on the list picked under **Starts on**, then `default_timer_entity`,
+a timer on the list picked under **Rings on**, then `default_timer_entity`,
 then the timer list in `default_timer_area`, then the integration with
 `storage: integration`, then the only timer list in `entities:` when no single
 native `timer.*` is listed. On a voice
