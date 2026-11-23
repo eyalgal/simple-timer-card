@@ -449,3 +449,42 @@ for (const [config, description] of [
     assert.equal(editor.shadowRoot.querySelector('[data-section="storage"] .advanced-badge'), null);
   });
 }
+
+test("the entity Mode field has its own line, apart from mode-specific fields", async () => {
+  const { editor } = await mount({ entities: [{ entity: "binary_sensor.front_door", mode: "count_up", goal: "2h" }] });
+  await advanced(editor, true);
+  const mode = control(editor, "mode");
+  assert.ok(mode.parentElement.classList.contains("mode-field"));
+  assert.equal(control(editor, "goal").closest(".mode-field"), null);
+});
+
+test("a pinned timer can control a device, say a command or announce when it ends", async () => {
+  const { editor, events } = await mount({ pinned_timers: [{ id: "pasta", name: "Pasta", duration: "10m" }] });
+  editor.hass = { ...editor.hass, states: { "sensor.simple_timer_card_timers": { state: "0", attributes: { simple_timer_card_api: 1 } } } };
+  await editor.updateComplete;
+  await advanced(editor, true);
+  const finish = () => editor.shadowRoot.querySelector(".finish-action");
+  const pick = async (value) => {
+    finish().querySelector("ha-select").dispatchEvent(new CustomEvent("selected", { detail: { value }, bubbles: true }));
+    await editor.updateComplete;
+  };
+  assert.ok(finish(), "shown when the integration is installed");
+
+  await pick("announce");
+  assert.deepEqual(events.at(-1).pinned_timers[0].on_finish, { announce: "" });
+  const speaker = finish().querySelector("ha-entity-picker");
+  assert.deepEqual(speaker.includeDomains, ["media_player", "assist_satellite"]);
+  speaker.dispatchEvent(new CustomEvent("value-changed", { detail: { value: "media_player.garage" }, bubbles: true }));
+  await editor.updateComplete;
+  assert.deepEqual(events.at(-1).pinned_timers[0].on_finish, { announce: "media_player.garage" });
+
+  await pick("device");
+  finish().querySelector("ha-entity-picker").dispatchEvent(new CustomEvent("value-changed", { detail: { value: "fan.air_purifier" }, bubbles: true }));
+  await editor.updateComplete;
+  assert.deepEqual(events.at(-1).pinned_timers[0].on_finish, { entity: "fan.air_purifier" });
+
+  await pick("none");
+  assert.equal(events.at(-1).pinned_timers[0].on_finish, undefined);
+  assert.equal(events.at(-1).pinned_timers[0].name, "Pasta");
+});
+

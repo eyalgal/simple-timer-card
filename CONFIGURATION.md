@@ -464,7 +464,14 @@ pinned_timers:
     name: Pasta
     duration: 11m
     icon: mdi:pasta
+    on_finish:                       # Optional, needs the integration.
+      announce: media_player.kitchen # Says "Pasta is done" there.
 ```
+
+With the [Simple Timer Card integration](#-companion-integration), a pinned
+timer can do something when it ends. In the editor, set **When it ends** on the
+pinned timer to **Control a device**, **Say a command** or **Announce on a
+speaker**. Home Assistant runs it, even with every dashboard closed.
 
 ### Pinned timer options
 
@@ -481,6 +488,7 @@ pinned_timers:
 | `audio_repeat_count`         | number  | `1`          | How many times to play the audio                                                           |
 | `audio_play_until_dismissed` | boolean | `false`      | Keep playing until the user acts on the timer (overrides `audio_repeat_count`)             |
 | `buttons`                    | list    | inherited    | Extra action buttons for this pin, see [Custom action buttons](#-custom-action-buttons)    |
+| `on_finish`                  | object  | none         | What happens when it ends: `entity` with an optional `service`, `command`, `announce` with an optional `message`, or `actions`. Needs the [integration](#-companion-integration). |
 
 ---
 

@@ -7395,7 +7395,7 @@ _pinnedTimerValueChanged(ev, index) {
     const hasCompanion = Object.keys(this.hass?.states || {}).some((id) => card._isCompanionList.call(this, id));
     return b`
       <div class="device-timers" data-search-terms="device_timers action_timers when done command companion">
-        <p class="hint">With the Simple Timer Card integration, the custom timer panel offers <strong>Do something when it ends</strong>: control any device or say a command. Home Assistant runs it, even with every dashboard closed. Quick actions appear there as one-tap shortcuts.</p>
+        <p class="hint">With the Simple Timer Card integration, the custom timer panel offers <strong>Do something when it ends</strong>: control any device, say a command or announce on a speaker. Home Assistant runs it, even with every dashboard closed. Quick actions appear there as one-tap shortcuts.</p>
         ${hasCompanion ? "" : b`<p class="hint warning">The Simple Timer Card integration is not installed, so these options have no effect.</p>`}
         <label class="toggle-row">
           <ha-switch .checked=${this._config.action_timers !== false} @change=${(e) => this._setActionTimers(e.target.checked)}></ha-switch>
@@ -7403,39 +7403,14 @@ _pinnedTimerValueChanged(ev, index) {
             <span class="toggle-title">Offer "Do something when it ends"</span>
           </div>
         </label>
-        ${list.length === 0 ? b`<div class="no-entities">No quick actions yet. Add a device action or a command below.</div>` : ""}
+        ${list.length === 0 ? b`<div class="no-entities">No quick actions yet. Add one below.</div>` : ""}
         ${list.map((entry, index) => {
           const conf = typeof entry === "string" ? { entity: entry } : (entry || {});
-          const isCommand = conf.command != null;
-          const services = !isCommand && conf.entity ? card._servicesForEntity.call(this, conf.entity) : [];
-          const current = conf.service
-            ? (String(conf.service).includes(".") ? conf.service : `${String(conf.entity || "").split(".")[0]}.${conf.service}`)
-            : (services.find((sv) => sv.endsWith(".turn_off")) || services[0] || "");
-          const options = services.map((value) => ({ value, label: card._serviceLabel.call(this, value) }));
           return b`
             <div class="entity-editor">
               <div class="entity-options" style="width:100%;">
-                ${isCommand
-                  ? this._tf({ label: "Command", value: conf.command, placeholder: "turn off the air purifier", helper: "What you would say to Assist.", change: (e) => this._setDeviceTimer(index, { command: e.target.value }) })
-                  : b`
-                    <ha-entity-picker
-                      .hass=${this.hass}
-                      .value=${conf.entity || ""}
-                      label="Device"
-                      allow-custom-entity
-                      @value-changed=${(e) => this._setDeviceTimer(index, { entity: e.detail.value, service: undefined })}
-                    ></ha-entity-picker>
-                  `}
-                <div class="row">
-                  ${!isCommand && options.length ? b`
-                    <ha-select label="Action" naturalMenuWidth fixedMenuPosition .value=${current} .options=${options}
-                      @selected=${(e) => { e.stopPropagation(); const v = e?.detail?.value ?? e.target.value; if (v) this._setDeviceTimer(index, { service: v }); }}
-                      @closed=${(e) => e.stopPropagation()}>
-                      ${options.map((o) => b`<mwc-list-item value=${o.value}>${o.label}</mwc-list-item>`)}
-                    </ha-select>
-                  ` : ""}
-                  ${this._tf({ label: "Label (optional)", value: conf.name, change: (e) => this._setDeviceTimer(index, { name: e.target.value }) })}
-                </div>
+                ${this._renderFinishActionFields(conf, (next) => this._putDeviceTimer(index, next ? { ...next, name: conf.name } : null), { allowNone: false })}
+                ${this._tf({ label: "Label (optional)", value: conf.name, change: (e) => this._setDeviceTimer(index, { name: e.target.value }) })}
               </div>
               <button class="remove-entity" @click=${() => this._removeDeviceTimer(index)} title="Remove quick action">
                 <ha-icon icon="mdi:delete"></ha-icon>
@@ -7444,17 +7419,123 @@ _pinnedTimerValueChanged(ev, index) {
           `;
         })}
         <div class="add-row">
-          <button class="add-button" @click=${() => this._setDeviceTimer(list.length, { entity: "" })}>
+          <button class="add-button" @click=${() => this._putDeviceTimer(list.length, { entity: "" })}>
             <ha-icon icon="mdi:plus"></ha-icon>
             <span>Device action</span>
           </button>
-          <button class="add-button" @click=${() => this._setDeviceTimer(list.length, { command: "" })}>
+          <button class="add-button" @click=${() => this._putDeviceTimer(list.length, { command: "" })}>
             <ha-icon icon="mdi:plus"></ha-icon>
             <span>Command</span>
+          </button>
+          <button class="add-button" @click=${() => this._putDeviceTimer(list.length, { announce: "" })}>
+            <ha-icon icon="mdi:plus"></ha-icon>
+            <span>Announcement</span>
           </button>
         </div>
       </div>
     `;
+  }
+
+  _finishActionType(raw) {
+    if (typeof raw === "string") return raw ? "device" : "none";
+    if (!raw || typeof raw !== "object") return "none";
+    if (raw.announce != null) return "announce";
+    if (raw.command != null) return "command";
+    if (Array.isArray(raw.actions)) return "custom";
+    if (raw.entity != null || raw.entity_id != null) return "device";
+    return "none";
+  }
+
+  // What happens when a timer ends: a device action, a command or an
+  // announcement. Shared by quick actions and pinned timers.
+  _renderFinishActionFields(raw, onChange, { allowNone = true } = {}) {
+    const card = SimpleTimerCard.prototype;
+    const conf = typeof raw === "string" ? { entity: raw } : (raw || {});
+    const type = this._finishActionType(raw);
+    const types = [
+      ...(allowNone ? [{ value: "none", label: "Nothing" }] : []),
+      { value: "device", label: "Control a device" },
+      { value: "command", label: "Say a command" },
+      { value: "announce", label: "Announce on a speaker" },
+      ...(type === "custom" ? [{ value: "custom", label: "Custom actions (YAML)" }] : []),
+    ];
+    const blank = { device: { entity: "" }, command: { command: "" }, announce: { announce: "" } };
+    const setType = (value) => {
+      if (!value || value === type) return;
+      onChange(value === "none" ? null : (blank[value] || conf));
+    };
+    const patch = (changes) => {
+      const next = { ...conf, ...changes };
+      for (const key of Object.keys(next)) if (next[key] === undefined || (key !== "entity" && key !== "command" && key !== "announce" && next[key] === "")) delete next[key];
+      onChange(next);
+    };
+    const entity = conf.entity || conf.entity_id || "";
+    const services = type === "device" && entity ? card._servicesForEntity.call(this, entity) : [];
+    const service = conf.service || conf.action;
+    const current = service
+      ? (String(service).includes(".") ? service : `${String(entity).split(".")[0]}.${service}`)
+      : (services.find((sv) => sv.endsWith(".turn_off")) || services[0] || "");
+    const serviceOptions = services.map((value) => ({ value, label: card._serviceLabel.call(this, value) }));
+    return b`
+      <ha-select label="When it ends" naturalMenuWidth fixedMenuPosition .value=${type} .options=${types}
+        @selected=${(e) => { e.stopPropagation(); setType(e?.detail?.value ?? e.target.value); }}
+        @closed=${(e) => e.stopPropagation()}>
+        ${types.map((o) => b`<mwc-list-item value=${o.value}>${o.label}</mwc-list-item>`)}
+      </ha-select>
+      ${type === "device" ? b`
+        <div class="row">
+          <ha-entity-picker
+            .hass=${this.hass}
+            .value=${entity}
+            label="Device"
+            allow-custom-entity
+            @value-changed=${(e) => patch({ entity: e.detail.value || "", entity_id: undefined, service: undefined, action: undefined })}
+          ></ha-entity-picker>
+          ${serviceOptions.length ? b`
+            <ha-select label="Action" naturalMenuWidth fixedMenuPosition .value=${current} .options=${serviceOptions}
+              @selected=${(e) => { e.stopPropagation(); const v = e?.detail?.value ?? e.target.value; if (v && v !== current) patch({ service: v, action: undefined }); }}
+              @closed=${(e) => e.stopPropagation()}>
+              ${serviceOptions.map((o) => b`<mwc-list-item value=${o.value}>${o.label}</mwc-list-item>`)}
+            </ha-select>
+          ` : ""}
+        </div>
+      ` : ""}
+      ${type === "command" ? this._tf({ label: "Command", value: conf.command, placeholder: "turn off the air purifier", helper: "What you would say to Assist.", change: (e) => patch({ command: e.target.value }) }) : ""}
+      ${type === "announce" ? b`
+        <div class="row">
+          <ha-entity-picker
+            .hass=${this.hass}
+            .value=${conf.announce || ""}
+            .includeDomains=${["media_player", "assist_satellite"]}
+            label="Speaker"
+            allow-custom-entity
+            @value-changed=${(e) => patch({ announce: e.detail.value || "" })}
+          ></ha-entity-picker>
+          ${this._tf({ label: "Message (optional)", value: conf.message, placeholder: "Your timer is done", helper: "Without a message it says the timer's name, then \"is done\".", change: (e) => patch({ message: e.target.value }) })}
+        </div>
+      ` : ""}
+      ${type === "custom" ? b`<p class="hint">This action list is edited in YAML.</p>` : ""}
+    `;
+  }
+
+  _putDeviceTimer(index, next) {
+    const list = Array.isArray(this._config.device_timers) ? [...this._config.device_timers] : [];
+    if (!next) return;
+    const clean = { ...next };
+    if (!clean.name) delete clean.name;
+    list[index] = clean;
+    this._updateConfig({ device_timers: list }, true);
+    this.requestUpdate();
+  }
+
+  _setPinnedFinish(index, next) {
+    const pinned = Array.isArray(this._config.pinned_timers) ? [...this._config.pinned_timers] : [];
+    const cur = (pinned[index] && typeof pinned[index] === "object") ? { ...pinned[index] } : {};
+    if (next) cur.on_finish = next;
+    else delete cur.on_finish;
+    pinned[index] = cur;
+    this._updateConfig({ pinned_timers: pinned }, true);
+    this.requestUpdate();
   }
 
   _showActionsPanel() {
@@ -8177,8 +8258,9 @@ _pinnedTimerValueChanged(ev, index) {
       </label>
     `;
 
+    const hasCompanion = Object.keys(this.hass?.states || {}).some((id) => SimpleTimerCard.prototype._isCompanionList.call(this, id));
     const pinnedContent = b`
-      <p class="hint">One-tap reusable timers shown in the empty state. They hide while running.</p>
+      <p class="hint">One-tap reusable timers shown in the empty state. They hide while running.${hasCompanion ? " Each can do something when it ends: control a device, say a command or announce on a speaker." : ""}</p>
 
       ${(Array.isArray(this._config.pinned_timers) ? this._config.pinned_timers : []).length === 0
         ? b`<div class="no-entities">No pinned timers configured. Use the button below to add one.</div>`
@@ -8196,6 +8278,13 @@ _pinnedTimerValueChanged(ev, index) {
                 </div>
 
                 ${this._tf({ label: "Expired message", value: t?.expired_subtitle, configValue: "expired_subtitle", change: (e) => this._pinnedTimerValueChanged(e, index) })}
+
+                ${hasCompanion || t?.on_finish ? b`
+                  <div class="finish-action">
+                    ${this._renderFinishActionFields(t?.on_finish, (next) => this._setPinnedFinish(index, next))}
+                    ${hasCompanion ? "" : b`<p class="hint warning">Needs the Simple Timer Card integration.</p>`}
+                  </div>
+                ` : ""}
 
                 <ha-formfield label="Enable specific audio">
                   <ha-switch .checked=${t?.audio_enabled === true} .configValue=${"audio_enabled"} @change=${(e) => this._pinnedTimerValueChanged(e, index)}></ha-switch>
@@ -8467,8 +8556,7 @@ _pinnedTimerValueChanged(ev, index) {
                   ${this._tf({ label: "Entity (type while picker loads)", value: entityId, configValue: "entity", change: (e) => this._entityValueChanged(e, index) })}
                 `}
                 <div class="entity-options advanced">
-                  <div class="row" style="align-items:flex-start;">
-                    <div style="flex:1;">
+                  <div class="mode-field">
                       <ha-select label="Mode" naturalMenuWidth fixedMenuPosition .value=${conf.mode || "auto"} .configValue=${"mode"} .options=${SELECT_OPTIONS.entity_mode}
                         @selected=${(e) => { e.stopPropagation(); this._entityValueChanged(e, index); }} @closed=${(e) => e.stopPropagation()}>
                         <mwc-list-item value="auto">Auto (Default)</mwc-list-item>
@@ -8488,8 +8576,9 @@ _pinnedTimerValueChanged(ev, index) {
                           Detected mode: <strong>${detectedMode === "unknown" ? "Unknown" : (detectedMode.charAt(0).toUpperCase() + detectedMode.slice(1)).replace(/_/g, " ")}</strong>
                         </div>
                       ` : ""}
-                    </div>
+                  </div>
 
+                  ${conf.mode === "minutes_attr" || conf.mode === "count_up" || isTimestampMode ? b`<div class="row">
                     ${conf.mode === "minutes_attr" ? b`
                       ${this._tf({ label: "Minutes attribute", value: conf.minutes_attr, configValue: "minutes_attr", change: (e) => this._entityValueChanged(e, index) })}
                     ` : ""}
@@ -8508,7 +8597,7 @@ _pinnedTimerValueChanged(ev, index) {
                           allow-custom-entity
                       ></ha-entity-picker>
                     ` : ""}
-                  </div>
+                  </div>` : ""}
 
                   ${isTimestampMode ? b`
                     ${this._tf({ label: "Start time attribute (optional)", value: conf.start_time_attr, configValue: "start_time_attr", helper: "Attribute on this entity containing the start timestamp (e.g., 'last_triggered').", change: (e) => this._entityValueChanged(e, index), cls: "advanced" })}
@@ -8517,10 +8606,11 @@ _pinnedTimerValueChanged(ev, index) {
                   <div class="row">
                     ${this._tf({ label: "Name override", value: conf.name, configValue: "name", change: (e) => this._entityValueChanged(e, index) })}
                     <ha-icon-picker label="Icon override" .value=${conf.icon || ""} .configValue=${"icon"} @value-changed=${(e) => this._entityValueChanged(e, index)}></ha-icon-picker>
-                    ${this._tf({ label: "Color override", value: conf.color, configValue: "color", change: (e) => this._entityValueChanged(e, index) })}
                   </div>
-
-                  ${this._tf({ label: "Expired message override", value: conf.expired_subtitle, configValue: "expired_subtitle", change: (e) => this._entityValueChanged(e, index) })}
+                  <div class="row">
+                    ${this._tf({ label: "Color override", value: conf.color, configValue: "color", change: (e) => this._entityValueChanged(e, index) })}
+                    ${this._tf({ label: "Expired message override", value: conf.expired_subtitle, configValue: "expired_subtitle", change: (e) => this._entityValueChanged(e, index) })}
+                  </div>
 
                   <div class="row-actions-label">Custom action buttons (override card-level)</div>
                   ${this._renderButtonsEditor(
@@ -8798,6 +8888,10 @@ _pinnedTimerValueChanged(ev, index) {
       }
       .row > *,
       .side-by-side > * { flex: 1 1 150px; min-width: 0; }
+      .mode-field { display: flex; flex-direction: column; gap: 4px; }
+      .mode-field > ha-select { width: 100%; }
+      .finish-action { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 8px; background: var(--secondary-background-color, rgba(0,0,0,.04)); }
+      .finish-action > ha-select { width: 100%; }
 
       /* DO NOT force display:block on these. HA's ha-textfield uses
          :host { display: inline-flex } internally; overriding it breaks its
