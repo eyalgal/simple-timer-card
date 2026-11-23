@@ -2271,6 +2271,10 @@ class SimpleTimerCard extends LitElement {
     return companion && !wanted.has(companion) ? companion : null;
   }
 
+  _moreBadgeFor(t) {
+    return this._moreOnRow && t === this._moreOnRow.timer ? this._moreOnRow.badge : "";
+  }
+
   _parseTimerList(entityId, entityState, entityConf, { ownOnly = false } = {}) {
     if (entityState?.state === "unavailable" || entityState?.state === "unknown") return [];
     const sub = this._timerLists.get(entityId);
@@ -5623,7 +5627,7 @@ class SimpleTimerCard extends LitElement {
                     style="stroke: var(--tcolor, var(--primary-color)); stroke-dashoffset: ${this._config.progress_mode === "drain" ? circleValues.circumference : "0"};
                             transition: stroke-dashoffset 0.25s;"></circle>
                 </svg>
-                <div class="icon-wrap xl"><ha-icon .icon=${icon}></ha-icon></div>
+                <div class="icon-wrap xl"><ha-icon .icon=${icon}></ha-icon>${this._moreBadgeFor(t)}</div>
               </div>
               <div class="vtitle">${t.label}</div>
               <div class="vstatus up">${timeStr}</div>
@@ -5643,7 +5647,7 @@ class SimpleTimerCard extends LitElement {
         <li class="${finishedClasses}${this._ringAnimationClass()}" style="--tcolor:${color}">
           ${isFillStyle ? html`<div class="progress-fill" style="width:100%"></div>` : ""}
           <div class="${isFillStyle ? "card-content" : "row"}">
-            <div class="icon-wrap"><ha-icon .icon=${icon}></ha-icon></div>
+            <div class="icon-wrap"><ha-icon .icon=${icon}></ha-icon>${this._moreBadgeFor(t)}</div>
             <div class="info">
               <div class="title">${t.label}</div>
               <div class="status up">${timeStr}</div>
@@ -5674,7 +5678,7 @@ class SimpleTimerCard extends LitElement {
         <li class="${baseClasses}" style="--tcolor:${color}; ${rowStyle}" @pointerdown=${acts.down} @pointerup=${acts.up} @pointercancel=${acts.cancel}>
           <div class="progress-fill" style="${fillInlineStyle}"></div>
           <div class="card-content">
-            <div class="icon-wrap"><ha-icon .icon=${icon}></ha-icon></div>
+            <div class="icon-wrap"><ha-icon .icon=${icon}></ha-icon>${this._moreBadgeFor(t)}</div>
             <div class="info">
               <div class="title">${t.label}</div>
               <div class="status">${timeStr}</div>
@@ -5699,7 +5703,7 @@ class SimpleTimerCard extends LitElement {
       return html`
         <li class="${baseClasses}" style="--tcolor:${color}; ${rowStyle}" @pointerdown=${acts.down} @pointerup=${acts.up} @pointercancel=${acts.cancel}>
           <div class="row">
-            <div class="icon-wrap"><ha-icon .icon=${icon}></ha-icon></div>
+            <div class="icon-wrap"><ha-icon .icon=${icon}></ha-icon>${this._moreBadgeFor(t)}</div>
             <div class="info">
               <div class="title">${t.label}</div>
               <div class="status">${timeStr}</div>
@@ -5756,7 +5760,7 @@ class SimpleTimerCard extends LitElement {
                   stroke-dasharray="${circleValues.circumference} ${circleValues.circumference}"
                   style="stroke: var(--tcolor, var(--primary-color)); stroke-dashoffset: ${circleValues.strokeDashoffset}; transition: stroke-dashoffset 0.25s;"></circle>
               </svg>
-              <div class="icon-wrap xl"><ha-icon .icon=${icon}></ha-icon></div>
+              <div class="icon-wrap xl"><ha-icon .icon=${icon}></ha-icon>${this._moreBadgeFor(t)}</div>
             </div>
             <div class="vtitle">${t.label}</div>
             <div class="vstatus">${timeStr}</div>
@@ -5767,7 +5771,7 @@ class SimpleTimerCard extends LitElement {
       return html`
         <li class="${baseClasses}" style="--tcolor:${color}; ${rowStyle}" @pointerdown=${acts.down} @pointerup=${acts.up} @pointercancel=${acts.cancel}>
           <div class="row">
-            <div class="icon-wrap"><ha-icon .icon=${icon}></ha-icon></div>
+            <div class="icon-wrap"><ha-icon .icon=${icon}></ha-icon>${this._moreBadgeFor(t)}</div>
             <div class="info">
               <div class="top">
                 <div class="title">${t.label}</div>
@@ -6128,7 +6132,7 @@ class SimpleTimerCard extends LitElement {
         <li class="${baseClasses}${this._ringAnimationClass()}" style="--tcolor:${color}">
           ${style.startsWith("fill_") ? html`<div class="progress-fill" style="width:100%"></div>` : ""}
           <div class="vcol">
-            <div class="icon-wrap large"><ha-icon .icon=${icon}></ha-icon></div>
+            <div class="icon-wrap large"><ha-icon .icon=${icon}></ha-icon>${this._moreBadgeFor(t)}</div>
             <div class="vtitle">${t.label}</div>
             <div class="vstatus up">${timeStr}</div>
             <div class="vactions-center">
@@ -6174,7 +6178,7 @@ class SimpleTimerCard extends LitElement {
                   stroke-dasharray="${circleValues.circumference} ${circleValues.circumference}"
                   style="stroke-dashoffset: ${circleValues.strokeDashoffset}; transition: stroke-dashoffset 0.25s;"></circle>
               </svg>
-              <div class="icon-wrap xl"><ha-icon .icon=${icon}></ha-icon></div>
+              <div class="icon-wrap xl"><ha-icon .icon=${icon}></ha-icon>${this._moreBadgeFor(t)}</div>
             </div>
             <div class="vtitle">${t.label}</div>
             <div class="vstatus">${timeStr}</div>
@@ -6187,7 +6191,7 @@ class SimpleTimerCard extends LitElement {
       <li class="${baseClasses}" style="--tcolor:${color}; ${rowStyle}" @pointerdown=${acts.down} @pointerup=${acts.up} @pointercancel=${acts.cancel}>
         ${style.startsWith("fill_") ? html`<div class="progress-fill" style="${fillInlineStyle}"></div>` : ""}
         <div class="vcol">
-          <div class="icon-wrap large"><ha-icon .icon=${icon}></ha-icon></div>
+          <div class="icon-wrap large"><ha-icon .icon=${icon}></ha-icon>${this._moreBadgeFor(t)}</div>
           <div class="vtitle">${t.label}</div>
           <div class="vstatus">${timeStr}</div>
           ${style.startsWith("bar_") ? html`
@@ -6536,23 +6540,20 @@ const layout = this._config.layout;
         ? html`<li class="group-head" data-no-action>${entry.header}</li>`
         : renderFn(entry.timer, style))}
     `;
-    // max_rows is for cards with little room, so the "+N" control sits in the
-    // header or title and adds no height. Without either, a compact chip.
+    // max_rows is for cards with little room, and Sections rows are a fixed
+    // height, so the "+N" control never adds height: it sits in the header,
+    // else the title, else as a badge on the last visible row's icon.
     const headerShown = this._config.show_active_header !== false;
-    const moreWhere = !truncated ? null : (headerShown ? "header" : (this._config.title ? "title" : "list"));
+    const moreWhere = !truncated ? null : (headerShown ? "header" : (this._config.title ? "title" : "row"));
     const toggleMore = (e) => { e.stopPropagation(); this._ui = { ...this._ui, showAllTimers: !this._ui.showAllTimers }; };
-    const moreLabel = this._ui.showAllTimers ? this._localize("show_less") : `+${timers.length - maxRows}`;
+    const moreLabel = this._ui.showAllTimers ? (moreWhere === "row" ? "−" : this._localize("show_less")) : `+${timers.length - maxRows}`;
     const moreBadge = html`
-      <button type="button" class="more-badge" data-no-action aria-expanded=${String(!!this._ui.showAllTimers)}
+      <button type="button" class="more-badge ${moreWhere === "row" ? "on-icon" : ""}" data-no-action aria-expanded=${String(!!this._ui.showAllTimers)}
         title=${this._ui.showAllTimers ? this._localize("show_less") : this._localize("more_timers").replace("{n}", timers.length - maxRows)}
         @click=${toggleMore}>${moreLabel}</button>
     `;
     this._moreInTitle = moreWhere === "title" ? moreBadge : null;
-    const moreToggle = moreWhere === "list" ? html`
-      <button type="button" class="btn btn-ghost more-toggle" data-no-action @click=${toggleMore}>
-        ${this._ui.showAllTimers ? this._localize("show_less") : this._localize("more_timers").replace("{n}", timers.length - maxRows)}
-      </button>
-    ` : "";
+    this._moreOnRow = moreWhere === "row" ? { timer: shownTimers[shownTimers.length - 1], badge: moreBadge } : null;
     const headTitle = html`<div class="head-title"><h4>${this._localize("active_timers")}</h4>${moreWhere === "header" ? moreBadge : ""}</div>`;
     const useGrid = (activeTimersLayout === "vertical") || (style === "circle_vertical");
     const cols = (useGrid && shownTimers.length > 1) ? 2 : 1;
@@ -6579,7 +6580,6 @@ const layout = this._config.layout;
         <ul class="${listClass}">
           ${renderList()}
         </ul>
-        ${moreToggle}
       </div>
     ` : html`
       <div class="card ${this._ui.activeBarOpen ? "card-show" : ""}">
@@ -6603,7 +6603,6 @@ const layout = this._config.layout;
         <ul class="${listClass}">
           ${renderList()}
         </ul>
-        ${moreToggle}
       </div>
     `;
     const cardActs = this._cardActionHandlers();
@@ -6679,10 +6678,12 @@ const layout = this._config.layout;
       :host([hidden]) { display: none; }
       .group-head { grid-column: 1 / -1; font-size: 0.8em; font-weight: 600; color: var(--secondary-text-color); padding: 4px 4px 0; }
       .group-head:first-child { padding-top: 0; }
-      .more-toggle { display: block; margin: 6px auto 2px; min-height: 28px; padding: 2px 12px; font-size: 12px; }
       .head-title { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
       .card-header.with-more { display: flex; align-items: center; gap: 8px; }
       .more-badge { display: inline-flex; align-items: center; justify-content: center; height: 22px; min-width: 28px; padding: 0 8px; border: 0; border-radius: 11px; background: color-mix(in srgb, var(--primary-color) 14%, var(--card-background-color, #fff)); color: var(--primary-color); font: inherit; font-size: 12px; font-weight: 600; line-height: 1; cursor: pointer; flex-shrink: 0; }
+      .icon-wrap { position: relative; }
+      .more-badge.on-icon { position: absolute; top: -6px; inset-inline-end: -10px; height: 18px; min-width: 18px; padding: 0 5px; border-radius: 9px; font-size: 11px; background: var(--primary-color); color: var(--text-primary-color, #fff); box-shadow: 0 0 0 2px var(--ha-card-background, var(--card-background-color, #fff)); z-index: 1; }
+      .more-badge.on-icon:hover { background: var(--primary-color); filter: brightness(1.1); }
       .more-badge:hover { background: color-mix(in srgb, var(--primary-color) 22%, var(--card-background-color, #fff)); }
       .picker-section { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 12px; }
       .picker-section-label { font-size: 12px; font-weight: 600; color: var(--secondary-text-color); }

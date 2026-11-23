@@ -81,7 +81,7 @@ test("ringing rows get the configured animation class", async () => {
   assert.equal(card._ringAnimationClass(), "");
 });
 
-test("max_rows shows the first timers, with the +N control in the header so it adds no height", async () => {
+test("max_rows shows the first timers, with a +N control that never adds height", async () => {
   const timers = { [KITCHEN]: [listItem({ timer_id: "a" }), listItem({ timer_id: "b" }), listItem({ timer_id: "c" })] };
   const { card } = await withTimers({ entities: [KITCHEN], max_rows: 2 }, timers);
   document.body.appendChild(card);
@@ -105,7 +105,16 @@ test("max_rows shows the first timers, with the +N control in the header so it a
   const bare = (await withTimers({ entities: [KITCHEN], max_rows: 2, show_active_header: false }, timers)).card;
   document.body.appendChild(bare);
   await bare.updateComplete;
-  assert.equal(bare.shadowRoot.querySelector(".more-toggle").textContent.trim(), "+1 more");
+  const items = bare.shadowRoot.querySelectorAll("li.item");
+  assert.equal(items.length, 2, "no extra line under the rows");
+  const onIcon = items[1].querySelector(".icon-wrap .more-badge.on-icon");
+  assert.equal(onIcon.textContent.trim(), "+1");
+  assert.equal(items[0].querySelector(".more-badge"), null);
+  onIcon.click();
+  await bare.updateComplete;
+  const expanded = bare.shadowRoot.querySelectorAll("li.item");
+  assert.equal(expanded.length, 3);
+  assert.equal(expanded[2].querySelector(".more-badge.on-icon").textContent.trim(), "−");
   bare.remove();
 });
 
