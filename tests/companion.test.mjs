@@ -282,3 +282,49 @@ test("a browser-storage card follows the action timers it started on the compani
   card._updateTimers();
   assert.equal(card._timers[0].remaining, 0, "and reaches its ringing state");
 });
+
+test("the editor moves running and paused MQTT timers to the integration", async () => {
+  const now = Date.now();
+  const sensor = "sensor.timer_store";
+  const calls = [];
+  const ws = [];
+  const editor = document.createElement("simple-timer-card-editor");
+  editor.hass = {
+    user: { id: "u", is_admin: true }, config: { version: "2026.11.2" }, language: "en", services: {}, localize: () => "",
+    states: {
+      [LIST]: { state: "0", attributes: { supported_features: 255, simple_timer_card_api: 1 } },
+      [sensor]: { state: String(now), last_updated: new Date(now).toISOString(), attributes: { lastUpdated: now, timers: [
+        { id: "a", label: "Pasta", name: "Pasta", source: "mqtt", start_ts: now - 1000, end_ts: now + 600000, duration: 601000, icon: "mdi:pasta", rev: 1 },
+        { id: "b", label: "Tea", name: "Tea", source: "mqtt", paused: true, remaining_ms: 120000, end_ts: null, duration: 300000, rev: 2 },
+        { id: "c", label: "Done", name: "Done", source: "mqtt", end_ts: now - 1000, duration: 60000, rev: 3 },
+      ] } },
+    },
+    connection: { subscribeMessage() { return Promise.resolve(() => Promise.resolve()); }, addEventListener() {}, removeEventListener() {} },
+    callService: (...args) => { calls.push(args); return Promise.resolve(); },
+    callWS: (msg) => { ws.push(msg); return Promise.resolve({ response: { [LIST]: { timer_id: `new${ws.length}` } } }); },
+  };
+  editor.setConfig({ type: "custom:simple-timer-card", storage: "integration", mqtt: { sensor_entity: sensor } });
+  assert.equal(editor._mqttTimersWaiting(), 2);
+
+  await editor._moveMqttTimers();
+  assert.equal(editor._mqttMoveResult, 2);
+  assert.deepEqual(ws.map((m) => [m.service_data.name, m.service_data.duration, m.service_data.icon]),
+    [["Pasta", "00:10:00", "mdi:pasta"], ["Tea", "00:02:00", undefined]]);
+  assert.deepEqual(calls.filter(([domain]) => domain === "simple_timer_card").map(([, service, data]) => [service, data.timer_id]), [["pause_timer", "new2"]]);
+  const published = calls.filter(([domain, service, data]) => domain === "mqtt" && service === "publish" && data.topic === "simple_timer_card/timers").at(-1)?.[2];
+  const left = JSON.parse(published.payload).timers.map((t) => t.id);
+  assert.deepEqual(left, ["c"], "moved timers are removed from MQTT; finished ones stay");
+  assert.equal(calls.some(([, , data]) => String(data?.topic || "").includes("/events/")), false, "no MQTT started events");
+});
+
+test("after switching to integration storage, MQTT timers keep showing until moved or finished", () => {
+  const now = Date.now();
+  const sensor = "sensor.timer_store";
+  const { card } = makeCard({ storage: "integration", mqtt: { sensor_entity: sensor } }, {
+    states: { [sensor]: { state: String(now), attributes: { lastUpdated: now, timers: [
+      { id: "a", label: "Pasta", name: "Pasta", source: "mqtt", start_ts: now, end_ts: now + 600000, duration: 600000 },
+    ] } } },
+  });
+  card._updateTimers();
+  assert.deepEqual(card._timers.filter((t) => t.source === "mqtt").map((t) => t.label), ["Pasta"]);
+});

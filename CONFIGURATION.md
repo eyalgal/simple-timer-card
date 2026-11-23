@@ -62,10 +62,11 @@ notification payloads, remain YAML-only.
 13. [Storage & persistence](#-storage--persistence)
 14. [Voice timers (timer lists)](#-voice-timers-timer-lists)
 15. [Companion integration](#-companion-integration)
-16. [Voice PE integration (legacy)](#-voice-pe-integration)
-17. [Compatibility mode](#-compatibility-mode)
-18. [Language support](#-language-support)
-19. [Examples & help](#-examples--help)
+16. [Moving from MQTT to the integration](#-moving-from-mqtt-to-the-integration)
+17. [Voice PE integration (legacy)](#-voice-pe-integration)
+18. [Compatibility mode](#-compatibility-mode)
+19. [Language support](#-language-support)
+20. [Examples & help](#-examples--help)
 
 ---
 
@@ -1020,11 +1021,17 @@ unchanged. The integration is only needed for these extras.
 
 ### Install
 
-Copy `custom_components/simple_timer_card` from this repository into your
-Home Assistant `config/custom_components` folder, restart Home Assistant, then
-add **Simple Timer Card** under **Settings > Devices & services**. It creates
-one entity, `sensor.simple_timer_card_timers`, whose state is the number of
-running timers.
+The integration has its own repository,
+[simple-timer-card-integration](https://github.com/eyalgal/simple-timer-card-integration):
+
+1. In **Marketplace (fka HACS)**, open **⋮ > Custom repositories** and add
+   `https://github.com/eyalgal/simple-timer-card-integration` as an
+   **Integration**.
+2. Download **Simple Timer Card Integration** and restart Home Assistant.
+3. Add **Simple Timer Card** under **Settings > Devices & services**.
+
+It creates one entity, `sensor.simple_timer_card_timers`, whose state is the
+number of running timers. It needs Home Assistant 2026.11 or later.
 
 | Option | Default | Description |
 | ------ | ------- | ----------- |
@@ -1124,6 +1131,48 @@ actions:
     data:
       message: Laundry is done
 ```
+
+---
+
+## 🚚 Moving from MQTT to the integration
+
+MQTT storage keeps working, so there is no need to move. Move if you want
+timers that keep running and act with every dashboard closed, without the MQTT
+sensor, relay and polling monitor.
+
+1. **Install the integration.** See [Install](#install).
+2. **Switch each card.** In the card editor, open **Timer storage** and set
+   **Save new timers in** to **Simple Timer Card integration**. In YAML:
+
+   ```yaml
+   storage: integration
+   mqtt:
+     sensor_entity: sensor.simple_timer_store   # Keep it until the move is done.
+   ```
+
+   Keep the `mqtt` settings for now: the card goes on showing the timers that
+   are still in MQTT, so nothing disappears.
+3. **Move the running timers, or let them finish.** The editor shows how many
+   timers are still running in MQTT, with a **Move timers from MQTT** button.
+   It moves running and paused timers with the time they have left, their
+   name, icon and colour, and removes them from MQTT. Finished timers stay. It
+   does not send MQTT `started` events, so notification automations do not fire
+   again. Or just let the timers finish where they are.
+4. **Clean up once MQTT is empty** (optional):
+   * Remove `mqtt:` from the card configuration, and `default_timer_entity` if
+     it pointed at the MQTT sensor.
+   * Delete the MQTT sensor, the [publish relay](examples/mqtt_publish_relay.yaml)
+     automation and the backend monitor and notification automations from the
+     [MQTT guide](mqtt-hybrid-model.md), once no other card or dashboard uses
+     them.
+
+| With MQTT | With the integration |
+| --------- | -------------------- |
+| Timers shared through a retained topic and sensor | Timers live in Home Assistant and show on every device |
+| Backend polling monitor for timers that end with no dashboard open | Built in: timers end, and act, on the server |
+| `simple_timer_card/events/expired` and other MQTT events | The `simple_timer_card_timer` event, with `event: finished` and the timer, see [Actions and events](#actions-and-events) |
+| Publish relay for non-admin users | Not needed |
+| Notification automations | An automation on `simple_timer_card_timer`, or **Do something when it ends** on the timer itself |
 
 ---
 

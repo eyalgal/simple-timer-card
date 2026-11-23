@@ -9,7 +9,8 @@ own installation before enabling it.
 > **Optional alternative (v3.0.0).** MQTT storage keeps working as described
 > here. If you would rather keep timers in Home Assistant itself, with actions
 > such as "turn off the air purifier" when a timer ends and no polling monitor,
-> see the [companion integration](CONFIGURATION.md#-companion-integration).
+> see the [companion integration](CONFIGURATION.md#-companion-integration) and
+> [moving from MQTT to the integration](CONFIGURATION.md#-moving-from-mqtt-to-the-integration).
 
 The frontend still creates, controls, and displays timers. The backend monitor
 below is the **only timer-notification path for this store**, whether a card is

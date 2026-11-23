@@ -2179,9 +2179,14 @@ class SimpleTimerCard extends i$2 {
     return this._config?.storage === "integration" ? this._companionList() : null;
   }
 
-  // The card's own storage backend; integration storage falls back to local.
+  // The card's own storage backend. With integration storage, an MQTT sensor
+  // still configured from before keeps its timers showing until they finish
+  // or are moved; otherwise it is this browser.
   _cardStorage() {
-    return this._config?.storage === "mqtt" ? "mqtt" : "local";
+    const storage = this._config?.storage;
+    if (storage === "mqtt") return "mqtt";
+    if (storage === "integration" && this._config?.mqtt?.sensor_entity) return "mqtt";
+    return "local";
   }
 
   _syncTimerListSubscriptions(wanted) {
@@ -3493,7 +3498,7 @@ class SimpleTimerCard extends i$2 {
     // switch, or while the integration was not installed.
     if (["local", "mqtt", "integration"].includes(this._config.storage)) {
       const storageTimers = this._loadTimersFromStorage(this._cardStorage());
-      if (this._config.storage === "mqtt" && this._mqttLastLoadSource !== "sensor") {
+      if (this._cardStorage() === "mqtt" && this._mqttLastLoadSource !== "sensor") {
         // Cache/shadow data can be stale after wake-up. Keep rendering it, but
         // block automatic expiry mutations until a fresh sensor snapshot arrives.
         collected.push(...storageTimers.map((t) => ({ ...t, _mqtt_untrusted: true })));
@@ -8438,6 +8443,7 @@ _pinnedTimerValueChanged(ev, index) {
       ${storageChoice === "integration" && !companionInstalled ? b`
         <p class="hint warning">The Simple Timer Card integration is not installed, so new timers are saved in this browser for now. See <a href="https://github.com/eyalgal/simple-timer-card/blob/main/CONFIGURATION.md#-companion-integration" target="_blank" rel="noopener">how to install it</a>.</p>
       ` : ""}
+      ${storageChoice === "integration" && companionInstalled ? this._renderMqttMove() : ""}
       ${storageChoice === "mqtt" && !target.startsWith("sensor.") ? b`
         <ha-entity-picker
           .hass=${this.hass}
@@ -8815,6 +8821,81 @@ _pinnedTimerValueChanged(ev, index) {
         ${panel("actions", "Actions", "mdi:gesture-tap", actionsContent, { advanced: true })}
       </div>
     `;
+  }
+
+  // === Moving MQTT timers to the integration (v3.0.0) ===
+
+  _mqttMoveSensor() {
+    const card = SimpleTimerCard.prototype;
+    const def = this._config?.default_timer_entity;
+    const legacy = typeof def === "string" && def.startsWith("sensor.") && !card._isCompanionList.call(this, def) ? def : null;
+    const sensor = this._config?.mqtt?.sensor_entity || legacy;
+    return sensor && this.hass?.states?.[sensor] ? sensor : null;
+  }
+
+  // Read straight from the sensor so rendering never publishes anything.
+  _mqttTimersWaiting() {
+    const sensor = this._mqttMoveSensor();
+    const timers = sensor ? this.hass.states[sensor]?.attributes?.timers : null;
+    if (!Array.isArray(timers)) return 0;
+    const now = Date.now();
+    return timers.filter((t) => t && (t.paused ? Number(t.remaining_ms) > 0 : Number(t.end_ts) > now)).length;
+  }
+
+  _renderMqttMove() {
+    const waiting = this._mqttTimersWaiting();
+    if (this._mqttMoveResult != null) {
+      return b`<p class="hint">Moved ${this._mqttMoveResult} timer${this._mqttMoveResult === 1 ? "" : "s"} from MQTT to the integration.</p>`;
+    }
+    if (!waiting) return "";
+    return b`
+      <div class="mqtt-move">
+        <p class="hint">${waiting} timer${waiting === 1 ? " is" : "s are"} still running in MQTT. Move ${waiting === 1 ? "it" : "them"} to the integration, keeping the time left, or let ${waiting === 1 ? "it" : "them"} finish there.</p>
+        <button class="add-button" ?disabled=${this._mqttMoving} @click=${() => this._moveMqttTimers()}>
+          <ha-icon icon="mdi:swap-horizontal"></ha-icon>
+          <span>${this._mqttMoving ? "Moving…" : `Move ${waiting} timer${waiting === 1 ? "" : "s"} from MQTT`}</span>
+        </button>
+      </div>
+    `;
+  }
+
+  // Uses a card that is never shown, so the MQTT rules (merging, deletion
+  // markers, the relay for non-admins) are the card's own.
+  async _moveMqttTimers() {
+    const card = SimpleTimerCard.prototype;
+    const sensor = this._mqttMoveSensor();
+    const companion = Object.keys(this.hass?.states || {}).find((id) => card._isCompanionList.call(this, id));
+    if (!sensor || !companion || this._mqttMoving) return;
+    this._mqttMoving = true;
+    this.requestUpdate();
+    let moved = 0;
+    try {
+      const helper = document.createElement("simple-timer-card");
+      const cfg = { ...this._config, storage: "mqtt", mqtt: { ...(this._config.mqtt || {}), sensor_entity: sensor } };
+      delete cfg.default_timer_entity;
+      helper.setConfig(cfg);
+      helper.hass = this.hass;
+      // Moving is not a new timer, so MQTT automations should not hear "started".
+      helper._publishTimerEvent = () => {};
+      const now = Date.now();
+      for (const t of helper._loadTimersFromStorage("mqtt")) {
+        const ms = t?.paused ? Number(t.remaining_ms) : Number(t?.end_ts) - now;
+        if (!(ms > 0)) continue;
+        const meta = helper._timerListMetaFromOverrides(t);
+        const timerId = await helper._createTimerListTimer(companion, ms, t.name || t.label || "", meta);
+        if (timerId == null) continue;
+        if (t.paused && timerId) {
+          await this.hass.callService(COMPANION_DOMAIN, "pause_timer", { entity_id: companion, timer_id: timerId });
+        }
+        helper._removeTimerFromStorage(t.id, "mqtt");
+        moved += 1;
+      }
+      await helper._mqttPublishQueue;
+    } finally {
+      this._mqttMoving = false;
+      this._mqttMoveResult = moved;
+      this.requestUpdate();
+    }
   }
 
   _getStorageDisplayName(storage) {
