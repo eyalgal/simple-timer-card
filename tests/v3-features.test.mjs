@@ -81,40 +81,32 @@ test("ringing rows get the configured animation class", async () => {
   assert.equal(card._ringAnimationClass(), "");
 });
 
-test("max_rows shows the first timers, with a +N control that never adds height", async () => {
+test("max_rows shows the first timers and a +N chip with a chevron", async () => {
   const timers = { [KITCHEN]: [listItem({ timer_id: "a" }), listItem({ timer_id: "b" }), listItem({ timer_id: "c" })] };
+  const chipOf = (root) => ({ text: root.textContent.trim(), icon: root.querySelector("ha-icon")?.getAttribute("icon") });
   const { card } = await withTimers({ entities: [KITCHEN], max_rows: 2 }, timers);
   document.body.appendChild(card);
   await card.updateComplete;
   assert.equal(card.shadowRoot.querySelectorAll("li.item").length, 2);
-  assert.equal(card.shadowRoot.querySelector(".more-toggle"), null);
   const badge = card.shadowRoot.querySelector(".active-head .more-badge");
-  assert.equal(badge.textContent.trim(), "+1");
+  assert.deepEqual(chipOf(badge), { text: "+1", icon: "mdi:chevron-down" });
   badge.click();
   await card.updateComplete;
   assert.equal(card.shadowRoot.querySelectorAll("li.item").length, 3);
-  assert.equal(card.shadowRoot.querySelector(".active-head .more-badge").textContent.trim(), "Show less");
+  assert.deepEqual(chipOf(card.shadowRoot.querySelector(".active-head .more-badge")), { text: "", icon: "mdi:chevron-up" });
   card.remove();
 
   const titled = (await withTimers({ entities: [KITCHEN], max_rows: 2, show_active_header: false, title: "Kitchen" }, timers)).card;
   document.body.appendChild(titled);
   await titled.updateComplete;
-  assert.equal(titled.shadowRoot.querySelector(".card-header .more-badge").textContent.trim(), "+1");
+  assert.equal(chipOf(titled.shadowRoot.querySelector(".card-header .more-badge")).text, "+1");
   titled.remove();
 
   const bare = (await withTimers({ entities: [KITCHEN], max_rows: 2, show_active_header: false }, timers)).card;
   document.body.appendChild(bare);
   await bare.updateComplete;
-  const items = bare.shadowRoot.querySelectorAll("li.item");
-  assert.equal(items.length, 2, "no extra line under the rows");
-  const onIcon = items[1].querySelector(".icon-wrap .more-badge.on-icon");
-  assert.equal(onIcon.textContent.trim(), "+1");
-  assert.equal(items[0].querySelector(".more-badge"), null);
-  onIcon.click();
-  await bare.updateComplete;
-  const expanded = bare.shadowRoot.querySelectorAll("li.item");
-  assert.equal(expanded.length, 3);
-  assert.equal(expanded[2].querySelector(".more-badge.on-icon").textContent.trim(), "−");
+  assert.equal(chipOf(bare.shadowRoot.querySelector(".more-below .more-badge")).text, "+1");
+  assert.equal(bare.shadowRoot.querySelector("li.item .more-badge"), null, "not attached to a timer");
   bare.remove();
 });
 

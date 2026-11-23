@@ -107,7 +107,7 @@ show_active_header: true
 | `language`           | string  | auto             | UI language. Defaults to your Home Assistant language. See [Language support](#-language-support). |
 | `show_active_header` | boolean | `true`           | Show the "Active Timers" heading above running timers                                        |
 | `hide_when_empty`    | boolean | `false`          | Hide the whole card while there are no timers. It reappears when one starts. Pinned timers keep it visible, and it always shows while you edit the dashboard. |
-| `max_rows`           | number  | all              | Show this many timers. A small **+N** next to *Active Timers*, the card title, or (with neither) on the last row's icon shows the rest. It never adds height, so the card keeps its Sections row size. |
+| `max_rows`           | number  | all              | Show this many timers. A small **+N ⌄** chip shows the rest. It sits next to *Active Timers* or the card title, so it adds no height; a card with neither shows it below the rows. |
 | `group_by`           | string  | `none`           | Group timers under headers: `device`, `area`, `source`, or `none`. Headers appear only with two or more groups. |
 | `device_label`       | string  | `auto`           | Add the device or area to the status line of voice timers: `auto` (when the card shows two or more satellites, and not grouped by device or area), `device`, `area`, or `none` |
 
