@@ -135,7 +135,7 @@ test("default_timer_area starts timers on the timer list in that area", async ()
   assert.deepEqual(ws[0].target, { entity_id: BEDROOM });
 });
 
-test("the start-on picker routes new timers, and This card skips timer lists", async () => {
+test("a speaker picked in the panel receives the timer, and clearing it returns to the default", async () => {
   const { card, ws } = makeCard({ entities: [KITCHEN, BEDROOM], default_timer_entity: KITCHEN });
   card._updateTimers();
   assert.equal(card._showTargetPicker(), true);
@@ -144,12 +144,11 @@ test("the start-on picker routes new timers, and This card skips timer lists", a
   await flush();
   assert.deepEqual(ws.map((m) => [m.target.entity_id, m.service_data.name]), [[BEDROOM, "Tea"]]);
 
-  card._targetChoice = "card";
+  card._targetChoice = null;
   card._lastActionTime.clear();
-  card._createAndSaveTimer(60, "Local");
+  card._createAndSaveTimer(60, "Soup");
   await flush();
-  assert.equal(ws.length, 1);
-  assert.equal(card._loadTimersFromStorage().length, 1);
+  assert.deepEqual(ws.map((m) => m.target.entity_id), [BEDROOM, KITCHEN]);
 });
 
 test("browser voice satellites show running and paused timers read-only", () => {

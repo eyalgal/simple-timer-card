@@ -909,25 +909,26 @@ entities:
 | `auto_discover_timer_lists` | boolean | `false` | Show every timer list without listing it. |
 | `default_timer_entity`      | string  | `null`  | A `timer_list.*` entity here receives timers started from the card. |
 | `default_timer_area`        | string  | `null`  | Area ID. New timers start on the timer list in that area, such as the kitchen Voice PE, when `default_timer_entity` is not set. |
-| `target_picker`             | string  | `auto`  | The **Rings on** line in the custom timer panel: `auto` (two or more timer lists), `always`, or `never`. |
+| `target_picker`             | string  | `auto`  | The **Put on a speaker** link in the custom timer panel: `auto` (when a speaker has a timer list), `always`, or `never`. |
 
-**Rings on.** With two or more timer lists, the custom timer panel shows one
-line, such as *Rings on Kitchen Voice PE*. Tap it to answer **Where should it
-ring?** from a list:
+**Put on a speaker.** When a voice speaker has a timer list, the custom timer
+panel shows **Put on a speaker**. Pick one, such as *Kitchen Voice PE*, and the
+timer runs on that speaker: it shows on the device, rings there, and can be
+cancelled by voice. It still shows on the card. Without a pick, the timer goes
+to the storage chosen in the editor.
 
-* **Dashboards**: the integration. No speaker; the timer rings on the card and
-  keeps running with dashboards closed.
-* **This browser** or **MQTT**: the card's own storage. Not offered with
-  `storage: integration`.
-* **Speakers**: every voice satellite, such as Voice PE, ESPHome, Wyoming and
-  VoIP, sorted by room and showing the model.
-* **Phones**: mobile app devices with a timer list.
+The list shows only speakers that support timers: voice satellites such as
+Voice PE and other ESPHome, Wyoming and VoIP satellites, then phones with a
+timer list. They are sorted by room and show the model. With more than five, a
+search box finds a speaker, room or model. To hear a timer on any other
+speaker, such as Sonos, Echo or Nest, use
+[Announce on a speaker](#-companion-integration).
 
-With more than five entries, a search box finds a speaker, room or model. A
-timer that does something when it ends always rings on Dashboards.
+A speaker timer cannot do something when it ends, so picking a speaker hides
+**Do something when it ends**, and choosing an action hides the speaker link.
 
 **Starting timers.** Presets, the custom timer input and pinned timers create
-a timer on the list picked under **Rings on**, then `default_timer_entity`,
+a timer on the speaker picked under **Put on a speaker**, then `default_timer_entity`,
 then the timer list in `default_timer_area`, then the integration with
 `storage: integration`, then the only timer list in `entities:` when no single
 native `timer.*` is listed. On a voice
@@ -1036,6 +1037,8 @@ device_timers:                      # Optional one-tap quick actions.
     name: Porch light on
   - command: lock the front door
     name: Lock up
+  - announce: media_player.kitchen_echo   # Speak when the timer ends.
+    message: The oven timer is done       # Optional.
 pinned_timers:
   - id: purifier_30
     name: Purifier off in 30m
@@ -1048,10 +1051,14 @@ pinned_timers:
 When the integration is installed, the custom timer panel stays simple and adds
 one link: **Do something when it ends**. It opens a short wizard:
 
-1. **Control a device** or **Say a command**, or pick one of your quick actions.
-2. For a device, search by name or room. Each result shows its area, device and
-   entity ID, so similar names are easy to tell apart.
-3. Pick what it should do: turn on, turn off, open, lock and so on.
+1. **Control a device**, **Say a command** or **Announce on a speaker**, or
+   pick one of your quick actions.
+2. For a device, search by name or room. Each result shows its area, device,
+   model and entity ID, so similar names are easy to tell apart. Then pick what
+   it should do: turn on, turn off, open, lock and so on.
+3. For an announcement, pick any speaker, then optionally type what to say.
+   Without a message it says *"Pasta is done"* for a named timer, or *"Your
+   timer is done"*.
 
 The panel then shows the choice as one pill, for example
 *Lock · Car, Driveway*. Tap it to change it, or × to remove it. The choice
@@ -1065,9 +1072,13 @@ it.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `device_timers` | list | none | Quick actions. Each entry is `entity` with an optional `service` (default `turn_off`; a name such as `open_cover` or a full action such as `cover.open_cover`), or `command`. Both accept `name` and `icon`. |
-| `on_finish` | object | none | On a pinned timer: `entity` and `service`, `command`, or `actions` (a Home Assistant action list). |
+| `device_timers` | list | none | Quick actions. Each entry is `entity` with an optional `service` (default `turn_off`; a name such as `open_cover` or a full action such as `cover.open_cover`), `command`, or `announce` with an optional `message`. All accept `name` and `icon`. |
+| `on_finish` | object | none | On a pinned timer: `entity` and `service`, `command`, `announce` and `message`, or `actions` (a Home Assistant action list). |
 | `action_timers` | boolean | `true` | Set `false` to hide **Do something when it ends**. |
+
+Announcements use `assist_satellite.announce` on voice satellites,
+`notify.alexa_media` on Alexa Media Player speakers, and `tts.speak` with your
+TTS engine (Home Assistant Cloud first) on other media players.
 
 Commands need the target entity to be exposed to Assist, as with any voice
 command. Device actions run as the user who started the timer, so Home

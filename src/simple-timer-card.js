@@ -233,10 +233,11 @@ const TRANSLATIONS = {
     month: "month", months: "months", year: "year", years: "years",
     hour: "hour", hours: "hours", minute: "minute", minutes: "minutes",
     second: "second", seconds: "seconds",
-    more_timers: "+{n} more", show_less: "Show less", start_on: "Start on", when_done: "When done",
+    more_timers: "+{n} more", show_less: "Show less", when_done: "When done",
     just_a_timer: "Just a timer", this_card: "This card", then_action: "then {action}", run_command: "Command",
-    rings_on: "Rings on", dashboards: "Dashboards", dashboards_desc: "No speaker. Keeps running with dashboards closed", this_browser: "This browser", this_browser_desc: "Only on this device", mqtt_desc: "Shared with every dashboard", search_targets: "Search speakers or rooms", for_the_action: "needed for the action",
-    where_ring: "Where should it ring?", speakers: "Speakers", phones: "Phones",
+    put_on_speaker: "Put on a speaker", choose_speaker: "Choose a speaker", announce_title: "Announce on a speaker", announce_desc: "Say something on any speaker when it ends", announce_on: "Announce on {speaker}", announce_message: "What to say (optional)", announce_plain: "Your timer is done", announce_named: "{name} is done",
+    search_targets: "Search speakers or rooms",
+    speakers: "Speakers", phones: "Phones",
     control_device: "Device", command_placeholder: "e.g. turn off the air purifier", choose_device: "Device", choose_action: "Action",
     needs_companion: "Install the Simple Timer Card integration to run actions when timers end.", timer_start_failed: "Could not start the timer: {error}", action_not_supported: "This timer doesn't support that.", group_other: "Other",
     group_voice: "Voice", group_pinned: "Pinned", group_since: "Since", group_template: "Template",
@@ -281,10 +282,11 @@ const TRANSLATIONS = {
     month: "Monat", months: "Monate", year: "Jahr", years: "Jahre",
     hour: "Stunde", hours: "Stunden", minute: "Minute", minutes: "Minuten",
     second: "Sekunde", seconds: "Sekunden",
-    more_timers: "+{n} weitere", show_less: "Weniger anzeigen", start_on: "Starten auf", when_done: "Danach",
+    more_timers: "+{n} weitere", show_less: "Weniger anzeigen", when_done: "Danach",
     just_a_timer: "Nur ein Timer", this_card: "Diese Karte", then_action: "danach {action}", run_command: "Befehl",
-    rings_on: "Klingelt auf", dashboards: "Dashboards", dashboards_desc: "Kein Lautsprecher. Läuft auch bei geschlossenen Dashboards", this_browser: "Dieser Browser", this_browser_desc: "Nur auf diesem Gerät", mqtt_desc: "Mit allen Dashboards geteilt", search_targets: "Lautsprecher oder Räume suchen", for_the_action: "für die Aktion nötig",
-    where_ring: "Wo soll er klingeln?", speakers: "Lautsprecher", phones: "Telefone",
+    put_on_speaker: "Auf einem Lautsprecher starten", choose_speaker: "Lautsprecher wählen", announce_title: "Auf einem Lautsprecher ansagen", announce_desc: "Am Ende etwas auf einem beliebigen Lautsprecher sagen", announce_on: "Ansage auf {speaker}", announce_message: "Was gesagt werden soll (optional)", announce_plain: "Dein Timer ist abgelaufen", announce_named: "{name} ist fertig",
+    search_targets: "Lautsprecher oder Räume suchen",
+    speakers: "Lautsprecher", phones: "Telefone",
     control_device: "Gerät", command_placeholder: "z. B. Luftreiniger ausschalten", choose_device: "Gerät", choose_action: "Aktion",
     needs_companion: "Installiere die Simple-Timer-Card-Integration, um beim Ablauf Aktionen auszuführen.", timer_start_failed: "Timer konnte nicht gestartet werden: {error}", action_not_supported: "Dieser Timer unterstützt das nicht.", group_other: "Sonstige",
     group_voice: "Sprache", group_pinned: "Angeheftet", group_since: "Seit", group_template: "Vorlage",
@@ -329,10 +331,11 @@ const TRANSLATIONS = {
     month: "mes", months: "meses", year: "año", years: "años",
     hour: "hora", hours: "horas", minute: "minuto", minutes: "minutos",
     second: "segundo", seconds: "segundos",
-    more_timers: "+{n} más", show_less: "Mostrar menos", start_on: "Iniciar en", when_done: "Al terminar",
+    more_timers: "+{n} más", show_less: "Mostrar menos", when_done: "Al terminar",
     just_a_timer: "Solo un temporizador", this_card: "Esta tarjeta", then_action: "después {action}", run_command: "Comando",
-    rings_on: "Suena en", dashboards: "Paneles", dashboards_desc: "Sin altavoz. Sigue funcionando con los paneles cerrados", this_browser: "Este navegador", this_browser_desc: "Solo en este dispositivo", mqtt_desc: "Compartido con todos los paneles", search_targets: "Buscar altavoces o habitaciones", for_the_action: "necesario para la acción",
-    where_ring: "¿Dónde debe sonar?", speakers: "Altavoces", phones: "Teléfonos",
+    put_on_speaker: "Poner en un altavoz", choose_speaker: "Elige un altavoz", announce_title: "Anunciar en un altavoz", announce_desc: "Decir algo en cualquier altavoz al terminar", announce_on: "Anunciar en {speaker}", announce_message: "Qué decir (opcional)", announce_plain: "Tu temporizador ha terminado", announce_named: "{name} ha terminado",
+    search_targets: "Buscar altavoces o habitaciones",
+    speakers: "Altavoces", phones: "Teléfonos",
     control_device: "Dispositivo", command_placeholder: "p. ej. apaga el purificador", choose_device: "Dispositivo", choose_action: "Acción",
     needs_companion: "Instala la integración Simple Timer Card para ejecutar acciones al terminar los temporizadores.", timer_start_failed: "No se pudo iniciar el temporizador: {error}", action_not_supported: "Este temporizador no admite esa acción.", group_other: "Otros",
     group_voice: "Voz", group_pinned: "Fijados", group_since: "Desde", group_template: "Plantilla",
@@ -377,10 +380,11 @@ const TRANSLATIONS = {
     month: "måned", months: "måneder", year: "år", years: "år",
     hour: "time", hours: "timer", minute: "minut", minutes: "minutter",
     second: "sekund", seconds: "sekunder",
-    more_timers: "+{n} mere", show_less: "Vis mindre", start_on: "Start på", when_done: "Når den er færdig",
+    more_timers: "+{n} mere", show_less: "Vis mindre", when_done: "Når den er færdig",
     just_a_timer: "Kun en timer", this_card: "Dette kort", then_action: "derefter {action}", run_command: "Kommando",
-    rings_on: "Ringer på", dashboards: "Dashboards", dashboards_desc: "Ingen højttaler. Kører videre med lukkede dashboards", this_browser: "Denne browser", this_browser_desc: "Kun på denne enhed", mqtt_desc: "Delt med alle dashboards", search_targets: "Søg efter højttalere eller rum", for_the_action: "kræves til handlingen",
-    where_ring: "Hvor skal den ringe?", speakers: "Højttalere", phones: "Telefoner",
+    put_on_speaker: "Sæt på en højttaler", choose_speaker: "Vælg en højttaler", announce_title: "Annoncér på en højttaler", announce_desc: "Sig noget på en vilkårlig højttaler, når den er færdig", announce_on: "Annoncér på {speaker}", announce_message: "Hvad der skal siges (valgfrit)", announce_plain: "Din timer er færdig", announce_named: "{name} er færdig",
+    search_targets: "Søg efter højttalere eller rum",
+    speakers: "Højttalere", phones: "Telefoner",
     control_device: "Enhed", command_placeholder: "f.eks. sluk luftrenseren", choose_device: "Enhed", choose_action: "Handling",
     needs_companion: "Installer Simple Timer Card-integrationen for at udføre handlinger, når timere slutter.", timer_start_failed: "Kunne ikke starte timeren: {error}", action_not_supported: "Denne timer understøtter ikke det.", group_other: "Andet",
     group_voice: "Stemme", group_pinned: "Fastgjort", group_since: "Siden", group_template: "Skabelon",
@@ -425,10 +429,11 @@ const TRANSLATIONS = {
     month: "mese", months: "mesi", year: "anno", years: "anni",
     hour: "ora", hours: "ore", minute: "minuto", minutes: "minuti",
     second: "secondo", seconds: "secondi",
-    more_timers: "+{n} altri", show_less: "Mostra meno", start_on: "Avvia su", when_done: "Al termine",
+    more_timers: "+{n} altri", show_less: "Mostra meno", when_done: "Al termine",
     just_a_timer: "Solo un timer", this_card: "Questa scheda", then_action: "poi {action}", run_command: "Comando",
-    rings_on: "Suona su", dashboards: "Dashboard", dashboards_desc: "Nessun altoparlante. Continua con le dashboard chiuse", this_browser: "Questo browser", this_browser_desc: "Solo su questo dispositivo", mqtt_desc: "Condiviso con tutte le dashboard", search_targets: "Cerca altoparlanti o stanze", for_the_action: "necessario per l'azione",
-    where_ring: "Dove deve suonare?", speakers: "Altoparlanti", phones: "Telefoni",
+    put_on_speaker: "Metti su un altoparlante", choose_speaker: "Scegli un altoparlante", announce_title: "Annuncia su un altoparlante", announce_desc: "Dì qualcosa su qualsiasi altoparlante al termine", announce_on: "Annuncia su {speaker}", announce_message: "Cosa dire (facoltativo)", announce_plain: "Il timer è terminato", announce_named: "{name} è terminato",
+    search_targets: "Cerca altoparlanti o stanze",
+    speakers: "Altoparlanti", phones: "Telefoni",
     control_device: "Dispositivo", command_placeholder: "es. spegni il purificatore", choose_device: "Dispositivo", choose_action: "Azione",
     needs_companion: "Installa l'integrazione Simple Timer Card per eseguire azioni allo scadere dei timer.", timer_start_failed: "Impossibile avviare il timer: {error}", action_not_supported: "Questo timer non lo supporta.", group_other: "Altro",
     group_voice: "Voce", group_pinned: "Fissati", group_since: "Da", group_template: "Modello",
@@ -473,10 +478,11 @@ const TRANSLATIONS = {
     month: "mois", months: "mois", year: "année", years: "années",
     hour: "heure", hours: "heures", minute: "minute", minutes: "minutes",
     second: "seconde", seconds: "secondes",
-    more_timers: "+{n} de plus", show_less: "Afficher moins", start_on: "Démarrer sur", when_done: "À la fin",
+    more_timers: "+{n} de plus", show_less: "Afficher moins", when_done: "À la fin",
     just_a_timer: "Juste un minuteur", this_card: "Cette carte", then_action: "puis {action}", run_command: "Commande",
-    rings_on: "Sonne sur", dashboards: "Tableaux de bord", dashboards_desc: "Sans enceinte. Continue avec les tableaux de bord fermés", this_browser: "Ce navigateur", this_browser_desc: "Uniquement sur cet appareil", mqtt_desc: "Partagé avec tous les tableaux de bord", search_targets: "Rechercher des enceintes ou des pièces", for_the_action: "requis pour l'action",
-    where_ring: "Où doit-il sonner ?", speakers: "Enceintes", phones: "Téléphones",
+    put_on_speaker: "Mettre sur une enceinte", choose_speaker: "Choisir une enceinte", announce_title: "Annoncer sur une enceinte", announce_desc: "Dire quelque chose sur n'importe quelle enceinte à la fin", announce_on: "Annoncer sur {speaker}", announce_message: "Quoi dire (facultatif)", announce_plain: "Votre minuteur est terminé", announce_named: "{name} est terminé",
+    search_targets: "Rechercher des enceintes ou des pièces",
+    speakers: "Enceintes", phones: "Téléphones",
     control_device: "Appareil", command_placeholder: "ex. éteins le purificateur", choose_device: "Appareil", choose_action: "Action",
     needs_companion: "Installez l'intégration Simple Timer Card pour lancer des actions à la fin des minuteurs.", timer_start_failed: "Impossible de démarrer le minuteur : {error}", action_not_supported: "Ce minuteur ne le permet pas.", group_other: "Autres",
     group_voice: "Voix", group_pinned: "Épinglés", group_since: "Depuis", group_template: "Modèle",
@@ -521,10 +527,11 @@ const TRANSLATIONS = {
     month: "חודש", months: "חודשים", year: "שנה", years: "שנים",
     hour: "שעה", hours: "שעות", minute: "דקה", minutes: "דקות",
     second: "שנייה", seconds: "שניות",
-    more_timers: "+{n} נוספים", show_less: "הצג פחות", start_on: "הפעלה ב", when_done: "בסיום",
+    more_timers: "+{n} נוספים", show_less: "הצג פחות", when_done: "בסיום",
     just_a_timer: "טיימר בלבד", this_card: "הכרטיס הזה", then_action: "ואז {action}", run_command: "פקודה",
-    rings_on: "יצלצל ב", dashboards: "לוחות בקרה", dashboards_desc: "בלי רמקול. ממשיך לפעול גם כשלוחות הבקרה סגורים", this_browser: "הדפדפן הזה", this_browser_desc: "רק במכשיר הזה", mqtt_desc: "משותף עם כל לוחות הבקרה", search_targets: "חיפוש רמקולים או חדרים", for_the_action: "נדרש לפעולה",
-    where_ring: "איפה לצלצל?", speakers: "רמקולים", phones: "טלפונים",
+    put_on_speaker: "הפעלה על רמקול", choose_speaker: "בחירת רמקול", announce_title: "הכרזה ברמקול", announce_desc: "להשמיע משהו בכל רמקול בסיום", announce_on: "הכרזה ב{speaker}", announce_message: "מה להגיד (לא חובה)", announce_plain: "הטיימר הסתיים", announce_named: "{name} הסתיים",
+    search_targets: "חיפוש רמקולים או חדרים",
+    speakers: "רמקולים", phones: "טלפונים",
     control_device: "מכשיר", command_placeholder: "למשל: כבה את מטהר האוויר", choose_device: "מכשיר", choose_action: "פעולה",
     needs_companion: "כדי להפעיל פעולות בסיום טיימר יש להתקין את האינטגרציה Simple Timer Card.", timer_start_failed: "לא ניתן להפעיל את הטיימר: {error}", action_not_supported: "הטיימר הזה לא תומך בזה.", group_other: "אחר",
     group_voice: "קולי", group_pinned: "מוצמדים", group_since: "מאז", group_template: "תבנית",
@@ -569,10 +576,11 @@ const TRANSLATIONS = {
     month: "miesiąc", months: "miesięcy", year: "rok", years: "lat",
     hour: "godzina", hours: "godzin", minute: "minuta", minutes: "minut",
     second: "sekunda", seconds: "sekund",
-    more_timers: "+{n} więcej", show_less: "Pokaż mniej", start_on: "Uruchom na", when_done: "Po zakończeniu",
+    more_timers: "+{n} więcej", show_less: "Pokaż mniej", when_done: "Po zakończeniu",
     just_a_timer: "Tylko minutnik", this_card: "Ta karta", then_action: "potem {action}", run_command: "Polecenie",
-    rings_on: "Zadzwoni na", dashboards: "Pulpity", dashboards_desc: "Bez głośnika. Działa także przy zamkniętych pulpitach", this_browser: "Ta przeglądarka", this_browser_desc: "Tylko na tym urządzeniu", mqtt_desc: "Udostępniane wszystkim pulpitom", search_targets: "Szukaj głośników lub pomieszczeń", for_the_action: "wymagane do akcji",
-    where_ring: "Gdzie ma zadzwonić?", speakers: "Głośniki", phones: "Telefony",
+    put_on_speaker: "Uruchom na głośniku", choose_speaker: "Wybierz głośnik", announce_title: "Ogłoś na głośniku", announce_desc: "Powiedz coś na dowolnym głośniku po zakończeniu", announce_on: "Ogłoś na {speaker}", announce_message: "Co powiedzieć (opcjonalnie)", announce_plain: "Twój minutnik się skończył", announce_named: "{name} – koniec",
+    search_targets: "Szukaj głośników lub pomieszczeń",
+    speakers: "Głośniki", phones: "Telefony",
     control_device: "Urządzenie", command_placeholder: "np. wyłącz oczyszczacz", choose_device: "Urządzenie", choose_action: "Akcja",
     needs_companion: "Zainstaluj integrację Simple Timer Card, aby uruchamiać akcje po zakończeniu minutników.", timer_start_failed: "Nie udało się uruchomić minutnika: {error}", action_not_supported: "Ten minutnik tego nie obsługuje.", group_other: "Inne",
     group_voice: "Głos", group_pinned: "Przypięte", group_since: "Od", group_template: "Szablon",
@@ -617,10 +625,11 @@ const TRANSLATIONS = {
     month: "maand", months: "maanden", year: "jaar", years: "jaren",
     hour: "uur", hours: "uren", minute: "minuut", minutes: "minuten",
     second: "seconde", seconds: "seconden",
-    more_timers: "+{n} meer", show_less: "Minder tonen", start_on: "Starten op", when_done: "Als klaar",
+    more_timers: "+{n} meer", show_less: "Minder tonen", when_done: "Als klaar",
     just_a_timer: "Alleen een timer", this_card: "Deze kaart", then_action: "daarna {action}", run_command: "Opdracht",
-    rings_on: "Gaat af op", dashboards: "Dashboards", dashboards_desc: "Geen speaker. Blijft lopen met gesloten dashboards", this_browser: "Deze browser", this_browser_desc: "Alleen op dit apparaat", mqtt_desc: "Gedeeld met alle dashboards", search_targets: "Zoek speakers of ruimtes", for_the_action: "nodig voor de actie",
-    where_ring: "Waar moet hij afgaan?", speakers: "Speakers", phones: "Telefoons",
+    put_on_speaker: "Op een speaker zetten", choose_speaker: "Kies een speaker", announce_title: "Omroepen op een speaker", announce_desc: "Zeg iets op een speaker als hij klaar is", announce_on: "Omroepen op {speaker}", announce_message: "Wat er gezegd moet worden (optioneel)", announce_plain: "Je timer is klaar", announce_named: "{name} is klaar",
+    search_targets: "Zoek speakers of ruimtes",
+    speakers: "Speakers", phones: "Telefoons",
     control_device: "Apparaat", command_placeholder: "bijv. zet de luchtreiniger uit", choose_device: "Apparaat", choose_action: "Actie",
     needs_companion: "Installeer de Simple Timer Card-integratie om acties uit te voeren als timers aflopen.", timer_start_failed: "Kan de timer niet starten: {error}", action_not_supported: "Deze timer ondersteunt dat niet.", group_other: "Overig",
     group_voice: "Spraak", group_pinned: "Vastgezet", group_since: "Sinds", group_template: "Sjabloon",
@@ -665,10 +674,11 @@ const TRANSLATIONS = {
     month: "månad", months: "månader", year: "år", years: "år",
     hour: "timme", hours: "timmar", minute: "minut", minutes: "minuter",
     second: "sekund", seconds: "sekunder",
-    more_timers: "+{n} till", show_less: "Visa mindre", start_on: "Starta på", when_done: "När klar",
+    more_timers: "+{n} till", show_less: "Visa mindre", when_done: "När klar",
     just_a_timer: "Bara en timer", this_card: "Det här kortet", then_action: "sedan {action}", run_command: "Kommando",
-    rings_on: "Ringer på", dashboards: "Instrumentpaneler", dashboards_desc: "Ingen högtalare. Fortsätter med stängda instrumentpaneler", this_browser: "Den här webbläsaren", this_browser_desc: "Bara på den här enheten", mqtt_desc: "Delas med alla instrumentpaneler", search_targets: "Sök högtalare eller rum", for_the_action: "krävs för åtgärden",
-    where_ring: "Var ska den ringa?", speakers: "Högtalare", phones: "Telefoner",
+    put_on_speaker: "Lägg på en högtalare", choose_speaker: "Välj en högtalare", announce_title: "Meddela på en högtalare", announce_desc: "Säg något på valfri högtalare när den är klar", announce_on: "Meddela på {speaker}", announce_message: "Vad som ska sägas (valfritt)", announce_plain: "Din timer är klar", announce_named: "{name} är klar",
+    search_targets: "Sök högtalare eller rum",
+    speakers: "Högtalare", phones: "Telefoner",
     control_device: "Enhet", command_placeholder: "t.ex. stäng av luftrenaren", choose_device: "Enhet", choose_action: "Åtgärd",
     needs_companion: "Installera integrationen Simple Timer Card för att köra åtgärder när timrar tar slut.", timer_start_failed: "Kunde inte starta timern: {error}", action_not_supported: "Den här timern stöder inte det.", group_other: "Övrigt",
     group_voice: "Röst", group_pinned: "Fästa", group_since: "Sedan", group_template: "Mall",
@@ -2397,31 +2407,36 @@ class SimpleTimerCard extends LitElement {
     return (this._knownTimerLists || []).filter((id) => this._timerListFeatures(this.hass?.states?.[id]).create);
   }
 
+  // Speakers a timer can be put on: timer lists other than the companion.
+  _speakerLists() {
+    return this._pickerTimerLists().filter((id) => !this._isCompanionList(id));
+  }
+
   _showTargetPicker() {
     const mode = String(this._config?.target_picker ?? "auto").toLowerCase();
     if (mode === "never" || mode === "false") return false;
-    const lists = this._pickerTimerLists();
-    if (mode === "always" || mode === "true") return lists.length > 0;
-    return lists.length >= 2;
+    return this._speakerLists().length > 0;
   }
 
-  // The user's pick in the custom timer panel, if it is still valid.
+  // The speaker picked in the custom timer panel, if it is still valid.
   _activeTargetChoice() {
     const choice = this._targetChoice;
-    if (!choice) return null;
-    if (choice === "card") return this._showTargetPicker() && this._config?.storage !== "integration" ? { kind: "card" } : null;
-    if (choice.startsWith("list:")) {
-      const entity = choice.slice(5);
-      return this._pickerTimerLists().includes(entity) ? { kind: "timer_list", entity } : null;
-    }
-    return null;
+    if (typeof choice !== "string" || !choice.startsWith("list:")) return null;
+    const entity = choice.slice(5);
+    return this._speakerLists().includes(entity) ? { kind: "timer_list", entity } : null;
+  }
+
+  // The speaker a new timer goes to: the pick, else a default speaker.
+  _currentSpeaker() {
+    const active = this._activeTargetChoice();
+    if (active) return active.entity;
+    const list = this._resolveTimerListTarget(null);
+    return list && !this._isCompanionList(list) ? list : null;
   }
 
   _currentTargetValue() {
-    const active = this._activeTargetChoice();
-    if (active) return active.kind === "card" ? "card" : `list:${active.entity}`;
-    const list = this._resolveTimerListTarget(null);
-    return list ? `list:${list}` : "card";
+    const speaker = this._currentSpeaker();
+    return speaker ? `list:${speaker}` : "";
   }
 
   _timerListChipLabel(entityId) {
@@ -2433,13 +2448,6 @@ class SimpleTimerCard extends LitElement {
   }
 
   _targetDestination(entityId) {
-    if (this._isCompanionList(entityId)) {
-      return {
-        value: `list:${entityId}`, icon: "mdi:view-dashboard-outline", order: 0,
-        title: this._localize("dashboards"), sub: this._localize("dashboards_desc"),
-        search: `${this._localize("dashboards")} simple timer card`.toLowerCase(),
-      };
-    }
     const info = this._registryInfo(entityId);
     const title = this._timerListChipLabel(entityId);
     const ent = this.hass?.entities?.[entityId];
@@ -2448,45 +2456,47 @@ class SimpleTimerCard extends LitElement {
     const phone = ent?.platform === "mobile_app";
     const icon = phone ? "mdi:cellphone" : ent?.platform === "voip" ? "mdi:phone-classic" : "mdi:speaker";
     return {
-      value: `list:${entityId}`, icon, order: phone ? 2 : 1, group: phone ? "phones" : "speakers", title,
+      value: `list:${entityId}`, icon, order: phone ? 1 : 0, group: phone ? "phones" : "speakers", title,
       sub: [info.area, model].filter(Boolean).join(" · "), area: info.area || "",
       search: [title, info.area, info.device, model, entityId].filter(Boolean).join(" ").toLowerCase(),
     };
   }
 
-  // Every place a new timer can ring: dashboards first, then speakers and
-  // phones sorted by area so a house full of them stays easy to scan.
+  // Speakers, then phones, sorted by area so a house full of them stays easy to scan.
   _targetDestinations() {
-    const out = this._pickerTimerLists().map((id) => this._targetDestination(id));
-    if (this._config?.storage !== "integration") {
-      const mqtt = this._cardStorage() === "mqtt";
-      out.push({
-        value: "card", order: 0, icon: mqtt ? "mdi:server-network" : "mdi:web",
-        title: mqtt ? "MQTT" : this._localize("this_browser"),
-        sub: this._localize(mqtt ? "mqtt_desc" : "this_browser_desc"),
-        search: `${mqtt ? "mqtt" : this._localize("this_browser")} ${this._localize("this_card")}`.toLowerCase(),
-      });
-    }
-    return out.sort((a, b) => a.order - b.order || String(a.area || "").localeCompare(String(b.area || "")) || a.title.localeCompare(b.title));
+    return this._speakerLists().map((id) => this._targetDestination(id))
+      .sort((a, b) => a.order - b.order || String(a.area || "").localeCompare(String(b.area || "")) || a.title.localeCompare(b.title));
   }
 
-  // One quiet line under the panel instead of a chip per speaker.
+  // "Put on a speaker" is optional: a link, or the chosen speaker as a pill.
+  // A timer that does something when it ends stays in Home Assistant, so the
+  // two choices exclude each other.
   _renderTargetLine(which) {
     if (!this._showTargetPicker()) return "";
-    const companion = this._companionList();
-    const forAction = !!(companion && this._actionPickerEnabled() && this._actionDraftSpec());
-    const value = forAction ? `list:${companion}` : this._currentTargetValue();
-    const dest = this._targetDestinations().find((d) => d.value === value) ||
-      (value.startsWith("list:") ? this._targetDestination(value.slice(5)) : null);
-    if (!dest) return "";
-    const text = html`<span class="target-text">${this._localize("rings_on")} <strong>${dest.title}</strong>${forAction ? html` · ${this._localize("for_the_action")}` : ""}</span>`;
+    if (this._actionPickerEnabled() && this._actionDraftSpec()) return "";
+    const speaker = this._currentSpeaker();
+    if (!speaker) {
+      return html`
+        <div class="action-entry">
+          <button type="button" class="action-link" @click=${() => this._openActionWizard(which, "target")}>
+            <ha-icon icon="mdi:speaker"></ha-icon>${this._localize("put_on_speaker")}
+          </button>
+        </div>
+      `;
+    }
+    const dest = this._targetDestination(speaker);
     return html`
       <div class="action-entry">
-        ${forAction
-          ? html`<span class="target-link static"><ha-icon icon=${dest.icon}></ha-icon>${text}</span>`
-          : html`<button type="button" class="target-link" @click=${() => this._openActionWizard(which, "target")}>
-              <ha-icon icon=${dest.icon}></ha-icon>${text}<ha-icon class="chevron" icon="mdi:chevron-down"></ha-icon>
-            </button>`}
+        <span class="action-pill">
+          <button type="button" class="action-pill-main" @click=${() => this._openActionWizard(which, "target")}>
+            <ha-icon icon=${dest.icon}></ha-icon><span>${dest.title}</span>
+          </button>
+          ${this._activeTargetChoice() ? html`
+            <button type="button" class="action-pill-clear" aria-label=${this._localize("close")}
+              @click=${() => { this._targetChoice = null; }}>
+              <ha-icon icon="mdi:close"></ha-icon>
+            </button>` : ""}
+        </span>
       </div>
     `;
   }
@@ -2495,7 +2505,7 @@ class SimpleTimerCard extends LitElement {
     const all = this._targetDestinations();
     const query = String(this._targetQuery || "").trim().toLowerCase();
     const current = this._currentTargetValue();
-    const shown = query ? all.filter((d) => d.search.includes(query) || d.title.toLowerCase().includes(query)) : all;
+    const shown = query ? all.filter((d) => d.search.includes(query)) : all;
     const pick = (value) => { this._targetChoice = value; this._targetQuery = ""; this._closeActionWizard(true); };
     return html`
       ${all.length > 5 ? html`
@@ -2504,9 +2514,9 @@ class SimpleTimerCard extends LitElement {
           placeholder=${this._localize("search_targets")}
           aria-label=${this._localize("search_targets")}
           @input=${(e) => { this._targetQuery = e.target.value; this.requestUpdate(); }}>` : ""}
-      <div class="wizard-list" role="listbox" aria-label=${this._localize("where_ring")}>
+      <div class="wizard-list" role="listbox" aria-label=${this._localize("put_on_speaker")}>
         ${shown.map((d, i) => html`
-          ${!query && d.group && d.group !== shown[i - 1]?.group ? html`<div class="wizard-section">${this._localize(d.group)}</div>` : ""}
+          ${!query && d.group !== shown[i - 1]?.group && new Set(all.map((x) => x.group)).size > 1 ? html`<div class="wizard-section">${this._localize(d.group)}</div>` : ""}
           <button type="button" class="wizard-row ${d.value === current ? "selected" : ""}" role="option"
             aria-selected=${String(d.value === current)} @click=${() => pick(d.value)}>
             <ha-icon class="row-icon" icon=${d.icon}></ha-icon>
@@ -2519,7 +2529,8 @@ class SimpleTimerCard extends LitElement {
   }
 
   _renderTargetPicker(which) {
-    return html`${this._renderActionEntry(which)}${this._renderTargetLine(which)}`;
+    // A speaker timer cannot run an action, so a chosen speaker hides the link.
+    return html`${this._activeTargetChoice() ? "" : this._renderActionEntry(which)}${this._renderTargetLine(which)}`;
   }
 
   // === Action timers via the companion integration (v3.0.0) ===
@@ -2540,6 +2551,13 @@ class SimpleTimerCard extends LitElement {
     if (Array.isArray(conf.actions) && conf.actions.length) {
       return { key: `actions:${JSON.stringify(conf.actions)}`, name, icon, actions: conf.actions };
     }
+    const announce = String(conf.announce || "").trim();
+    if (announce) {
+      const message = conf.message ? String(conf.message).trim() : "";
+      const actions = ENTITY_ID_RE.test(announce) ? this._announceActions(announce, message || this._localize("announce_plain")) : null;
+      if (!actions) return null;
+      return { key: `announce:${announce}:${message}`, name, icon: icon || "mdi:bullhorn-outline", announce, message, actions };
+    }
     const entity = String(conf.entity || conf.entity_id || "").trim();
     if (!ENTITY_ID_RE.test(entity)) return null;
     let service = String(conf.service || conf.action || "turn_off").trim();
@@ -2558,6 +2576,60 @@ class SimpleTimerCard extends LitElement {
   _actionPickerEnabled() {
     if (this._config?.action_timers === false) return false;
     return !!this._companionList();
+  }
+
+  // === Announce on a speaker (v3.0.0) ===
+  //
+  // Voice satellites announce natively, Alexa Media Player speakers through
+  // notify.alexa_media, and other media players through a TTS entity.
+
+  _ttsEntity() {
+    const ids = Object.keys(this.hass?.states || {}).filter((id) => id.startsWith("tts.")).sort();
+    return ids.includes("tts.home_assistant_cloud") ? "tts.home_assistant_cloud" : (ids[0] || null);
+  }
+
+  _announceActions(entityId, message) {
+    const domain = String(entityId || "").split(".")[0];
+    if (domain === "assist_satellite") {
+      return [{ action: "assist_satellite.announce", target: { entity_id: entityId }, data: { message } }];
+    }
+    if (domain !== "media_player") return null;
+    if (this.hass?.entities?.[entityId]?.platform === "alexa_media" && this.hass?.services?.notify?.alexa_media) {
+      return [{ action: "notify.alexa_media", data: { message, target: [entityId], data: { type: "announce" } } }];
+    }
+    const tts = this._ttsEntity();
+    if (!tts) return null;
+    return [{ action: "tts.speak", target: { entity_id: tts }, data: { media_player_entity_id: entityId, message } }];
+  }
+
+  // The speaker an announce step speaks on, or null for other actions.
+  _announceTarget(step) {
+    const service = step?.action || step?.service;
+    let id = null;
+    if (service === "assist_satellite.announce") id = step.target?.entity_id ?? step.entity_id;
+    else if (service === "notify.alexa_media") id = step.data?.target;
+    else if (service === "tts.speak") id = step.data?.media_player_entity_id;
+    else return null;
+    return Array.isArray(id) ? (id[0] || null) : (id || null);
+  }
+
+  _searchAnnounceSpeakers(query) {
+    const q = String(query || "").trim().toLowerCase();
+    const out = [];
+    for (const [id, st] of Object.entries(this.hass?.states || {})) {
+      const domain = id.split(".")[0];
+      const features = Number(st?.attributes?.supported_features) || 0;
+      if (domain === "assist_satellite") {
+        if (!(features & 1)) continue;
+      } else if (domain === "media_player") {
+        if (!(features & 512) || !this._announceActions(id, "-")) continue;
+      } else continue;
+      if (this.hass?.entities?.[id]?.hidden) continue;
+      const info = this._registryInfo(id);
+      if (q && ![this._entityName(id), info.area, info.device, id].filter(Boolean).join(" ").toLowerCase().includes(q)) continue;
+      out.push({ id, area: info.area || "\uffff", name: this._entityName(id) });
+    }
+    return out.sort((a, b) => a.area.localeCompare(b.area) || a.name.localeCompare(b.name)).map((x) => x.id);
   }
 
   _serviceLabel(service) {
@@ -2582,6 +2654,11 @@ class SimpleTimerCard extends LitElement {
     const steps = Array.isArray(action.actions) ? action.actions : [];
     const step = steps[0];
     if (!step || typeof step !== "object") return "";
+    const speaker = this._announceTarget(step);
+    if (speaker) {
+      const said = this._localize("announce_on").replace("{speaker}", this._entityName(speaker));
+      return steps.length > 1 ? `${said} +${steps.length - 1}` : said;
+    }
     const service = step.action || step.service || "";
     const targets = step.target?.entity_id ?? step.entity_id ?? step.data?.entity_id;
     const ids = Array.isArray(targets) ? targets : (targets ? [targets] : []);
@@ -2641,6 +2718,7 @@ class SimpleTimerCard extends LitElement {
     if (!draft || !draft.mode || draft.mode === "none") return null;
     if (draft.mode === "command") return this._normalizeActionSpec({ command: draft.command });
     if (draft.mode === "device") return this._normalizeActionSpec({ entity: draft.entity, service: draft.service });
+    if (draft.mode === "announce") return draft.speaker ? this._normalizeActionSpec({ announce: draft.speaker, message: draft.message }) : null;
     if (draft.mode.startsWith("fav:")) return this._favoriteActions().find((f) => `fav:${f.key}` === draft.mode) || null;
     return null;
   }
@@ -2664,7 +2742,7 @@ class SimpleTimerCard extends LitElement {
       `;
     }
     const draft = this._actionDraft || {};
-    const step = draft.mode === "command" ? "command" : (draft.mode === "device" ? "action" : "type");
+    const step = { command: "command", device: "action", announce: "announce" }[draft.mode] || "type";
     return html`
       <div class="action-entry">
         <span class="action-pill">
@@ -2732,6 +2810,10 @@ class SimpleTimerCard extends LitElement {
   _actionPillText(spec) {
     if (spec.name) return spec.name;
     if (spec.command) return `“${spec.command}”`;
+    if (spec.announce) {
+      const area = this._registryInfo(spec.announce).area;
+      return `${this._actionSummary(spec)}${area ? `, ${area}` : ""}`;
+    }
     if (spec.entity) {
       const area = this._registryInfo(spec.entity).area;
       return `${this._serviceLabel(spec.service)} · ${this._entityName(spec.entity)}${area ? `, ${area}` : ""}`;
@@ -2741,7 +2823,13 @@ class SimpleTimerCard extends LitElement {
 
   _renderEntityRow(entityId, onClick) {
     const info = this._registryInfo(entityId);
-    const sub = [info.area, info.device && info.device !== this._entityName(entityId) ? info.device : null].filter(Boolean).join(" · ");
+    const name = this._entityName(entityId);
+    const ent = this.hass?.entities?.[entityId];
+    const model = ent?.device_id ? this.hass?.devices?.[ent.device_id]?.model : null;
+    // Area, device and model tell apart entities that share a name, such as
+    // an Alexa and a Sonos entity both called after the room.
+    const parts = [info.area, info.device, model].filter((part, i, all) => part && part !== name && all.indexOf(part) === i);
+    const sub = parts.join(" · ");
     return html`
       <button type="button" class="wizard-row" @click=${onClick}>
         <ha-icon class="row-icon" icon=${this._domainIcon(entityId)}></ha-icon>
@@ -2757,13 +2845,15 @@ class SimpleTimerCard extends LitElement {
   _renderActionWizard() {
     const step = this._actionWizard?.step || "type";
     const draft = this._actionDraft || { mode: "none" };
-    const back = { device: "type", command: "type", action: "device" }[step];
+    const back = { device: "type", command: "type", action: "device", speaker: "type", announce: "speaker" }[step];
     const titles = {
-      target: this._localize("where_ring"),
+      target: this._localize("put_on_speaker"),
       type: this._localize("when_it_ends"),
       device: this._localize("control_device_title"),
       action: this._localize("what_to_do"),
       command: this._localize("run_command_title"),
+      speaker: this._localize("choose_speaker"),
+      announce: this._localize("announce_title"),
     };
     const head = html`
       <div class="wizard-head">
@@ -2791,6 +2881,10 @@ class SimpleTimerCard extends LitElement {
           <button type="button" class="wizard-row" @click=${() => { this._setActionDraft({ mode: "command" }); this._wizardStep("command"); }}>
             <ha-icon class="row-icon" icon="mdi:microphone-message"></ha-icon>
             <span class="row-text"><span class="row-title">${this._localize("run_command_title")}</span><span class="row-sub">${this._localize("run_command_desc")}</span></span>
+          </button>
+          <button type="button" class="wizard-row" @click=${() => { this._setActionDraft({ mode: "announce" }); this._wizardStep(draft.speaker ? "announce" : "speaker"); }}>
+            <ha-icon class="row-icon" icon="mdi:bullhorn-outline"></ha-icon>
+            <span class="row-text"><span class="row-title">${this._localize("announce_title")}</span><span class="row-sub">${this._localize("announce_desc")}</span></span>
           </button>
           ${favorites.length ? html`
             <div class="wizard-section">${this._localize("quick_actions")}</div>
@@ -2831,6 +2925,35 @@ class SimpleTimerCard extends LitElement {
           `)}
         </div>
       `;
+    } else if (step === "speaker") {
+      const results = this._searchAnnounceSpeakers(draft.speakerQuery);
+      body = html`
+        <input class="text-input wizard-input" type="search"
+          .value=${draft.speakerQuery || ""}
+          placeholder=${this._localize("search_targets")}
+          aria-label=${this._localize("search_targets")}
+          @input=${(e) => this._setActionDraft({ speakerQuery: e.target.value })}>
+        <div class="wizard-list">
+          ${results.length
+            ? results.map((id) => this._renderEntityRow(id, () => { this._setActionDraft({ mode: "announce", speaker: id, speakerQuery: "" }); this._wizardStep("announce"); }))
+            : html`<div class="wizard-hint">${this._localize("type_to_search")}</div>`}
+        </div>
+      `;
+    } else if (step === "announce") {
+      const finish = () => { this._setActionDraft({ mode: "announce" }); this._closeActionWizard(true); };
+      body = html`
+        ${draft.speaker ? this._renderEntityRow(draft.speaker, () => this._wizardStep("speaker")) : ""}
+        <input class="text-input wizard-input" type="text"
+          .value=${draft.message || ""}
+          placeholder=${this._localize("announce_plain")}
+          aria-label=${this._localize("announce_message")}
+          @input=${(e) => this._setActionDraft({ message: e.target.value })}
+          @keydown=${(e) => { if (e.key === "Enter") finish(); }}>
+        <div class="wizard-hint">${this._localize("announce_message")}</div>
+        <div class="picker-actions">
+          <button type="button" class="btn btn-primary" ?disabled=${!draft.speaker} @click=${finish}>${this._localize("done")}</button>
+        </div>
+      `;
     } else {
       const ready = !!String(draft.command || "").trim();
       body = html`
@@ -2860,7 +2983,12 @@ class SimpleTimerCard extends LitElement {
     if (!spec) return false;
     const name = label && String(label).trim() ? String(label).trim() : (spec.name || "");
     const meta = this._timerListMetaFromOverrides({ ...overrides, icon: overrides.icon || spec.icon || undefined });
-    const extra = spec.command ? { command: spec.command } : { actions: spec.actions };
+    let actions = spec.actions;
+    if (spec.announce && !spec.message) {
+      const message = name ? this._localize("announce_named").replace("{name}", name) : this._localize("announce_plain");
+      actions = this._announceActions(spec.announce, message) || actions;
+    }
+    const extra = spec.command ? { command: spec.command } : { actions };
     this._createTimerListTimer(listId, durationMs, name, meta, extra);
     this.requestUpdate();
     return true;
@@ -4021,7 +4149,6 @@ class SimpleTimerCard extends LitElement {
       this.requestUpdate();
       return;
     }
-    const skipTimerLists = choice?.kind === "card";
 
     let targetEntity = entity;
     if (!targetEntity && this._config.auto_voice_pe === true) {
@@ -4057,7 +4184,7 @@ class SimpleTimerCard extends LitElement {
       return;
     }
 
-    const timerListTarget = skipTimerLists ? null : this._resolveTimerListTarget(targetEntity);
+    const timerListTarget = this._resolveTimerListTarget(targetEntity);
     if (timerListTarget) {
       const userProvidedName = overrides?.voice_pe_name && String(overrides.voice_pe_name).trim() ? String(overrides.voice_pe_name).trim() : "";
       this._createTimerListTimer(timerListTarget, durationMs, userProvidedName, this._timerListMetaFromOverrides(overrides));
@@ -5104,7 +5231,6 @@ class SimpleTimerCard extends LitElement {
       this.requestUpdate();
       return true;
     }
-    const skipTimerLists = choice?.kind === "card";
 
     let targetEntity = this._config.default_timer_entity || "";
     if (this._config.auto_voice_pe === true) {
@@ -5145,7 +5271,7 @@ class SimpleTimerCard extends LitElement {
       return true;
     }
 
-    const timerListTarget = skipTimerLists ? null : this._resolveTimerListTarget(targetEntity);
+    const timerListTarget = this._resolveTimerListTarget(targetEntity);
     if (timerListTarget) {
       const userProvidedName = userLabel;
       this._createTimerListTimer(timerListTarget, durationMs, userProvidedName);
@@ -6207,7 +6333,7 @@ class SimpleTimerCard extends LitElement {
   }
 
   _deviceNameFor(t) {
-    if (this._isCompanionList(t?.source_entity)) return this._localize("dashboards");
+    if (this._isCompanionList(t?.source_entity)) return "";
     const info = this._registryInfo(t.source_entity);
     return info.device || t.device_base_name || this.hass?.states?.[t.source_entity]?.attributes?.friendly_name || t.source_entity || "";
   }
@@ -6264,7 +6390,7 @@ class SimpleTimerCard extends LitElement {
   _actionEntity(t) {
     const action = t?.timer_action || t?.on_finish;
     const step = Array.isArray(action?.actions) ? action.actions[0] : null;
-    const target = step?.target?.entity_id ?? step?.entity_id;
+    const target = this._announceTarget(step) ?? step?.target?.entity_id ?? step?.entity_id;
     return Array.isArray(target) ? target[0] : (target || null);
   }
 
@@ -6537,13 +6663,6 @@ const layout = this._config.layout;
       .action-link { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border: 0; background: none; color: var(--primary-color); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; border-radius: var(--stc-chip-radius); }
       .action-link:hover { background: color-mix(in srgb, var(--primary-color) 10%, transparent); }
       .action-link ha-icon { --mdc-icon-size: 18px; }
-      .target-link { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; min-width: 0; padding: 4px 8px; border: 0; background: none; color: var(--secondary-text-color); font: inherit; font-size: 12px; cursor: pointer; border-radius: var(--stc-chip-radius); }
-      .target-link:hover { background: var(--secondary-background-color, rgba(0,0,0,.06)); }
-      .target-link.static { cursor: default; }
-      .target-link.static:hover { background: none; }
-      .target-link ha-icon { --mdc-icon-size: 16px; flex: 0 0 auto; }
-      .target-link strong { color: var(--primary-text-color); font-weight: 600; }
-      .target-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
       .action-entry + .action-entry { margin-top: 2px; }
       .action-pill { display: inline-flex; align-items: center; max-width: 100%; border-radius: var(--stc-chip-radius); background: color-mix(in srgb, var(--primary-color) 14%, var(--card-background-color)); color: var(--primary-color); }
       .action-pill button { border: 0; background: none; color: inherit; font: inherit; cursor: pointer; display: inline-flex; align-items: center; }
@@ -7761,7 +7880,7 @@ _pinnedTimerValueChanged(ev, index) {
         { value: "integration", label: "Simple Timer Card integration" },
       ],
       target_picker: [
-        { value: "auto", label: "Auto (when several timer lists)" },
+        { value: "auto", label: "Auto (when a speaker supports timers)" },
         { value: "always", label: "Always" },
         { value: "never", label: "Never" },
       ],
@@ -8147,7 +8266,7 @@ _pinnedTimerValueChanged(ev, index) {
           .configValue=${"default_timer_area"}
           @value-changed=${this._detailValueChanged}
         ></ha-selector>
-        <ha-select label="Start-on picker" helper="Let users choose which timer list a new timer starts on." naturalMenuWidth fixedMenuPosition .value=${this._config.target_picker || "auto"} .configValue=${"target_picker"} .options=${SELECT_OPTIONS.target_picker} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
+        <ha-select label="Put on a speaker" helper="Let users put a new timer on a voice speaker that supports timers." naturalMenuWidth fixedMenuPosition .value=${this._config.target_picker || "auto"} .configValue=${"target_picker"} .options=${SELECT_OPTIONS.target_picker} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
           ${SELECT_OPTIONS.target_picker.map((o) => html`<mwc-list-item value=${o.value}>${o.label}</mwc-list-item>`)}
         </ha-select>
       </div>

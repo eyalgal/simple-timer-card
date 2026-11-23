@@ -198,31 +198,48 @@ test("the companion as default target is not mistaken for MQTT storage", () => {
   assert.equal(card._config.mqtt.sensor_entity, null);
 });
 
-test("the ring-on list puts dashboards first, then speakers by area, and hides this browser with integration storage", () => {
+test("Put on a speaker lists only speakers, by kind and area, and hides the action link once picked", () => {
   const speakers = {};
   const entities = {};
   for (const [id, area] of [["office", "office"], ["kitchen", "kitchen"], ["bedroom", "bedroom"]]) {
     speakers[`timer_list.${id}`] = { state: "0", attributes: { friendly_name: `${id} timers`, supported_features: 63 } };
-    entities[`timer_list.${id}`] = { area_id: area };
+    entities[`timer_list.${id}`] = { area_id: area, platform: "esphome" };
   }
-  const run = (storage) => {
-    const { card } = makeCard({ storage, auto_discover_timer_lists: true }, { states: speakers });
-    card.hass.entities = entities;
-    card.hass.areas = { office: { name: "Office" }, kitchen: { name: "Kitchen" }, bedroom: { name: "Bedroom" } };
-    card._updateTimers();
-    return card;
-  };
-  const card = run("integration");
+  const { card } = makeCard({ storage: "integration", auto_discover_timer_lists: true }, { states: speakers });
+  card.hass.entities = entities;
+  card.hass.areas = { office: { name: "Office" }, kitchen: { name: "Kitchen" }, bedroom: { name: "Bedroom" } };
+  card._updateTimers();
   assert.deepEqual(card._targetDestinations().map((d) => d.value),
-    [`list:${LIST}`, "list:timer_list.bedroom", "list:timer_list.kitchen", "list:timer_list.office"]);
-  assert.equal(card._currentTargetValue(), `list:${LIST}`);
+    ["list:timer_list.bedroom", "list:timer_list.kitchen", "list:timer_list.office"]);
+  assert.equal(card._currentSpeaker(), null, "the integration is the default, not a speaker");
+  entities["timer_list.office"].platform = "mobile_app";
+  assert.deepEqual(card._targetDestinations().map((d) => d.group), ["speakers", "speakers", "phones"]);
+  card._targetChoice = "list:timer_list.kitchen";
+  assert.equal(card._currentSpeaker(), "timer_list.kitchen");
+  assert.equal(card._renderTargetPicker("horizontal").strings.join("").includes("action-entry"), false);
   card._targetQuery = "kitch";
-  card._openActionWizard("horizontal", "target");
-  assert.equal(card._actionWizard.step, "target");
   card._closeActionWizard(false);
   assert.equal(card._targetQuery, "");
-  assert.deepEqual(run("local")._targetDestinations().slice(0, 2).map((d) => d.value), [`list:${LIST}`, "card"]);
-  card.hass.entities["timer_list.office"].platform = "mobile_app";
-  assert.deepEqual(card._targetDestinations().map((d) => d.group || "dashboards"),
-    ["dashboards", "speakers", "speakers", "phones"]);
+});
+
+test("announce on a speaker uses the right service for each kind of speaker", async () => {
+  const { card, ws } = makeCard({}, { states: {
+    "assist_satellite.kitchen": { state: "idle", attributes: { friendly_name: "Kitchen satellite", supported_features: 1 } },
+    "media_player.echo": { state: "idle", attributes: { friendly_name: "Kitchen Echo", supported_features: 318399 } },
+    "media_player.sonos": { state: "idle", attributes: { friendly_name: "Dining Sonos", supported_features: 512 } },
+    "media_player.spotify": { state: "idle", attributes: { friendly_name: "Spotify", supported_features: 2048 } },
+    "tts.home_assistant_cloud": { state: "unknown", attributes: {} },
+  } });
+  card.hass.entities = { "media_player.echo": { platform: "alexa_media" } };
+  card.hass.services.notify = { alexa_media: {} };
+  assert.deepEqual(card._searchAnnounceSpeakers("").sort(), ["assist_satellite.kitchen", "media_player.echo", "media_player.sonos"]);
+  assert.equal(card._announceActions("assist_satellite.kitchen", "hi")[0].action, "assist_satellite.announce");
+  assert.deepEqual(card._announceActions("media_player.echo", "hi")[0].data, { message: "hi", target: ["media_player.echo"], data: { type: "announce" } });
+  assert.deepEqual(card._announceActions("media_player.sonos", "hi")[0], { action: "tts.speak", target: { entity_id: "tts.home_assistant_cloud" }, data: { media_player_entity_id: "media_player.sonos", message: "hi" } });
+
+  card._setActionDraft({ mode: "announce", speaker: "media_player.sonos" });
+  assert.equal(card._actionSummary(card._actionDraftSpec()), "Announce on Dining Sonos");
+  card._createAndSaveTimer(300, "Pasta");
+  await flush();
+  assert.equal(ws[0].service_data.actions[0].data.message, "Pasta is done");
 });

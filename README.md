@@ -67,8 +67,9 @@ v3.0.0 also adds:
   timers. Choose it with `storage: integration`, next to browser and MQTT
   storage, which keep working unchanged. See
   [Companion integration](CONFIGURATION.md#-companion-integration).
-* A **Rings on** line and **default area** for choosing which speaker or phone
-  a new timer rings on, plus device or area labels and `group_by`.
+* **Put on a speaker** and **default area** for running a timer on a voice
+  speaker, and **Announce on a speaker** (Sonos, Echo, Nest…) when a timer
+  ends, plus device or area labels and `group_by`.
 * **Browser voice satellites** (Voice Satellite Card integration), **count-up
   rows** ("fed 1h 40m ago") and **template rows** from Jinja.
 * `ring_animation`, `hide_when_empty` and `max_rows` for wall tablets.
