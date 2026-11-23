@@ -2431,14 +2431,16 @@ class SimpleTimerCard extends i$2 {
     const cardSelected = active ? active.kind === "card" : !defaultList;
     const pick = (value) => { this._targetChoice = value; };
     return b`
-      <div class="target-row" role="group" aria-label=${this._localize("start_on")}>
-        <span class="target-label">${this._localize("start_on")}</span>
-        ${this._pickerTimerLists().map((id) => b`
-          <button type="button" class="chip ${listSelected(id) ? "selected" : ""}" aria-pressed=${String(listSelected(id))}
-            @click=${() => pick(`list:${id}`)}>${this._timerListChipLabel(id)}</button>
-        `)}
-        <button type="button" class="chip ${cardSelected ? "selected" : ""}" aria-pressed=${String(cardSelected)}
-          @click=${() => pick("card")}>${this._localize("this_card")}</button>
+      <div class="picker-section">
+        <span class="picker-section-label">${this._localize("start_on")}</span>
+        <div class="duration-mode segmented" role="group" aria-label=${this._localize("start_on")}>
+          ${this._pickerTimerLists().map((id) => b`
+            <button type="button" class="duration-mode-btn" aria-pressed=${String(listSelected(id))}
+              @click=${() => pick(`list:${id}`)}>${this._timerListChipLabel(id)}</button>
+          `)}
+          <button type="button" class="duration-mode-btn" aria-pressed=${String(cardSelected)}
+            @click=${() => pick("card")}>${this._localize("this_card")}</button>
+        </div>
       </div>
       ${actions}
     `;
@@ -2533,6 +2535,29 @@ class SimpleTimerCard extends i$2 {
     return out;
   }
 
+  // Entities that can be the target of a timer action, best matches first.
+  // Uses the card's own search so it works on dashboards where Home
+  // Assistant has not loaded its entity picker.
+  _searchActionEntities(query, limit = 8) {
+    const domains = new Set(["light", "switch", "fan", "cover", "lock", "climate", "media_player", "input_boolean",
+      "scene", "script", "vacuum", "valve", "humidifier", "water_heater", "siren", "button", "input_button", "automation", "remote", "lawn_mower"]);
+    const q = String(query || "").trim().toLowerCase();
+    const out = [];
+    for (const [id, st] of Object.entries(this.hass?.states || {})) {
+      if (!domains.has(id.split(".")[0]) || st?.state === "unavailable") continue;
+      const name = String(st?.attributes?.friendly_name || id).toLowerCase();
+      let score;
+      if (!q) score = 2;
+      else if (name.startsWith(q)) score = 0;
+      else if (name.includes(q) || id.includes(q)) score = 1;
+      else continue;
+      out.push({ id, name, score });
+    }
+    if (!q) return [];
+    out.sort((a, b) => a.score - b.score || a.name.localeCompare(b.name));
+    return out.slice(0, limit).map((e) => e.id);
+  }
+
   _actionDraftSpec() {
     const draft = this._actionDraft;
     if (!draft || !draft.mode || draft.mode === "none") return null;
@@ -2550,45 +2575,75 @@ class SimpleTimerCard extends i$2 {
     if (!this._actionPickerEnabled()) return "";
     const draft = this._actionDraft || { mode: "none" };
     const favorites = this._favoriteActions();
-    const chip = (mode, label) => b`
-      <button type="button" class="chip ${draft.mode === mode ? "selected" : ""}" aria-pressed=${String(draft.mode === mode)}
-        @click=${() => this._setActionDraft({ mode })}>${label}</button>`;
+    const mode = (value, label) => b`
+      <button type="button" class="duration-mode-btn" aria-pressed=${String(draft.mode === value)}
+        @click=${() => this._setActionDraft({ mode: value })}>${label}</button>`;
     const services = draft.mode === "device" && draft.entity ? this._servicesForEntity(draft.entity) : [];
-    const selectedService = draft.service && services.includes(draft.service) ? draft.service : (services.find((sv) => sv.endsWith(".turn_off")) || services[0] || "");
+    const selectedService = draft.service && services.includes(draft.service)
+      ? draft.service
+      : (services.find((sv) => sv.endsWith(".turn_off")) || services[0] || "");
     if (draft.mode === "device" && selectedService && draft.service !== selectedService) {
       this._actionDraft = { ...draft, service: selectedService };
     }
     return b`
-      <div class="target-row" role="group" aria-label=${this._localize("when_done")}>
-        <span class="target-label">${this._localize("when_done")}</span>
-        ${chip("none", this._localize("just_a_timer"))}
-        ${favorites.map((f) => chip(`fav:${f.key}`, f.name || this._actionSummary(f)))}
-        ${chip("command", this._localize("run_command"))}
-        ${chip("device", this._localize("control_device"))}
-      </div>
-      ${draft.mode === "command" ? b`
-        <input class="action-input" type="text" data-no-action
-          .value=${draft.command || ""}
-          placeholder=${this._localize("command_placeholder")}
-          aria-label=${this._localize("run_command")}
-          @input=${(e) => this._setActionDraft({ command: e.target.value })}>
-      ` : ""}
-      ${draft.mode === "device" ? b`
-        <div class="action-device" data-no-action>
-          <ha-entity-picker
-            .hass=${this.hass}
-            .value=${draft.entity || ""}
-            .label=${this._localize("choose_device")}
-            @value-changed=${(e) => this._setActionDraft({ entity: e.detail?.value || "", service: "" })}
-          ></ha-entity-picker>
-          ${services.length ? b`
-            <select class="action-select" aria-label=${this._localize("choose_action")}
-              @change=${(e) => this._setActionDraft({ service: e.target.value })}>
-              ${services.map((sv) => b`<option value=${sv} ?selected=${sv === selectedService}>${this._serviceLabel(sv)}</option>`)}
-            </select>
-          ` : ""}
+      <div class="picker-section" data-no-action>
+        <span class="picker-section-label">${this._localize("when_done")}</span>
+        <div class="duration-mode segmented" role="group" aria-label=${this._localize("when_done")}>
+          <button type="button" class="duration-mode-btn" aria-pressed=${String(draft.mode === "none")}
+            @click=${() => this._setActionDraft({ mode: "none" })}>${this._localize("just_a_timer")}</button>
+          ${mode("command", this._localize("run_command"))}
+          ${mode("device", this._localize("control_device"))}
         </div>
-      ` : ""}
+        ${favorites.length ? b`
+          <div class="option-chips">
+            ${favorites.map((f) => {
+              const selected = draft.mode === `fav:${f.key}`;
+              return b`<button type="button" class="btn btn-preset" aria-pressed=${String(selected)}
+                @click=${() => this._setActionDraft({ mode: selected ? "none" : `fav:${f.key}` })}>${f.name || this._actionSummary(f)}</button>`;
+            })}
+          </div>
+        ` : ""}
+        ${draft.mode === "command" ? b`
+          <input class="text-input" type="text"
+            .value=${draft.command || ""}
+            placeholder=${this._localize("command_placeholder")}
+            aria-label=${this._localize("run_command")}
+            @input=${(e) => this._setActionDraft({ command: e.target.value })}>
+        ` : ""}
+        ${draft.mode === "device" ? b`
+          <div class="action-device">
+            ${draft.entity ? b`
+              <div class="option-chips">
+                <button type="button" class="btn btn-preset selected-entity" aria-pressed="true"
+                  title=${draft.entity}
+                  @click=${() => this._setActionDraft({ entity: "", service: "", query: "" })}>
+                  ${this._entityName(draft.entity)}<ha-icon icon="mdi:close" style="--mdc-icon-size:14px;"></ha-icon>
+                </button>
+              </div>
+            ` : b`
+              <input class="text-input" type="search"
+                .value=${draft.query || ""}
+                placeholder=${this._localize("choose_device")}
+                aria-label=${this._localize("choose_device")}
+                @input=${(e) => this._setActionDraft({ query: e.target.value })}>
+              <div class="option-chips">
+                ${this._searchActionEntities(draft.query).map((id) => b`
+                  <button type="button" class="btn btn-preset" title=${id}
+                    @click=${() => this._setActionDraft({ entity: id, service: "", query: "" })}>${this._entityName(id)}</button>
+                `)}
+              </div>
+            `}
+            ${services.length ? b`
+              <div class="option-chips" role="group" aria-label=${this._localize("choose_action")}>
+                ${services.map((sv) => b`
+                  <button type="button" class="btn btn-preset" aria-pressed=${String(sv === selectedService)}
+                    @click=${() => this._setActionDraft({ service: sv })}>${this._serviceLabel(sv)}</button>
+                `)}
+              </div>
+            ` : ""}
+          </div>
+        ` : ""}
+      </div>
     `;
   }
 
@@ -5211,7 +5266,7 @@ class SimpleTimerCard extends i$2 {
           <li class="${finishedClasses}${this._ringAnimationClass()}" style="--tcolor:${color}">
             <div class="vcol">
               <div class="vcircle-wrap">
-                <svg class="vcircle" width="64" height="64" viewBox="0 0 64" aria-hidden="true">
+                <svg class="vcircle" width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
                   <circle class="vc-track ${this._config.progress_mode === "drain" ? "vc-track-drain" : ""}" style="stroke: var(--tcolor, var(--primary-color)); stroke-opacity: 0.22;"
                           cx="32" cy="32" r="${circleValues.radius}"></circle>
                   <circle class="vc-prog ${this._config.progress_mode === "drain" ? "vc-prog-drain done" : "done"}"
@@ -5345,7 +5400,7 @@ class SimpleTimerCard extends i$2 {
                    if (isIdle && supportsManualControls) this._handleStart(t);
                    else if (supportsPause && supportsManualControls) this._togglePause(t, e);
                  }}>
-              <svg class="vcircle" width="64" height="64" viewBox="0 0 64" aria-hidden="true">
+              <svg class="vcircle" width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
                 <circle class="vc-track ${this._config.progress_mode === "drain" ? "vc-track-drain" : ""}" style="stroke: var(--tcolor, var(--primary-color)); stroke-opacity: 0.22;"
                         cx="32" cy="32" r="${circleValues.radius}"></circle>
                 <circle class="vc-prog ${this._config.progress_mode === "drain" ? "vc-prog-drain" : ""}"
@@ -5760,7 +5815,7 @@ class SimpleTimerCard extends i$2 {
                    if (isIdle && supportsManualControls) this._handleStart(t);
                    else if (supportsPause && supportsManualControls) this._togglePause(t, e);
                  }}>
-              <svg class="vcircle" width="64" height="64" viewBox="0 0 64" aria-hidden="true">
+              <svg class="vcircle" width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
                 <circle class="vc-track ${this._config.progress_mode === "drain" ? "vc-track-drain" : ""}"
                         cx="32" cy="32" r="${circleValues.radius}"></circle>
                 <circle class="vc-prog ${this._config.progress_mode === "drain" ? "vc-prog-drain" : ""}"
@@ -6260,13 +6315,19 @@ const layout = this._config.layout;
       .group-head { grid-column: 1 / -1; font-size: 0.8em; font-weight: 600; color: var(--secondary-text-color); padding: 4px 4px 0; }
       .group-head:first-child { padding-top: 0; }
       .more-toggle { display: block; margin: 8px auto 0; }
-      .target-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 6px 0; }
-      .target-label { font-size: 0.8em; color: var(--secondary-text-color); margin-inline-end: 2px; }
-      .chip.selected { background: color-mix(in srgb, var(--primary-color) 22%, var(--ha-card-background, var(--card-background-color))); border-color: var(--primary-color); }
+      .picker-section { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 12px; }
+      .picker-section-label { font-size: 12px; font-weight: 600; color: var(--secondary-text-color); }
+      .segmented { flex-wrap: wrap; justify-content: center; margin: 0 auto; }
+      .segmented .duration-mode-btn { padding: 6px 12px; }
+      .option-chips { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+      .btn-preset.selected, .btn-preset[aria-pressed="true"] { background: color-mix(in srgb, var(--primary-color) 16%, var(--card-background-color)); color: var(--primary-color); box-shadow: inset 0 0 0 1px var(--primary-color); }
+      .action-device { display: flex; flex-direction: column; gap: 8px; width: 90%; }
+      .action-device .text-input { width: 100%; box-sizing: border-box; }
+      .selected-entity { display: inline-flex; align-items: center; gap: 6px; }
       .item { box-sizing: border-box; position: relative; border-radius: var(--ha-card-border-radius, 12px); overflow: hidden; padding: 8px 0; min-height: 56px; background: var(--stc-item-background, transparent); }
       .item .info { display: flex; flex-direction: column; justify-content: center; height: 36px; flex: 1; overflow: hidden; }
-      .item .title { font-size: 14px; font-weight: 500; line-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      .item .status { font-size: 12px; color: var(--secondary-text-color); line-height: 16px; font-variant-numeric: tabular-nums; }
+      .item .title { font-size: 14px; font-weight: 500; line-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0; }
+      .item .status { font-size: 12px; color: var(--secondary-text-color); line-height: 16px; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0; }
       .item .status.editable { cursor: pointer; text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px; }
       .item .status.up { color: color-mix(in srgb, var(--tcolor, var(--primary-color)) 70%, white); }
       .item .actions { display: flex; gap: 4px; align-items: center; height: 36px; }
@@ -6322,14 +6383,19 @@ const layout = this._config.layout;
       @keyframes pulseMilestone { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
       @keyframes stcRingPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.18); } }
       @keyframes stcRingSwing { 0%, 100% { transform: rotate(0deg); } 20% { transform: rotate(16deg); } 40% { transform: rotate(-12deg); } 60% { transform: rotate(8deg); } 80% { transform: rotate(-4deg); } }
-      @keyframes stcRingShake { 0%, 32%, 100% { transform: translateX(0); } 4%, 12%, 20% { transform: translateX(-4px); } 8%, 16%, 24% { transform: translateX(4px); } }
+      @keyframes stcRingShake { 0%, 32%, 100% { transform: translateX(0); } 4%, 12%, 20% { transform: translateX(-3px); } 8%, 16%, 24% { transform: translateX(3px); } }
       @keyframes stcRingHop { 0%, 40%, 100% { transform: translateY(0); } 12% { transform: translateY(-6px); } 24% { transform: translateY(0); } 32% { transform: translateY(-3px); } }
-      .ring-pulse .icon-wrap { animation: stcRingPulse 1s ease-in-out infinite; }
+      @keyframes stcRingGlow {
+        0%, 100% { background: color-mix(in srgb, var(--tcolor, var(--primary-color)) 18%, var(--ha-card-background, var(--card-background-color))); }
+        50% { background: color-mix(in srgb, var(--tcolor, var(--primary-color)) 40%, var(--ha-card-background, var(--card-background-color))); }
+      }
+      .ring-pulse .icon-wrap { animation: stcRingGlow 1s ease-in-out infinite; }
+      .ring-pulse .icon-wrap ha-icon { animation: stcRingPulse 1s ease-in-out infinite; }
       .ring-swing .icon-wrap ha-icon { animation: stcRingSwing 1.2s ease-in-out infinite; transform-origin: 50% 10%; }
       .ring-shake { animation: stcRingShake 2s ease-in-out infinite; }
       .ring-hop { animation: stcRingHop 1.8s ease-in-out infinite; }
       @media (prefers-reduced-motion: reduce) {
-        .ring-pulse .icon-wrap, .ring-swing .icon-wrap ha-icon, .ring-shake, .ring-hop { animation: none; }
+        .ring-pulse .icon-wrap, .ring-pulse .icon-wrap ha-icon, .ring-swing .icon-wrap ha-icon, .ring-shake, .ring-hop { animation: none; }
       }
       .editor-row { flex-direction: column; align-items: center; padding: 12px; height: auto !important; min-height: 100px; }
       .editor-container { width: 100%; display: flex; flex-direction: column; align-items: center; }
@@ -6858,6 +6924,7 @@ _pinnedTimerValueChanged(ev, index) {
             <span class="toggle-title">Show "When done" in the custom timer panel</span>
           </div>
         </label>
+        ${list.length === 0 ? b`<div class="no-entities">No quick actions yet. Add a device action or a command below.</div>` : ""}
         ${list.map((entry, index) => {
           const conf = typeof entry === "string" ? { entity: entry } : (entry || {});
           const isCommand = conf.command != null;
@@ -6867,36 +6934,44 @@ _pinnedTimerValueChanged(ev, index) {
             : (services.find((sv) => sv.endsWith(".turn_off")) || services[0] || "");
           const options = services.map((value) => ({ value, label: card._serviceLabel.call(this, value) }));
           return b`
-            <div class="row device-timer-row">
-              ${isCommand
-                ? this._tf({ label: "Command", value: conf.command, placeholder: "turn off the air purifier", change: (e) => this._setDeviceTimer(index, { command: e.target.value }) })
-                : b`
-                  <ha-entity-picker
-                    .hass=${this.hass}
-                    .value=${conf.entity || ""}
-                    label="Device"
-                    allow-custom-entity
-                    @value-changed=${(e) => this._setDeviceTimer(index, { entity: e.detail.value, service: undefined })}
-                  ></ha-entity-picker>
-                  ${options.length ? b`
+            <div class="entity-editor">
+              <div class="entity-options" style="width:100%;">
+                ${isCommand
+                  ? this._tf({ label: "Command", value: conf.command, placeholder: "turn off the air purifier", helper: "What you would say to Assist.", change: (e) => this._setDeviceTimer(index, { command: e.target.value }) })
+                  : b`
+                    <ha-entity-picker
+                      .hass=${this.hass}
+                      .value=${conf.entity || ""}
+                      label="Device"
+                      allow-custom-entity
+                      @value-changed=${(e) => this._setDeviceTimer(index, { entity: e.detail.value, service: undefined })}
+                    ></ha-entity-picker>
+                  `}
+                <div class="row">
+                  ${!isCommand && options.length ? b`
                     <ha-select label="Action" naturalMenuWidth fixedMenuPosition .value=${current} .options=${options}
                       @selected=${(e) => { e.stopPropagation(); const v = e?.detail?.value ?? e.target.value; if (v) this._setDeviceTimer(index, { service: v }); }}
                       @closed=${(e) => e.stopPropagation()}>
                       ${options.map((o) => b`<mwc-list-item value=${o.value}>${o.label}</mwc-list-item>`)}
                     </ha-select>
                   ` : ""}
-                `}
-              ${this._tf({ label: "Label (optional)", value: conf.name, change: (e) => this._setDeviceTimer(index, { name: e.target.value }) })}
-              <ha-icon-button .label=${"Remove"} @click=${() => this._removeDeviceTimer(index)}>
-                <ha-icon icon="mdi:delete-outline"></ha-icon>
-              </ha-icon-button>
+                  ${this._tf({ label: "Label (optional)", value: conf.name, change: (e) => this._setDeviceTimer(index, { name: e.target.value }) })}
+                </div>
+              </div>
+              <button class="remove-entity" @click=${() => this._removeDeviceTimer(index)} title="Remove quick action">
+                <ha-icon icon="mdi:delete"></ha-icon>
+              </button>
             </div>
           `;
         })}
-        <div class="row">
-          <button type="button" class="btn btn-ghost" @click=${() => this._setDeviceTimer(list.length, { entity: "" })}>Add device action</button>
-          <button type="button" class="btn btn-ghost" @click=${() => this._setDeviceTimer(list.length, { command: "" })}>Add command</button>
-        </div>
+        <button class="add-button" @click=${() => this._setDeviceTimer(list.length, { entity: "" })}>
+          <ha-icon icon="mdi:plus"></ha-icon>
+          <span>Add device action</span>
+        </button>
+        <button class="add-button" @click=${() => this._setDeviceTimer(list.length, { command: "" })}>
+          <ha-icon icon="mdi:microphone-message"></ha-icon>
+          <span>Add command</span>
+        </button>
       </div>
     `;
   }
