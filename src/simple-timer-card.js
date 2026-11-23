@@ -6536,12 +6536,24 @@ const layout = this._config.layout;
         ? html`<li class="group-head" data-no-action>${entry.header}</li>`
         : renderFn(entry.timer, style))}
     `;
-    const moreToggle = truncated ? html`
-      <button type="button" class="btn btn-ghost more-toggle" data-no-action
-        @click=${(e) => { e.stopPropagation(); this._ui = { ...this._ui, showAllTimers: !this._ui.showAllTimers }; }}>
+    // max_rows is for cards with little room, so the "+N" control sits in the
+    // header or title and adds no height. Without either, a compact chip.
+    const headerShown = this._config.show_active_header !== false;
+    const moreWhere = !truncated ? null : (headerShown ? "header" : (this._config.title ? "title" : "list"));
+    const toggleMore = (e) => { e.stopPropagation(); this._ui = { ...this._ui, showAllTimers: !this._ui.showAllTimers }; };
+    const moreLabel = this._ui.showAllTimers ? this._localize("show_less") : `+${timers.length - maxRows}`;
+    const moreBadge = html`
+      <button type="button" class="more-badge" data-no-action aria-expanded=${String(!!this._ui.showAllTimers)}
+        title=${this._ui.showAllTimers ? this._localize("show_less") : this._localize("more_timers").replace("{n}", timers.length - maxRows)}
+        @click=${toggleMore}>${moreLabel}</button>
+    `;
+    this._moreInTitle = moreWhere === "title" ? moreBadge : null;
+    const moreToggle = moreWhere === "list" ? html`
+      <button type="button" class="btn btn-ghost more-toggle" data-no-action @click=${toggleMore}>
         ${this._ui.showAllTimers ? this._localize("show_less") : this._localize("more_timers").replace("{n}", timers.length - maxRows)}
       </button>
     ` : "";
+    const headTitle = html`<div class="head-title"><h4>${this._localize("active_timers")}</h4>${moreWhere === "header" ? moreBadge : ""}</div>`;
     const useGrid = (activeTimersLayout === "vertical") || (style === "circle_vertical");
     const cols = (useGrid && shownTimers.length > 1) ? 2 : 1;
     const listClass = useGrid ? `list vgrid cols-${cols}` : "list";
@@ -6549,7 +6561,7 @@ const layout = this._config.layout;
       <div class="card ${this._ui.activeFillOpen ? "card-show" : ""}">
         ${this._config.show_active_header !== false ? html`
           <div class="active-head">
-            <h4>${this._localize("active_timers")}</h4>
+            ${headTitle}
             ${showPresetsInActive ? html`
               <div class="header-actions">
                 ${presets.map((preset) => {
@@ -6573,7 +6585,7 @@ const layout = this._config.layout;
       <div class="card ${this._ui.activeBarOpen ? "card-show" : ""}">
         ${this._config.show_active_header !== false ? html`
           <div class="active-head">
-            <h4>${this._localize("active_timers")}</h4>
+            ${headTitle}
             ${showPresetsInActive ? html`
               <div class="header-actions">
                 ${presets.map((preset) => {
@@ -6597,7 +6609,7 @@ const layout = this._config.layout;
     const cardActs = this._cardActionHandlers();
     return html`
       <ha-card dir=${this._isRTL() ? "rtl" : "ltr"} @pointerdown=${cardActs.down} @pointerup=${cardActs.up} @pointercancel=${cardActs.cancel}>
-        ${this._config.title ? html`<div class="card-header"><span>${this._config.title}</span></div>` : ""}
+        ${this._config.title ? html`<div class="card-header ${this._moreInTitle ? "with-more" : ""}"><span>${this._config.title}</span>${this._moreInTitle || ""}</div>` : ""}
         ${timers.length === 0 ? html`<div class="grid"><div>${noTimerCard}</div></div>` : html`<div class="grid"><div>${activeCard}</div></div>`}
       </ha-card>
     `;
@@ -6667,7 +6679,11 @@ const layout = this._config.layout;
       :host([hidden]) { display: none; }
       .group-head { grid-column: 1 / -1; font-size: 0.8em; font-weight: 600; color: var(--secondary-text-color); padding: 4px 4px 0; }
       .group-head:first-child { padding-top: 0; }
-      .more-toggle { display: block; margin: 8px auto 0; }
+      .more-toggle { display: block; margin: 6px auto 2px; min-height: 28px; padding: 2px 12px; font-size: 12px; }
+      .head-title { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+      .card-header.with-more { display: flex; align-items: center; gap: 8px; }
+      .more-badge { display: inline-flex; align-items: center; justify-content: center; height: 22px; min-width: 28px; padding: 0 8px; border: 0; border-radius: 11px; background: color-mix(in srgb, var(--primary-color) 14%, var(--card-background-color, #fff)); color: var(--primary-color); font: inherit; font-size: 12px; font-weight: 600; line-height: 1; cursor: pointer; flex-shrink: 0; }
+      .more-badge:hover { background: color-mix(in srgb, var(--primary-color) 22%, var(--card-background-color, #fff)); }
       .picker-section { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 12px; }
       .picker-section-label { font-size: 12px; font-weight: 600; color: var(--secondary-text-color); }
       .segmented { flex-wrap: wrap; justify-content: center; margin: 0 auto; }
@@ -8048,7 +8064,7 @@ _pinnedTimerValueChanged(ev, index) {
       </label>
 
       <div class="row advanced">
-        ${this._tf({ label: "Maximum rows", type: "number", min: "0", helper: "Show this many timers, with a button for the rest. Empty shows all.", value: this._config.max_rows ?? "", configValue: "max_rows", change: this._valueChanged })}
+        ${this._tf({ label: "Maximum rows", type: "number", min: "0", helper: "Show this many timers. A +N next to the header shows the rest. Empty shows all.", value: this._config.max_rows ?? "", configValue: "max_rows", change: this._valueChanged })}
         <ha-select label="Group timers by" naturalMenuWidth fixedMenuPosition .value=${this._config.group_by || "none"} .configValue=${"group_by"} .options=${SELECT_OPTIONS.group_by} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
           ${SELECT_OPTIONS.group_by.map((o) => html`<mwc-list-item value=${o.value}>${o.label}</mwc-list-item>`)}
         </ha-select>

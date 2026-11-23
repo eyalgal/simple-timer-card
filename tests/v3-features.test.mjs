@@ -81,19 +81,32 @@ test("ringing rows get the configured animation class", async () => {
   assert.equal(card._ringAnimationClass(), "");
 });
 
-test("max_rows shows the first timers and a toggle for the rest", async () => {
-  const { card } = await withTimers({ entities: [KITCHEN], max_rows: 2 }, {
-    [KITCHEN]: [listItem({ timer_id: "a" }), listItem({ timer_id: "b" }), listItem({ timer_id: "c" })],
-  });
+test("max_rows shows the first timers, with the +N control in the header so it adds no height", async () => {
+  const timers = { [KITCHEN]: [listItem({ timer_id: "a" }), listItem({ timer_id: "b" }), listItem({ timer_id: "c" })] };
+  const { card } = await withTimers({ entities: [KITCHEN], max_rows: 2 }, timers);
   document.body.appendChild(card);
   await card.updateComplete;
   assert.equal(card.shadowRoot.querySelectorAll("li.item").length, 2);
-  const toggle = card.shadowRoot.querySelector(".more-toggle");
-  assert.equal(toggle.textContent.trim(), "+1 more");
-  toggle.click();
+  assert.equal(card.shadowRoot.querySelector(".more-toggle"), null);
+  const badge = card.shadowRoot.querySelector(".active-head .more-badge");
+  assert.equal(badge.textContent.trim(), "+1");
+  badge.click();
   await card.updateComplete;
   assert.equal(card.shadowRoot.querySelectorAll("li.item").length, 3);
+  assert.equal(card.shadowRoot.querySelector(".active-head .more-badge").textContent.trim(), "Show less");
   card.remove();
+
+  const titled = (await withTimers({ entities: [KITCHEN], max_rows: 2, show_active_header: false, title: "Kitchen" }, timers)).card;
+  document.body.appendChild(titled);
+  await titled.updateComplete;
+  assert.equal(titled.shadowRoot.querySelector(".card-header .more-badge").textContent.trim(), "+1");
+  titled.remove();
+
+  const bare = (await withTimers({ entities: [KITCHEN], max_rows: 2, show_active_header: false }, timers)).card;
+  document.body.appendChild(bare);
+  await bare.updateComplete;
+  assert.equal(bare.shadowRoot.querySelector(".more-toggle").textContent.trim(), "+1 more");
+  bare.remove();
 });
 
 test("hide_when_empty hides the card and asks hui-card to keep it connected", async () => {
