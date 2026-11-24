@@ -1037,7 +1037,7 @@ The integration has its own repository,
 3. Add **Simple Timer Card** under **Settings > Devices & services**.
 
 It creates one entity, `sensor.simple_timer_card_timers`, whose state is the
-number of running timers. It needs Home Assistant 2026.11 or later.
+number of running timers. It needs Home Assistant 2025.6 or later.
 
 | Option | Default | Description |
 | ------ | ------- | ----------- |
