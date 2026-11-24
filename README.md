@@ -8,25 +8,43 @@
 <img width="1000" alt="hero image" src="https://raw.githubusercontent.com/eyalgal/simple-timer-card/main/assets/readme-hero.png" />
 
 
-A **clean, powerful timer card for Home Assistant** that shows every timer you have in one place, whether it comes from a native `timer.*`, a voice satellite such as Voice PE, Alexa, Google Home, a helper, MQTT, or the card itself.
+A **clean timer card for Home Assistant** that shows every timer you have in
+one place: native `timer.*` entities, voice satellites, Alexa, Google Home,
+helpers, MQTT, or timers the card creates itself.
 
-No dashboard clutter. No duplicated cards. Just timers.
+**Simple by default, powerful when you need it.**
+
+---
+
+## 🆕 New in v3
+
+* **Do something when a timer ends.** Turn off the air purifier, say a
+  command, or announce "Laundry is done" on any speaker. Home Assistant runs it,
+  even with every dashboard closed. Needs the optional
+  [companion integration](https://github.com/eyalgal/simple-timer-card-integration).
+* **Every voice timer, automatically.** Voice PE and other ESPHome, Wyoming and
+  VoIP satellites get Home Assistant timer lists, and the card finds them on its
+  own: start, pause, extend and cancel them, or start a timer on a specific
+  speaker. No custom firmware, no template sensors.
+  *Coming soon:* this appears as soon as Home Assistant adds timer lists (in
+  review). Until then, Alexa, Google Home and the
+  [legacy Voice PE setup](CONFIGURATION.md#-voice-pe-integration) keep working.
 
 ---
 
 ## 🚀 Highlights
 
-* **Every timer in one card**: Native `timer.*`, voice timers (timer lists), Alexa, Google Home, helpers, MQTT, timestamps, and local timers
-* **Voice timers**: Show, start, pause, extend and cancel Voice PE and other voice satellite timers, with no custom firmware
-* **Optional [companion integration](https://github.com/eyalgal/simple-timer-card-integration)**: Timers kept in Home Assistant that can run any action when they end ("turn off the air purifier in 30 minutes"), plus delayed voice commands shown as timers
-* **Auto-discovery**: Optionally pick up voice satellite, Alexa and Google Home timers without listing every device
-* **Quick actions**: Presets, pinned one‑tap timers, and custom timers with a keypad or +/- buttons, plus an optional on-card input switch
-* **Visual progress styles**: Bars, fills, and circles (vertical or horizontal) with drain, fill, or milestone modes
-* **Simple editor**: Sources, storage, appearance, and timer input in one place, with a remembered Advanced mode for specialist settings
-* **Persistent storage**: Local timers survive reloads in the same browser; MQTT or the companion integration share timers across devices
-* **Audio & notifications**: Optional sounds, snooze, cleanup, and push notifications while the card is running; a backend monitor is needed when all dashboards are closed
-* **Theme aware & multilingual**: Matches your Home Assistant theme; English, German, Spanish, Danish, Italian, French, Hebrew (RTL), Polish, Dutch, and Swedish
-* **[Spook](https://spook.boo/) fallback**: Automatically falls back to Spook's `timer.set_duration` for non-admin users
+* **Every timer in one card**: native timers, voice satellites, Alexa, Google
+  Home, helpers, MQTT, timestamps and the card's own timers
+* **Actions when timers end**: devices, commands and announcements, with the
+  [companion integration](https://github.com/eyalgal/simple-timer-card-integration)
+* **Auto-discovery**: voice, Alexa and Google Home timers without listing
+  every device
+* **Styles**: bars, fills and circles, with drain, fill or milestone progress
+* **Simple editor**: the essentials up front, everything else under
+  **Advanced**
+* **Theme aware and multilingual**: English, German, Spanish, Danish, Italian,
+  French, Hebrew (RTL), Polish, Dutch and Swedish
 
 ---
 
@@ -37,6 +55,9 @@ No dashboard clutter. No duplicated cards. Just timers.
 Simple Timer Card is available in **Marketplace (fka HACS)**.
 
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=eyalgal&repository=simple-timer-card)
+
+For actions when timers end, also install the
+[companion integration](https://github.com/eyalgal/simple-timer-card-integration).
 
 ### Manual
 
@@ -50,99 +71,66 @@ resources:
     type: module
 ```
 
-### Updating to v3.0.0
-
-v3.0.0 adds **voice timers**. Home Assistant now keeps the timers on each voice
-satellite, such as Voice PE, in a timer list entity (`timer_list.*`). The card
-shows these timers and can start, pause, resume, add time to, finish, cancel,
-snooze and dismiss them, with stock firmware and no template sensors. Turn on
-**Auto-discover voice timers** in the editor, or see
-[Voice timers](CONFIGURATION.md#-voice-timers-timer-lists).
-
-v3.0.0 also adds:
-
-* An optional **[companion integration](https://github.com/eyalgal/simple-timer-card-integration)** keeps timers in Home Assistant, runs a
-  command or any device action when a timer ends ("turn off the air purifier in
-  30 minutes") with every dashboard closed, and shows delayed voice commands as
-  timers. Choose it with `storage: integration`, next to browser and MQTT
-  storage, which keep working unchanged. Install it from its
-  [own repository](https://github.com/eyalgal/simple-timer-card-integration), then see
-  [Companion integration](CONFIGURATION.md#-companion-integration).
-* **Put on a speaker** and **default area** for running a timer on a voice
-  speaker, and **Announce on a speaker** (Sonos, Echo, Nest…) when a timer
-  ends, plus device or area labels and `group_by`.
-* **Browser voice satellites** (Voice Satellite Card integration), **count-up
-  rows** ("fed 1h 40m ago") and **template rows** from Jinja.
-* `ring_animation`, `hide_when_empty` and `max_rows` for wall tablets.
-* A [blueprint](blueprints/automation/simple_timer_card/timer_list_event.yaml)
-  for automations on voice timer events.
-
-Voice timers need a Home Assistant version in which your satellite has a timer
-list. Existing configurations keep working unchanged. The custom-firmware Voice PE
-setup (`mode: voice_pe`, `auto_voice_pe`) is now legacy; follow the
-[migration steps](CONFIGURATION.md#moving-from-the-legacy-voice-pe-setup) once
-your satellite has a timer list.
-
-### Updating to v2.9.2
-
-v2.9.2 makes **Dismiss** on a ringing Google Home timer also call
-`google_home.delete_timer`, so the speaker stops ringing instead of only hiding
-the timer on the card ([#119](https://github.com/eyalgal/simple-timer-card/issues/119)).
-No configuration changes are needed. Alexa timers are still dismissed on the
-card only.
-
-v2.9.2 is the stable release. Update through Marketplace (fka HACS) or use the
-release asset, then fully reload the dashboard. If you already run the v2.9.2
-pre-release, the card build is unchanged.
-
-### Updating to v2.9.1
-
-v2.9.1 adds an optional MQTT publish relay for non-admin users on Home Assistant
-2026.10+. Administrators keep the existing direct publish path. Non-admin users
-need an administrator to install the example automation and set
-`mqtt.publish_automation` in the card. **Updating the card alone is not enough.**
-See [non-admin MQTT setup and testing](mqtt-hybrid-model.md#non-admin-users-ha-202610).
-
-### Updating to v2.9.0
-
-Existing cards keep their +/- input and discovery remains opt-in. The old
-`style: circle` value still works as the vertical circle layout. If you tested
-a v2.9.0 pre-release, redownload v2.9.0 in Marketplace (fka HACS) and fully reload the dashboard:
-the version number is unchanged, so an update notice may not appear.
-
 ---
 
 ## 🚦 Quick start
 
-Add the card with no options and it keeps local timers in the browser:
+Just add it. Timers you start are kept in this browser:
 
 ```yaml
 type: custom:simple-timer-card
 ```
 
-To follow timers that already exist in Home Assistant, list them:
-
-```yaml
-type: custom:simple-timer-card
-entities:
-  - timer.kitchen
-  - timer.laundry
-```
-
-To show and control the timers on your voice satellites:
+See every timer in your home:
 
 ```yaml
 type: custom:simple-timer-card
 auto_discover_timer_lists: true
+auto_discover_alexa: true
+auto_discover_google: true
 ```
+
+> Alexa and Google Home timers can be snoozed and dismissed on the card, but
+> not started or paused from it. Dismissing a Google Home timer also stops the
+> speaker.
+
+Want timers that do something when they end, and keep running with every
+dashboard closed? Install the [companion integration](https://github.com/eyalgal/simple-timer-card-integration), then:
+
+```yaml
+type: custom:simple-timer-card
+storage: integration
+```
+
+Everything else, including styles, presets, pinned timers, sounds,
+notifications and tap actions, is in the editor's **Advanced** mode and in
+[`CONFIGURATION.md`](CONFIGURATION.md).
+
+**Guides:** [Voice timers](CONFIGURATION.md#-voice-timers-timer-lists) ·
+[Companion integration](CONFIGURATION.md#-companion-integration) ·
+[Moving from MQTT](CONFIGURATION.md#-moving-from-mqtt-to-the-integration) ·
+[MQTT storage](mqtt-hybrid-model.md) · Legacy:
+[Voice PE](voice-pe/voice-pe.md) and
+[Voice PE with ESPHome](voice-pe/voice-pe-esphome.md)
 
 ---
 
-## 📝 Configuration
+## ⬆️ Updating to v3
 
-Everything else, including styles, presets, pinned timers, storage, audio, notifications and tap actions, is in [`CONFIGURATION.md`](CONFIGURATION.md).
+Nothing breaks: every v2 option means the same, and browser and MQTT storage
+work as before. To use the new features:
 
-**Guides:** [Voice timers](CONFIGURATION.md#-voice-timers-timer-lists) · [MQTT hybrid storage](mqtt-hybrid-model.md) · Legacy: [Voice PE](voice-pe/voice-pe.md) and [Voice PE with ESPHome](voice-pe/voice-pe-esphome.md)
+* **Actions when timers end:** install the
+  [companion integration](https://github.com/eyalgal/simple-timer-card-integration) and set **Save new timers in** to it in the
+  editor. Coming from MQTT? The editor can
+  [move your running timers](CONFIGURATION.md#-moving-from-mqtt-to-the-integration).
+* **Voice timers:** once your speaker has a *Timers* entity on its device page,
+  turn on **Auto-discover voice timers**. The custom-firmware Voice PE setup
+  (`mode: voice_pe`, `auto_voice_pe`) then becomes legacy; see the
+  [migration steps](CONFIGURATION.md#moving-from-the-legacy-voice-pe-setup).
+
+Everything else in v3 is in the
+[release notes](https://github.com/eyalgal/simple-timer-card/releases).
 
 ---
 
