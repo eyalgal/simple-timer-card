@@ -6590,7 +6590,7 @@ const layout = this._config.layout;
               return b`<button class="btn btn-preset" @click=${() => this._createPresetTimer(preset)}>${label}</button>`;
             })}
             ${this._config.show_timer_presets === false ? b`
-              <button class="btn btn-ghost" @click=${() => this._toggleCustom("horizontal")}><ha-icon icon="mdi:plus" style="--mdc-icon-size:16px;"></ha-icon> ${this._localize("add")}</button>
+              <button class="btn btn-ghost btn-icon-label" @click=${() => this._toggleCustom("horizontal")}><ha-icon icon="mdi:plus" style="--mdc-icon-size:16px;"></ha-icon>${this._localize("add")}</button>
             ` : b`
               <button class="btn btn-ghost" @click=${() => this._toggleCustom("horizontal")}>${this._localize("custom")}</button>
             `}
@@ -6611,7 +6611,7 @@ const layout = this._config.layout;
               return b`<button class="btn btn-preset" @click=${() => this._createPresetTimer(preset)}>${label}</button>`;
             })}
             ${this._config.show_timer_presets === false ? b`
-              <button class="btn btn-ghost" @click=${() => this._toggleCustom("vertical")}><ha-icon icon="mdi:plus" style="--mdc-icon-size:16px;"></ha-icon> ${this._localize("add")}</button>
+              <button class="btn btn-ghost btn-icon-label" @click=${() => this._toggleCustom("vertical")}><ha-icon icon="mdi:plus" style="--mdc-icon-size:16px;"></ha-icon>${this._localize("add")}</button>
             ` : b`
               <button class="btn btn-ghost" @click=${() => this._toggleCustom("vertical")}>${this._localize("custom")}</button>
             `}
@@ -6738,6 +6738,8 @@ const layout = this._config.layout;
       .btn.disabled { opacity: 0.5; pointer-events: none; }
       .btn-preset { background: var(--secondary-background-color, rgba(0,0,0,.08)); color: var(--primary-text-color); }
       .btn-ghost { background: var(--card-background-color); border: 1px solid var(--divider-color); color: var(--primary-text-color); }
+      .btn-icon-label { display: inline-flex; align-items: center; gap: 4px; line-height: 1; }
+      .btn-icon-label ha-icon, .btn-add ha-icon { flex: 0 0 auto; }
       .btn-primary { background: var(--primary-color); color: var(--text-primary-color, #fff); }
       .btn-add { display: flex; align-items: center; gap: 8px; background: var(--secondary-background-color, rgba(0,0,0,.08)); color: var(--secondary-text-color); }
       .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; max-width: 220px; margin: 0 auto; }
