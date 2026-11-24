@@ -96,12 +96,12 @@ function editDurationDigits(digits, key) {
  *
  * Author: eyalgal
  * License: MIT
- * Version: 3.0.0-rc.1
+ * Version: 3.0.0
  * For more information, visit: https://github.com/eyalgal/simple-timer-card
  */
 
 
-const cardVersion="3.0.0-rc.1";
+const cardVersion="3.0.0";
 
 const DAY_IN_MS = 86400000;
 const YEAR_IN_MS = 365 * DAY_IN_MS;
