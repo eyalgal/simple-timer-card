@@ -75,7 +75,9 @@ resources:
 
 ## 🚦 Quick start
 
-Just add it. Timers you start are kept in this browser:
+Just add it. Timers you start are kept in this browser, or in Home Assistant
+when the [companion integration](https://github.com/eyalgal/simple-timer-card-integration)
+is installed:
 
 ```yaml
 type: custom:simple-timer-card
@@ -95,7 +97,8 @@ auto_discover_google: true
 > speaker.
 
 Want timers that do something when they end, and keep running with every
-dashboard closed? Install the [companion integration](https://github.com/eyalgal/simple-timer-card-integration), then:
+dashboard closed? Install the [companion integration](https://github.com/eyalgal/simple-timer-card-integration).
+New cards then use it automatically; for an existing card, set:
 
 ```yaml
 type: custom:simple-timer-card

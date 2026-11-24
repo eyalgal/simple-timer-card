@@ -328,3 +328,11 @@ test("after switching to integration storage, MQTT timers keep showing until mov
   card._updateTimers();
   assert.deepEqual(card._timers.filter((t) => t.source === "mqtt").map((t) => t.label), ["Pasta"]);
 });
+
+test("a new card uses the integration as storage only when it is installed", () => {
+  const Card = customElements.get("simple-timer-card");
+  const companion = { [LIST]: { state: "0", attributes: { simple_timer_card_api: 1 } } };
+  assert.deepEqual(Card.getStubConfig({ states: companion }), { type: "custom:simple-timer-card", storage: "integration" });
+  assert.deepEqual(Card.getStubConfig({ states: {} }), { type: "custom:simple-timer-card" });
+  assert.deepEqual(Card.getStubConfig(), { type: "custom:simple-timer-card" });
+});

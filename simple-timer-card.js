@@ -802,8 +802,15 @@ class SimpleTimerCard extends i$2 {
     };
   }
 
-  static getStubConfig() {
-    return { type: "custom:simple-timer-card" };
+  // New cards use the companion integration when it is installed, so their
+  // timers keep running and can act with every dashboard closed. Existing
+  // cards keep the storage they were saved with.
+  static getStubConfig(hass) {
+    const config = { type: "custom:simple-timer-card" };
+    const states = hass?.states || {};
+    const hasCompanion = Object.keys(states).some((id) => id.startsWith("sensor.") && states[id]?.attributes?.simple_timer_card_api != null);
+    if (hasCompanion) config.storage = "integration";
+    return config;
   }
 
   _sanitizeText(text) {

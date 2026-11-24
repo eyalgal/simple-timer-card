@@ -713,7 +713,9 @@ storage: integration
 ```
 
 Timers keep running with every dashboard closed, show the same on every device,
-survive restarts and can do something when they end. The card shows the
+survive restarts and can do something when they end. When the integration is
+installed, cards you add from the dashboard start with this setting; existing
+cards keep the storage they were saved with. The card shows the
 integration's timers without listing its entity. Until the integration is
 installed, new timers are saved in this browser instead, and browser timers
 started earlier keep showing until they end.
@@ -1044,7 +1046,8 @@ number of running timers. It needs Home Assistant 2026.11 or later.
 
 ### On the card
 
-Choose it as storage so every new timer is stored in Home Assistant:
+Cards you add after installing it already use it. For an existing card, choose
+it as storage so every new timer is stored in Home Assistant:
 
 ```yaml
 type: custom:simple-timer-card
