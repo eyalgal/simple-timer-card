@@ -465,8 +465,12 @@ pinned_timers:
     name: Pasta
     duration: 11m
     icon: mdi:pasta
+  - id: laundry
+    name: Laundry
+    duration: 45m
+    icon: mdi:washing-machine
     on_finish:                       # Optional, needs the integration.
-      announce: media_player.kitchen # Says "Pasta is done" there.
+      announce: media_player.kitchen # Says "Laundry is done" there.
 ```
 
 With the [Simple Timer Card integration](#-companion-integration), a pinned
@@ -1072,7 +1076,7 @@ one link: **Do something when it ends**. It opens a short wizard:
    model and entity ID, so similar names are easy to tell apart. Then pick what
    it should do: turn on, turn off, open, lock and so on.
 3. For an announcement, pick any speaker, then optionally type what to say.
-   Without a message it says *"Pasta is done"* for a named timer, or *"Your
+   Without a message it says *"Laundry is done"* for a named timer, or *"Your
    timer is done"*.
 
 The panel then shows the choice as one pill, for example

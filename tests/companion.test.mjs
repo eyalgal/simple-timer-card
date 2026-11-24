@@ -245,19 +245,19 @@ test("announce on a speaker lists speakers that can speak and goes through the c
 
   card._setActionDraft({ mode: "announce", speaker: "media_player.sonos" });
   assert.equal(card._actionSummary(card._actionDraftSpec()), "Announce on Dining Sonos");
-  card._createAndSaveTimer(300, "Pasta");
+  card._createAndSaveTimer(300, "Laundry");
   await flush();
-  assert.deepEqual(ws[0].service_data.actions, [{ action: "simple_timer_card.announce", data: { entity_id: "media_player.sonos", message: "Pasta is done" } }]);
+  assert.deepEqual(ws[0].service_data.actions, [{ action: "simple_timer_card.announce", data: { entity_id: "media_player.sonos", message: "Laundry is done" } }]);
 });
 
 test("a pinned timer announces its name on the chosen speaker", async () => {
-  const { card, ws } = makeCard({ pinned_timers: [{ id: "pasta", name: "Pasta", duration: "10m", on_finish: { announce: "media_player.garage" } }] },
+  const { card, ws } = makeCard({ pinned_timers: [{ id: "laundry", name: "Laundry", duration: "10m", on_finish: { announce: "media_player.garage" } }] },
     { states: { "media_player.garage": { state: "idle", attributes: { friendly_name: "Garage", supported_features: 512 } }, "tts.piper": { state: "unknown", attributes: {} } } });
   const pinned = card._config.pinned_timers[0];
   card._createPresetTimer(pinned.duration, null, { label: pinned.name, on_finish: pinned.on_finish });
   await flush();
-  assert.deepEqual(ws[0].service_data.actions, [{ action: "simple_timer_card.announce", data: { entity_id: "media_player.garage", message: "Pasta is done" } }]);
-  assert.equal(ws[0].service_data.name, "Pasta");
+  assert.deepEqual(ws[0].service_data.actions, [{ action: "simple_timer_card.announce", data: { entity_id: "media_player.garage", message: "Laundry is done" } }]);
+  assert.equal(ws[0].service_data.name, "Laundry");
 });
 
 test("a browser-storage card follows the action timers it started on the companion, and only those", async () => {
