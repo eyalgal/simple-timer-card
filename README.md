@@ -22,6 +22,9 @@ helpers, MQTT, or timers the card creates itself.
   command, or announce "Laundry is done" on any speaker. Home Assistant runs it,
   even with every dashboard closed. Needs the optional
   [companion integration](https://github.com/eyalgal/simple-timer-card-integration).
+
+  <img width="1000" alt="Setting up an action when a timer ends, and timers that will turn off a purifier and announce on a speaker" src="https://raw.githubusercontent.com/eyalgal/simple-timer-card/main/assets/release-v3-actions.png" />
+
 * **Every voice timer, automatically.** Voice PE and other ESPHome, Wyoming and
   VoIP satellites get Home Assistant timer lists, and the card finds them on its
   own: start, pause, extend and cancel them, or start a timer on a specific
