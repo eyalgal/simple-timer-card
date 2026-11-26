@@ -1030,11 +1030,11 @@ unchanged. The integration is only needed for these extras.
 The integration has its own repository,
 [simple-timer-card-integration](https://github.com/eyalgal/simple-timer-card-integration):
 
-1. In **Marketplace (fka HACS)**, open **⋮ > Custom repositories** and add
-   `https://github.com/eyalgal/simple-timer-card-integration` as an
-   **Integration**.
-2. Download **Simple Timer Card Integration** and restart Home Assistant.
-3. Add **Simple Timer Card** under **Settings > Devices & services**.
+[![Open the integration in Marketplace (fka HACS)](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=eyalgal&repository=simple-timer-card-integration&category=integration)
+
+1. In **Marketplace (fka HACS)**, search for **Simple Timer Card Integration**
+   (or use the button above), download it and restart Home Assistant.
+2. Add **Simple Timer Card** under **Settings > Devices & services**.
 
 It creates one entity, `sensor.simple_timer_card_timers`, whose state is the
 number of running timers. It needs Home Assistant 2025.6 or later.
