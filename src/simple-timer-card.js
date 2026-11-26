@@ -5,7 +5,7 @@
  *
  * Author: eyalgal
  * License: MIT
- * Version: 2.9.2
+ * Version: 3.0.0
  * For more information, visit: https://github.com/eyalgal/simple-timer-card
  */
 
@@ -15,7 +15,7 @@ import { ifDefined } from "lit/directives/if-defined.js";
 import { live } from "lit/directives/live.js";
 import { MAX_TIMER_SECONDS, normalizeTimerInput, durationDigitFields, durationDigitsToSeconds, secondsToDurationDigits, editDurationDigits } from "./duration-input.js";
 
-const cardVersion="2.9.2";
+const cardVersion="3.0.0";
 
 const DAY_IN_MS = 86400000;
 const YEAR_IN_MS = 365 * DAY_IN_MS;
@@ -31,6 +31,20 @@ const MQTT_WAKE_GAP_MS = 5000;
 const MQTT_RESYNC_GRACE_MS = 5000;
 // Retain deletion markers to reduce stale resurrection after a client wakes.
 const MQTT_TOMBSTONE_TTL_MS = 24 * 60 * 60 * 1000;
+
+// Home Assistant timer_list entities (voice satellite and mobile app timers).
+// Bits mirror TimerListEntityFeature in homeassistant/components/timer_list.
+// RESTART and RUN_ACTIONS exist only on the companion integration's list.
+const TIMER_LIST_FEATURE = { CREATE: 1, PAUSE: 2, CANCEL: 4, ADD_TIME: 8, REMOVE: 16, FINISH: 32, RESTART: 64, RUN_ACTIONS: 128 };
+// The optional companion integration (custom_components/simple_timer_card)
+// keeps timers in Home Assistant and can run an action when they finish.
+const COMPANION_DOMAIN = "simple_timer_card";
+// The entity state is the number of active timers. If the subscribed cache
+// disagrees for this long, the subscription is assumed stale and is renewed.
+const TIMER_LIST_RESYNC_MS = 3000;
+const TIMER_LIST_RETRY_MS = 30000;
+const TIMER_LIST_META_KEY = "simple-timer-card-timer-list-meta";
+const ENTITY_ID_RE = /^[a-z0-9_]+\.[a-z0-9_]+$/;
 
 function _cleanUndefined(obj) {
   if (!obj || typeof obj !== "object") return obj;
@@ -219,6 +233,20 @@ const TRANSLATIONS = {
     month: "month", months: "months", year: "year", years: "years",
     hour: "hour", hours: "hours", minute: "minute", minutes: "minutes",
     second: "second", seconds: "seconds",
+    more_timers: "+{n} more", show_less: "Show less", when_done: "When done",
+    just_a_timer: "Just a timer", this_card: "This card", then_action: "then {action}", run_command: "Command",
+    put_on_speaker: "Put on a speaker", choose_speaker: "Choose a speaker", announce_title: "Announce on a speaker", announce_desc: "Say something on any speaker when it ends", announce_on: "Announce on {speaker}", announce_message: "What to say (optional)", announce_plain: "Your timer is done", announce_named: "{name} is done",
+    search_targets: "Search speakers or rooms",
+    speakers: "Speakers", phones: "Phones",
+    control_device: "Device", command_placeholder: "e.g. turn off the air purifier", choose_device: "Device", choose_action: "Action",
+    needs_companion: "Install the Simple Timer Card integration to run actions when timers end.", timer_start_failed: "Could not start the timer: {error}", action_not_supported: "This timer doesn't support that.", group_other: "Other",
+    group_voice: "Voice", group_pinned: "Pinned", group_since: "Since", group_template: "Template",
+    group_sensors: "Sensors", group_timers: "Timers", since: "{t} ago",
+    add_action: "Do something when it ends", when_it_ends: "When it ends", control_device_title: "Control a device",
+    control_device_desc: "Turn on or off, open, lock and more", run_command_title: "Say a command", run_command_desc: "Anything you would ask Assist, e.g. \"turn off the purifier\"",
+    quick_actions: "Quick actions", search_devices: "Search by name or room", what_to_do: "What should it do?",
+    type_to_search: "Type a name or room to find a device", back: "Back", done: "Done",
+    close: "Close",
   },
   de: {
     no_timers: "Keine Timer",
@@ -254,6 +282,20 @@ const TRANSLATIONS = {
     month: "Monat", months: "Monate", year: "Jahr", years: "Jahre",
     hour: "Stunde", hours: "Stunden", minute: "Minute", minutes: "Minuten",
     second: "Sekunde", seconds: "Sekunden",
+    more_timers: "+{n} weitere", show_less: "Weniger anzeigen", when_done: "Danach",
+    just_a_timer: "Nur ein Timer", this_card: "Diese Karte", then_action: "danach {action}", run_command: "Befehl",
+    put_on_speaker: "Auf einem Lautsprecher starten", choose_speaker: "Lautsprecher wählen", announce_title: "Auf einem Lautsprecher ansagen", announce_desc: "Am Ende etwas auf einem beliebigen Lautsprecher sagen", announce_on: "Ansage auf {speaker}", announce_message: "Was gesagt werden soll (optional)", announce_plain: "Dein Timer ist abgelaufen", announce_named: "{name} ist fertig",
+    search_targets: "Lautsprecher oder Räume suchen",
+    speakers: "Lautsprecher", phones: "Telefone",
+    control_device: "Gerät", command_placeholder: "z. B. Luftreiniger ausschalten", choose_device: "Gerät", choose_action: "Aktion",
+    needs_companion: "Installiere die Simple-Timer-Card-Integration, um beim Ablauf Aktionen auszuführen.", timer_start_failed: "Timer konnte nicht gestartet werden: {error}", action_not_supported: "Dieser Timer unterstützt das nicht.", group_other: "Sonstige",
+    group_voice: "Sprache", group_pinned: "Angeheftet", group_since: "Seit", group_template: "Vorlage",
+    group_sensors: "Sensoren", group_timers: "Timer", since: "vor {t}",
+    add_action: "Etwas tun, wenn er abläuft", when_it_ends: "Wenn er abläuft", control_device_title: "Gerät steuern",
+    control_device_desc: "Ein- oder ausschalten, öffnen, sperren und mehr", run_command_title: "Befehl sprechen", run_command_desc: "Alles, was du Assist fragen würdest, z. B. „Luftreiniger aus“",
+    quick_actions: "Schnellaktionen", search_devices: "Nach Name oder Raum suchen", what_to_do: "Was soll passieren?",
+    type_to_search: "Name oder Raum eingeben, um ein Gerät zu finden", back: "Zurück", done: "Fertig",
+    close: "Schließen",
   },
   es: {
     no_timers: "Sin Temporizadores",
@@ -289,6 +331,20 @@ const TRANSLATIONS = {
     month: "mes", months: "meses", year: "año", years: "años",
     hour: "hora", hours: "horas", minute: "minuto", minutes: "minutos",
     second: "segundo", seconds: "segundos",
+    more_timers: "+{n} más", show_less: "Mostrar menos", when_done: "Al terminar",
+    just_a_timer: "Solo un temporizador", this_card: "Esta tarjeta", then_action: "después {action}", run_command: "Comando",
+    put_on_speaker: "Poner en un altavoz", choose_speaker: "Elige un altavoz", announce_title: "Anunciar en un altavoz", announce_desc: "Decir algo en cualquier altavoz al terminar", announce_on: "Anunciar en {speaker}", announce_message: "Qué decir (opcional)", announce_plain: "Tu temporizador ha terminado", announce_named: "{name} ha terminado",
+    search_targets: "Buscar altavoces o habitaciones",
+    speakers: "Altavoces", phones: "Teléfonos",
+    control_device: "Dispositivo", command_placeholder: "p. ej. apaga el purificador", choose_device: "Dispositivo", choose_action: "Acción",
+    needs_companion: "Instala la integración Simple Timer Card para ejecutar acciones al terminar los temporizadores.", timer_start_failed: "No se pudo iniciar el temporizador: {error}", action_not_supported: "Este temporizador no admite esa acción.", group_other: "Otros",
+    group_voice: "Voz", group_pinned: "Fijados", group_since: "Desde", group_template: "Plantilla",
+    group_sensors: "Sensores", group_timers: "Temporizadores", since: "hace {t}",
+    add_action: "Hacer algo al terminar", when_it_ends: "Al terminar", control_device_title: "Controlar un dispositivo",
+    control_device_desc: "Encender o apagar, abrir, bloquear y más", run_command_title: "Decir un comando", run_command_desc: "Lo que le pedirías a Assist, p. ej. «apaga el purificador»",
+    quick_actions: "Acciones rápidas", search_devices: "Buscar por nombre o habitación", what_to_do: "¿Qué debe hacer?",
+    type_to_search: "Escribe un nombre o una habitación para encontrar un dispositivo", back: "Atrás", done: "Listo",
+    close: "Cerrar",
   },
   da: {
     no_timers: "Ingen timere",
@@ -324,6 +380,20 @@ const TRANSLATIONS = {
     month: "måned", months: "måneder", year: "år", years: "år",
     hour: "time", hours: "timer", minute: "minut", minutes: "minutter",
     second: "sekund", seconds: "sekunder",
+    more_timers: "+{n} mere", show_less: "Vis mindre", when_done: "Når den er færdig",
+    just_a_timer: "Kun en timer", this_card: "Dette kort", then_action: "derefter {action}", run_command: "Kommando",
+    put_on_speaker: "Sæt på en højttaler", choose_speaker: "Vælg en højttaler", announce_title: "Annoncér på en højttaler", announce_desc: "Sig noget på en vilkårlig højttaler, når den er færdig", announce_on: "Annoncér på {speaker}", announce_message: "Hvad der skal siges (valgfrit)", announce_plain: "Din timer er færdig", announce_named: "{name} er færdig",
+    search_targets: "Søg efter højttalere eller rum",
+    speakers: "Højttalere", phones: "Telefoner",
+    control_device: "Enhed", command_placeholder: "f.eks. sluk luftrenseren", choose_device: "Enhed", choose_action: "Handling",
+    needs_companion: "Installer Simple Timer Card-integrationen for at udføre handlinger, når timere slutter.", timer_start_failed: "Kunne ikke starte timeren: {error}", action_not_supported: "Denne timer understøtter ikke det.", group_other: "Andet",
+    group_voice: "Stemme", group_pinned: "Fastgjort", group_since: "Siden", group_template: "Skabelon",
+    group_sensors: "Sensorer", group_timers: "Timere", since: "for {t} siden",
+    add_action: "Gør noget, når den slutter", when_it_ends: "Når den slutter", control_device_title: "Styr en enhed",
+    control_device_desc: "Tænd eller sluk, åbn, lås og mere", run_command_title: "Sig en kommando", run_command_desc: "Alt, du ville bede Assist om, f.eks. \"sluk luftrenseren\"",
+    quick_actions: "Hurtige handlinger", search_devices: "Søg efter navn eller rum", what_to_do: "Hvad skal der ske?",
+    type_to_search: "Skriv et navn eller rum for at finde en enhed", back: "Tilbage", done: "Færdig",
+    close: "Luk",
   },
   it: {
     no_timers: "Nessun timer",
@@ -359,6 +429,20 @@ const TRANSLATIONS = {
     month: "mese", months: "mesi", year: "anno", years: "anni",
     hour: "ora", hours: "ore", minute: "minuto", minutes: "minuti",
     second: "secondo", seconds: "secondi",
+    more_timers: "+{n} altri", show_less: "Mostra meno", when_done: "Al termine",
+    just_a_timer: "Solo un timer", this_card: "Questa scheda", then_action: "poi {action}", run_command: "Comando",
+    put_on_speaker: "Metti su un altoparlante", choose_speaker: "Scegli un altoparlante", announce_title: "Annuncia su un altoparlante", announce_desc: "Dì qualcosa su qualsiasi altoparlante al termine", announce_on: "Annuncia su {speaker}", announce_message: "Cosa dire (facoltativo)", announce_plain: "Il timer è terminato", announce_named: "{name} è terminato",
+    search_targets: "Cerca altoparlanti o stanze",
+    speakers: "Altoparlanti", phones: "Telefoni",
+    control_device: "Dispositivo", command_placeholder: "es. spegni il purificatore", choose_device: "Dispositivo", choose_action: "Azione",
+    needs_companion: "Installa l'integrazione Simple Timer Card per eseguire azioni allo scadere dei timer.", timer_start_failed: "Impossibile avviare il timer: {error}", action_not_supported: "Questo timer non lo supporta.", group_other: "Altro",
+    group_voice: "Voce", group_pinned: "Fissati", group_since: "Da", group_template: "Modello",
+    group_sensors: "Sensori", group_timers: "Timer", since: "{t} fa",
+    add_action: "Fai qualcosa alla fine", when_it_ends: "Alla fine", control_device_title: "Controlla un dispositivo",
+    control_device_desc: "Accendi o spegni, apri, blocca e altro", run_command_title: "Dì un comando", run_command_desc: "Qualsiasi cosa chiederesti ad Assist, es. \"spegni il purificatore\"",
+    quick_actions: "Azioni rapide", search_devices: "Cerca per nome o stanza", what_to_do: "Cosa deve fare?",
+    type_to_search: "Scrivi un nome o una stanza per trovare un dispositivo", back: "Indietro", done: "Fatto",
+    close: "Chiudi",
   },
   fr: {
     no_timers: "Aucun minuteur",
@@ -394,6 +478,20 @@ const TRANSLATIONS = {
     month: "mois", months: "mois", year: "année", years: "années",
     hour: "heure", hours: "heures", minute: "minute", minutes: "minutes",
     second: "seconde", seconds: "secondes",
+    more_timers: "+{n} de plus", show_less: "Afficher moins", when_done: "À la fin",
+    just_a_timer: "Juste un minuteur", this_card: "Cette carte", then_action: "puis {action}", run_command: "Commande",
+    put_on_speaker: "Mettre sur une enceinte", choose_speaker: "Choisir une enceinte", announce_title: "Annoncer sur une enceinte", announce_desc: "Dire quelque chose sur n'importe quelle enceinte à la fin", announce_on: "Annoncer sur {speaker}", announce_message: "Quoi dire (facultatif)", announce_plain: "Votre minuteur est terminé", announce_named: "{name} est terminé",
+    search_targets: "Rechercher des enceintes ou des pièces",
+    speakers: "Enceintes", phones: "Téléphones",
+    control_device: "Appareil", command_placeholder: "ex. éteins le purificateur", choose_device: "Appareil", choose_action: "Action",
+    needs_companion: "Installez l'intégration Simple Timer Card pour lancer des actions à la fin des minuteurs.", timer_start_failed: "Impossible de démarrer le minuteur : {error}", action_not_supported: "Ce minuteur ne le permet pas.", group_other: "Autres",
+    group_voice: "Voix", group_pinned: "Épinglés", group_since: "Depuis", group_template: "Modèle",
+    group_sensors: "Capteurs", group_timers: "Minuteurs", since: "il y a {t}",
+    add_action: "Faire quelque chose à la fin", when_it_ends: "À la fin", control_device_title: "Contrôler un appareil",
+    control_device_desc: "Allumer ou éteindre, ouvrir, verrouiller et plus", run_command_title: "Dire une commande", run_command_desc: "Tout ce que vous demanderiez à Assist, ex. « éteins le purificateur »",
+    quick_actions: "Actions rapides", search_devices: "Rechercher par nom ou pièce", what_to_do: "Que doit-il se passer ?",
+    type_to_search: "Saisissez un nom ou une pièce pour trouver un appareil", back: "Retour", done: "Terminé",
+    close: "Fermer",
   },
   he: {
     no_timers: "אין טיימרים",
@@ -429,6 +527,20 @@ const TRANSLATIONS = {
     month: "חודש", months: "חודשים", year: "שנה", years: "שנים",
     hour: "שעה", hours: "שעות", minute: "דקה", minutes: "דקות",
     second: "שנייה", seconds: "שניות",
+    more_timers: "+{n} נוספים", show_less: "הצג פחות", when_done: "בסיום",
+    just_a_timer: "טיימר בלבד", this_card: "הכרטיס הזה", then_action: "ואז {action}", run_command: "פקודה",
+    put_on_speaker: "הפעלה על רמקול", choose_speaker: "בחירת רמקול", announce_title: "הכרזה ברמקול", announce_desc: "להשמיע משהו בכל רמקול בסיום", announce_on: "הכרזה ב{speaker}", announce_message: "מה להגיד (לא חובה)", announce_plain: "הטיימר הסתיים", announce_named: "{name} הסתיים",
+    search_targets: "חיפוש רמקולים או חדרים",
+    speakers: "רמקולים", phones: "טלפונים",
+    control_device: "מכשיר", command_placeholder: "למשל: כבה את מטהר האוויר", choose_device: "מכשיר", choose_action: "פעולה",
+    needs_companion: "כדי להפעיל פעולות בסיום טיימר יש להתקין את האינטגרציה Simple Timer Card.", timer_start_failed: "לא ניתן להפעיל את הטיימר: {error}", action_not_supported: "הטיימר הזה לא תומך בזה.", group_other: "אחר",
+    group_voice: "קולי", group_pinned: "מוצמדים", group_since: "מאז", group_template: "תבנית",
+    group_sensors: "חיישנים", group_timers: "טיימרים", since: "לפני {t}",
+    add_action: "לעשות משהו בסיום", when_it_ends: "בסיום", control_device_title: "שליטה במכשיר",
+    control_device_desc: "הדלקה או כיבוי, פתיחה, נעילה ועוד", run_command_title: "אמירת פקודה", run_command_desc: "כל מה שהיית מבקש מ-Assist, למשל \"כבה את מטהר האוויר\"",
+    quick_actions: "פעולות מהירות", search_devices: "חיפוש לפי שם או חדר", what_to_do: "מה לעשות?",
+    type_to_search: "יש להקליד שם או חדר כדי למצוא מכשיר", back: "חזרה", done: "סיום",
+    close: "סגירה",
   },
   pl: {
     no_timers: "Brak minutników",
@@ -464,6 +576,20 @@ const TRANSLATIONS = {
     month: "miesiąc", months: "miesięcy", year: "rok", years: "lat",
     hour: "godzina", hours: "godzin", minute: "minuta", minutes: "minut",
     second: "sekunda", seconds: "sekund",
+    more_timers: "+{n} więcej", show_less: "Pokaż mniej", when_done: "Po zakończeniu",
+    just_a_timer: "Tylko minutnik", this_card: "Ta karta", then_action: "potem {action}", run_command: "Polecenie",
+    put_on_speaker: "Uruchom na głośniku", choose_speaker: "Wybierz głośnik", announce_title: "Ogłoś na głośniku", announce_desc: "Powiedz coś na dowolnym głośniku po zakończeniu", announce_on: "Ogłoś na {speaker}", announce_message: "Co powiedzieć (opcjonalnie)", announce_plain: "Twój minutnik się skończył", announce_named: "{name} – koniec",
+    search_targets: "Szukaj głośników lub pomieszczeń",
+    speakers: "Głośniki", phones: "Telefony",
+    control_device: "Urządzenie", command_placeholder: "np. wyłącz oczyszczacz", choose_device: "Urządzenie", choose_action: "Akcja",
+    needs_companion: "Zainstaluj integrację Simple Timer Card, aby uruchamiać akcje po zakończeniu minutników.", timer_start_failed: "Nie udało się uruchomić minutnika: {error}", action_not_supported: "Ten minutnik tego nie obsługuje.", group_other: "Inne",
+    group_voice: "Głos", group_pinned: "Przypięte", group_since: "Od", group_template: "Szablon",
+    group_sensors: "Czujniki", group_timers: "Minutniki", since: "{t} temu",
+    add_action: "Zrób coś po zakończeniu", when_it_ends: "Po zakończeniu", control_device_title: "Steruj urządzeniem",
+    control_device_desc: "Włącz lub wyłącz, otwórz, zablokuj i więcej", run_command_title: "Powiedz polecenie", run_command_desc: "Wszystko, o co poprosiłbyś Assist, np. „wyłącz oczyszczacz”",
+    quick_actions: "Szybkie akcje", search_devices: "Szukaj po nazwie lub pokoju", what_to_do: "Co ma się stać?",
+    type_to_search: "Wpisz nazwę lub pokój, aby znaleźć urządzenie", back: "Wstecz", done: "Gotowe",
+    close: "Zamknij",
   },
   nl: {
     no_timers: "Geen timers",
@@ -499,6 +625,20 @@ const TRANSLATIONS = {
     month: "maand", months: "maanden", year: "jaar", years: "jaren",
     hour: "uur", hours: "uren", minute: "minuut", minutes: "minuten",
     second: "seconde", seconds: "seconden",
+    more_timers: "+{n} meer", show_less: "Minder tonen", when_done: "Als klaar",
+    just_a_timer: "Alleen een timer", this_card: "Deze kaart", then_action: "daarna {action}", run_command: "Opdracht",
+    put_on_speaker: "Op een speaker zetten", choose_speaker: "Kies een speaker", announce_title: "Omroepen op een speaker", announce_desc: "Zeg iets op een speaker als hij klaar is", announce_on: "Omroepen op {speaker}", announce_message: "Wat er gezegd moet worden (optioneel)", announce_plain: "Je timer is klaar", announce_named: "{name} is klaar",
+    search_targets: "Zoek speakers of ruimtes",
+    speakers: "Speakers", phones: "Telefoons",
+    control_device: "Apparaat", command_placeholder: "bijv. zet de luchtreiniger uit", choose_device: "Apparaat", choose_action: "Actie",
+    needs_companion: "Installeer de Simple Timer Card-integratie om acties uit te voeren als timers aflopen.", timer_start_failed: "Kan de timer niet starten: {error}", action_not_supported: "Deze timer ondersteunt dat niet.", group_other: "Overig",
+    group_voice: "Spraak", group_pinned: "Vastgezet", group_since: "Sinds", group_template: "Sjabloon",
+    group_sensors: "Sensoren", group_timers: "Timers", since: "{t} geleden",
+    add_action: "Iets doen als hij afloopt", when_it_ends: "Als hij afloopt", control_device_title: "Een apparaat bedienen",
+    control_device_desc: "Aan of uit, openen, vergrendelen en meer", run_command_title: "Een opdracht zeggen", run_command_desc: "Alles wat je aan Assist zou vragen, bijv. \"zet de luchtreiniger uit\"",
+    quick_actions: "Snelle acties", search_devices: "Zoeken op naam of ruimte", what_to_do: "Wat moet er gebeuren?",
+    type_to_search: "Typ een naam of ruimte om een apparaat te vinden", back: "Terug", done: "Klaar",
+    close: "Sluiten",
   },
   sv: {
     no_timers: "Ingen timer",
@@ -534,6 +674,20 @@ const TRANSLATIONS = {
     month: "månad", months: "månader", year: "år", years: "år",
     hour: "timme", hours: "timmar", minute: "minut", minutes: "minuter",
     second: "sekund", seconds: "sekunder",
+    more_timers: "+{n} till", show_less: "Visa mindre", when_done: "När klar",
+    just_a_timer: "Bara en timer", this_card: "Det här kortet", then_action: "sedan {action}", run_command: "Kommando",
+    put_on_speaker: "Lägg på en högtalare", choose_speaker: "Välj en högtalare", announce_title: "Meddela på en högtalare", announce_desc: "Säg något på valfri högtalare när den är klar", announce_on: "Meddela på {speaker}", announce_message: "Vad som ska sägas (valfritt)", announce_plain: "Din timer är klar", announce_named: "{name} är klar",
+    search_targets: "Sök högtalare eller rum",
+    speakers: "Högtalare", phones: "Telefoner",
+    control_device: "Enhet", command_placeholder: "t.ex. stäng av luftrenaren", choose_device: "Enhet", choose_action: "Åtgärd",
+    needs_companion: "Installera integrationen Simple Timer Card för att köra åtgärder när timrar tar slut.", timer_start_failed: "Kunde inte starta timern: {error}", action_not_supported: "Den här timern stöder inte det.", group_other: "Övrigt",
+    group_voice: "Röst", group_pinned: "Fästa", group_since: "Sedan", group_template: "Mall",
+    group_sensors: "Sensorer", group_timers: "Timrar", since: "för {t} sedan",
+    add_action: "Gör något när den är klar", when_it_ends: "När den är klar", control_device_title: "Styr en enhet",
+    control_device_desc: "Slå på eller av, öppna, lås och mer", run_command_title: "Säg ett kommando", run_command_desc: "Allt du skulle be Assist om, t.ex. \"stäng av luftrenaren\"",
+    quick_actions: "Snabbåtgärder", search_devices: "Sök på namn eller rum", what_to_do: "Vad ska hända?",
+    type_to_search: "Skriv ett namn eller rum för att hitta en enhet", back: "Tillbaka", done: "Klar",
+    close: "Stäng",
   }
 };
 
@@ -556,11 +710,21 @@ class SimpleTimerCard extends LitElement {
       _keypadDigits: { state: true },
       _editingTimerId: { state: true },
       _editDuration: { state: true },
+      _targetChoice: { state: true },
+      _actionDraft: { state: true },
+      _actionWizard: { state: true },
     };
   }
 
-  static getStubConfig() {
-    return { type: "custom:simple-timer-card" };
+  // New cards use the companion integration when it is installed, so their
+  // timers keep running and can act with every dashboard closed. Existing
+  // cards keep the storage they were saved with.
+  static getStubConfig(hass) {
+    const config = { type: "custom:simple-timer-card" };
+    const states = hass?.states || {};
+    const hasCompanion = Object.keys(states).some((id) => id.startsWith("sensor.") && states[id]?.attributes?.simple_timer_card_api != null);
+    if (hasCompanion) config.storage = "integration";
+    return config;
   }
 
   _sanitizeText(text) {
@@ -656,6 +820,10 @@ class SimpleTimerCard extends LitElement {
     this._editDuration = { h: 0, m: 0, s: 0 };
     this._audioUnlocked = false;
     this._unlockAudioHandler = this._unlockAudio.bind(this);
+    this._timerLists = new Map();
+    this._timerListMeta = this._loadTimerListMeta();
+    this._timerListConn = null;
+    this._onTimerListConnectionReady = () => this._resetTimerListSubscriptions();
   }
 
   _isActionThrottled(actionType, timerId = "global", throttleMs = 1000) {
@@ -721,9 +889,13 @@ class SimpleTimerCard extends LitElement {
     const compat = (config.compatibility_mode || config.compat_mode || "2.1.1");
     config.compatibility_mode = compat;
     const requestedStorage = (config.storage || "").toLowerCase();
+    // The companion integration is a sensor too, but never MQTT storage.
+    const companionTarget = typeof config.default_timer_entity === "string" &&
+      (config.default_timer_entity.startsWith("sensor.simple_timer_card_timers") ||
+        this.hass?.states?.[config.default_timer_entity]?.attributes?.simple_timer_card_api != null);
     const legacyMqttSensorEntity =
       typeof config.default_timer_entity === "string" &&
-      config.default_timer_entity.startsWith("sensor.");
+      config.default_timer_entity.startsWith("sensor.") && !companionTarget;
     const hasExplicitMqttConfig = !!(
       config.mqtt &&
       (config.mqtt.topic || config.mqtt.sensor_entity || config.mqtt.state_topic || config.mqtt.events_topic || config.mqtt.publish_automation)
@@ -735,7 +907,7 @@ class SimpleTimerCard extends LitElement {
       !hasExplicitMqttConfig;
     const isMqtt = requestedStorage === "mqtt" || hasExplicitMqttConfig || legacyWantsMqtt;
     const autoStorage =
-      requestedStorage === "local" || requestedStorage === "mqtt"
+      requestedStorage === "local" || requestedStorage === "mqtt" || requestedStorage === "integration"
         ? requestedStorage
         : (isMqtt ? "mqtt" : "local");
     const mqttConfig = {
@@ -794,6 +966,7 @@ class SimpleTimerCard extends LitElement {
       auto_voice_pe: false,
       auto_discover_alexa: false,
       auto_discover_google: false,
+      auto_discover_timer_lists: false,
       source_styles: {},
       expire_action: "keep",
       expire_keep_for: 120,
@@ -822,6 +995,9 @@ class SimpleTimerCard extends LitElement {
       show_timer_input_selector: config.show_timer_input_selector === true,
     };
     this._timerInputMode = this._config.custom_timer_input;
+    // hui-card detaches hidden cards unless they ask to stay connected, which
+    // would stop the tick that brings the card back when a timer starts.
+    this.connectedWhileHidden = this._config.hide_when_empty === true;
     this._keypadDigits = {};
     this._initializedDurationInputs.clear();
     const defaultDurationSecs = this._defaultCustomTimerSeconds();
@@ -844,6 +1020,7 @@ class SimpleTimerCard extends LitElement {
   disconnectedCallback() {
     super.disconnectedCallback();
     this._stopTimerUpdates();
+    this._teardownTimerLists();
     this.removeEventListener("pointerdown", this._unlockAudioHandler, { capture: true });
     this.removeEventListener("touchend", this._unlockAudioHandler, { capture: true });
     this.removeEventListener("click", this._unlockAudioHandler, { capture: true });
@@ -1185,7 +1362,7 @@ class SimpleTimerCard extends LitElement {
   }
 
   _loadTimersFromStorage(sourceHint = null) {
-    const storage = sourceHint || this._config.storage;
+    const storage = sourceHint || this._cardStorage();
     const adapter = this._getStorageAdapter(storage);
     const rawTimers = adapter ? adapter.load() : [];
     if (!Array.isArray(rawTimers)) return [];
@@ -1257,25 +1434,25 @@ class SimpleTimerCard extends LitElement {
   }
 
   _saveTimersToStorage(timers, sourceHint = null) {
-    const storage = sourceHint || this._config.storage;
+    const storage = sourceHint || this._cardStorage();
     if (storage === "mqtt") return this._saveTimersToStorage_mqtt(timers);
     if (storage === "local") return this._saveTimersToStorage_local(timers);
   }
 
   _updateTimerInStorage(timerId, updates, sourceHint = null) {
-    const storage = sourceHint || this._config.storage;
+    const storage = sourceHint || this._cardStorage();
     if (storage === "mqtt") return this._updateTimerInStorage_mqtt(timerId, updates);
     if (storage === "local") return this._updateTimerInStorage_local(timerId, updates);
   }
 
   _removeTimerFromStorage(timerId, sourceHint = null) {
-    const storage = sourceHint || this._config.storage;
+    const storage = sourceHint || this._cardStorage();
     if (storage === "mqtt") return this._removeTimerFromStorage_mqtt(timerId);
     if (storage === "local") return this._removeTimerFromStorage_local(timerId);
   }
 
   _addTimerToStorage(timer) {
-    const storage = timer.source || this._config.storage;
+    const storage = timer.source || this._cardStorage();
     const timers = this._loadTimersFromStorage(storage);
     if (storage === "mqtt") {
       const tombs = this._readMqttCacheState().tombstones;
@@ -1347,13 +1524,15 @@ class SimpleTimerCard extends LitElement {
   _discoverTimerEntities() {
     const wantAlexa = this._config?.auto_discover_alexa === true;
     const wantGoogle = this._config?.auto_discover_google === true;
-    if (!wantAlexa && !wantGoogle) return [];
+    const wantTimerLists = this._config?.auto_discover_timer_lists === true;
+    const wantSatellites = this._config?.auto_discover_voice_satellites === true;
+    if (!wantAlexa && !wantGoogle && !wantTimerLists && !wantSatellites) return [];
     const states = this.hass?.states;
     if (!states) return [];
 
     const now = Date.now();
     const cache = this._discoveryCache;
-    if (cache && now - cache.at < 2000 && cache.alexa === wantAlexa && cache.google === wantGoogle) {
+    if (cache && now - cache.at < 2000 && cache.alexa === wantAlexa && cache.google === wantGoogle && cache.timerLists === wantTimerLists && cache.satellites === wantSatellites) {
       return cache.entities;
     }
 
@@ -1366,7 +1545,17 @@ class SimpleTimerCard extends LitElement {
 
     const found = [];
     for (const entityId in states) {
-      if (configured.has(entityId) || !entityId.startsWith("sensor.")) continue;
+      if (configured.has(entityId)) continue;
+      if (entityId.startsWith("timer_list.") || (entityId.startsWith("sensor.") && states[entityId]?.attributes?.simple_timer_card_api != null)) {
+        if (wantTimerLists) found.push({ entity: entityId, mode: "timer_list" });
+        continue;
+      }
+      if (entityId.startsWith("assist_satellite.")) {
+        // Only the Voice Satellite Card integration publishes active_timers.
+        if (wantSatellites && Array.isArray(states[entityId]?.attributes?.active_timers)) found.push({ entity: entityId, mode: "voice_satellite" });
+        continue;
+      }
+      if (!entityId.startsWith("sensor.")) continue;
       const attrs = states[entityId]?.attributes;
       if (!attrs) continue;
       // Cheap attribute probe first, since this runs against every state.
@@ -1383,7 +1572,7 @@ class SimpleTimerCard extends LitElement {
       else if (mode === "alexa" && wantAlexa) found.push({ entity: entityId, mode: "alexa" });
     }
 
-    this._discoveryCache = { at: now, alexa: wantAlexa, google: wantGoogle, entities: found };
+    this._discoveryCache = { at: now, alexa: wantAlexa, google: wantGoogle, timerLists: wantTimerLists, satellites: wantSatellites, entities: found };
     return found;
   }
 
@@ -1413,6 +1602,9 @@ class SimpleTimerCard extends LitElement {
 
   _detectMode(entityId, entityState, entityConf) {
     if (!entityState) return null;
+    if (entityId.startsWith("timer_list.")) return "timer_list";
+    if (entityId.startsWith("sensor.") && entityState.attributes?.simple_timer_card_api != null) return "timer_list";
+    if (entityId.startsWith("assist_satellite.") && Array.isArray(entityState.attributes?.active_timers)) return "voice_satellite";
     if (entityId.startsWith("timer.")) return "timer";
     if (entityId.startsWith("input_text.") || entityId.startsWith("text.")) return "helper";
     const attrs = entityState.attributes || {};
@@ -1852,6 +2044,1236 @@ class SimpleTimerCard extends LitElement {
     }];
   }
 
+  // === Home Assistant timer lists (v3.0.0) ===
+  //
+  // A timer_list entity holds many timers. Its state is only the active count;
+  // the timers themselves come from the timer_list/item/subscribe websocket
+  // command, which sends a snapshot and then one change event per update.
+
+  _timerListFeatures(entityState) {
+    const raw = Number(entityState?.attributes?.supported_features) || 0;
+    const has = (bit) => (raw & bit) === bit;
+    return {
+      create: has(TIMER_LIST_FEATURE.CREATE),
+      pause: has(TIMER_LIST_FEATURE.PAUSE),
+      cancel: has(TIMER_LIST_FEATURE.CANCEL) || has(TIMER_LIST_FEATURE.REMOVE),
+      cancel_service: has(TIMER_LIST_FEATURE.CANCEL),
+      extend: has(TIMER_LIST_FEATURE.ADD_TIME),
+      remove: has(TIMER_LIST_FEATURE.REMOVE),
+      finish: has(TIMER_LIST_FEATURE.FINISH),
+      snooze: has(TIMER_LIST_FEATURE.CREATE) || has(TIMER_LIST_FEATURE.RESTART),
+      restart: has(TIMER_LIST_FEATURE.RESTART) || (has(TIMER_LIST_FEATURE.CREATE) && (has(TIMER_LIST_FEATURE.REMOVE) || has(TIMER_LIST_FEATURE.CANCEL))),
+      restart_service: has(TIMER_LIST_FEATURE.RESTART),
+      actions: has(TIMER_LIST_FEATURE.RUN_ACTIONS),
+    };
+  }
+
+  _isCompanionList(entityId) {
+    return typeof entityId === "string" && entityId.startsWith("sensor.") &&
+      this.hass?.states?.[entityId]?.attributes?.simple_timer_card_api != null;
+  }
+
+  _isTimerListEntity(entityId) {
+    return typeof entityId === "string" && (entityId.startsWith("timer_list.") || this._isCompanionList(entityId));
+  }
+
+  // Core timer lists and the companion share one websocket and action contract.
+  _timerListApi(entityId) {
+    const domain = this._isCompanionList(entityId) ? COMPANION_DOMAIN : "timer_list";
+    return { domain, subscribe: `${domain}/item/subscribe` };
+  }
+
+  // The companion list that receives timers with an action: the default target
+  // if it is one, else a listed one, else the first one Home Assistant has.
+  _companionList() {
+    const def = this._config?.default_timer_entity;
+    if (this._isCompanionList(def)) return def;
+    for (const entityConf of Array.isArray(this._config?.entities) ? this._config.entities : []) {
+      const entityId = typeof entityConf === "string" ? entityConf : entityConf?.entity;
+      if (this._isCompanionList(entityId)) return entityId;
+    }
+    return Object.keys(this.hass?.states || {}).filter((id) => this._isCompanionList(id)).sort()[0] || null;
+  }
+
+  // storage: integration sends every new timer to the companion. Without the
+  // companion installed, new timers fall back to this browser.
+  _integrationStorageList() {
+    return this._config?.storage === "integration" ? this._companionList() : null;
+  }
+
+  // The card's own storage backend. With integration storage, an MQTT sensor
+  // still configured from before keeps its timers showing until they finish
+  // or are moved; otherwise it is this browser.
+  _cardStorage() {
+    const storage = this._config?.storage;
+    if (storage === "mqtt") return "mqtt";
+    if (storage === "integration" && this._config?.mqtt?.sensor_entity) return "mqtt";
+    return "local";
+  }
+
+  _syncTimerListSubscriptions(wanted) {
+    for (const entityId of [...this._timerLists.keys()]) {
+      if (!wanted.has(entityId)) this._dropTimerList(entityId);
+    }
+    if (!wanted.size) return;
+    const conn = this.hass?.connection;
+    if (!conn || typeof conn.subscribeMessage !== "function") return;
+    if (this._timerListConn !== conn) {
+      this._unwatchTimerListConnection();
+      this._timerListConn = conn;
+      try { conn.addEventListener?.("ready", this._onTimerListConnectionReady); } catch (_) {}
+    }
+    const now = Date.now();
+    for (const entityId of wanted) {
+      const st = this.hass.states?.[entityId];
+      let sub = this._timerLists.get(entityId);
+      if (!st || st.state === "unavailable" || st.state === "unknown") {
+        // Timers live in memory and are lost when the entity is reloaded, and
+        // the old subscription stays attached to the removed entity object.
+        if (sub) this._dropTimerList(entityId);
+        continue;
+      }
+      if (sub && sub.conn !== conn) {
+        this._dropTimerList(entityId);
+        sub = null;
+      }
+      if (sub?.status === "pending") continue;
+      if (sub?.status === "error" && now < sub.retryAt) continue;
+      if (sub?.status === "ready") {
+        const expected = Number(st.state);
+        let active = 0;
+        for (const item of sub.timers.values()) if (item.status === "active") active++;
+        if (!Number.isFinite(expected) || expected === active) {
+          sub.mismatchSince = null;
+          continue;
+        }
+        if (sub.mismatchSince == null) sub.mismatchSince = now;
+        if (now - sub.mismatchSince < TIMER_LIST_RESYNC_MS) continue;
+      }
+      this._subscribeTimerList(conn, entityId, sub);
+    }
+  }
+
+  _subscribeTimerList(conn, entityId, previous) {
+    if (previous) this._unsubscribeTimerList(previous);
+    // Keep the previous timers until the new snapshot replaces them, so a
+    // resync does not make a ringing timer disappear and ring again.
+    const sub = { conn, status: "pending", timers: previous?.timers || new Map(), unsub: null, retryAt: 0, mismatchSince: null };
+    this._timerLists.set(entityId, sub);
+    let pending;
+    try {
+      pending = conn.subscribeMessage(
+        (msg) => this._handleTimerListMessage(entityId, sub, msg),
+        { type: this._timerListApi(entityId).subscribe, entity_id: entityId },
+        { resubscribe: false }
+      );
+    } catch (err) {
+      pending = Promise.reject(err);
+    }
+    Promise.resolve(pending).then((unsub) => {
+      if (this._timerLists.get(entityId) !== sub) {
+        this._safeUnsubscribe(unsub);
+        return;
+      }
+      sub.unsub = unsub;
+    }, (err) => {
+      if (this._timerLists.get(entityId) !== sub) return;
+      sub.status = "error";
+      sub.retryAt = Date.now() + TIMER_LIST_RETRY_MS;
+      sub.timers = new Map();
+      if (!this._timerListWarned) {
+        this._timerListWarned = true;
+        console.warn(`simple-timer-card: could not subscribe to ${entityId}. This needs a Home Assistant version with timer lists.`, err);
+      }
+    });
+  }
+
+  _handleTimerListMessage(entityId, sub, msg) {
+    if (this._timerLists.get(entityId) !== sub || !msg) return;
+    const now = Date.now();
+    if (msg.type === "timers") {
+      const next = new Map();
+      for (const raw of Array.isArray(msg.timers) ? msg.timers : []) {
+        if (raw && raw.timer_id != null) next.set(String(raw.timer_id), { ...raw, timer_id: String(raw.timer_id), _received_at: now });
+      }
+      sub.timers = next;
+      sub.status = "ready";
+      sub.mismatchSince = null;
+      this._pruneTimerListMeta(entityId, next);
+    } else if (msg.type === "change" && msg.timer && msg.timer.timer_id != null) {
+      const timerId = String(msg.timer.timer_id);
+      if (msg.event_type === "removed") {
+        sub.timers.delete(timerId);
+        this._deleteTimerListMeta(entityId, timerId);
+      } else {
+        const item = { ...msg.timer, timer_id: timerId, _received_at: now };
+        if (msg.event_type === "finished") item._ended_local = now;
+        sub.timers.set(timerId, item);
+      }
+    } else {
+      return;
+    }
+    if (this.isConnected) this._updateTimers();
+  }
+
+  _unsubscribeTimerList(sub) {
+    if (!sub) return;
+    const unsub = sub.unsub;
+    sub.unsub = null;
+    this._safeUnsubscribe(unsub);
+  }
+
+  _safeUnsubscribe(unsub) {
+    if (typeof unsub !== "function") return;
+    try { Promise.resolve(unsub()).catch(() => {}); } catch (_) {}
+  }
+
+  _dropTimerList(entityId) {
+    const sub = this._timerLists.get(entityId);
+    this._timerLists.delete(entityId);
+    this._unsubscribeTimerList(sub);
+  }
+
+  _resetTimerListSubscriptions() {
+    // After a websocket reconnect, server-side subscriptions are gone. Mark
+    // every list for an immediate resubscribe while keeping its timers.
+    for (const sub of this._timerLists.values()) {
+      sub.unsub = null;
+      sub.status = "error";
+      sub.retryAt = 0;
+    }
+  }
+
+  _unwatchTimerListConnection() {
+    if (!this._timerListConn) return;
+    try { this._timerListConn.removeEventListener?.("ready", this._onTimerListConnectionReady); } catch (_) {}
+    this._timerListConn = null;
+  }
+
+  _teardownTimerLists() {
+    for (const entityId of [...this._timerLists.keys()]) this._dropTimerList(entityId);
+    this._unwatchTimerListConnection();
+    this._dropTemplateSubscription();
+  }
+
+  _timerListFinishedWindowMs(entityConf) {
+    const action = this._config?.expire_action;
+    if (action === "dismiss") return Infinity;
+    if (action === "remove") {
+      let audio;
+      if (entityConf && entityConf.audio_enabled !== undefined) audio = entityConf.audio_enabled === true;
+      else audio = this._config?.audio_enabled === true;
+      return audio ? (this._config.audio_completion_delay || 4) * 1000 : 0;
+    }
+    return (parseInt(this._config?.expire_keep_for, 10) || 120) * 1000;
+  }
+
+  _timerListBaseName(entityState, entityConf) {
+    if (entityConf?.name && String(entityConf.name).trim()) return String(entityConf.name).trim();
+    const friendly = entityState?.attributes?.friendly_name;
+    if (!friendly) return "";
+    return String(friendly).replace(/\s+timers?\s*$/i, "").trim();
+  }
+
+  // A browser or MQTT card still starts timers on the companion when they do
+  // something at the end, so it follows the ones it started, and only those.
+  _ownCompanionList(wanted) {
+    if (this._config?.storage === "integration") return null;
+    const companion = this._companionList();
+    return companion && !wanted.has(companion) ? companion : null;
+  }
+
+  _parseTimerList(entityId, entityState, entityConf, { ownOnly = false } = {}) {
+    if (entityState?.state === "unavailable" || entityState?.state === "unknown") return [];
+    const sub = this._timerLists.get(entityId);
+    if (!sub || !sub.timers.size) return [];
+    const supports = this._timerListFeatures(entityState);
+    const baseName = this._timerListBaseName(entityState, entityConf);
+    const finishedWindowMs = this._timerListFinishedWindowMs(entityConf);
+    const now = Date.now();
+    const out = [];
+    for (const item of sub.timers.values()) {
+      const status = item.status;
+      if (status !== "active" && status !== "paused" && status !== "finished") continue;
+      const serverMeta = item.metadata && typeof item.metadata === "object" ? item.metadata : {};
+      if (ownOnly && serverMeta.card !== this._storageNamespace) continue;
+      const meta = { ...serverMeta, ...(this._timerListMeta.get(this._timerListMetaKey(entityId, item.timer_id)) || {}) };
+      const action = item.action && typeof item.action === "object" ? item.action : null;
+      const createdMs = Math.max(0, Number(item.created_duration) || 0) * 1000;
+      const totalMs = Math.max(createdMs, Math.max(0, Number(item.total_duration) || 0) * 1000);
+      const name = item.name != null && String(item.name).trim() ? this._sanitizeText(String(item.name).trim()) : "";
+      const durationText = this._formatDurationDisplay(createdMs);
+      const actionText = action ? this._actionSummary(action) : "";
+      const label = name
+        || (actionText ? this._sanitizeText(actionText.charAt(0).toUpperCase() + actionText.slice(1)) : "")
+        || (baseName ? this._sanitizeText(`${baseName} - ${durationText}`) : this._formatTimerLabel(Math.round(createdMs / 1000)));
+      const timer = {
+        id: `timer_list:${entityId}:${item.timer_id}`,
+        source: "timer_list",
+        source_entity: entityId,
+        timer_list_timer_id: item.timer_id,
+        timer_list_name: name || null,
+        created_duration_ms: createdMs,
+        label,
+        name: label,
+        short_label: name || actionText ? null : this._formatTimerLabel(Math.round(createdMs / 1000)),
+        device_base_name: baseName || null,
+        timer_action: action,
+        action_result: item.action_result || null,
+        captured_voice: item.source === "voice",
+        icon: meta.icon || item.icon || entityConf?.icon || (item.source === "voice" ? "mdi:microphone-message" : (action ? "mdi:timer-play-outline" : "mdi:timer")),
+        color: meta.color || item.color || entityConf?.color || "var(--primary-color)",
+        duration: totalMs,
+        supports,
+        idle: false,
+        finished: false,
+      };
+      for (const key of ["pinned_id", "buttons", "expired_subtitle", "audio_enabled", "audio_file_url", "audio_repeat_count", "audio_play_until_dismissed"]) {
+        if (meta[key] !== undefined) timer[key] = meta[key];
+      }
+      if (status === "paused") {
+        const remainingMs = Math.max(0, Number(item.paused_remaining ?? item.remaining) || 0) * 1000;
+        out.push({ ...timer, paused: true, end: remainingMs, remaining_ms: remainingMs });
+      } else if (status === "active") {
+        const remainingMs = Math.max(0, Number(item.remaining) || 0) * 1000;
+        out.push({ ...timer, paused: false, end: item._received_at + remainingMs });
+      } else {
+        const parsedEnd = Date.parse(item.ended_at);
+        const endedAt = item._ended_local || (Number.isFinite(parsedEnd) ? parsedEnd : item._received_at);
+        if (now - endedAt > finishedWindowMs) continue;
+        out.push({ ...timer, paused: false, end: Math.min(endedAt, now) });
+      }
+    }
+    return out;
+  }
+
+  _timerListMetaKey(entityId, timerId) {
+    return `${entityId}|${timerId}`;
+  }
+
+  _loadTimerListMeta() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(TIMER_LIST_META_KEY) || "{}");
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) return new Map(Object.entries(parsed));
+    } catch (_) {}
+    return new Map();
+  }
+
+  _saveTimerListMeta() {
+    try {
+      if (this._timerListMeta.size) localStorage.setItem(TIMER_LIST_META_KEY, JSON.stringify(Object.fromEntries(this._timerListMeta)));
+      else localStorage.removeItem(TIMER_LIST_META_KEY);
+    } catch (_) {}
+  }
+
+  _setTimerListMeta(entityId, timerId, meta) {
+    const clean = _cleanUndefined({ ...meta });
+    if (!clean || !Object.keys(clean).length) return;
+    this._timerListMeta.set(this._timerListMetaKey(entityId, timerId), clean);
+    this._saveTimerListMeta();
+  }
+
+  _deleteTimerListMeta(entityId, timerId) {
+    if (this._timerListMeta.delete(this._timerListMetaKey(entityId, timerId))) this._saveTimerListMeta();
+  }
+
+  _pruneTimerListMeta(entityId, timers) {
+    const prefix = `${entityId}|`;
+    let changed = false;
+    for (const key of [...this._timerListMeta.keys()]) {
+      if (key.startsWith(prefix) && !timers.has(key.slice(prefix.length))) {
+        this._timerListMeta.delete(key);
+        changed = true;
+      }
+    }
+    if (changed) this._saveTimerListMeta();
+  }
+
+  // Explicit default_timer_entity first, then a single timer list listed in
+  // entities, mirroring how a single native timer.* is picked.
+  _resolveTimerListTarget(explicit) {
+    if (typeof explicit === "string" && explicit) return this._isTimerListEntity(explicit) ? explicit : null;
+    const def = this._config?.default_timer_entity;
+    if (typeof def === "string" && def) return this._isTimerListEntity(def) ? def : null;
+    const areaId = this._config?.default_timer_area;
+    if (typeof areaId === "string" && areaId) {
+      const inArea = this._timerListsInArea(areaId);
+      if (inArea.length) return inArea[0];
+    }
+    const integration = this._integrationStorageList();
+    if (integration) return integration;
+    const lists = [];
+    for (const entityConf of Array.isArray(this._config?.entities) ? this._config.entities : []) {
+      const entityId = typeof entityConf === "string" ? entityConf : entityConf?.entity;
+      const mode = typeof entityConf === "string" ? null : entityConf?.mode;
+      if (entityId && this._isTimerListEntity(entityId) && (!mode || mode === "auto" || mode === "timer_list")) lists.push(entityId);
+    }
+    return lists.length === 1 ? lists[0] : null;
+  }
+
+  _timerListsInArea(areaId) {
+    const out = [];
+    for (const entityId of Object.keys(this.hass?.states || {})) {
+      if (!entityId.startsWith("timer_list.")) continue;
+      if (this._registryInfo(entityId).areaId !== areaId) continue;
+      if (!this._timerListFeatures(this.hass.states[entityId]).create) continue;
+      out.push(entityId);
+    }
+    return out.sort((a, b) => a.localeCompare(b));
+  }
+
+  // === Start-on picker (v3.0.0) ===
+
+  _pickerTimerLists() {
+    return (this._knownTimerLists || []).filter((id) => this._timerListFeatures(this.hass?.states?.[id]).create);
+  }
+
+  // Speakers a timer can be put on: timer lists other than the companion.
+  _speakerLists() {
+    return this._pickerTimerLists().filter((id) => !this._isCompanionList(id));
+  }
+
+  _showTargetPicker() {
+    const mode = String(this._config?.target_picker ?? "auto").toLowerCase();
+    if (mode === "never" || mode === "false") return false;
+    return this._speakerLists().length > 0;
+  }
+
+  // The speaker picked in the custom timer panel, if it is still valid.
+  _activeTargetChoice() {
+    const choice = this._targetChoice;
+    if (typeof choice !== "string" || !choice.startsWith("list:")) return null;
+    const entity = choice.slice(5);
+    return this._speakerLists().includes(entity) ? { kind: "timer_list", entity } : null;
+  }
+
+  // The speaker a new timer goes to: the pick, else a default speaker.
+  _currentSpeaker() {
+    const active = this._activeTargetChoice();
+    if (active) return active.entity;
+    const list = this._resolveTimerListTarget(null);
+    return list && !this._isCompanionList(list) ? list : null;
+  }
+
+  _currentTargetValue() {
+    const speaker = this._currentSpeaker();
+    return speaker ? `list:${speaker}` : "";
+  }
+
+  _timerListChipLabel(entityId) {
+    return this._deviceNameFor({
+      source: "timer_list",
+      source_entity: entityId,
+      device_base_name: this._timerListBaseName(this.hass?.states?.[entityId], this._getEntityConfig(entityId)),
+    });
+  }
+
+  _targetDestination(entityId) {
+    const info = this._registryInfo(entityId);
+    const title = this._timerListChipLabel(entityId);
+    const ent = this.hass?.entities?.[entityId];
+    const dev = ent?.device_id ? this.hass?.devices?.[ent.device_id] : null;
+    const model = dev?.model && !title.toLowerCase().includes(String(dev.model).toLowerCase()) ? dev.model : null;
+    const phone = ent?.platform === "mobile_app";
+    const icon = phone ? "mdi:cellphone" : ent?.platform === "voip" ? "mdi:phone-classic" : "mdi:speaker";
+    return {
+      value: `list:${entityId}`, icon, order: phone ? 1 : 0, group: phone ? "phones" : "speakers", title,
+      sub: [info.area, model].filter(Boolean).join(" · "), area: info.area || "",
+      search: [title, info.area, info.device, model, entityId].filter(Boolean).join(" ").toLowerCase(),
+    };
+  }
+
+  // Speakers, then phones, sorted by area so a house full of them stays easy to scan.
+  _targetDestinations() {
+    return this._speakerLists().map((id) => this._targetDestination(id))
+      .sort((a, b) => a.order - b.order || String(a.area || "").localeCompare(String(b.area || "")) || a.title.localeCompare(b.title));
+  }
+
+  // "Put on a speaker" is optional: a link, or the chosen speaker as a pill.
+  // A timer that does something when it ends stays in Home Assistant, so the
+  // two choices exclude each other.
+  _renderTargetLine(which) {
+    if (!this._showTargetPicker()) return "";
+    if (this._actionPickerEnabled() && this._actionDraftSpec()) return "";
+    const speaker = this._currentSpeaker();
+    if (!speaker) {
+      return html`
+        <div class="action-entry">
+          <button type="button" class="action-link" @click=${() => this._openActionWizard(which, "target")}>
+            <ha-icon icon="mdi:speaker"></ha-icon>${this._localize("put_on_speaker")}
+          </button>
+        </div>
+      `;
+    }
+    const dest = this._targetDestination(speaker);
+    return html`
+      <div class="action-entry">
+        <span class="action-pill">
+          <button type="button" class="action-pill-main" @click=${() => this._openActionWizard(which, "target")}>
+            <ha-icon icon=${dest.icon}></ha-icon><span>${dest.title}</span>
+          </button>
+          ${this._activeTargetChoice() ? html`
+            <button type="button" class="action-pill-clear" aria-label=${this._localize("close")}
+              @click=${() => { this._targetChoice = null; }}>
+              <ha-icon icon="mdi:close"></ha-icon>
+            </button>` : ""}
+        </span>
+      </div>
+    `;
+  }
+
+  _renderTargetList() {
+    const all = this._targetDestinations();
+    const query = String(this._targetQuery || "").trim().toLowerCase();
+    const current = this._currentTargetValue();
+    const shown = query ? all.filter((d) => d.search.includes(query)) : all;
+    const pick = (value) => { this._targetChoice = value; this._targetQuery = ""; this._closeActionWizard(true); };
+    return html`
+      ${all.length > 5 ? html`
+        <input class="text-input wizard-input" type="search"
+          .value=${this._targetQuery || ""}
+          placeholder=${this._localize("search_targets")}
+          aria-label=${this._localize("search_targets")}
+          @input=${(e) => { this._targetQuery = e.target.value; this.requestUpdate(); }}>` : ""}
+      <div class="wizard-list" role="listbox" aria-label=${this._localize("put_on_speaker")}>
+        ${shown.map((d, i) => html`
+          ${!query && d.group !== shown[i - 1]?.group && new Set(all.map((x) => x.group)).size > 1 ? html`<div class="wizard-section">${this._localize(d.group)}</div>` : ""}
+          <button type="button" class="wizard-row ${d.value === current ? "selected" : ""}" role="option"
+            aria-selected=${String(d.value === current)} @click=${() => pick(d.value)}>
+            <ha-icon class="row-icon" icon=${d.icon}></ha-icon>
+            <span class="row-text"><span class="row-title">${d.title}</span>${d.sub ? html`<span class="row-sub">${d.sub}</span>` : ""}</span>
+            ${d.value === current ? html`<ha-icon class="row-check" icon="mdi:check"></ha-icon>` : ""}
+          </button>
+        `)}
+      </div>
+    `;
+  }
+
+  _renderTargetPicker(which) {
+    // A speaker timer cannot run an action, so a chosen speaker hides the link.
+    return html`${this._activeTargetChoice() ? "" : this._renderActionEntry(which)}${this._renderTargetLine(which)}`;
+  }
+
+  // === Action timers via the companion integration (v3.0.0) ===
+  //
+  // An action spec is { name, icon, command } or { name, icon, actions } where
+  // actions is a Home Assistant action list. The companion runs it when the
+  // timer ends, in Home Assistant, with no dashboard open.
+
+  _normalizeActionSpec(value) {
+    if (!value) return null;
+    const conf = typeof value === "string" ? { entity: value } : (typeof value === "object" ? value : null);
+    if (!conf) return null;
+    const name = conf.name ? String(conf.name) : "";
+    const icon = conf.icon ? String(conf.icon) : "";
+    if (conf.command != null && String(conf.command).trim()) {
+      return { key: `command:${String(conf.command).trim()}`, name, icon, command: String(conf.command).trim() };
+    }
+    if (Array.isArray(conf.actions) && conf.actions.length) {
+      return { key: `actions:${JSON.stringify(conf.actions)}`, name, icon, actions: conf.actions };
+    }
+    const announce = String(conf.announce || "").trim();
+    if (announce) {
+      const message = conf.message ? String(conf.message).trim() : "";
+      const actions = ENTITY_ID_RE.test(announce) ? this._announceActions(announce, message || this._localize("announce_plain")) : null;
+      if (!actions) return null;
+      return { key: `announce:${announce}:${message}`, name, icon: icon || "mdi:bullhorn-outline", announce, message, actions };
+    }
+    const entity = String(conf.entity || conf.entity_id || "").trim();
+    if (!ENTITY_ID_RE.test(entity)) return null;
+    let service = String(conf.service || conf.action || "turn_off").trim();
+    if (!service.includes(".")) service = `${entity.split(".")[0]}.${service}`;
+    if (!ENTITY_ID_RE.test(service)) return null;
+    const step = { action: service, target: { entity_id: entity } };
+    if (conf.data && typeof conf.data === "object") step.data = conf.data;
+    return { key: `${entity}:${service}`, name, icon, entity, service, actions: [step] };
+  }
+
+  _favoriteActions() {
+    const raw = Array.isArray(this._config?.device_timers) ? this._config.device_timers : [];
+    return raw.map((entry) => this._normalizeActionSpec(entry)).filter(Boolean);
+  }
+
+  _actionPickerEnabled() {
+    if (this._config?.action_timers === false) return false;
+    return !!this._companionList();
+  }
+
+  // === Announce on a speaker (v3.0.0) ===
+  //
+  // The companion's announce service picks the method when the timer ends:
+  // satellites announce natively, Alexa Media Player speakers through
+  // notify.alexa_media, other media players through TTS with the preferred
+  // Assist pipeline's voice.
+
+  _canAnnounceOn(entityId) {
+    const domain = String(entityId || "").split(".")[0];
+    if (domain === "assist_satellite") return true;
+    if (domain !== "media_player") return false;
+    if (this.hass?.entities?.[entityId]?.platform === "alexa_media") return true;
+    return Object.keys(this.hass?.states || {}).some((id) => id.startsWith("tts."));
+  }
+
+  _announceActions(entityId, message) {
+    if (!this._canAnnounceOn(entityId)) return null;
+    return [{ action: `${COMPANION_DOMAIN}.announce`, data: { entity_id: entityId, message } }];
+  }
+
+  // The speaker an announce step speaks on, or null for other actions.
+  _announceTarget(step) {
+    const service = step?.action || step?.service;
+    let id = null;
+    if (service === `${COMPANION_DOMAIN}.announce`) id = step.data?.entity_id;
+    else if (service === "assist_satellite.announce") id = step.target?.entity_id ?? step.entity_id;
+    else if (service === "notify.alexa_media") id = step.data?.target;
+    else if (service === "tts.speak") id = step.data?.media_player_entity_id;
+    else return null;
+    return Array.isArray(id) ? (id[0] || null) : (id || null);
+  }
+
+  _searchAnnounceSpeakers(query) {
+    const q = String(query || "").trim().toLowerCase();
+    const out = [];
+    for (const [id, st] of Object.entries(this.hass?.states || {})) {
+      const domain = id.split(".")[0];
+      const features = Number(st?.attributes?.supported_features) || 0;
+      if (domain === "assist_satellite") {
+        if (!(features & 1)) continue;
+      } else if (domain === "media_player") {
+        if (!(features & 512) || !this._canAnnounceOn(id)) continue;
+      } else continue;
+      if (this.hass?.entities?.[id]?.hidden) continue;
+      const info = this._registryInfo(id);
+      if (q && ![this._entityName(id), info.area, info.device, id].filter(Boolean).join(" ").toLowerCase().includes(q)) continue;
+      out.push({ id, area: info.area || "\uffff", name: this._entityName(id) });
+    }
+    return out.sort((a, b) => a.area.localeCompare(b.area) || a.name.localeCompare(b.name)).map((x) => x.id);
+  }
+
+  _serviceLabel(service) {
+    const [domain, name] = String(service || "").split(".");
+    if (!domain || !name) return service || "";
+    const localized = this.hass?.localize?.(`component.${domain}.services.${name}.name`);
+    if (localized) return localized;
+    const described = this.hass?.services?.[domain]?.[name]?.name;
+    if (described) return described;
+    const words = name.replace(/_/g, " ");
+    return words.charAt(0).toUpperCase() + words.slice(1);
+  }
+
+  _entityName(entityId) {
+    return this.hass?.states?.[entityId]?.attributes?.friendly_name || entityId;
+  }
+
+  // Short text for what a timer will do: the command itself, or "Turn off Air purifier".
+  _actionSummary(action) {
+    if (!action || typeof action !== "object") return "";
+    if (action.command) return String(action.command);
+    const steps = Array.isArray(action.actions) ? action.actions : [];
+    const step = steps[0];
+    if (!step || typeof step !== "object") return "";
+    const speaker = this._announceTarget(step);
+    if (speaker) {
+      const said = this._localize("announce_on").replace("{speaker}", this._entityName(speaker));
+      return steps.length > 1 ? `${said} +${steps.length - 1}` : said;
+    }
+    const service = step.action || step.service || "";
+    const targets = step.target?.entity_id ?? step.entity_id ?? step.data?.entity_id;
+    const ids = Array.isArray(targets) ? targets : (targets ? [targets] : []);
+    const names = ids.map((id) => this._entityName(id)).join(", ");
+    const text = `${this._serviceLabel(service)}${names ? ` ${names}` : ""}`.trim();
+    return steps.length > 1 ? `${text} +${steps.length - 1}` : text;
+  }
+
+  // Services the entity's domain offers that need no extra fields, plus the
+  // generic on/off/toggle, so any device and most of its actions can be picked.
+  _servicesForEntity(entityId) {
+    const domain = String(entityId || "").split(".")[0];
+    if (!domain) return [];
+    const out = [];
+    const services = this.hass?.services?.[domain] || {};
+    for (const [name, desc] of Object.entries(services)) {
+      const fields = desc?.fields || {};
+      // Skip domain-wide services such as reload, which take no target.
+      if (desc && !desc.target && !fields.entity_id) continue;
+      const needsInput = Object.entries(fields).some(([key, f]) => f?.required && key !== "entity_id");
+      if (!needsInput) out.push(`${domain}.${name}`);
+    }
+    for (const generic of ["homeassistant.turn_on", "homeassistant.turn_off", "homeassistant.toggle"]) {
+      const short = generic.split(".")[1];
+      if (!out.includes(`${domain}.${short}`)) out.push(generic);
+    }
+    return out;
+  }
+
+  // Entities that can be the target of a timer action, best matches first.
+  // Uses the card's own search so it works on dashboards where Home
+  // Assistant has not loaded its entity picker.
+  _searchActionEntities(query, limit = 8) {
+    const domains = new Set(["light", "switch", "fan", "cover", "lock", "climate", "media_player", "input_boolean",
+      "scene", "script", "vacuum", "valve", "humidifier", "water_heater", "siren", "button", "input_button", "automation", "remote", "lawn_mower"]);
+    const q = String(query || "").trim().toLowerCase();
+    const out = [];
+    for (const [id, st] of Object.entries(this.hass?.states || {})) {
+      if (!domains.has(id.split(".")[0]) || st?.state === "unavailable") continue;
+      if (!q) break;
+      const name = String(st?.attributes?.friendly_name || id).toLowerCase();
+      const area = String(this._registryInfo(id).area || "").toLowerCase();
+      let score;
+      if (name.startsWith(q)) score = 0;
+      else if (name.includes(q) || id.includes(q)) score = 1;
+      else if (area.includes(q)) score = 2;
+      else continue;
+      out.push({ id, name, score });
+    }
+    if (!q) return [];
+    out.sort((a, b) => a.score - b.score || a.name.localeCompare(b.name));
+    return out.slice(0, limit).map((e) => e.id);
+  }
+
+  _actionDraftSpec() {
+    const draft = this._actionDraft;
+    if (!draft || !draft.mode || draft.mode === "none") return null;
+    if (draft.mode === "command") return this._normalizeActionSpec({ command: draft.command });
+    if (draft.mode === "device") return this._normalizeActionSpec({ entity: draft.entity, service: draft.service });
+    if (draft.mode === "announce") return draft.speaker ? this._normalizeActionSpec({ announce: draft.speaker, message: draft.message }) : null;
+    if (draft.mode.startsWith("fav:")) return this._favoriteActions().find((f) => `fav:${f.key}` === draft.mode) || null;
+    return null;
+  }
+
+  _setActionDraft(patch) {
+    this._actionDraft = { ...(this._actionDraft || { mode: "none" }), ...patch };
+  }
+
+  // The custom panel stays simple: one link (or a summary of the chosen
+  // action). Everything else happens in a short wizard inside the panel.
+  _renderActionEntry(which) {
+    if (!this._actionPickerEnabled()) return "";
+    const spec = this._actionDraftSpec();
+    if (!spec) {
+      return html`
+        <div class="action-entry">
+          <button type="button" class="action-link" @click=${() => this._openActionWizard(which, "type")}>
+            <ha-icon icon="mdi:plus-circle-outline"></ha-icon>${this._localize("add_action")}
+          </button>
+        </div>
+      `;
+    }
+    const draft = this._actionDraft || {};
+    const step = { command: "command", device: "action", announce: "announce" }[draft.mode] || "type";
+    return html`
+      <div class="action-entry">
+        <span class="action-pill">
+          <button type="button" class="action-pill-main" @click=${() => this._openActionWizard(which, step)}>
+            <ha-icon icon=${this._actionIcon(spec)}></ha-icon><span>${this._actionPillText(spec)}</span>
+          </button>
+          <button type="button" class="action-pill-clear" aria-label=${this._localize("close")}
+            @click=${() => { this._actionDraft = { mode: "none" }; }}>
+            <ha-icon icon="mdi:close"></ha-icon>
+          </button>
+        </span>
+      </div>
+    `;
+  }
+
+  _openActionWizard(which, step) {
+    this._wizardPrev = { ...(this._actionDraft || { mode: "none" }) };
+    this._actionWizard = { which, step };
+  }
+
+  _closeActionWizard(keep) {
+    if (!keep && this._wizardPrev) this._actionDraft = this._wizardPrev;
+    this._targetQuery = "";
+    this._wizardPrev = null;
+    this._actionWizard = null;
+  }
+
+  _wizardStep(step) {
+    this._actionWizard = { ...this._actionWizard, step };
+  }
+
+  _domainIcon(entityId) {
+    const icons = {
+      light: "mdi:lightbulb", switch: "mdi:toggle-switch-variant", fan: "mdi:fan", cover: "mdi:window-shutter",
+      lock: "mdi:lock", climate: "mdi:thermostat", media_player: "mdi:cast", input_boolean: "mdi:toggle-switch-outline",
+      scene: "mdi:palette", script: "mdi:script-text-outline", vacuum: "mdi:robot-vacuum", valve: "mdi:valve",
+      humidifier: "mdi:air-humidifier", water_heater: "mdi:water-boiler", siren: "mdi:bullhorn", button: "mdi:gesture-tap-button",
+      input_button: "mdi:gesture-tap-button", automation: "mdi:robot", remote: "mdi:remote", lawn_mower: "mdi:robot-mower",
+    };
+    const st = this.hass?.states?.[entityId];
+    return st?.attributes?.icon || icons[String(entityId).split(".")[0]] || "mdi:devices";
+  }
+
+  _serviceIcon(service) {
+    const name = String(service || "").split(".")[1] || "";
+    const icons = {
+      turn_off: "mdi:power-off", turn_on: "mdi:power", toggle: "mdi:swap-horizontal", open_cover: "mdi:arrow-up-box",
+      close_cover: "mdi:arrow-down-box", stop_cover: "mdi:stop", lock: "mdi:lock", unlock: "mdi:lock-open-variant",
+      open: "mdi:lock-open-variant", media_pause: "mdi:pause", media_play: "mdi:play", media_stop: "mdi:stop",
+      media_play_pause: "mdi:play-pause", start: "mdi:play", stop: "mdi:stop", pause: "mdi:pause",
+      return_to_base: "mdi:home-import-outline", press: "mdi:gesture-tap", trigger: "mdi:play", open_valve: "mdi:valve-open",
+      close_valve: "mdi:valve-closed", volume_mute: "mdi:volume-off",
+    };
+    return icons[name] || "mdi:play-circle-outline";
+  }
+
+  _actionIcon(spec) {
+    if (spec?.icon) return spec.icon;
+    if (spec?.command) return "mdi:microphone-message";
+    const step = Array.isArray(spec?.actions) ? spec.actions[0] : null;
+    return this._serviceIcon(step?.action || step?.service);
+  }
+
+  // "Turn off · Air purifier, Living room": the area tells similar names apart.
+  _actionPillText(spec) {
+    if (spec.name) return spec.name;
+    if (spec.command) return `“${spec.command}”`;
+    if (spec.announce) {
+      const area = this._registryInfo(spec.announce).area;
+      return `${this._actionSummary(spec)}${area ? `, ${area}` : ""}`;
+    }
+    if (spec.entity) {
+      const area = this._registryInfo(spec.entity).area;
+      return `${this._serviceLabel(spec.service)} · ${this._entityName(spec.entity)}${area ? `, ${area}` : ""}`;
+    }
+    return this._actionSummary(spec);
+  }
+
+  _renderEntityRow(entityId, onClick) {
+    const info = this._registryInfo(entityId);
+    const name = this._entityName(entityId);
+    const ent = this.hass?.entities?.[entityId];
+    const model = ent?.device_id ? this.hass?.devices?.[ent.device_id]?.model : null;
+    // Area, device and model tell apart entities that share a name, such as
+    // an Alexa and a Sonos entity both called after the room.
+    const parts = [info.area, info.device, model].filter((part, i, all) => part && part !== name && all.indexOf(part) === i);
+    const sub = parts.join(" · ");
+    return html`
+      <button type="button" class="wizard-row" @click=${onClick}>
+        <ha-icon class="row-icon" icon=${this._domainIcon(entityId)}></ha-icon>
+        <span class="row-text">
+          <span class="row-title">${this._entityName(entityId)}</span>
+          ${sub ? html`<span class="row-sub">${sub}</span>` : ""}
+          <span class="row-id">${entityId}</span>
+        </span>
+      </button>
+    `;
+  }
+
+  _renderActionWizard() {
+    const step = this._actionWizard?.step || "type";
+    const draft = this._actionDraft || { mode: "none" };
+    const back = { device: "type", command: "type", action: "device", speaker: "type", announce: "speaker" }[step];
+    const titles = {
+      target: this._localize("put_on_speaker"),
+      type: this._localize("when_it_ends"),
+      device: this._localize("control_device_title"),
+      action: this._localize("what_to_do"),
+      command: this._localize("run_command_title"),
+      speaker: this._localize("choose_speaker"),
+      announce: this._localize("announce_title"),
+    };
+    const head = html`
+      <div class="wizard-head">
+        ${back ? html`
+          <button type="button" class="wizard-icon-btn" aria-label=${this._localize("back")} @click=${() => this._wizardStep(back)}>
+            <ha-icon icon=${this._isRTL() ? "mdi:arrow-right" : "mdi:arrow-left"}></ha-icon>
+          </button>` : html`<span class="wizard-icon-spacer"></span>`}
+        <span class="wizard-title">${titles[step]}</span>
+        <button type="button" class="wizard-icon-btn" aria-label=${this._localize("close")} @click=${() => this._closeActionWizard(false)}>
+          <ha-icon icon="mdi:close"></ha-icon>
+        </button>
+      </div>
+    `;
+    let body;
+    if (step === "target") {
+      body = this._renderTargetList();
+    } else if (step === "type") {
+      const favorites = this._favoriteActions();
+      body = html`
+        <div class="wizard-list">
+          <button type="button" class="wizard-row" @click=${() => { this._setActionDraft({ mode: "device" }); this._wizardStep(draft.entity ? "action" : "device"); }}>
+            <ha-icon class="row-icon" icon="mdi:power-plug-outline"></ha-icon>
+            <span class="row-text"><span class="row-title">${this._localize("control_device_title")}</span><span class="row-sub">${this._localize("control_device_desc")}</span></span>
+          </button>
+          <button type="button" class="wizard-row" @click=${() => { this._setActionDraft({ mode: "command" }); this._wizardStep("command"); }}>
+            <ha-icon class="row-icon" icon="mdi:microphone-message"></ha-icon>
+            <span class="row-text"><span class="row-title">${this._localize("run_command_title")}</span><span class="row-sub">${this._localize("run_command_desc")}</span></span>
+          </button>
+          <button type="button" class="wizard-row" @click=${() => { this._setActionDraft({ mode: "announce" }); this._wizardStep(draft.speaker ? "announce" : "speaker"); }}>
+            <ha-icon class="row-icon" icon="mdi:bullhorn-outline"></ha-icon>
+            <span class="row-text"><span class="row-title">${this._localize("announce_title")}</span><span class="row-sub">${this._localize("announce_desc")}</span></span>
+          </button>
+          ${favorites.length ? html`
+            <div class="wizard-section">${this._localize("quick_actions")}</div>
+            ${favorites.map((f) => html`
+              <button type="button" class="wizard-row" @click=${() => { this._actionDraft = { mode: `fav:${f.key}` }; this._closeActionWizard(true); }}>
+                <ha-icon class="row-icon" icon=${this._actionIcon(f)}></ha-icon>
+                <span class="row-text"><span class="row-title">${f.name || this._actionSummary(f)}</span>
+                  ${f.name ? html`<span class="row-sub">${this._actionSummary(f)}</span>` : ""}</span>
+              </button>
+            `)}
+          ` : ""}
+        </div>
+      `;
+    } else if (step === "device") {
+      const results = this._searchActionEntities(draft.query);
+      body = html`
+        <input class="text-input wizard-input" type="search" autofocus
+          .value=${draft.query || ""}
+          placeholder=${this._localize("search_devices")}
+          aria-label=${this._localize("search_devices")}
+          @input=${(e) => this._setActionDraft({ query: e.target.value })}>
+        <div class="wizard-list">
+          ${results.length
+            ? results.map((id) => this._renderEntityRow(id, () => { this._setActionDraft({ entity: id, service: "", query: "" }); this._wizardStep("action"); }))
+            : html`<div class="wizard-hint">${this._localize("type_to_search")}</div>`}
+        </div>
+      `;
+    } else if (step === "action") {
+      const services = this._servicesForEntity(draft.entity);
+      body = html`
+        ${draft.entity ? this._renderEntityRow(draft.entity, () => this._wizardStep("device")) : ""}
+        <div class="wizard-list">
+          ${services.map((sv) => html`
+            <button type="button" class="wizard-row compact" @click=${() => { this._setActionDraft({ mode: "device", service: sv }); this._closeActionWizard(true); }}>
+              <ha-icon class="row-icon" icon=${this._serviceIcon(sv)}></ha-icon>
+              <span class="row-text"><span class="row-title">${this._serviceLabel(sv)}</span></span>
+            </button>
+          `)}
+        </div>
+      `;
+    } else if (step === "speaker") {
+      const results = this._searchAnnounceSpeakers(draft.speakerQuery);
+      body = html`
+        <input class="text-input wizard-input" type="search"
+          .value=${draft.speakerQuery || ""}
+          placeholder=${this._localize("search_targets")}
+          aria-label=${this._localize("search_targets")}
+          @input=${(e) => this._setActionDraft({ speakerQuery: e.target.value })}>
+        <div class="wizard-list">
+          ${results.length
+            ? results.map((id) => this._renderEntityRow(id, () => { this._setActionDraft({ mode: "announce", speaker: id, speakerQuery: "" }); this._wizardStep("announce"); }))
+            : html`<div class="wizard-hint">${this._localize("type_to_search")}</div>`}
+        </div>
+      `;
+    } else if (step === "announce") {
+      const finish = () => { this._setActionDraft({ mode: "announce" }); this._closeActionWizard(true); };
+      body = html`
+        ${draft.speaker ? this._renderEntityRow(draft.speaker, () => this._wizardStep("speaker")) : ""}
+        <input class="text-input wizard-input" type="text"
+          .value=${draft.message || ""}
+          placeholder=${this._localize("announce_plain")}
+          aria-label=${this._localize("announce_message")}
+          @input=${(e) => this._setActionDraft({ message: e.target.value })}
+          @keydown=${(e) => { if (e.key === "Enter") finish(); }}>
+        <div class="wizard-hint">${this._localize("announce_message")}</div>
+        <div class="picker-actions">
+          <button type="button" class="btn btn-primary" ?disabled=${!draft.speaker} @click=${finish}>${this._localize("done")}</button>
+        </div>
+      `;
+    } else {
+      const ready = !!String(draft.command || "").trim();
+      body = html`
+        <input class="text-input wizard-input" type="text" autofocus
+          .value=${draft.command || ""}
+          placeholder=${this._localize("command_placeholder")}
+          aria-label=${this._localize("run_command_title")}
+          @input=${(e) => this._setActionDraft({ command: e.target.value })}
+          @keydown=${(e) => { if (e.key === "Enter" && String(e.target.value).trim()) { this._setActionDraft({ mode: "command" }); this._closeActionWizard(true); } }}>
+        <div class="wizard-hint">${this._localize("run_command_desc")}</div>
+        <div class="picker-actions">
+          <button type="button" class="btn btn-primary" ?disabled=${!ready}
+            @click=${() => { this._setActionDraft({ mode: "command" }); this._closeActionWizard(true); }}>${this._localize("done")}</button>
+        </div>
+      `;
+    }
+    return html`<div class="wizard">${head}${body}</div>`;
+  }
+
+  // Starts a timer that runs an action. Returns false when it cannot start.
+  _createActionTimer(spec, durationMs, label, overrides = {}) {
+    const listId = this._companionList();
+    if (!listId) {
+      this._toast(this._localize("needs_companion"));
+      return false;
+    }
+    if (!spec) return false;
+    const name = label && String(label).trim() ? String(label).trim() : (spec.name || "");
+    const meta = this._timerListMetaFromOverrides({ ...overrides, icon: overrides.icon || spec.icon || undefined });
+    let actions = spec.actions;
+    if (spec.announce && !spec.message) {
+      const message = name ? this._localize("announce_named").replace("{name}", name) : this._localize("announce_plain");
+      actions = this._announceActions(spec.announce, message) || actions;
+    }
+    const extra = spec.command ? { command: spec.command } : { actions };
+    this._createTimerListTimer(listId, durationMs, name, meta, extra);
+    this.requestUpdate();
+    return true;
+  }
+
+  _timerListMetaFromOverrides(overrides = {}) {
+    const meta = {};
+    for (const key of ["pinned_id", "icon", "color", "expired_subtitle", "audio_enabled", "audio_file_url", "audio_repeat_count", "audio_play_until_dismissed"]) {
+      if (overrides[key] !== undefined && overrides[key] !== null && overrides[key] !== "") meta[key] = overrides[key];
+    }
+    if (Array.isArray(overrides.buttons) && overrides.buttons.length) meta.buttons = overrides.buttons;
+    return meta;
+  }
+
+  async _createTimerListTimer(entityId, durationMs, name, meta = {}, extra = {}) {
+    if (!this.hass || !entityId) return null;
+    const seconds = Math.max(1, Math.ceil(Number(durationMs) / 1000));
+    const serviceData = { duration: this._formatDurationForService(seconds) };
+    const cleanName = name != null && String(name).trim() ? String(name).trim() : "";
+    if (cleanName) serviceData.name = cleanName;
+    const { domain } = this._timerListApi(entityId);
+    if (domain === COMPANION_DOMAIN) {
+      // The companion stores card options with the timer, so every dashboard sees them.
+      Object.assign(serviceData, extra);
+      // The tag lets a browser or MQTT card find the timers it started.
+      const metadata = _cleanUndefined({ ...meta, source: "card", card: this._storageNamespace });
+      if (meta.icon) serviceData.icon = meta.icon;
+      if (meta.color) serviceData.color = meta.color;
+      serviceData.metadata = metadata;
+    }
+    try {
+      let timerId = null;
+      if (typeof this.hass.callWS === "function") {
+        const result = await this.hass.callWS({
+          type: "call_service",
+          domain,
+          service: "create_timer",
+          service_data: serviceData,
+          target: { entity_id: entityId },
+          return_response: true,
+        });
+        const response = result?.response?.[entityId] ?? result?.response;
+        if (response?.timer_id != null) timerId = String(response.timer_id);
+      } else {
+        await this.hass.callService(domain, "create_timer", { entity_id: entityId, ...serviceData });
+      }
+      if (timerId) this._setTimerListMeta(entityId, timerId, meta);
+      this._publishTimerEvent("started", { source: "timer_list", source_entity: entityId, label: cleanName || this._formatTimerLabel(seconds), duration: seconds * 1000 });
+      return timerId || "";
+    } catch (err) {
+      this._toast(this._localize("timer_start_failed").replace("{error}", err?.message || "?"));
+      return null;
+    }
+  }
+
+  _callTimerListService(timer, service, data = {}, { notifyOnError = true } = {}) {
+    if (!this.hass || !timer?.source_entity || timer.timer_list_timer_id == null) return Promise.resolve();
+    try {
+      const result = this.hass.callService(
+        this._timerListApi(timer.source_entity).domain,
+        service,
+        { entity_id: timer.source_entity, timer_id: String(timer.timer_list_timer_id), ...data },
+        undefined,
+        notifyOnError
+      );
+      // Home Assistant shows its own error toast when notifyOnError is true.
+      return Promise.resolve(result).catch(() => {});
+    } catch (_) {
+      return Promise.resolve();
+    }
+  }
+
+  _timerListUnsupported() {
+    this._toast(this._localize("action_not_supported"));
+  }
+
+  // Timer lists have no restart, so snooze and restart start a replacement
+  // timer with the same name and card-side options, then drop the old one.
+  async _replaceTimerListTimer(timer, durationMs) {
+    const metaKey = this._timerListMetaKey(timer.source_entity, timer.timer_list_timer_id);
+    const meta = this._timerListMeta.get(metaKey) || {};
+    const created = await this._createTimerListTimer(timer.source_entity, durationMs, timer.timer_list_name || "", meta);
+    if (created === null) return;
+    this._dismissed.add(`${timer.source_entity}:${timer.id}`);
+    const features = timer.supports || {};
+    if (features.remove) await this._callTimerListService(timer, "remove_timer", {}, { notifyOnError: false });
+    else if (features.cancel_service) await this._callTimerListService(timer, "cancel_timer", {}, { notifyOnError: false });
+    this.requestUpdate();
+  }
+
+  // Browser satellites from the Voice Satellite Card integration mirror their
+  // timers into an active_timers attribute on the assist_satellite entity.
+  // Finished timers leave the list, and the satellite rings by itself.
+  _parseVoiceSatellite(entityId, entityState, entityConf) {
+    const raw = entityState?.attributes?.active_timers;
+    if (!Array.isArray(raw) || !raw.length) return [];
+    const now = Date.now();
+    const baseName = (entityConf?.name && String(entityConf.name).trim()) || entityState.attributes?.friendly_name || entityId;
+    const out = [];
+    raw.forEach((item, index) => {
+      const total = Number(item?.total_seconds);
+      if (!Number.isFinite(total) || total <= 0) return;
+      const startedSec = Number(item?.started_at);
+      const startedMs = Number.isFinite(startedSec) && startedSec > 0 ? startedSec * 1000 : now;
+      // Older integration versions omit is_active and only list running timers.
+      const active = item?.is_active !== false;
+      // While paused, total_seconds is the time left and started_at the pause moment.
+      const remainingMs = Math.max(0, total * 1000 - (active ? Math.max(0, now - startedMs) : 0));
+      const spoken = (Number(item?.start_hours) || 0) * 3600 + (Number(item?.start_minutes) || 0) * 60 + (Number(item?.start_seconds) || 0);
+      const durationMs = Math.max(total, spoken) * 1000;
+      const name = item?.name && String(item.name).trim() ? this._sanitizeText(String(item.name).trim()) : "";
+      const shortLabel = this._formatTimerLabel(Math.round(durationMs / 1000));
+      const label = name || this._sanitizeText(`${baseName} - ${this._formatDurationDisplay(durationMs)}`);
+      const timer = {
+        id: `voice_satellite:${entityId}:${item?.id || index}`,
+        source: "voice_satellite",
+        source_entity: entityId,
+        label,
+        name: label,
+        short_label: name ? null : shortLabel,
+        device_base_name: baseName,
+        icon: entityConf?.icon || "mdi:timer",
+        color: entityConf?.color || "var(--primary-color)",
+        duration: durationMs,
+        idle: false,
+        finished: false,
+      };
+      if (active) out.push({ ...timer, paused: false, end: now + remainingMs });
+      else out.push({ ...timer, paused: true, end: remainingMs, remaining_ms: remainingMs });
+    });
+    return out;
+  }
+
+  _parseInstant(value) {
+    if (value == null || value === "" || value === "unknown" || value === "unavailable") return null;
+    if (typeof value === "number" || (typeof value === "string" && /^\d+(\.\d+)?$/.test(value.trim()))) {
+      const n = Number(value);
+      if (!Number.isFinite(n) || n <= 0) return null;
+      return n < 1e11 ? n * 1000 : n;
+    }
+    const parsed = Date.parse(String(value));
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  // Elapsed-time rows ("fed 1h 40m ago") from a past timestamp.
+  _parseCountUp(entityId, entityState, entityConf) {
+    const attrs = entityState?.attributes || {};
+    let raw;
+    if (entityConf?.attribute) raw = attrs[entityConf.attribute];
+    else if (entityConf?.use_last_changed === true) raw = entityState.last_changed;
+    else if (entityId.startsWith("input_datetime.") && attrs.timestamp != null && attrs.has_date !== false) raw = Number(attrs.timestamp);
+    else raw = entityState?.state;
+    const startTs = this._parseInstant(raw);
+    if (!startTs || startTs > Date.now() + 1000) return [];
+    const goalMs = entityConf?.goal != null && entityConf.goal !== "" ? (this._parseDurationInputToMs(entityConf.goal) || 0) : 0;
+    return [{
+      id: `count_up:${entityId}`,
+      source: "count_up",
+      source_entity: entityId,
+      count_up: true,
+      start_ts: startTs,
+      label: this._sanitizeText(entityConf?.name || attrs.friendly_name || entityId),
+      icon: entityConf?.icon || attrs.icon || "mdi:history",
+      color: entityConf?.color || "var(--primary-color)",
+      duration: goalMs,
+      paused: false,
+      idle: false,
+      finished: false,
+    }];
+  }
+
+  // === Template rows (v3.0.0) ===
+  // timers_template is rendered by Home Assistant over render_template and
+  // must produce a JSON list of rows.
+
+  _syncTemplateSubscription() {
+    const template = typeof this._config?.timers_template === "string" ? this._config.timers_template.trim() : "";
+    const conn = this.hass?.connection;
+    if (!template || !conn || typeof conn.subscribeMessage !== "function") {
+      this._dropTemplateSubscription();
+      return;
+    }
+    if (this._templateSub && this._templateSub.template === template && this._templateSub.conn === conn) return;
+    this._dropTemplateSubscription();
+    const sub = { template, conn, entries: [], unsub: null, error: null };
+    this._templateSub = sub;
+    let pending;
+    try {
+      pending = conn.subscribeMessage((msg) => {
+        if (this._templateSub !== sub || !msg) return;
+        if ("result" in msg) {
+          sub.entries = this._normalizeTemplateResult(msg.result);
+          sub.error = null;
+        } else if (msg.error) {
+          sub.error = msg.error;
+          if (!sub.warned) {
+            sub.warned = true;
+            console.warn("simple-timer-card: timers_template error:", msg.error);
+          }
+          return;
+        }
+        if (this.isConnected) this._updateTimers();
+      }, { type: "render_template", template, report_errors: true });
+    } catch (err) {
+      pending = Promise.reject(err);
+    }
+    Promise.resolve(pending).then((unsub) => {
+      if (this._templateSub !== sub) this._safeUnsubscribe(unsub);
+      else sub.unsub = unsub;
+    }, (err) => {
+      if (this._templateSub === sub) sub.error = err;
+    });
+  }
+
+  _dropTemplateSubscription() {
+    const sub = this._templateSub;
+    this._templateSub = null;
+    if (sub) this._safeUnsubscribe(sub.unsub);
+  }
+
+  _normalizeTemplateResult(result) {
+    let value = result;
+    if (typeof value === "string") {
+      try { value = JSON.parse(value); } catch (_) { return []; }
+    }
+    if (!Array.isArray(value)) return [];
+    return value.filter((entry) => entry && typeof entry === "object" && !Array.isArray(entry)).slice(0, 50);
+  }
+
+  _parseDynamicEntries(entries) {
+    const now = Date.now();
+    const finishedWindowMs = this._timerListFinishedWindowMs(null);
+    const style = this._config?.source_styles?.dynamic || {};
+    const out = [];
+    entries.forEach((entry, index) => {
+      const name = String(entry.name ?? entry.title ?? "").trim();
+      const key = entry.id != null ? String(entry.id) : `${index}:${name}`;
+      const base = {
+        id: `dynamic:${key}`,
+        source: "dynamic",
+        source_entity: typeof entry.entity === "string" ? entry.entity : "dynamic",
+        label: this._sanitizeText(name || this._localize("timer")),
+        icon: entry.icon || style.icon || "mdi:timer-outline",
+        color: entry.color || style.color || "var(--primary-color)",
+        idle: false,
+        finished: false,
+        paused: false,
+      };
+      if (entry.expired_subtitle) base.expired_subtitle = String(entry.expired_subtitle);
+      const since = this._parseInstant(entry.since ?? (entry.mode === "count_up" ? entry.start : undefined));
+      if (since) {
+        const goalMs = entry.goal != null ? (this._parseDurationInputToMs(entry.goal) || 0) : 0;
+        if (since <= now + 1000) out.push({ ...base, count_up: true, start_ts: since, duration: goalMs });
+        return;
+      }
+      const end = this._parseInstant(entry.end ?? entry.finishes_at ?? entry.target);
+      if (!end) return;
+      if (end < now && now - end > finishedWindowMs) return;
+      const start = this._parseInstant(entry.start);
+      const durationMs = start && start < end
+        ? end - start
+        : (entry.duration != null ? (this._parseDurationInputToMs(entry.duration) || 0) : 0);
+      out.push({ ...base, end, duration: durationMs });
+    });
+    return out;
+  }
+
   _parseHMSToMs(timeStr) {
     if (!timeStr) return 0;
     const parts = timeStr.split(":").map((p) => parseInt(p, 10));
@@ -1931,7 +3353,20 @@ class SimpleTimerCard extends LitElement {
     if (!this.hass) return;
     this._ensureAutoVoicePEEntities();
     const collected = [];
-    for (const entityConfig of [...this._config.entities, ...this._discoverTimerEntities()]) {
+    const wantedTimerLists = new Set();
+    const deviceSources = new Set();
+    const sources = [...this._config.entities, ...this._discoverTimerEntities()];
+    const defaultEntity = this._config.default_timer_entity;
+    const integrationList = this._integrationStorageList();
+    if (integrationList && !sources.some((e) => (typeof e === "string" ? e : e?.entity) === integrationList)) {
+      sources.push({ entity: integrationList, mode: "timer_list" });
+    }
+    // Timers created on a default timer list must show even if it is not listed.
+    if (this._isTimerListEntity(defaultEntity) &&
+        !sources.some((e) => (typeof e === "string" ? e : e?.entity) === defaultEntity)) {
+      sources.push({ entity: defaultEntity, mode: "timer_list" });
+    }
+    for (const entityConfig of sources) {
       const entityId = typeof entityConfig === "string" ? entityConfig : entityConfig.entity;
       const conf = typeof entityConfig === "string" ? {} : entityConfig;
       const st = this.hass.states[entityId];
@@ -1947,22 +3382,45 @@ class SimpleTimerCard extends LitElement {
         else if (mode === "helper") collected.push(...this._parseHelper(entityId, st, styled));
         else if (mode === "google") collected.push(...this._parseGoogle(entityId, st, styled));
         else if (mode === "timer") collected.push(...this._parseTimer(entityId, st, styled));
+        else if (mode === "timer_list") {
+          wantedTimerLists.add(entityId);
+          deviceSources.add(entityId);
+          collected.push(...this._parseTimerList(entityId, st, styled));
+        }
+        else if (mode === "voice_satellite") {
+          deviceSources.add(entityId);
+          collected.push(...this._parseVoiceSatellite(entityId, st, styled));
+        }
+        else if (mode === "count_up") collected.push(...this._parseCountUp(entityId, st, styled));
         else if (mode === "voice_pe") collected.push(...this._parseVoicePE(entityId, st, styled));
         else if (mode === "minutes_attr") collected.push(...this._parseMinutesAttr(entityId, st, styled));
         else if (mode === "timestamp") collected.push(...this._parseTimestamp(entityId, st, styled));
       } catch (e) {}
     }
+    const ownCompanion = this._ownCompanionList(wantedTimerLists);
+    if (ownCompanion) {
+      wantedTimerLists.add(ownCompanion);
+      try { collected.push(...this._parseTimerList(ownCompanion, this.hass.states[ownCompanion], { mode: "timer_list" }, { ownOnly: true })); } catch (e) {}
+    }
+    this._syncTimerListSubscriptions(wantedTimerLists);
+    this._deviceSourceCount = deviceSources.size;
+    this._knownTimerLists = [...wantedTimerLists].sort((a, b) => a.localeCompare(b));
+    this._syncTemplateSubscription();
+    if (this._templateSub?.entries?.length) {
+      try { collected.push(...this._parseDynamicEntries(this._templateSub.entries)); } catch (e) {}
+    }
 
-    const defaultEntity = this._config.default_timer_entity;
     if (defaultEntity && (defaultEntity.startsWith("input_text.") || defaultEntity.startsWith("text."))) {
       const stDefault = this.hass.states[defaultEntity];
       if (stDefault) {
         try { collected.push(...this._parseHelper(defaultEntity, stDefault, { mode: "helper" })); } catch (e) {}
       }
     }
-    if (this._config.storage === "local" || this._config.storage === "mqtt") {
-      const storageTimers = this._loadTimersFromStorage();
-      if (this._config.storage === "mqtt" && this._mqttLastLoadSource !== "sensor") {
+    // Integration storage still shows browser timers: ones started before the
+    // switch, or while the integration was not installed.
+    if (["local", "mqtt", "integration"].includes(this._config.storage)) {
+      const storageTimers = this._loadTimersFromStorage(this._cardStorage());
+      if (this._cardStorage() === "mqtt" && this._mqttLastLoadSource !== "sensor") {
         // Cache/shadow data can be stale after wake-up. Keep rendering it, but
         // block automatic expiry mutations until a fresh sensor snapshot arrives.
         collected.push(...storageTimers.map((t) => ({ ...t, _mqtt_untrusted: true })));
@@ -1986,6 +3444,7 @@ class SimpleTimerCard extends LitElement {
 
       let remainingMs;
       if (t.kind === "template") remainingMs = durationMs;
+      else if (t.count_up) remainingMs = Math.max(0, now3 - (Number(t.start_ts) || now3));
       else if (t.idle) remainingMs = durationMs;
       else if (t.finished) remainingMs = 0;
       else if (t.paused) remainingMs = (typeof t.remaining_ms === "number" ? t.remaining_ms : (typeof t.end === "number" ? t.end : 0));
@@ -1994,6 +3453,7 @@ class SimpleTimerCard extends LitElement {
 
       const state =
         t.state ||
+        (t.count_up ? "counting" : null) ||
         (t.finished ? "finished" : (t.idle ? "idle" : (t.paused ? "paused" : (remainingMs <= 0 ? "expired" : "active"))));
 
       const supports =
@@ -2004,9 +3464,11 @@ class SimpleTimerCard extends LitElement {
           extend: ["helper", "local", "mqtt", "timer"].includes(t.source),
         };
 
-      const percent = durationMs && remainingMs >= 0
-        ? Math.max(0, Math.min(100, ((durationMs - remainingMs) / durationMs) * 100))
-        : 0;
+      const percent = t.count_up
+        ? (durationMs ? Math.min(100, (remainingMs / durationMs) * 100) : 0)
+        : (durationMs && remainingMs >= 0
+          ? Math.max(0, Math.min(100, ((durationMs - remainingMs) / durationMs) * 100))
+          : 0);
 
       return {
         ...t,
@@ -2030,6 +3492,7 @@ class SimpleTimerCard extends LitElement {
       const br = isFinite(br0) ? br0 : Number.MAX_SAFE_INTEGER;
       return ar - br;
     });
+    this._applyTimerContext(this._timers);
     for (const timer of this._timers) {
       const wasRinging = this._ringingTimers.has(timer.id);
       if (timer.source === "timer" && timer.idle && wasRinging) {
@@ -2040,7 +3503,7 @@ class SimpleTimerCard extends LitElement {
       // emit expired events. A backgrounded device waking up could otherwise
       // re-announce a timer that was already dismissed on another device. Once a
       // fresh sensor snapshot arrives the timer becomes trusted and rings then.
-      const isNowRinging = timer.remaining <= 0 && !timer.paused && !timer.idle && !(timer.source === "mqtt" && timer._mqtt_untrusted);
+      const isNowRinging = timer.remaining <= 0 && !timer.paused && !timer.idle && !timer.count_up && !(timer.source === "mqtt" && timer._mqtt_untrusted);
       if (isNowRinging && !wasRinging) {
         this._ringingTimers.add(timer.id);
         if (this._ringingInitialized) {
@@ -2063,8 +3526,11 @@ class SimpleTimerCard extends LitElement {
     const now2 = Date.now();
     const audioDelay = (this._config.audio_completion_delay || 4) * 1000;
     for (const timer of [...this._timers]) {
-      if (timer.idle || timer.remaining > 0 || timer.paused) continue;
+      if (timer.idle || timer.remaining > 0 || timer.paused || timer.count_up) continue;
       if (timer.source === "mqtt" && timer._mqtt_untrusted) continue;
+      // Finished timer-list timers are hidden by _parseTimerList once the
+      // expire window passes, so automatic expiry never removes them from HA.
+      if (timer.source === "timer_list") continue;
       const action = this._config.expire_action;
       if (action === "dismiss") continue;
       if (action === "keep") {
@@ -2426,6 +3892,7 @@ class SimpleTimerCard extends LitElement {
     // entity configured on the card (ambiguous when there are several).
     const def = this._config?.default_timer_entity;
     if (typeof def === "string" && def.startsWith("timer.")) return def;
+    if (this._integrationStorageList()) return null;
     try {
       const cfg = Array.isArray(this._config?.entities) ? this._config.entities : [];
       const nativeTimers = [];
@@ -2458,7 +3925,7 @@ class SimpleTimerCard extends LitElement {
   }
 
   _publishTimerEvent(event, timer) {
-    if (this._config.storage === "mqtt" || this._config.default_timer_entity?.startsWith("sensor.")) {
+    if (this._config.storage === "mqtt" || (this._config.default_timer_entity?.startsWith("sensor.") && !this._isCompanionList(this._config.default_timer_entity))) {
       const payload = {
         id: timer.id,
         label: timer.label,
@@ -2576,6 +4043,12 @@ class SimpleTimerCard extends LitElement {
     if (durationMs <= 0) return;
     const validation = this._validateTimerInput(durationMs, label);
     if (!validation.valid) return;
+    const timerListTarget = this._resolveTimerListTarget(resolvedTargetEntity);
+    if (timerListTarget) {
+      this._createTimerListTimer(timerListTarget, durationMs, label);
+      this.requestUpdate();
+      return;
+    }
     const now = Date.now();
     const endTime = now + durationMs;
     const newTimer = {
@@ -2686,6 +4159,21 @@ class SimpleTimerCard extends LitElement {
       return this._formatTimerLabel(Math.round(durationMs / 1000));
     })();
 
+    const pinnedAction = this._normalizeActionSpec(overrides?.on_finish);
+    if (pinnedAction) {
+      this._createActionTimer(pinnedAction, durationMs, overrides.label || label, overrides);
+      return;
+    }
+    // Device actions are chosen per timer in the custom panel only, so a
+    // plain preset never inherits one.
+    const choice = entity ? null : this._activeTargetChoice();
+    if (choice?.kind === "timer_list") {
+      const chosenName = overrides?.voice_pe_name && String(overrides.voice_pe_name).trim() ? String(overrides.voice_pe_name).trim() : "";
+      this._createTimerListTimer(choice.entity, durationMs, chosenName, this._timerListMetaFromOverrides(overrides));
+      this.requestUpdate();
+      return;
+    }
+
     let targetEntity = entity;
     if (!targetEntity && this._config.auto_voice_pe === true) {
       targetEntity = this._getDefaultVoicePETargetEntity();
@@ -2710,11 +4198,20 @@ class SimpleTimerCard extends LitElement {
 
     // Start a native HA timer.* entity through the timer.start service so the
     // standard timer.started / timer.finished events fire for automations.
-    const nativeTimerTarget = (targetEntity && targetEntity.startsWith("timer.")) ? targetEntity : this._resolveNativeTimerTarget();
+    const explicitTimerList = this._isTimerListEntity(targetEntity) ? targetEntity : null;
+    const nativeTimerTarget = explicitTimerList ? null : ((targetEntity && targetEntity.startsWith("timer.")) ? targetEntity : this._resolveNativeTimerTarget());
     if (nativeTimerTarget) {
       const serviceDuration = this._formatDurationForService(Math.round(durationMs / 1000));
       this.hass.callService("timer", "start", { entity_id: nativeTimerTarget, duration: serviceDuration });
       this._publishTimerEvent("started", { source: "timer", source_entity: nativeTimerTarget, label, duration: durationMs });
+      this.requestUpdate();
+      return;
+    }
+
+    const timerListTarget = this._resolveTimerListTarget(targetEntity);
+    if (timerListTarget) {
+      const userProvidedName = overrides?.voice_pe_name && String(overrides.voice_pe_name).trim() ? String(overrides.voice_pe_name).trim() : "";
+      this._createTimerListTimer(timerListTarget, durationMs, userProvidedName, this._timerListMetaFromOverrides(overrides));
       this.requestUpdate();
       return;
     }
@@ -2913,6 +4410,7 @@ class SimpleTimerCard extends LitElement {
             pinned_id: timer.pinned_id || timer.id,
           };
           if (Array.isArray(timer.buttons) && timer.buttons.length) overrides.buttons = timer.buttons;
+          if (timer.on_finish) overrides.on_finish = timer.on_finish;
           if (timer.audio_enabled === true || timer.audio_enabled === false) overrides.audio_enabled = timer.audio_enabled;
           if (timer.audio_file_url) overrides.audio_file_url = timer.audio_file_url;
           if (timer.audio_repeat_count !== undefined) overrides.audio_repeat_count = timer.audio_repeat_count;
@@ -2951,6 +4449,16 @@ class SimpleTimerCard extends LitElement {
       return;
     }
 
+    if (timer.source === "timer_list") {
+      const features = timer.supports || {};
+      if (!features.cancel) return this._timerListUnsupported();
+      this._stopAudioForTimer(timer.id);
+      this._publishTimerEvent("cancelled", timer);
+      // Removing an active timer also cancels it on the satellite.
+      this._callTimerListService(timer, features.cancel_service ? "cancel_timer" : "remove_timer");
+      return;
+    }
+
     this._publishTimerEvent("cancelled", timer);
     if (timer.source === "helper") {
       this._mutateHelper(timer.source_entity, (data) => { data.timers = data.timers.filter((t) => t.id !== timer.id); });
@@ -2972,6 +4480,13 @@ class SimpleTimerCard extends LitElement {
       }
       this._publishTimerEvent("paused", timer);
       this._sendVoicePECommand(timer.control_entity, `pause:${String(timer.voice_pe_timer_id).trim()}`);
+      return;
+    }
+
+    if (timer.source === "timer_list") {
+      if (!timer.supports?.pause) return this._timerListUnsupported();
+      this._publishTimerEvent("paused", timer);
+      this._callTimerListService(timer, "pause_timer");
       return;
     }
 
@@ -3015,6 +4530,13 @@ class SimpleTimerCard extends LitElement {
       return;
     }
 
+    if (timer.source === "timer_list") {
+      if (!timer.supports?.pause) return this._timerListUnsupported();
+      this._publishTimerEvent("resumed", timer);
+      this._callTimerListService(timer, "unpause_timer");
+      return;
+    }
+
     this._publishTimerEvent("resumed", timer);
     if (timer.source === "helper") {
       const now = Date.now();
@@ -3047,7 +4569,7 @@ class SimpleTimerCard extends LitElement {
 
   _togglePause(t, e) {
     e?.stopPropagation?.();
-    if (!["helper", "local", "mqtt", "timer"].includes(t.source)) return;
+    if (!["helper", "local", "mqtt", "timer", "timer_list"].includes(t.source)) return;
     t.paused ? this._handleResume(t) : this._handlePause(t);
   }
 
@@ -3231,7 +4753,7 @@ class SimpleTimerCard extends LitElement {
             this._handleStart(ourTimer);
             return;
           }
-          if (["helper", "local", "mqtt", "timer", "voice_pe"].includes(ourTimer.source)) {
+          if (["helper", "local", "mqtt", "timer", "timer_list", "voice_pe"].includes(ourTimer.source)) {
             if (ourTimer.idle) {
               // Idle HA timer.* opens the inline editor (matches the
               // no-tap-action default). Other idle sources start in place.
@@ -3285,6 +4807,14 @@ class SimpleTimerCard extends LitElement {
   _handleDismiss(timer) {
     this._ringingTimers.delete(timer.id);
     this._stopAudioForTimer(timer.id);
+    if (timer.source === "timer_list") {
+      // Hide right away; removing it from Home Assistant clears it on every
+      // dashboard. A satellite that is still ringing has to be stopped there.
+      this._dismissed.add(`${timer.source_entity}:${timer.id}`);
+      if (timer.supports?.remove) this._callTimerListService(timer, "remove_timer", {}, { notifyOnError: false });
+      this.requestUpdate();
+      return;
+    }
     if (timer.source === "helper") {
       this._mutateHelper(timer.source_entity, (data) => { data.timers = data.timers.filter((t) => t.id !== timer.id); });
     } else if (["local", "mqtt"].includes(timer.source)) {
@@ -3315,6 +4845,15 @@ class SimpleTimerCard extends LitElement {
     }
     const newDurationMs = snoozeMinutes * 60000;
     const newEndTime = Date.now() + newDurationMs;
+    if (timer.source === "timer_list") {
+      if (!timer.supports?.snooze) return this._timerListUnsupported();
+      if (timer.supports.restart_service) {
+        this._callTimerListService(timer, "restart_timer", { duration: this._formatDurationForService(Math.round(newDurationMs / 1000)) });
+      } else {
+        this._replaceTimerListTimer(timer, newDurationMs);
+      }
+      return;
+    }
     if (timer.source === "helper") {
       const now = Date.now();
       this._mutateHelper(timer.source_entity, (data) => {
@@ -3353,6 +4892,14 @@ class SimpleTimerCard extends LitElement {
     if (this._isActionThrottled("add_time", t.id, 200)) return;
     const deltaMs = Math.round(Number(deltaSeconds) * 1000);
     if (!Number.isFinite(deltaMs) || deltaMs === 0) return;
+    if (t.source === "timer_list") {
+      if (!t.supports?.extend) return this._timerListUnsupported();
+      const seconds = Math.round(Math.abs(deltaMs) / 1000);
+      if (!seconds) return;
+      // Subtracting more than is left finishes the timer in Home Assistant.
+      this._callTimerListService(t, deltaMs > 0 ? "add_time" : "subtract_time", { duration: this._formatDurationForService(seconds) });
+      return;
+    }
     const curRemaining = Math.max(0, Number(t.remaining_ms) || 0);
     const newRemaining = curRemaining + deltaMs;
     const now = Date.now();
@@ -3399,6 +4946,16 @@ class SimpleTimerCard extends LitElement {
 
   _handleRestart(t) {
     if (this._isActionThrottled("restart", t.id, 300)) return;
+    if (t.source === "timer_list") {
+      if (!t.supports?.restart) return this._timerListUnsupported();
+      const originalMs = Math.max(0, Number(t.created_duration_ms) || Number(t.duration) || 0);
+      if (originalMs <= 0) { this._toast("This timer has no duration to restart."); return; }
+      this._ringingTimers.delete(t.id);
+      this._stopAudioForTimer(t.id);
+      if (t.supports.restart_service) this._callTimerListService(t, "restart_timer");
+      else this._replaceTimerListTimer(t, originalMs);
+      return;
+    }
     const durationMs = Math.max(0, Number(t.duration) || 0);
     if (durationMs <= 0) { this._toast("This timer has no duration to restart."); return; }
     const now = Date.now();
@@ -3683,6 +5240,21 @@ class SimpleTimerCard extends LitElement {
     const finalLabel = label && String(label).trim()
       ? this._sanitizeText(String(label).trim())
       : this._formatTimerLabel(secsNum);
+    const userLabel = label && String(label).trim() ? this._sanitizeText(String(label).trim()) : "";
+
+    const actionSpec = this._actionPickerEnabled() ? this._actionDraftSpec() : null;
+    if (actionSpec) {
+      // An action applies to this one timer, so a later plain timer has none.
+      const started = this._createActionTimer(actionSpec, durationMs, userLabel);
+      if (started) this._actionDraft = { mode: "none" };
+      return started;
+    }
+    const choice = this._activeTargetChoice();
+    if (choice?.kind === "timer_list") {
+      this._createTimerListTimer(choice.entity, durationMs, userLabel);
+      this.requestUpdate();
+      return true;
+    }
 
     let targetEntity = this._config.default_timer_entity || "";
     if (this._config.auto_voice_pe === true) {
@@ -3713,11 +5285,20 @@ class SimpleTimerCard extends LitElement {
 
     // Start a native HA timer.* entity through the timer.start service so the
     // standard timer.started / timer.finished events fire for automations.
-    const nativeTimerTarget = (targetEntity && targetEntity.startsWith("timer.")) ? targetEntity : this._resolveNativeTimerTarget();
+    const explicitTimerList = this._isTimerListEntity(targetEntity) ? targetEntity : null;
+    const nativeTimerTarget = explicitTimerList ? null : ((targetEntity && targetEntity.startsWith("timer.")) ? targetEntity : this._resolveNativeTimerTarget());
     if (nativeTimerTarget) {
       const serviceDuration = this._formatDurationForService(Math.round(durationMs / 1000));
       this.hass.callService("timer", "start", { entity_id: nativeTimerTarget, duration: serviceDuration });
       this._publishTimerEvent("started", { source: "timer", source_entity: nativeTimerTarget, label: finalLabel, duration: durationMs });
+      this.requestUpdate();
+      return true;
+    }
+
+    const timerListTarget = this._resolveTimerListTarget(targetEntity);
+    if (timerListTarget) {
+      const userProvidedName = userLabel;
+      this._createTimerListTimer(timerListTarget, durationMs, userProvidedName);
       this.requestUpdate();
       return true;
     }
@@ -4031,7 +5612,7 @@ class SimpleTimerCard extends LitElement {
         return this._renderInlineEditor(t, style);
     }
     const state = this._getTimerRenderState(t, style);
-    const { isPaused, isIdle, isFinished, color, icon, ring, pct, pctLeft, isCircleStyle, isCircleHorizontal, isFillStyle, supportsPause, supportsManualControls, timeStr, circleValues, supportsReadOnlyDismiss } = state;
+    const { isPaused, isIdle, isFinished, color, icon, ring, pct, pctLeft, isCircleStyle, isCircleHorizontal, isFillStyle, supportsPause, supportsManualControls, supportsSnooze, timeStr, circleValues, supportsReadOnlyDismiss } = state;
     const isCircleTile = isCircleStyle && !isCircleHorizontal;
     const baseClasses = isFillStyle ? "card item" : (isCircleTile ? "item vtile" : "item bar");
     const finishedClasses = isFillStyle ? "card item finished" : (isCircleTile ? "item vtile" : "card item bar");
@@ -4042,10 +5623,10 @@ class SimpleTimerCard extends LitElement {
     if (ring) {
       if (isCircleTile) {
         return html`
-          <li class="${finishedClasses}" style="--tcolor:${color}">
+          <li class="${finishedClasses}${this._ringAnimationClass()}" style="--tcolor:${color}">
             <div class="vcol">
               <div class="vcircle-wrap">
-                <svg class="vcircle" width="64" height="64" viewBox="0 0 64" aria-hidden="true">
+                <svg class="vcircle" width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
                   <circle class="vc-track ${this._config.progress_mode === "drain" ? "vc-track-drain" : ""}" style="stroke: var(--tcolor, var(--primary-color)); stroke-opacity: 0.22;"
                           cx="32" cy="32" r="${circleValues.radius}"></circle>
                   <circle class="vc-prog ${this._config.progress_mode === "drain" ? "vc-prog-drain done" : "done"}"
@@ -4060,7 +5641,7 @@ class SimpleTimerCard extends LitElement {
               <div class="vstatus up">${timeStr}</div>
               <div class="vactions">
                 ${supportsManualControls ? html`
-                  <button class="chip" @click=${() => this._handleSnooze(t)}>${this._localize("snooze")}</button>
+                  ${supportsSnooze ? html`<button class="chip" @click=${() => this._handleSnooze(t)}>${this._localize("snooze")}</button>` : ""}
                   <button class="chip" @click=${() => this._handleDismiss(t)}>${this._localize("dismiss")}</button>
                 ` : supportsReadOnlyDismiss ? html`
                   <button class="chip" @click=${() => this._handleDismiss(t)}>${this._localize("dismiss")}</button>
@@ -4071,7 +5652,7 @@ class SimpleTimerCard extends LitElement {
         `;
       }
       return html`
-        <li class="${finishedClasses}" style="--tcolor:${color}">
+        <li class="${finishedClasses}${this._ringAnimationClass()}" style="--tcolor:${color}">
           ${isFillStyle ? html`<div class="progress-fill" style="width:100%"></div>` : ""}
           <div class="${isFillStyle ? "card-content" : "row"}">
             <div class="icon-wrap"><ha-icon .icon=${icon}></ha-icon></div>
@@ -4081,7 +5662,7 @@ class SimpleTimerCard extends LitElement {
             </div>
             ${supportsManualControls ? html`
               <div class="chips">
-                <button class="chip" @click=${() => this._handleSnooze(t)}>${this._localize("snooze")}</button>
+                ${supportsSnooze ? html`<button class="chip" @click=${() => this._handleSnooze(t)}>${this._localize("snooze")}</button>` : ""}
                 <button class="chip" @click=${() => this._handleDismiss(t)}>${this._localize("dismiss")}</button>
               </div>
             ` : supportsReadOnlyDismiss ? html`
@@ -4179,7 +5760,7 @@ class SimpleTimerCard extends LitElement {
                    if (isIdle && supportsManualControls) this._handleStart(t);
                    else if (supportsPause && supportsManualControls) this._togglePause(t, e);
                  }}>
-              <svg class="vcircle" width="64" height="64" viewBox="0 0 64" aria-hidden="true">
+              <svg class="vcircle" width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
                 <circle class="vc-track ${this._config.progress_mode === "drain" ? "vc-track-drain" : ""}" style="stroke: var(--tcolor, var(--primary-color)); stroke-opacity: 0.22;"
                         cx="32" cy="32" r="${circleValues.radius}"></circle>
                 <circle class="vc-prog ${this._config.progress_mode === "drain" ? "vc-prog-drain" : ""}"
@@ -4364,6 +5945,12 @@ class SimpleTimerCard extends LitElement {
       this._sendVoicePECommand(t.control_entity, `cancel:${String(t.voice_pe_timer_id).trim()}`);
       return;
     }
+    if (t.source === "timer_list") {
+      if (!t.supports?.finish) return this._timerListUnsupported();
+      this._publishTimerEvent("finished", t);
+      this._callTimerListService(t, "finish_timer");
+      return;
+    }
     this._publishTimerEvent("finished", t);
     if (t.source === "helper") {
       this._mutateHelper(t.source_entity, (data) => { data.timers = data.timers.filter((x) => x.id !== t.id); });
@@ -4375,6 +5962,11 @@ class SimpleTimerCard extends LitElement {
     } else {
       this._toast("This timer can't be finished from here.");
     }
+  }
+
+  _ringAnimationClass() {
+    const value = String(this._config?.ring_animation || "none").toLowerCase();
+    return ["pulse", "swing", "shake", "hop"].includes(value) ? ` ring-${value}` : "";
   }
 
   _calculateCircleValues(radius = 28, pct = 0, mode = "fill") {
@@ -4389,22 +5981,27 @@ class SimpleTimerCard extends LitElement {
     const isPaused = t.paused;
     const isIdle = t.idle;
     const isFinished = t.finished;
-    const color = isPaused ? "var(--warning-color)" : (isFinished ? "var(--success-color)" : (t.color || "var(--primary-color)"));
+    const overGoal = t.count_up && t.duration > 0 && t.remaining > t.duration;
+    const color = isPaused || overGoal ? "var(--warning-color)" : (isFinished ? "var(--success-color)" : (t.color || "var(--primary-color)"));
     const icon = isIdle ? (t.icon || "mdi:timer-outline") : (isPaused ? "mdi:timer-pause" : (isFinished ? "mdi:timer-check" : (t.icon || "mdi:timer-outline")));
-    const ring = t.remaining <= 0 && !isIdle && !isFinished;
+    const ring = t.remaining <= 0 && !isIdle && !isFinished && !t.count_up;
     const pct = typeof t.percent === "number" ? Math.max(0, Math.min(100, t.percent)) : 0;
     const pctLeft = 100 - pct;
     const isCircleStyle = _isCircleStyle(style);
     const isCircleHorizontal = style === "circle_horizontal";
     const isFillStyle = style.startsWith("fill_");
-    const supportsPause = ["helper", "local", "mqtt", "timer"].includes(t.source) || (t.source === "voice_pe" && !!(t.control_entity && String(t.control_entity).trim() && t.voice_pe_timer_id && String(t.voice_pe_timer_id).trim()));
+    const isTimerList = t.source === "timer_list";
+    const supportsPause = (["helper", "local", "mqtt", "timer"].includes(t.source) || (t.source === "voice_pe" && !!(t.control_entity && String(t.control_entity).trim() && t.voice_pe_timer_id && String(t.voice_pe_timer_id).trim()))) || (isTimerList && t.supports?.pause === true);
     const entityConf = this._getEntityConfig(t.source_entity);
     const hideTimerActions = entityConf?.hide_timer_actions === true;
     const isTimerSource = t.source === "timer";
-    const supportsManualControls = (((["local", "mqtt", "timer", "helper"].includes(t.source)) || t.kind === "template" || t.source === "template") && !(isTimerSource && hideTimerActions)) || (t.source === "voice_pe" && !!(t.control_entity && String(t.control_entity).trim()));
-    const supportsReadOnlyDismiss = ring && ["timestamp", "minutes_attr", "alexa", "google"].includes(t.source);
+    const timerListControls = isTimerList && !hideTimerActions && !!(t.supports && (t.supports.pause || t.supports.cancel || t.supports.finish || t.supports.extend));
+    const supportsManualControls = (((["local", "mqtt", "timer", "helper"].includes(t.source)) || t.kind === "template" || t.source === "template") && !(isTimerSource && hideTimerActions)) || (t.source === "voice_pe" && !!(t.control_entity && String(t.control_entity).trim())) || timerListControls;
+    const supportsSnooze = supportsManualControls && (!isTimerList || t.supports?.snooze === true);
+    const supportsReadOnlyDismiss = ring && (["timestamp", "minutes_attr", "alexa", "google", "voice_satellite", "dynamic"].includes(t.source) || (isTimerList && !supportsManualControls));
     let timeStr;
-    if (isIdle) timeStr = t.duration ? this._formatDuration(t.duration, "ms") : this._localize("ready");
+    if (t.count_up) timeStr = this._localize("since").replace("{t}", this._formatTimeString(t));
+    else if (isIdle) timeStr = t.duration ? this._formatDuration(t.duration, "ms") : this._localize("ready");
     else if (isPaused) timeStr = `${this._formatDuration(t.remaining, "ms")} (${this._localize("paused")})`;
     else if (isFinished) {
       const now = Date.now();
@@ -4417,6 +6014,8 @@ class SimpleTimerCard extends LitElement {
     } else {
       timeStr = this._formatTimeString(t);
     }
+    // "then Turn off …" describes what is still to come, so an ended timer drops it.
+    if (t.context_label && !(t.context_is_action && (ring || isFinished))) timeStr = `${timeStr} · ${t.context_label}`;
     let circleValues;
     if (isCircleStyle) {
       const progressMode = this._config.progress_mode === "drain" ? "drain" : "fill";
@@ -4425,7 +6024,7 @@ class SimpleTimerCard extends LitElement {
     return {
       isPaused, isIdle, isFinished, color, icon, ring, pct, pctLeft,
       isCircleStyle, isCircleHorizontal, isFillStyle,
-      supportsPause, supportsManualControls, timeStr,
+      supportsPause, supportsManualControls, supportsSnooze, timeStr,
       circleValues, supportsReadOnlyDismiss
     };
   }
@@ -4485,14 +6084,17 @@ class SimpleTimerCard extends LitElement {
       <div class=${custom ? "picker" : "active-picker"} data-duration-picker=${which} data-no-action
         ?inert=${!this._ui[openKey]} aria-hidden=${String(!this._ui[openKey])}
         @click=${(e) => e.stopPropagation()}>
+        ${this._actionWizard?.which === which ? this._renderActionWizard() : html`
         ${this._renderDurationInput(which)}
         ${this._renderTimerNameSelector(nameId, this._localize("timer_name_optional"))}
+        ${this._renderTargetPicker(which)}
         <div class="picker-actions">
           <button type="button" class="btn btn-ghost"
             @click=${() => { this._ui[openKey] = false; this.requestUpdate(); }}>${this._localize("cancel")}</button>
           <button type="button" class="btn btn-primary" ?disabled=${!this._canStartCustomTimer(which)}
             @click=${() => custom ? this._startFromCustom(which) : this._startActive(which)}>${this._localize("start")}</button>
         </div>
+        `}
       </div>
     `;
   }
@@ -4522,7 +6124,7 @@ class SimpleTimerCard extends LitElement {
         return this._renderInlineEditor(t, style);
     }
     const state = this._getTimerRenderState(t, style);
-    const { isPaused, isIdle, isFinished, color, icon, ring, pct, pctLeft, isCircleStyle, isFillStyle, supportsPause, supportsManualControls, timeStr, circleValues, supportsReadOnlyDismiss } = state;
+    const { isPaused, isIdle, isFinished, color, icon, ring, pct, pctLeft, isCircleStyle, isFillStyle, supportsPause, supportsManualControls, supportsSnooze, timeStr, circleValues, supportsReadOnlyDismiss } = state;
     const baseClasses = style.startsWith("fill_") ? "card item vtile" : "item vtile";
 
     const isRunning = !t.idle && !t.paused && !t.finished;
@@ -4535,7 +6137,7 @@ class SimpleTimerCard extends LitElement {
 
     if (ring) {
       return html`
-        <li class="${baseClasses}" style="--tcolor:${color}">
+        <li class="${baseClasses}${this._ringAnimationClass()}" style="--tcolor:${color}">
           ${style.startsWith("fill_") ? html`<div class="progress-fill" style="width:100%"></div>` : ""}
           <div class="vcol">
             <div class="icon-wrap large"><ha-icon .icon=${icon}></ha-icon></div>
@@ -4543,7 +6145,7 @@ class SimpleTimerCard extends LitElement {
             <div class="vstatus up">${timeStr}</div>
             <div class="vactions-center">
               ${supportsManualControls ? html`
-                <button class="chip" @click=${() => this._handleSnooze(t)}>${this._localize("snooze")}</button>
+                ${supportsSnooze ? html`<button class="chip" @click=${() => this._handleSnooze(t)}>${this._localize("snooze")}</button>` : ""}
                 <button class="chip" @click=${() => this._handleDismiss(t)}>${this._localize("dismiss")}</button>
               ` : supportsReadOnlyDismiss ? html`
                 <button class="chip" @click=${() => this._handleDismiss(t)}>${this._localize("dismiss")}</button>
@@ -4576,7 +6178,7 @@ class SimpleTimerCard extends LitElement {
                    if (isIdle && supportsManualControls) this._handleStart(t);
                    else if (supportsPause && supportsManualControls) this._togglePause(t, e);
                  }}>
-              <svg class="vcircle" width="64" height="64" viewBox="0 0 64" aria-hidden="true">
+              <svg class="vcircle" width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
                 <circle class="vc-track ${this._config.progress_mode === "drain" ? "vc-track-drain" : ""}"
                         cx="32" cy="32" r="${circleValues.radius}"></circle>
                 <circle class="vc-prog ${this._config.progress_mode === "drain" ? "vc-prog-drain" : ""}"
@@ -4687,6 +6289,7 @@ class SimpleTimerCard extends LitElement {
         icon,
         color,
         buttons: (p && typeof p === "object" && Array.isArray(p.buttons)) ? p.buttons : undefined,
+        on_finish: (p && typeof p === "object" && this._normalizeActionSpec(p.on_finish)) || undefined,
         expired_subtitle: (p && typeof p === "object" && p.expired_subtitle) ? p.expired_subtitle : (this._config.expired_subtitle || ""),
         audio_enabled: (p && typeof p === "object" && p.audio_enabled === true) ? true : undefined,
         audio_file_url: (p && typeof p === "object" && p.audio_file_url) ? p.audio_file_url : undefined,
@@ -4741,6 +6344,118 @@ class SimpleTimerCard extends LitElement {
     return [...(list || [])].sort((a, b) => this._compareTimersForDisplay(a, b));
   }
 
+  _registryInfo(entityId) {
+    const ent = entityId ? this.hass?.entities?.[entityId] : null;
+    const dev = ent?.device_id ? this.hass?.devices?.[ent.device_id] : null;
+    const areaId = ent?.area_id || dev?.area_id || null;
+    const area = areaId ? (this.hass?.areas?.[areaId]?.name || null) : null;
+    const device = dev ? (dev.name_by_user || dev.name || null) : null;
+    return { areaId, area, device };
+  }
+
+  _isDeviceSource(t) {
+    return t?.source === "timer_list" || t?.source === "voice_satellite";
+  }
+
+  _deviceNameFor(t) {
+    if (this._isCompanionList(t?.source_entity)) return "";
+    const info = this._registryInfo(t.source_entity);
+    return info.device || t.device_base_name || this.hass?.states?.[t.source_entity]?.attributes?.friendly_name || t.source_entity || "";
+  }
+
+  _sourceDisplayName(source) {
+    switch (source) {
+      case "timer_list":
+      case "voice_satellite":
+        return this._localize("group_voice");
+      case "alexa": return "Alexa";
+      case "google": return "Google Home";
+      case "timer": return this._localize("group_timers");
+      case "template": return this._localize("group_pinned");
+      case "count_up": return this._localize("group_since");
+      case "dynamic": return this._localize("group_template");
+      case "timestamp":
+      case "minutes_attr":
+        return this._localize("group_sensors");
+      default: return this._localize("this_card");
+    }
+  }
+
+  _timerGroupKey(t, mode) {
+    if (mode === "source") return this._sourceDisplayName(t.source);
+    const info = this._registryInfo(this._actionEntity(t) || t.source_entity);
+    if (mode === "area") return info.area || this._localize("group_other");
+    if (mode === "device") {
+      if (this._isDeviceSource(t)) return this._deviceNameFor(t);
+      return info.device || this._sourceDisplayName(t.source);
+    }
+    return null;
+  }
+
+  _groupTimersForDisplay(list) {
+    const mode = String(this._config?.group_by || "none").toLowerCase();
+    if (!["area", "device", "source"].includes(mode)) return list.map((timer) => ({ timer }));
+    const groups = new Map();
+    for (const timer of list) {
+      const key = this._timerGroupKey(timer, mode) || this._localize("group_other");
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(timer);
+    }
+    if (groups.size < 2 && this._config?.group_headers !== "always") return list.map((timer) => ({ timer }));
+    const out = [];
+    for (const [header, timers] of groups) {
+      out.push({ header });
+      for (const timer of timers) out.push({ timer });
+    }
+    return out;
+  }
+
+  // Adds the device or area a timer runs on, and the action a device timer
+  // performs, to the status line. Runs once per tick on the collected timers.
+  _actionEntity(t) {
+    const action = t?.timer_action || t?.on_finish;
+    const step = Array.isArray(action?.actions) ? action.actions[0] : null;
+    const target = this._announceTarget(step) ?? step?.target?.entity_id ?? step?.entity_id;
+    return Array.isArray(target) ? target[0] : (target || null);
+  }
+
+  _applyTimerContext(list) {
+    const mode = String(this._config?.device_label || "auto").toLowerCase();
+    const groupBy = String(this._config?.group_by || "none").toLowerCase();
+    const show = mode === "device" || mode === "area" ||
+      (mode === "auto" && (this._deviceSourceCount || 0) >= 2 && !["device", "area"].includes(groupBy));
+    for (const t of list) {
+      const action = t.timer_action || t.on_finish;
+      if (action) {
+        const summary = this._actionSummary(action);
+        if (summary && summary.toLowerCase() !== String(t.label || "").toLowerCase()) {
+          t.context_label = this._localize("then_action").replace("{action}", summary);
+          t.context_is_action = true;
+        }
+        continue;
+      }
+      if (!show || mode === "none" || !this._isDeviceSource(t) || this._isCompanionList(t.source_entity)) continue;
+      const info = this._registryInfo(t.source_entity);
+      t.context_label = mode === "area" ? (info.area || this._deviceNameFor(t)) : this._deviceNameFor(t);
+      if (t.short_label) {
+        t.label = t.short_label;
+        t.name = t.short_label;
+      }
+    }
+  }
+
+  _syncEmptyVisibility() {
+    const hide = this._config?.hide_when_empty === true && !this.preview && !this.editMode && (this._renderedTimerCount || 0) === 0;
+    if (this.hidden === hide) return;
+    this.hidden = hide;
+    this.dispatchEvent(new CustomEvent("card-visibility-changed", { detail: { value: !hide }, bubbles: true, composed: true }));
+  }
+
+  updated(changedProperties) {
+    super.updated?.(changedProperties);
+    this._syncEmptyVisibility();
+  }
+
 
   render() {
     if (!this._config) return html``;
@@ -4790,7 +6505,7 @@ const layout = this._config.layout;
               return html`<button class="btn btn-preset" @click=${() => this._createPresetTimer(preset)}>${label}</button>`;
             })}
             ${this._config.show_timer_presets === false ? html`
-              <button class="btn btn-ghost" @click=${() => this._toggleCustom("horizontal")}><ha-icon icon="mdi:plus" style="--mdc-icon-size:16px;"></ha-icon> ${this._localize("add")}</button>
+              <button class="btn btn-ghost btn-icon-label" @click=${() => this._toggleCustom("horizontal")}><ha-icon icon="mdi:plus" style="--mdc-icon-size:16px;"></ha-icon>${this._localize("add")}</button>
             ` : html`
               <button class="btn btn-ghost" @click=${() => this._toggleCustom("horizontal")}>${this._localize("custom")}</button>
             `}
@@ -4811,7 +6526,7 @@ const layout = this._config.layout;
               return html`<button class="btn btn-preset" @click=${() => this._createPresetTimer(preset)}>${label}</button>`;
             })}
             ${this._config.show_timer_presets === false ? html`
-              <button class="btn btn-ghost" @click=${() => this._toggleCustom("vertical")}><ha-icon icon="mdi:plus" style="--mdc-icon-size:16px;"></ha-icon> ${this._localize("add")}</button>
+              <button class="btn btn-ghost btn-icon-label" @click=${() => this._toggleCustom("vertical")}><ha-icon icon="mdi:plus" style="--mdc-icon-size:16px;"></ha-icon>${this._localize("add")}</button>
             ` : html`
               <button class="btn btn-ghost" @click=${() => this._toggleCustom("vertical")}>${this._localize("custom")}</button>
             `}
@@ -4823,14 +6538,41 @@ const layout = this._config.layout;
     const renderFn = activeTimersLayout === "vertical"
       ? this._renderItemVertical.bind(this)
       : this._renderItem.bind(this);
+    this._renderedTimerCount = timers.length;
+    const maxRows = parseInt(this._config.max_rows, 10);
+    const truncated = Number.isFinite(maxRows) && maxRows > 0 && timers.length > maxRows;
+    const shownTimers = truncated && !this._ui.showAllTimers ? timers.slice(0, maxRows) : timers;
+    const listItems = this._groupTimersForDisplay(shownTimers);
+    const renderList = () => html`
+      ${listItems.map((entry) => entry.header != null
+        ? html`<li class="group-head" data-no-action>${entry.header}</li>`
+        : renderFn(entry.timer, style))}
+    `;
+    // max_rows is for cards with little room, so the "+N" chip sits in the
+    // header, else the title, and only adds a line below the rows when the
+    // card has neither.
+    const headerShown = this._config.show_active_header !== false;
+    const moreWhere = !truncated ? null : (headerShown ? "header" : (this._config.title ? "title" : "below"));
+    const toggleMore = (e) => { e.stopPropagation(); this._ui = { ...this._ui, showAllTimers: !this._ui.showAllTimers }; };
+    const moreText = this._ui.showAllTimers ? this._localize("show_less") : this._localize("more_timers").replace("{n}", timers.length - maxRows);
+    const moreBadge = html`
+      <button type="button" class="more-badge" data-no-action aria-expanded=${String(!!this._ui.showAllTimers)}
+        title=${moreText} aria-label=${moreText} @click=${toggleMore}>
+        ${this._ui.showAllTimers ? "" : html`<span>+${timers.length - maxRows}</span>`}
+        <ha-icon icon=${this._ui.showAllTimers ? "mdi:chevron-up" : "mdi:chevron-down"}></ha-icon>
+      </button>
+    `;
+    this._moreInTitle = moreWhere === "title" ? moreBadge : null;
+    const moreBelow = moreWhere === "below" ? html`<div class="more-below">${moreBadge}</div>` : "";
+    const headTitle = html`<div class="head-title"><h4>${this._localize("active_timers")}</h4>${moreWhere === "header" ? moreBadge : ""}</div>`;
     const useGrid = (activeTimersLayout === "vertical") || (style === "circle_vertical");
-    const cols = (useGrid && timers.length > 1) ? 2 : 1;
+    const cols = (useGrid && shownTimers.length > 1) ? 2 : 1;
     const listClass = useGrid ? `list vgrid cols-${cols}` : "list";
     const activeCard = style.startsWith("fill_") ? html`
       <div class="card ${this._ui.activeFillOpen ? "card-show" : ""}">
         ${this._config.show_active_header !== false ? html`
           <div class="active-head">
-            <h4>${this._localize("active_timers")}</h4>
+            ${headTitle}
             ${showPresetsInActive ? html`
               <div class="header-actions">
                 ${presets.map((preset) => {
@@ -4846,14 +6588,15 @@ const layout = this._config.layout;
         ` : ""}
         ${this._renderCustomTimerPicker("fill")}
         <ul class="${listClass}">
-          ${timers.map((t) => renderFn(t, style))}
+          ${renderList()}
         </ul>
+        ${moreBelow}
       </div>
     ` : html`
       <div class="card ${this._ui.activeBarOpen ? "card-show" : ""}">
         ${this._config.show_active_header !== false ? html`
           <div class="active-head">
-            <h4>${this._localize("active_timers")}</h4>
+            ${headTitle}
             ${showPresetsInActive ? html`
               <div class="header-actions">
                 ${presets.map((preset) => {
@@ -4869,14 +6612,15 @@ const layout = this._config.layout;
         ` : ""}
         ${this._renderCustomTimerPicker("bar")}
         <ul class="${listClass}">
-          ${timers.map((t) => renderFn(t, style))}
+          ${renderList()}
         </ul>
+        ${moreBelow}
       </div>
     `;
     const cardActs = this._cardActionHandlers();
     return html`
       <ha-card dir=${this._isRTL() ? "rtl" : "ltr"} @pointerdown=${cardActs.down} @pointerup=${cardActs.up} @pointercancel=${cardActs.cancel}>
-        ${this._config.title ? html`<div class="card-header"><span>${this._config.title}</span></div>` : ""}
+        ${this._config.title ? html`<div class="card-header ${this._moreInTitle ? "with-more" : ""}"><span>${this._config.title}</span>${this._moreInTitle || ""}</div>` : ""}
         ${timers.length === 0 ? html`<div class="grid"><div>${noTimerCard}</div></div>` : html`<div class="grid"><div>${activeCard}</div></div>`}
       </ha-card>
     `;
@@ -4886,7 +6630,7 @@ const layout = this._config.layout;
     return css`
       :host { --stc-chip-radius: 9999px; }
       ha-card { border-radius: var(--ha-card-border-radius, 12px); overflow: hidden; padding: 0; background: var(--ha-card-background, var(--card-background-color)); }
-      .grid { display: grid; grid-template-columns: 1fr; gap: 12px; padding: 0; margin: -1px 0; }
+      .grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 0; margin: -1px 0; }
       .card { background: transparent; position: relative; padding: 0 8px; box-sizing: border-box; }
       .card-content { position: relative; z-index: 1; display: flex; align-items: center; gap: 12px; padding: 0 4px; height: 40px; }
       .progress-fill { position: absolute; inset: 6px 0; height: auto; width: 0; left: 0; z-index: 0; transition: width 1s linear; background: var(--tcolor, var(--primary-color)); opacity: 0.25; border-radius: inherit; }
@@ -4909,6 +6653,8 @@ const layout = this._config.layout;
       .btn.disabled { opacity: 0.5; pointer-events: none; }
       .btn-preset { background: var(--secondary-background-color, rgba(0,0,0,.08)); color: var(--primary-text-color); }
       .btn-ghost { background: var(--card-background-color); border: 1px solid var(--divider-color); color: var(--primary-text-color); }
+      .btn-icon-label { display: inline-flex; align-items: center; gap: 4px; line-height: 1; }
+      .btn-icon-label ha-icon, .btn-add ha-icon { flex: 0 0 auto; }
       .btn-primary { background: var(--primary-color); color: var(--text-primary-color, #fff); }
       .btn-add { display: flex; align-items: center; gap: 8px; background: var(--secondary-background-color, rgba(0,0,0,.08)); color: var(--secondary-text-color); }
       .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; max-width: 220px; margin: 0 auto; }
@@ -4943,10 +6689,61 @@ const layout = this._config.layout;
       .active-head h4 { margin: 0; font-size: 16px; font-weight: 600; color: var(--primary-text-color); }
       .header-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
       .list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+      :host([hidden]) { display: none; }
+      .group-head { grid-column: 1 / -1; font-size: 0.8em; font-weight: 600; color: var(--secondary-text-color); padding: 4px 4px 0; }
+      .group-head:first-child { padding-top: 0; }
+      .head-title { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+      .card-header.with-more { display: flex; align-items: center; gap: 8px; }
+      .more-badge { display: inline-flex; align-items: center; justify-content: center; gap: 0; height: 22px; min-width: 28px; padding: 0 8px; border: 0; border-radius: 11px; background: color-mix(in srgb, var(--primary-color) 14%, var(--card-background-color, #fff)); color: var(--primary-color); font: inherit; font-size: 12px; font-weight: 600; line-height: 1; cursor: pointer; flex-shrink: 0; }
+      .more-badge ha-icon { --mdc-icon-size: 16px; }
+      .more-badge span + ha-icon { margin-inline-start: 1px; margin-inline-end: -4px; }
+      .more-below { display: flex; justify-content: center; padding: 2px 0 4px; }
+      .more-badge:hover { background: color-mix(in srgb, var(--primary-color) 22%, var(--card-background-color, #fff)); }
+      .picker-section { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 12px; }
+      .picker-section-label { font-size: 12px; font-weight: 600; color: var(--secondary-text-color); }
+      .segmented { flex-wrap: wrap; justify-content: center; margin: 0 auto; }
+      .segmented .duration-mode-btn { padding: 6px 12px; }
+      .option-chips { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+      .action-entry { display: flex; justify-content: center; margin-top: 10px; }
+      .action-link { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border: 0; background: none; color: var(--primary-color); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; border-radius: var(--stc-chip-radius); }
+      .action-link:hover { background: color-mix(in srgb, var(--primary-color) 10%, transparent); }
+      .action-link ha-icon { --mdc-icon-size: 18px; }
+      .action-entry + .action-entry { margin-top: 2px; }
+      .action-pill { display: inline-flex; align-items: center; max-width: 100%; border-radius: var(--stc-chip-radius); background: color-mix(in srgb, var(--primary-color) 14%, var(--card-background-color)); color: var(--primary-color); }
+      .action-pill button { border: 0; background: none; color: inherit; font: inherit; cursor: pointer; display: inline-flex; align-items: center; }
+      .action-pill-main { gap: 8px; min-width: 0; padding: 7px 4px 7px 12px; font-size: 13px; font-weight: 600; }
+      .action-pill-main span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .action-pill-clear { padding: 7px 10px 7px 6px; }
+      .action-pill ha-icon { --mdc-icon-size: 18px; flex: 0 0 auto; }
+      .wizard { display: flex; flex-direction: column; gap: 10px; padding: 4px 0; min-width: 0; }
+      .grid > div, .card, .picker, .active-picker { min-width: 0; }
+      .wizard-head { display: flex; align-items: center; gap: 8px; }
+      .wizard-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; font-size: 15px; font-weight: 600; color: var(--primary-text-color); }
+      .wizard-icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border: 0; border-radius: 50%; background: none; color: var(--secondary-text-color); cursor: pointer; }
+      .wizard-icon-btn:hover { background: var(--secondary-background-color, rgba(0,0,0,.06)); }
+      .wizard-icon-spacer { width: 36px; }
+      .wizard-list { display: flex; flex-direction: column; gap: 6px; max-height: 320px; overflow-y: auto; min-width: 0; }
+      .wizard-row { display: flex; align-items: center; gap: 12px; width: 100%; min-width: 0; box-sizing: border-box; padding: 10px 12px; border: 0; border-radius: 12px; background: var(--secondary-background-color, rgba(0,0,0,.05)); color: var(--primary-text-color); font: inherit; text-align: start; cursor: pointer; }
+      .wizard-row.compact { padding: 8px 12px; }
+      .wizard-row:hover { background: color-mix(in srgb, var(--primary-color) 12%, var(--secondary-background-color, transparent)); }
+      .wizard-row .row-icon { --mdc-icon-size: 22px; color: var(--primary-color); flex: 0 0 auto; }
+      .wizard-row.selected { box-shadow: inset 0 0 0 1.5px var(--primary-color); }
+      .wizard-row .row-check { --mdc-icon-size: 20px; color: var(--primary-color); flex: 0 0 auto; }
+      .row-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+      .row-title { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .row-sub { font-size: 12px; color: var(--secondary-text-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .row-id { font-family: var(--code-font-family, ui-monospace, monospace); font-size: 11px; color: var(--secondary-text-color); opacity: .8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .wizard-section { font-size: 12px; font-weight: 600; color: var(--secondary-text-color); margin: 6px 4px 0; }
+      .wizard-hint { font-size: 12px; color: var(--secondary-text-color); text-align: center; padding: 8px; }
+      .wizard-input { width: 100%; box-sizing: border-box; }
+      .btn-preset.selected, .btn-preset[aria-pressed="true"] { background: color-mix(in srgb, var(--primary-color) 16%, var(--card-background-color)); color: var(--primary-color); box-shadow: inset 0 0 0 1px var(--primary-color); }
+      .action-device { display: flex; flex-direction: column; gap: 8px; width: 90%; }
+      .action-device .text-input { width: 100%; box-sizing: border-box; }
+      .selected-entity { display: inline-flex; align-items: center; gap: 6px; }
       .item { box-sizing: border-box; position: relative; border-radius: var(--ha-card-border-radius, 12px); overflow: hidden; padding: 8px 0; min-height: 56px; background: var(--stc-item-background, transparent); }
       .item .info { display: flex; flex-direction: column; justify-content: center; height: 36px; flex: 1; overflow: hidden; }
-      .item .title { font-size: 14px; font-weight: 500; line-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      .item .status { font-size: 12px; color: var(--secondary-text-color); line-height: 16px; font-variant-numeric: tabular-nums; }
+      .item .title { font-size: 14px; font-weight: 500; line-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0; }
+      .item .status { font-size: 12px; color: var(--secondary-text-color); line-height: 16px; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0; }
       .item .status.editable { cursor: pointer; text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px; }
       .item .status.up { color: color-mix(in srgb, var(--tcolor, var(--primary-color)) 70%, white); }
       .item .actions { display: flex; gap: 4px; align-items: center; height: 36px; }
@@ -5000,6 +6797,22 @@ const layout = this._config.layout;
       .segment.drain.inactive { opacity: 0.2; }
       .segment.idle { background: color-mix(in srgb, var(--tcolor, var(--primary-color)) 15%, transparent); }
       @keyframes pulseMilestone { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+      @keyframes stcRingPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.18); } }
+      @keyframes stcRingSwing { 0%, 100% { transform: rotate(0deg); } 20% { transform: rotate(16deg); } 40% { transform: rotate(-12deg); } 60% { transform: rotate(8deg); } 80% { transform: rotate(-4deg); } }
+      @keyframes stcRingShake { 0%, 32%, 100% { transform: translateX(0); } 4%, 12%, 20% { transform: translateX(-3px); } 8%, 16%, 24% { transform: translateX(3px); } }
+      @keyframes stcRingHop { 0%, 40%, 100% { transform: translateY(0); } 12% { transform: translateY(-6px); } 24% { transform: translateY(0); } 32% { transform: translateY(-3px); } }
+      @keyframes stcRingGlow {
+        0%, 100% { background: color-mix(in srgb, var(--tcolor, var(--primary-color)) 18%, var(--ha-card-background, var(--card-background-color))); }
+        50% { background: color-mix(in srgb, var(--tcolor, var(--primary-color)) 40%, var(--ha-card-background, var(--card-background-color))); }
+      }
+      .ring-pulse .icon-wrap { animation: stcRingGlow 1s ease-in-out infinite; }
+      .ring-pulse .icon-wrap ha-icon { animation: stcRingPulse 1s ease-in-out infinite; }
+      .ring-swing .icon-wrap ha-icon { animation: stcRingSwing 1.2s ease-in-out infinite; transform-origin: 50% 10%; }
+      .ring-shake { animation: stcRingShake 2s ease-in-out infinite; }
+      .ring-hop { animation: stcRingHop 1.8s ease-in-out infinite; }
+      @media (prefers-reduced-motion: reduce) {
+        .ring-pulse .icon-wrap, .ring-pulse .icon-wrap ha-icon, .ring-swing .icon-wrap ha-icon, .ring-shake, .ring-hop { animation: none; }
+      }
       .editor-row { flex-direction: column; align-items: center; padding: 12px; height: auto !important; min-height: 100px; }
       .editor-container { width: 100%; display: flex; flex-direction: column; align-items: center; }
       .editor-header { font-weight: 700; font-size: 1.1em; margin-bottom: 12px; }
@@ -5178,11 +6991,38 @@ class SimpleTimerCardEditor extends LitElement {
   }
 
   _mqttAutomationChanged(ev) {
+    this._mqttFieldChanged("publish_automation", ev);
+  }
+
+  _mqttFieldChanged(field, ev) {
     const mqtt = { ...(this._config.mqtt || {}) };
     const value = ev.detail?.value;
-    if (value) mqtt.publish_automation = value;
-    else delete mqtt.publish_automation;
+    if (value) mqtt[field] = value;
+    else delete mqtt[field];
     this._updateConfig({ mqtt }, true);
+  }
+
+  // Leaving MQTT keeps the old sensor under mqtt.sensor_entity, so a legacy
+  // sensor target does not keep overriding the new storage.
+  _storageChanged(ev) {
+    if (!this._config) return;
+    ev.stopPropagation();
+    const target = ev.target;
+    let value = ev?.detail?.value;
+    if ((value === undefined || value === null) && ev?.detail && typeof ev.detail.index === "number" && Array.isArray(target?.options)) {
+      value = target.options[ev.detail.index]?.value;
+    }
+    if (value === undefined || value === null) value = target.value;
+    if (!["local", "mqtt", "integration"].includes(value) || value === this._config.storage) return;
+    const patch = { storage: value };
+    const def = this._config.default_timer_entity;
+    const defIsMqttSensor = typeof def === "string" && def.startsWith("sensor.") &&
+      !SimpleTimerCard.prototype._isCompanionList.call(this, def) && !def.startsWith("sensor.simple_timer_card_timers");
+    if (value !== "mqtt" && defIsMqttSensor) {
+      patch.default_timer_entity = "";
+      patch.mqtt = { ...(this._config.mqtt || {}), sensor_entity: def };
+    }
+    this._updateConfig(patch, true);
   }
 
   _detailValueChanged(ev) {
@@ -5365,6 +7205,10 @@ _pinnedTimerValueChanged(ev, index) {
       case "local":
       case "mqtt":
         return new Set(["finish", "add", "reduce", "restart", "pause"]);
+      case "timer_list":
+        // Each preset maps to a timer_list action. Lists that lack the
+        // matching supported feature show a notice at run time.
+        return new Set(["finish", "add", "reduce", "restart", "pause"]);
       case "voice_pe":
         // Voice PE can finish/pause/resume but has no notion of changing duration.
         return new Set(["finish", "pause"]);
@@ -5508,6 +7352,186 @@ _pinnedTimerValueChanged(ev, index) {
     onChange(next);
   }
 
+  _renderDeviceTimersEditor() {
+    const list = Array.isArray(this._config.device_timers) ? this._config.device_timers : [];
+    const card = SimpleTimerCard.prototype;
+    const hasCompanion = Object.keys(this.hass?.states || {}).some((id) => card._isCompanionList.call(this, id));
+    return html`
+      <div class="device-timers" data-search-terms="device_timers action_timers when done command companion">
+        <p class="hint">With the Simple Timer Card integration, the custom timer panel offers <strong>Do something when it ends</strong>: control any device, say a command or announce on a speaker. Home Assistant runs it, even with every dashboard closed. Quick actions appear there as one-tap shortcuts.</p>
+        ${hasCompanion ? "" : html`<p class="hint warning">The Simple Timer Card integration is not installed, so these options have no effect.</p>`}
+        <label class="toggle-row">
+          <ha-switch .checked=${this._config.action_timers !== false} @change=${(e) => this._setActionTimers(e.target.checked)}></ha-switch>
+          <div class="toggle-text">
+            <span class="toggle-title">Offer "Do something when it ends"</span>
+          </div>
+        </label>
+        ${list.length === 0 ? html`<div class="no-entities">No quick actions yet. Add one below.</div>` : ""}
+        ${list.map((entry, index) => {
+          const conf = typeof entry === "string" ? { entity: entry } : (entry || {});
+          return html`
+            <div class="entity-editor">
+              <div class="entity-options" style="width:100%;">
+                ${this._renderFinishActionFields(conf, (next) => this._putDeviceTimer(index, next ? { ...next, name: conf.name } : null), { allowNone: false })}
+                ${this._tf({ label: "Label (optional)", value: conf.name, change: (e) => this._setDeviceTimer(index, { name: e.target.value }) })}
+              </div>
+              <button class="remove-entity" @click=${() => this._removeDeviceTimer(index)} title="Remove quick action">
+                <ha-icon icon="mdi:delete"></ha-icon>
+              </button>
+            </div>
+          `;
+        })}
+        <div class="add-row">
+          <button class="add-button" @click=${() => this._putDeviceTimer(list.length, { entity: "" })}>
+            <ha-icon icon="mdi:plus"></ha-icon>
+            <span>Device action</span>
+          </button>
+          <button class="add-button" @click=${() => this._putDeviceTimer(list.length, { command: "" })}>
+            <ha-icon icon="mdi:plus"></ha-icon>
+            <span>Command</span>
+          </button>
+          <button class="add-button" @click=${() => this._putDeviceTimer(list.length, { announce: "" })}>
+            <ha-icon icon="mdi:plus"></ha-icon>
+            <span>Announcement</span>
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  _finishActionType(raw) {
+    if (typeof raw === "string") return raw ? "device" : "none";
+    if (!raw || typeof raw !== "object") return "none";
+    if (raw.announce != null) return "announce";
+    if (raw.command != null) return "command";
+    if (Array.isArray(raw.actions)) return "custom";
+    if (raw.entity != null || raw.entity_id != null) return "device";
+    return "none";
+  }
+
+  // What happens when a timer ends: a device action, a command or an
+  // announcement. Shared by quick actions and pinned timers.
+  _renderFinishActionFields(raw, onChange, { allowNone = true } = {}) {
+    const card = SimpleTimerCard.prototype;
+    const conf = typeof raw === "string" ? { entity: raw } : (raw || {});
+    const type = this._finishActionType(raw);
+    const types = [
+      ...(allowNone ? [{ value: "none", label: "Nothing" }] : []),
+      { value: "device", label: "Control a device" },
+      { value: "command", label: "Say a command" },
+      { value: "announce", label: "Announce on a speaker" },
+      ...(type === "custom" ? [{ value: "custom", label: "Custom actions (YAML)" }] : []),
+    ];
+    const blank = { device: { entity: "" }, command: { command: "" }, announce: { announce: "" } };
+    const setType = (value) => {
+      if (!value || value === type) return;
+      onChange(value === "none" ? null : (blank[value] || conf));
+    };
+    const patch = (changes) => {
+      const next = { ...conf, ...changes };
+      for (const key of Object.keys(next)) if (next[key] === undefined || (key !== "entity" && key !== "command" && key !== "announce" && next[key] === "")) delete next[key];
+      onChange(next);
+    };
+    const entity = conf.entity || conf.entity_id || "";
+    const services = type === "device" && entity ? card._servicesForEntity.call(this, entity) : [];
+    const service = conf.service || conf.action;
+    const current = service
+      ? (String(service).includes(".") ? service : `${String(entity).split(".")[0]}.${service}`)
+      : (services.find((sv) => sv.endsWith(".turn_off")) || services[0] || "");
+    const serviceOptions = services.map((value) => ({ value, label: card._serviceLabel.call(this, value) }));
+    return html`
+      <ha-select label="When it ends" naturalMenuWidth fixedMenuPosition .value=${type} .options=${types}
+        @selected=${(e) => { e.stopPropagation(); setType(e?.detail?.value ?? e.target.value); }}
+        @closed=${(e) => e.stopPropagation()}>
+        ${types.map((o) => html`<mwc-list-item value=${o.value}>${o.label}</mwc-list-item>`)}
+      </ha-select>
+      ${type === "device" ? html`
+          <ha-entity-picker
+            .hass=${this.hass}
+            .value=${entity}
+            label="Device"
+            allow-custom-entity
+            @value-changed=${(e) => patch({ entity: e.detail.value || "", entity_id: undefined, service: undefined, action: undefined })}
+          ></ha-entity-picker>
+          ${serviceOptions.length ? html`
+            <ha-select label="Action" naturalMenuWidth fixedMenuPosition .value=${current} .options=${serviceOptions}
+              @selected=${(e) => { e.stopPropagation(); const v = e?.detail?.value ?? e.target.value; if (v && v !== current) patch({ service: v, action: undefined }); }}
+              @closed=${(e) => e.stopPropagation()}>
+              ${serviceOptions.map((o) => html`<mwc-list-item value=${o.value}>${o.label}</mwc-list-item>`)}
+            </ha-select>
+          ` : ""}
+      ` : ""}
+      ${type === "command" ? this._tf({ label: "Command", value: conf.command, placeholder: "turn off the air purifier", helper: "What you would say to Assist.", change: (e) => patch({ command: e.target.value }) }) : ""}
+      ${type === "announce" ? html`
+          <ha-entity-picker
+            .hass=${this.hass}
+            .value=${conf.announce || ""}
+            .includeDomains=${["media_player", "assist_satellite"]}
+            label="Speaker"
+            allow-custom-entity
+            @value-changed=${(e) => patch({ announce: e.detail.value || "" })}
+          ></ha-entity-picker>
+          ${this._tf({ label: "Message (optional)", value: conf.message, placeholder: "Your timer is done", helper: "Without a message it says the timer's name, then \"is done\".", change: (e) => patch({ message: e.target.value }) })}
+      ` : ""}
+      ${type === "custom" ? html`<p class="hint">This action list is edited in YAML.</p>` : ""}
+    `;
+  }
+
+  _putDeviceTimer(index, next) {
+    const list = Array.isArray(this._config.device_timers) ? [...this._config.device_timers] : [];
+    if (!next) return;
+    const clean = { ...next };
+    if (!clean.name) delete clean.name;
+    list[index] = clean;
+    this._updateConfig({ device_timers: list }, true);
+    this.requestUpdate();
+  }
+
+  _setPinnedFinish(index, next) {
+    const pinned = Array.isArray(this._config.pinned_timers) ? [...this._config.pinned_timers] : [];
+    const cur = (pinned[index] && typeof pinned[index] === "object") ? { ...pinned[index] } : {};
+    if (next) cur.on_finish = next;
+    else delete cur.on_finish;
+    pinned[index] = cur;
+    this._updateConfig({ pinned_timers: pinned }, true);
+    this.requestUpdate();
+  }
+
+  _showActionsPanel() {
+    const card = SimpleTimerCard.prototype;
+    return Object.keys(this.hass?.states || {}).some((id) => card._isCompanionList.call(this, id))
+      || Array.isArray(this._config?.device_timers) || this._config?.action_timers === false;
+  }
+
+  _setActionTimers(enabled) {
+    const cfg = { ...this._config };
+    if (enabled) delete cfg.action_timers;
+    else cfg.action_timers = false;
+    this._config = cfg;
+    this._emitChange();
+  }
+
+  _setDeviceTimer(index, patch) {
+    const list = Array.isArray(this._config.device_timers) ? [...this._config.device_timers] : [];
+    const current = typeof list[index] === "string" ? { entity: list[index] } : { ...(list[index] || {}) };
+    const next = { ...current, ...patch };
+    for (const key of Object.keys(next)) {
+      if (next[key] === undefined || (key === "name" && !next[key])) delete next[key];
+    }
+    list[index] = next;
+    this._updateConfig({ device_timers: list });
+  }
+
+  _removeDeviceTimer(index) {
+    const list = Array.isArray(this._config.device_timers) ? [...this._config.device_timers] : [];
+    list.splice(index, 1);
+    const cfg = { ...this._config };
+    if (list.length) cfg.device_timers = list;
+    else delete cfg.device_timers;
+    this._config = cfg;
+    this._emitChange();
+  }
+
   _setCardButtons(next) {
     const cfg = { ...this._config };
     if (!next || !next.length) delete cfg.buttons;
@@ -5614,6 +7638,11 @@ _pinnedTimerValueChanged(ev, index) {
       keep_timer_visible_when_idle: false,
       milestone_unit: "auto",
       milestone_pulse: true,
+      ring_animation: "none",
+      hide_when_empty: false,
+      group_by: "none",
+      device_label: "auto",
+      target_picker: "auto",
     };
 
     const cleaned = { ...(config || {}) };
@@ -5667,6 +7696,14 @@ _pinnedTimerValueChanged(ev, index) {
     stripIfEmpty("expired_subtitle");
     stripIfEmpty("title");
     stripIfEmpty("default_timer_entity");
+    stripIfEmpty("default_timer_area");
+    stripIfEmpty("timers_template");
+    stripIfEmpty("device_timers");
+    if (cleaned.max_rows !== undefined) {
+      const n = parseInt(cleaned.max_rows, 10);
+      if (Number.isFinite(n) && n > 0) cleaned.max_rows = n;
+      else delete cleaned.max_rows;
+    }
 
     const isEqualArray = (a, b) => Array.isArray(a) && Array.isArray(b) && a.length === b.length && a.every((v, i) => v === b[i]);
 
@@ -5808,7 +7845,11 @@ _pinnedTimerValueChanged(ev, index) {
     const sources = [
       { key: "alexa", label: "Alexa" },
       { key: "google", label: "Google Home" },
-      { key: "voice_pe", label: "Voice PE" },
+      { key: "timer_list", label: "Timer list (voice timers)" },
+      { key: "voice_satellite", label: "Browser voice satellite" },
+      { key: "count_up", label: "Count up" },
+      { key: "dynamic", label: "Template rows" },
+      { key: "voice_pe", label: "Voice PE (legacy)" },
       { key: "timer", label: "Native timer" },
       { key: "helper", label: "Helper" },
       { key: "timestamp", label: "Timestamp sensor" },
@@ -5846,10 +7887,17 @@ _pinnedTimerValueChanged(ev, index) {
     const target = this._config.default_timer_entity || "";
     const storage = String(this._config.storage || "").toLowerCase();
     const hasMqtt = !!(this._config.mqtt && ["topic", "sensor_entity", "state_topic", "events_topic", "publish_automation"].some(key => this._config.mqtt[key]));
-    const storageType = target.startsWith("timer.") ? "timer"
+    const companionInstalled = Object.keys(this.hass.states || {}).some((id) => SimpleTimerCard.prototype._isCompanionList.call(this, id));
+    const targetIsCompanion = SimpleTimerCard.prototype._isCompanionList.call(this, target) || target.startsWith("sensor.simple_timer_card_timers");
+    const storageChoice = storage === "integration" ? "integration"
+      : storage === "local" ? "local"
+      : storage === "mqtt" || hasMqtt || (target.startsWith("sensor.") && !targetIsCompanion) ? "mqtt" : "local";
+    const storageType = (storage === "integration" && (!target || targetIsCompanion)) ? "integration"
+      : target.startsWith("timer.") ? "timer"
+      : (target.startsWith("timer_list.") || targetIsCompanion) ? "timer_list"
       : target.startsWith("input_text.") || target.startsWith("text.") ? "helper"
       : storage === "local" ? "local"
-      : storage === "mqtt" || hasMqtt || target.startsWith("sensor.") ? "mqtt" : "local";
+      : storageChoice;
     const showMilestonesSection = this._config.progress_mode === "milestones";
     const stepperAvailable = normalizeTimerInput(this._config.custom_timer_input) === "stepper" || this._config.show_timer_input_selector === true;
 
@@ -5929,12 +7977,44 @@ _pinnedTimerValueChanged(ev, index) {
         { value: "dismiss", label: "Dismiss" },
         { value: "remove", label: "Remove" },
       ],
+      ring_animation: [
+        { value: "none", label: "None" },
+        { value: "pulse", label: "Pulse icon" },
+        { value: "swing", label: "Swing icon" },
+        { value: "shake", label: "Shake row" },
+        { value: "hop", label: "Hop row" },
+      ],
+      group_by: [
+        { value: "none", label: "No grouping" },
+        { value: "device", label: "Device" },
+        { value: "area", label: "Area" },
+        { value: "source", label: "Source" },
+      ],
+      device_label: [
+        { value: "auto", label: "Auto (when several devices)" },
+        { value: "device", label: "Device name" },
+        { value: "area", label: "Area name" },
+        { value: "none", label: "Hidden" },
+      ],
+      storage: [
+        { value: "local", label: "This browser" },
+        { value: "mqtt", label: "MQTT" },
+        { value: "integration", label: "Simple Timer Card integration" },
+      ],
+      target_picker: [
+        { value: "auto", label: "Auto (when a speaker supports timers)" },
+        { value: "always", label: "Always" },
+        { value: "never", label: "Never" },
+      ],
       entity_mode: [
         { value: "auto", label: "Auto (Default)" },
         { value: "alexa", label: "Alexa" },
         { value: "google", label: "Google Home" },
         { value: "timer", label: "Timer" },
-        { value: "voice_pe", label: "Voice PE" },
+        { value: "timer_list", label: "Timer list (voice timers)" },
+        { value: "voice_satellite", label: "Browser voice satellite" },
+        { value: "count_up", label: "Count up (time since)" },
+        { value: "voice_pe", label: "Voice PE (legacy)" },
         { value: "helper", label: "Helper (input_text/text)" },
         { value: "timestamp", label: "Timestamp sensor" },
         { value: "minutes_attr", label: "Minutes attribute" },
@@ -5989,6 +8069,24 @@ _pinnedTimerValueChanged(ev, index) {
           <span class="toggle-desc">Show the heading and Add/Custom controls above running timers.</span>
         </div>
       </label>
+
+      <label class="toggle-row advanced">
+        <ha-switch .checked=${this._config.hide_when_empty === true} .configValue=${"hide_when_empty"} @change=${this._valueChanged}></ha-switch>
+        <div class="toggle-text">
+          <span class="toggle-title">Hide the card when there are no timers</span>
+          <span class="toggle-desc">The card reappears when a timer starts. Pinned timers keep it visible. Always shown while editing.</span>
+        </div>
+      </label>
+
+      <div class="row advanced">
+        ${this._tf({ label: "Maximum rows", type: "number", min: "0", helper: "Show this many timers. A +N next to the header shows the rest. Empty shows all.", value: this._config.max_rows ?? "", configValue: "max_rows", change: this._valueChanged })}
+        <ha-select label="Group timers by" naturalMenuWidth fixedMenuPosition .value=${this._config.group_by || "none"} .configValue=${"group_by"} .options=${SELECT_OPTIONS.group_by} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
+          ${SELECT_OPTIONS.group_by.map((o) => html`<mwc-list-item value=${o.value}>${o.label}</mwc-list-item>`)}
+        </ha-select>
+        <ha-select label="Device label on voice timers" naturalMenuWidth fixedMenuPosition .value=${this._config.device_label || "auto"} .configValue=${"device_label"} .options=${SELECT_OPTIONS.device_label} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
+          ${SELECT_OPTIONS.device_label.map((o) => html`<mwc-list-item value=${o.value}>${o.label}</mwc-list-item>`)}
+        </ha-select>
+      </div>
     `;
 
     const sortingContent = html`
@@ -6039,9 +8137,10 @@ _pinnedTimerValueChanged(ev, index) {
             <mwc-list-item value="minutes">Minutes</mwc-list-item>
             <mwc-list-item value="seconds">Seconds</mwc-list-item>
           </ha-select>
-          <ha-formfield label="Pulse active milestone">
+          <label class="toggle-row">
             <ha-switch .checked=${this._config.milestone_pulse !== false} .configValue=${"milestone_pulse"} @change=${this._valueChanged}></ha-switch>
-          </ha-formfield>
+            <div class="toggle-text"><span class="toggle-title">Pulse active milestone</span></div>
+          </label>
         </div>
         </div>
       ` : ""}
@@ -6106,6 +8205,10 @@ _pinnedTimerValueChanged(ev, index) {
         ${(this._config.expire_action || "keep") === "keep" ? this._tf({ label: "Keep-visible duration (seconds)", type: "number", min: "0", helper: "How long an expired timer stays on screen before disappearing.", value: this._config.expire_keep_for ?? 120, configValue: "expire_keep_for", change: this._valueChanged }) : ""}
       </div>
 
+      <ha-select label="Ringing animation" helper="Draw attention to a ringing timer. Respects the system's reduced-motion setting." naturalMenuWidth fixedMenuPosition .value=${this._config.ring_animation || "none"} .configValue=${"ring_animation"} .options=${SELECT_OPTIONS.ring_animation} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
+        ${SELECT_OPTIONS.ring_animation.map((o) => html`<mwc-list-item value=${o.value}>${o.label}</mwc-list-item>`)}
+      </ha-select>
+
       <label class="toggle-row advanced">
         <ha-switch .checked=${this._config.auto_dismiss_writable === true} .configValue=${"auto_dismiss_writable"} @change=${this._valueChanged}></ha-switch>
         <div class="toggle-text">
@@ -6115,8 +8218,9 @@ _pinnedTimerValueChanged(ev, index) {
       </label>
     `;
 
+    const hasCompanion = Object.keys(this.hass?.states || {}).some((id) => SimpleTimerCard.prototype._isCompanionList.call(this, id));
     const pinnedContent = html`
-      <p class="hint">One-tap reusable timers shown in the empty state. They hide while running.</p>
+      <p class="hint">One-tap reusable timers shown in the empty state. They hide while running.${hasCompanion ? " Each can do something when it ends: control a device, say a command or announce on a speaker." : ""}</p>
 
       ${(Array.isArray(this._config.pinned_timers) ? this._config.pinned_timers : []).length === 0
         ? html`<div class="no-entities">No pinned timers configured. Use the button below to add one.</div>`
@@ -6135,9 +8239,17 @@ _pinnedTimerValueChanged(ev, index) {
 
                 ${this._tf({ label: "Expired message", value: t?.expired_subtitle, configValue: "expired_subtitle", change: (e) => this._pinnedTimerValueChanged(e, index) })}
 
-                <ha-formfield label="Enable specific audio">
+                ${hasCompanion || t?.on_finish ? html`
+                  <div class="finish-action">
+                    ${this._renderFinishActionFields(t?.on_finish, (next) => this._setPinnedFinish(index, next))}
+                    ${hasCompanion ? "" : html`<p class="hint warning">Needs the Simple Timer Card integration.</p>`}
+                  </div>
+                ` : ""}
+
+                <label class="toggle-row">
                   <ha-switch .checked=${t?.audio_enabled === true} .configValue=${"audio_enabled"} @change=${(e) => this._pinnedTimerValueChanged(e, index)}></ha-switch>
-                </ha-formfield>
+                  <div class="toggle-text"><span class="toggle-title">Enable specific audio</span></div>
+                </label>
 
                 ${t?.audio_enabled ? html`
                   <div class="row">
@@ -6145,9 +8257,10 @@ _pinnedTimerValueChanged(ev, index) {
                     ${this._tf({ label: "Repeat count", type: "number", min: "1", max: "10", value: t?.audio_repeat_count ?? 1, configValue: "audio_repeat_count", change: (e) => this._pinnedTimerValueChanged(e, index) })}
                   </div>
 
-                  <ha-formfield label="Play until dismissed or snoozed">
+                  <label class="toggle-row">
                     <ha-switch .checked=${t?.audio_play_until_dismissed === true} .configValue=${"audio_play_until_dismissed"} @change=${(e) => this._pinnedTimerValueChanged(e, index)}></ha-switch>
-                  </ha-formfield>
+                    <div class="toggle-text"><span class="toggle-title">Play until dismissed or snoozed</span></div>
+                  </label>
                 ` : ""}
 
                 <div class="row-actions-label">Custom action buttons</div>
@@ -6248,16 +8361,49 @@ _pinnedTimerValueChanged(ev, index) {
     `;
 
     const storageContent = html`
+      <ha-select label="Save new timers in" naturalMenuWidth fixedMenuPosition .value=${storageChoice} .configValue=${"storage"} .options=${SELECT_OPTIONS.storage} @selected=${this._storageChanged} @closed=${(e) => e.stopPropagation()}>
+        ${SELECT_OPTIONS.storage.map((o) => html`<mwc-list-item value=${o.value}>${o.label}</mwc-list-item>`)}
+      </ha-select>
+      ${storageChoice === "integration" && !companionInstalled ? html`
+        <p class="hint warning">The Simple Timer Card integration is not installed, so new timers are saved in this browser for now. See <a href="https://github.com/eyalgal/simple-timer-card/blob/main/CONFIGURATION.md#-companion-integration" target="_blank" rel="noopener">how to install it</a>.</p>
+      ` : ""}
+      ${storageChoice === "integration" && companionInstalled ? this._renderMqttMove() : ""}
+      ${storageChoice === "mqtt" && !target.startsWith("sensor.") ? html`
+        <ha-entity-picker
+          .hass=${this.hass}
+          .value=${this._config.mqtt?.sensor_entity || ""}
+          .includeDomains=${["sensor"]}
+          @value-changed=${(ev) => this._mqttFieldChanged("sensor_entity", ev)}
+          label="MQTT sensor"
+          help-text="The sensor that holds the timers. See the MQTT guide to create it."
+          allow-custom-entity
+        ></ha-entity-picker>
+      ` : ""}
       <ha-entity-picker
         .hass=${this.hass}
         .value=${this._config.default_timer_entity || ""}
         .configValue=${"default_timer_entity"}
         @value-changed=${this._detailValueChanged}
         label="New timer target (optional)"
-        help-text="Use a native timer, text helper, or MQTT sensor. Leave empty for browser storage or automatic native timer selection."
+        help-text="Overrides the storage above: a native timer, a speaker's timer list or a text helper. Leave empty to use the storage above."
         allow-custom-entity
-        .includeDomains=${["timer", "input_text", "text", "sensor"]}
+        .includeDomains=${["timer", "timer_list", "input_text", "text", "sensor"]}
       ></ha-entity-picker>
+
+      <div class="row advanced">
+        <ha-selector
+          .hass=${this.hass}
+          .label=${"Default area for new timers"}
+          .helper=${"Start new timers on the timer list in this area, such as the Voice PE in the kitchen."}
+          .selector=${{ area: {} }}
+          .value=${this._config.default_timer_area || ""}
+          .configValue=${"default_timer_area"}
+          @value-changed=${this._detailValueChanged}
+        ></ha-selector>
+        <ha-select label="Put on a speaker" helper="Let users put a new timer on a voice speaker that supports timers." naturalMenuWidth fixedMenuPosition .value=${this._config.target_picker || "auto"} .configValue=${"target_picker"} .options=${SELECT_OPTIONS.target_picker} @selected=${this._selectChanged} @closed=${(e) => e.stopPropagation()}>
+          ${SELECT_OPTIONS.target_picker.map((o) => html`<mwc-list-item value=${o.value}>${o.label}</mwc-list-item>`)}
+        </ha-select>
+      </div>
 
       <div class="storage-info">
         <span class="storage-label">Storage type: <strong>${this._getStorageDisplayName(storageType)}</strong></span>
@@ -6310,10 +8456,38 @@ _pinnedTimerValueChanged(ev, index) {
       </label>
 
       <label class="toggle-row">
+        <ha-switch .checked=${this._config.auto_discover_timer_lists === true} .configValue=${"auto_discover_timer_lists"} @change=${this._valueChanged}></ha-switch>
+        <div class="toggle-text">
+          <span class="toggle-title">Auto-discover voice timers</span>
+          <span class="toggle-desc">Voice PE and other voice satellites, plus the Simple Timer Card integration.</span>
+        </div>
+      </label>
+
+      <label class="toggle-row advanced">
+        <ha-switch .checked=${this._config.auto_discover_voice_satellites === true} .configValue=${"auto_discover_voice_satellites"} @change=${this._valueChanged}></ha-switch>
+        <div class="toggle-text">
+          <span class="toggle-title">Auto-discover browser voice satellites</span>
+          <span class="toggle-desc">Read-only timers from the Voice Satellite Card integration on wall tablets.</span>
+        </div>
+      </label>
+
+      <div class="advanced" data-search-terms="timers_template template rows jinja">
+        <ha-selector
+          .hass=${this.hass}
+          .label=${"Template rows (optional)"}
+          .helper=${"A Jinja template returning a JSON list of rows with name and end, or name and since. See the configuration guide."}
+          .selector=${{ template: {} }}
+          .value=${this._config.timers_template || ""}
+          .configValue=${"timers_template"}
+          @value-changed=${this._detailValueChanged}
+        ></ha-selector>
+      </div>
+
+      <label class="toggle-row advanced">
         <ha-switch .checked=${this._config.auto_voice_pe === true} .configValue=${"auto_voice_pe"} @change=${this._valueChanged}></ha-switch>
         <div class="toggle-text">
-          <span class="toggle-title">Auto-detect Voice PE timers</span>
-          <span class="toggle-desc">Requires the Voice PE sensor setup. Used when the entity list is empty.</span>
+          <span class="toggle-title">Legacy Voice PE sensors</span>
+          <span class="toggle-desc">Only for the custom ESPHome firmware setup. Not needed when your satellite has a timer list.</span>
         </div>
       </label>
     `;
@@ -6345,28 +8519,35 @@ _pinnedTimerValueChanged(ev, index) {
                   ${this._tf({ label: "Entity (type while picker loads)", value: entityId, configValue: "entity", change: (e) => this._entityValueChanged(e, index) })}
                 `}
                 <div class="entity-options advanced">
-                  <div class="row" style="align-items:flex-start;">
-                    <div style="flex:1;">
+                  <div class="mode-field">
                       <ha-select label="Mode" naturalMenuWidth fixedMenuPosition .value=${conf.mode || "auto"} .configValue=${"mode"} .options=${SELECT_OPTIONS.entity_mode}
                         @selected=${(e) => { e.stopPropagation(); this._entityValueChanged(e, index); }} @closed=${(e) => e.stopPropagation()}>
                         <mwc-list-item value="auto">Auto (Default)</mwc-list-item>
                         <mwc-list-item value="alexa">Alexa</mwc-list-item>
                         <mwc-list-item value="google">Google Home</mwc-list-item>
                         <mwc-list-item value="timer">Timer</mwc-list-item>
-                        <mwc-list-item value="voice_pe">Voice PE</mwc-list-item>
+                        <mwc-list-item value="timer_list">Timer list (voice timers)</mwc-list-item>
+                        <mwc-list-item value="voice_satellite">Browser voice satellite</mwc-list-item>
+                        <mwc-list-item value="count_up">Count up (time since)</mwc-list-item>
+                        <mwc-list-item value="voice_pe">Voice PE (legacy)</mwc-list-item>
                         <mwc-list-item value="helper">Helper (input_text/text)</mwc-list-item>
                         <mwc-list-item value="timestamp">Timestamp sensor</mwc-list-item>
                         <mwc-list-item value="minutes_attr">Minutes attribute</mwc-list-item>
                       </ha-select>
                       ${isAuto && detectedMode ? html`
                         <div class="helper-text">
-                          Detected mode: <strong>${detectedMode === "unknown" ? "Unknown" : detectedMode.charAt(0).toUpperCase() + detectedMode.slice(1)}</strong>
+                          Detected mode: <strong>${detectedMode === "unknown" ? "Unknown" : (detectedMode.charAt(0).toUpperCase() + detectedMode.slice(1)).replace(/_/g, " ")}</strong>
                         </div>
                       ` : ""}
-                    </div>
+                  </div>
 
+                  ${conf.mode === "minutes_attr" || conf.mode === "count_up" || isTimestampMode ? html`<div class="row">
                     ${conf.mode === "minutes_attr" ? html`
                       ${this._tf({ label: "Minutes attribute", value: conf.minutes_attr, configValue: "minutes_attr", change: (e) => this._entityValueChanged(e, index) })}
+                    ` : ""}
+                    ${conf.mode === "count_up" ? html`
+                      ${this._tf({ label: "Goal (optional)", value: conf.goal, configValue: "goal", placeholder: "3h", helper: "Shows progress and turns the row amber once this much time has passed.", change: (e) => this._entityValueChanged(e, index) })}
+                      ${this._tf({ label: "Timestamp attribute (optional)", value: conf.attribute, configValue: "attribute", helper: "Read the start time from this attribute instead of the state.", change: (e) => this._entityValueChanged(e, index) })}
                     ` : ""}
 
                     ${isTimestampMode ? html`
@@ -6379,7 +8560,7 @@ _pinnedTimerValueChanged(ev, index) {
                           allow-custom-entity
                       ></ha-entity-picker>
                     ` : ""}
-                  </div>
+                  </div>` : ""}
 
                   ${isTimestampMode ? html`
                     ${this._tf({ label: "Start time attribute (optional)", value: conf.start_time_attr, configValue: "start_time_attr", helper: "Attribute on this entity containing the start timestamp (e.g., 'last_triggered').", change: (e) => this._entityValueChanged(e, index), cls: "advanced" })}
@@ -6388,10 +8569,11 @@ _pinnedTimerValueChanged(ev, index) {
                   <div class="row">
                     ${this._tf({ label: "Name override", value: conf.name, configValue: "name", change: (e) => this._entityValueChanged(e, index) })}
                     <ha-icon-picker label="Icon override" .value=${conf.icon || ""} .configValue=${"icon"} @value-changed=${(e) => this._entityValueChanged(e, index)}></ha-icon-picker>
-                    ${this._tf({ label: "Color override", value: conf.color, configValue: "color", change: (e) => this._entityValueChanged(e, index) })}
                   </div>
-
-                  ${this._tf({ label: "Expired message override", value: conf.expired_subtitle, configValue: "expired_subtitle", change: (e) => this._entityValueChanged(e, index) })}
+                  <div class="row">
+                    ${this._tf({ label: "Color override", value: conf.color, configValue: "color", change: (e) => this._entityValueChanged(e, index) })}
+                    ${this._tf({ label: "Expired message override", value: conf.expired_subtitle, configValue: "expired_subtitle", change: (e) => this._entityValueChanged(e, index) })}
+                  </div>
 
                   <div class="row-actions-label">Custom action buttons (override card-level)</div>
                   ${this._renderButtonsEditor(
@@ -6400,9 +8582,10 @@ _pinnedTimerValueChanged(ev, index) {
                     (conf.mode && conf.mode !== "auto") ? conf.mode : ((detectedMode && detectedMode !== "unknown") ? detectedMode : null)
                   )}
 
-                  <ha-formfield label="Enable entity-specific audio">
+                  <label class="toggle-row">
                     <ha-switch .checked=${conf.audio_enabled === true} .configValue=${"audio_enabled"} @change=${(e) => this._entityValueChanged(e, index)}></ha-switch>
-                  </ha-formfield>
+                    <div class="toggle-text"><span class="toggle-title">Enable entity-specific audio</span></div>
+                  </label>
 
                   ${conf.audio_enabled ? html`
                     <div class="row">
@@ -6413,12 +8596,22 @@ _pinnedTimerValueChanged(ev, index) {
 
                   ${(conf.mode === "timer" || (isAuto && detectedMode === "timer")) ? html`
                     <div class="advanced">
-                    <ha-formfield label="Keep visible when idle">
+                    <label class="toggle-row">
                       <ha-switch .checked=${conf.keep_timer_visible_when_idle === true} .configValue=${"keep_timer_visible_when_idle"} @change=${(e) => this._entityValueChanged(e, index)}></ha-switch>
-                    </ha-formfield>
-                    <ha-formfield label="Hide action buttons">
+                      <div class="toggle-text"><span class="toggle-title">Keep visible when idle</span></div>
+                    </label>
+                    <label class="toggle-row">
                       <ha-switch .checked=${conf.hide_timer_actions === true} .configValue=${"hide_timer_actions"} @change=${(e) => this._entityValueChanged(e, index)}></ha-switch>
-                    </ha-formfield>
+                      <div class="toggle-text"><span class="toggle-title">Hide action buttons</span></div>
+                    </label>
+                    </div>
+                  ` : ""}
+                  ${(conf.mode === "timer_list" || (isAuto && detectedMode === "timer_list")) ? html`
+                    <div class="advanced">
+                    <label class="toggle-row">
+                      <ha-switch .checked=${conf.hide_timer_actions === true} .configValue=${"hide_timer_actions"} @change=${(e) => this._entityValueChanged(e, index)}></ha-switch>
+                      <div class="toggle-text"><span class="toggle-title">Hide action buttons</span></div>
+                    </label>
                     </div>
                   ` : ""}
                   <div class="advanced">
@@ -6526,14 +8719,15 @@ _pinnedTimerValueChanged(ev, index) {
     return html`
       <div class="editor-toolbar">
         ${this._renderSearchInput()}
-        <ha-formfield label="Advanced" class="advanced-toggle" title="Remembered in this browser">
+        <label class="advanced-toggle" title="Remembered in this browser">
+          <span>Advanced</span>
           <ha-switch
             data-editor-advanced
             aria-label="Advanced editor options"
             .checked=${this._showAdvanced}
             @change=${(e) => this._setEditorMode(!!e.target.checked)}
           ></ha-switch>
-        </ha-formfield>
+        </label>
       </div>
       <p class="editor-mode-hint">${isSearching ? "Searching all settings, including advanced options." : this._showAdvanced ? "All settings shown. Switch off Advanced for the essentials." : "Essentials only. Advanced settings stay active when hidden."}</p>
       <p class="hint search-empty" role="status" hidden>No matching settings. Try a section name or enable the related feature first.</p>
@@ -6545,6 +8739,7 @@ _pinnedTimerValueChanged(ev, index) {
         ${panel("styling", "Icons & colors", "mdi:palette-outline", stylingContent, { advanced: true })}
         ${panel("defaults", "When timers finish", "mdi:timer-check-outline", defaultsContent, { advanced: true })}
         ${panel("pinned", "Pinned timers", "mdi:pin-outline", pinnedContent, { advanced: true })}
+        ${this._showActionsPanel() ? panel("timer_actions", "Actions when timers end", "mdi:timer-play-outline", this._renderDeviceTimersEditor(), { advanced: true }) : ""}
         ${panel("audio", "Audio notifications", "mdi:volume-high", audioContent, { advanced: true })}
         ${panel("notify", "Push notifications", "mdi:bell-ring-outline", notifyContent, { advanced: true })}
         ${panel("actions", "Actions", "mdi:gesture-tap", actionsContent, { advanced: true })}
@@ -6552,9 +8747,86 @@ _pinnedTimerValueChanged(ev, index) {
     `;
   }
 
+  // === Moving MQTT timers to the integration (v3.0.0) ===
+
+  _mqttMoveSensor() {
+    const card = SimpleTimerCard.prototype;
+    const def = this._config?.default_timer_entity;
+    const legacy = typeof def === "string" && def.startsWith("sensor.") && !card._isCompanionList.call(this, def) ? def : null;
+    const sensor = this._config?.mqtt?.sensor_entity || legacy;
+    return sensor && this.hass?.states?.[sensor] ? sensor : null;
+  }
+
+  // Read straight from the sensor so rendering never publishes anything.
+  _mqttTimersWaiting() {
+    const sensor = this._mqttMoveSensor();
+    const timers = sensor ? this.hass.states[sensor]?.attributes?.timers : null;
+    if (!Array.isArray(timers)) return 0;
+    const now = Date.now();
+    return timers.filter((t) => t && (t.paused ? Number(t.remaining_ms) > 0 : Number(t.end_ts) > now)).length;
+  }
+
+  _renderMqttMove() {
+    const waiting = this._mqttTimersWaiting();
+    if (this._mqttMoveResult != null) {
+      return html`<p class="hint">Moved ${this._mqttMoveResult} timer${this._mqttMoveResult === 1 ? "" : "s"} from MQTT to the integration.</p>`;
+    }
+    if (!waiting) return "";
+    return html`
+      <div class="mqtt-move">
+        <p class="hint">${waiting} timer${waiting === 1 ? " is" : "s are"} still running in MQTT. Move ${waiting === 1 ? "it" : "them"} to the integration, keeping the time left, or let ${waiting === 1 ? "it" : "them"} finish there.</p>
+        <button class="add-button" ?disabled=${this._mqttMoving} @click=${() => this._moveMqttTimers()}>
+          <ha-icon icon="mdi:swap-horizontal"></ha-icon>
+          <span>${this._mqttMoving ? "Moving…" : `Move ${waiting} timer${waiting === 1 ? "" : "s"} from MQTT`}</span>
+        </button>
+      </div>
+    `;
+  }
+
+  // Uses a card that is never shown, so the MQTT rules (merging, deletion
+  // markers, the relay for non-admins) are the card's own.
+  async _moveMqttTimers() {
+    const card = SimpleTimerCard.prototype;
+    const sensor = this._mqttMoveSensor();
+    const companion = Object.keys(this.hass?.states || {}).find((id) => card._isCompanionList.call(this, id));
+    if (!sensor || !companion || this._mqttMoving) return;
+    this._mqttMoving = true;
+    this.requestUpdate();
+    let moved = 0;
+    try {
+      const helper = document.createElement("simple-timer-card");
+      const cfg = { ...this._config, storage: "mqtt", mqtt: { ...(this._config.mqtt || {}), sensor_entity: sensor } };
+      delete cfg.default_timer_entity;
+      helper.setConfig(cfg);
+      helper.hass = this.hass;
+      // Moving is not a new timer, so MQTT automations should not hear "started".
+      helper._publishTimerEvent = () => {};
+      const now = Date.now();
+      for (const t of helper._loadTimersFromStorage("mqtt")) {
+        const ms = t?.paused ? Number(t.remaining_ms) : Number(t?.end_ts) - now;
+        if (!(ms > 0)) continue;
+        const meta = helper._timerListMetaFromOverrides(t);
+        const timerId = await helper._createTimerListTimer(companion, ms, t.name || t.label || "", meta);
+        if (timerId == null) continue;
+        if (t.paused && timerId) {
+          await this.hass.callService(COMPANION_DOMAIN, "pause_timer", { entity_id: companion, timer_id: timerId });
+        }
+        helper._removeTimerFromStorage(t.id, "mqtt");
+        moved += 1;
+      }
+      await helper._mqttPublishQueue;
+    } finally {
+      this._mqttMoving = false;
+      this._mqttMoveResult = moved;
+      this.requestUpdate();
+    }
+  }
+
   _getStorageDisplayName(storage) {
     switch (storage) {
       case "timer": return "Native Home Assistant Timer";
+      case "timer_list": return "Home Assistant Timer List or Simple Timer Card integration";
+      case "integration": return "Simple Timer Card integration";
       case "local": return "Local Browser Storage";
       case "helper": return "Helper Entities";
       case "mqtt": return "MQTT";
@@ -6565,6 +8837,8 @@ _pinnedTimerValueChanged(ev, index) {
   _getStorageDescription(storage) {
     switch (storage) {
       case "timer": return "New timers use timer.start on the selected Home Assistant timer entity.";
+      case "integration": return "Timers are kept in Home Assistant, so they keep running with no dashboard open, survive restarts and can do something when they end.";
+      case "timer_list": return "New timers are created on the selected timer list. On a voice satellite they show and ring on the device. The Simple Timer Card integration keeps them in Home Assistant across restarts.";
       case "local": return "Timers are stored locally in your browser and persist across sessions.";
       case "helper": return "Timers are stored in Home Assistant helper entities (input_text/text).";
       case "mqtt": return "Timers are stored via MQTT for cross-device sync. The selected MQTT sensor or YAML topic configuration is used.";
@@ -6601,9 +8875,13 @@ _pinnedTimerValueChanged(ev, index) {
       .buttons-editor { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
       .button-row { border: 1px solid var(--divider-color); border-radius: 8px; padding: 8px; padding-inline-end: 44px; display: flex; flex-direction: column; gap: 8px; position: relative; }
       .editor-toolbar .advanced-toggle {
-        font-size: 13px;
-        color: var(--secondary-text-color);
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        color: var(--primary-text-color);
         flex-shrink: 0;
+        cursor: pointer;
       }
 
       .card-config:not(.show-advanced):not(.is-searching) .advanced { display: none !important; }
@@ -6657,6 +8935,13 @@ _pinnedTimerValueChanged(ev, index) {
       }
       .row > *,
       .side-by-side > * { flex: 1 1 150px; min-width: 0; }
+      .mode-field { display: flex; flex-direction: column; gap: 4px; }
+      .mode-field > ha-select { width: 100%; }
+      .finish-action { display: flex; flex-direction: column; gap: 8px; }
+      .finish-action > ha-select,
+      .finish-action > ha-entity-picker,
+      .finish-action > ha-textfield,
+      .finish-action > ha-input { width: 100%; }
 
       /* DO NOT force display:block on these. HA's ha-textfield uses
          :host { display: inline-flex } internally; overriding it breaks its
@@ -6791,6 +9076,7 @@ _pinnedTimerValueChanged(ev, index) {
         align-self: flex-start;
       }
       .add-button:hover { filter: brightness(1.08); }
+      .add-row { display: flex; flex-wrap: wrap; gap: 8px; }
       .add-button ha-icon { --mdc-icon-size: 18px; }
 
       .helper-text {

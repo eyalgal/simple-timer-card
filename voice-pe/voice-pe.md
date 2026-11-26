@@ -1,5 +1,11 @@
 # Voice PE timers → Home Assistant template sensors (for Simple Timer Card)
 
+> **Legacy guide.** Home Assistant now exposes Voice PE timers as a timer list
+> entity (`timer_list.*`) that Simple Timer Card v3 reads and controls directly,
+> with stock firmware. If your Voice PE has a *Timers* entity, use
+> [Voice timers](../CONFIGURATION.md#-voice-timers-timer-lists) instead. This
+> guide is kept for Home Assistant versions without timer lists.
+
 This guide exposes **Voice PE timers** as Home Assistant template sensors you can use with **Simple Timer Card**.
 
 **Stock Voice PE firmware does not expose native voice timers as Home Assistant `timer.*` entities or as the slot sensors used here.** The card cannot read those timers directly. Both ESPHome guides add a read-only mirror; the advanced example also implements independent local timers on the device. It does not make native voice timers controllable from the card.

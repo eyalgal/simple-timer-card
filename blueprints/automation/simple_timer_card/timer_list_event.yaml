@@ -1,0 +1,91 @@
+blueprint:
+  name: Voice timer event
+  description: >-
+    Run actions when a timer on a timer list (Voice PE and other voice
+    satellites, or a phone) finishes, starts or is cancelled. Runs in Home
+    Assistant, so it works with every dashboard closed.
+
+
+    Filter by timer name to tie a timer to a device: say "set a timer called
+    purifier for 30 minutes" and turn off the air purifier when it finishes.
+    The actions can use `trigger.timer` (name, timer_id, status,
+    created_duration, total_duration, remaining) and `trigger.entity_id` (the
+    timer list).
+  domain: automation
+  source_url: https://github.com/eyalgal/simple-timer-card/blob/main/blueprints/automation/simple_timer_card/timer_list_event.yaml
+  input:
+    timer_lists:
+      name: Timer lists
+      description: Timer lists, devices or areas to watch.
+      selector:
+        target:
+          entity:
+            - domain: timer_list
+    events:
+      name: Events
+      default: [finished]
+      selector:
+        select:
+          multiple: true
+          options:
+            - label: Finished
+              value: finished
+            - label: Started
+              value: created
+            - label: Cancelled
+              value: cancelled
+            - label: Paused
+              value: paused
+            - label: Resumed
+              value: unpaused
+            - label: Time added or removed
+              value: time_changed
+    timer_name:
+      name: Timer name
+      description: >-
+        Only react to timers with this name (case-insensitive). Leave empty for
+        every timer.
+      default: ""
+      selector:
+        text:
+    timer_actions:
+      name: Actions
+      selector:
+        action:
+
+mode: parallel
+max: 20
+
+triggers:
+  - trigger: timer_list.timer_finished
+    id: finished
+    target: !input timer_lists
+  - trigger: timer_list.timer_created
+    id: created
+    target: !input timer_lists
+  - trigger: timer_list.timer_cancelled
+    id: cancelled
+    target: !input timer_lists
+  - trigger: timer_list.timer_paused
+    id: paused
+    target: !input timer_lists
+  - trigger: timer_list.timer_unpaused
+    id: unpaused
+    target: !input timer_lists
+  - trigger: timer_list.timer_time_changed
+    id: time_changed
+    target: !input timer_lists
+
+variables:
+  wanted_events: !input events
+  wanted_name: !input timer_name
+
+conditions:
+  - condition: template
+    value_template: "{{ trigger.id in wanted_events }}"
+  - condition: template
+    value_template: >-
+      {{ (wanted_name | trim) == ''
+         or ((trigger.timer.name or '') | trim | lower) == (wanted_name | trim | lower) }}
+
+actions: !input timer_actions

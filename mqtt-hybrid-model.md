@@ -6,6 +6,12 @@ by polling stored MQTT deadlines in Home Assistant (HA). It is intended for smal
 non-critical workloads. Validate the YAML, templates, entities, and actions in your
 own installation before enabling it.
 
+> **Optional alternative (v3.0.0).** MQTT storage keeps working as described
+> here. If you would rather keep timers in Home Assistant itself, with actions
+> such as "turn off the air purifier" when a timer ends and no polling monitor,
+> see the [companion integration](CONFIGURATION.md#-companion-integration) and
+> [moving from MQTT to the integration](CONFIGURATION.md#-moving-from-mqtt-to-the-integration).
+
 The frontend still creates, controls, and displays timers. The backend monitor
 below is the **only timer-notification path for this store**, whether a card is
 open or closed. It calls your notification service directly. It neither listens
@@ -475,4 +481,5 @@ max_exceeded: silent
 - [examples/climate_timer_example.yaml](examples/climate_timer_example.yaml) uses
   an exact full `pinned_id` allowlist for a frontend-driven convenience action.
   It does not derive climate entity IDs from names and is not a backend shutoff
-  guarantee.
+  guarantee. For actions that run in Home Assistant with no dashboard open, see
+  the [companion integration](CONFIGURATION.md#-companion-integration).
