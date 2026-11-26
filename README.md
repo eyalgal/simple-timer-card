@@ -29,9 +29,12 @@ helpers, MQTT, or timers the card creates itself.
   VoIP satellites get Home Assistant timer lists, and the card finds them on its
   own: start, pause, extend and cancel them, or start a timer on a specific
   speaker. No custom firmware, no template sensors.
-  *Coming soon:* this appears as soon as Home Assistant adds timer lists (in
-  review). Until then, Alexa, Google Home and the
-  [legacy Voice PE setup](CONFIGURATION.md#-voice-pe-integration) keep working.
+  *Coming soon:* the card is ready, and Home Assistant is adding timer lists to
+  voice satellites ([follow the progress](https://github.com/home-assistant/core/pulls?q=is%3Apr+label%3A%22integration%3A+timer_list%22+%22Add+timer+lists+to%22+in%3Atitle)).
+  Voice PE and other ESPHome satellites are expected in Home Assistant 2026.12;
+  Wyoming, VoIP and phones are still in review. Until then, Alexa, Google Home
+  and the [legacy Voice PE setup](CONFIGURATION.md#-voice-pe-integration) keep
+  working.
 
 ---
 
@@ -130,8 +133,9 @@ work as before. To use the new features:
   [companion integration](https://github.com/eyalgal/simple-timer-card-integration) and set **Save new timers in** to it in the
   editor. Coming from MQTT? The editor can
   [move your running timers](CONFIGURATION.md#-moving-from-mqtt-to-the-integration).
-* **Voice timers:** once your speaker has a *Timers* entity on its device page,
-  turn on **Auto-discover voice timers**. The custom-firmware Voice PE setup
+* **Voice timers** ([coming soon](https://github.com/home-assistant/core/pulls?q=is%3Apr+label%3A%22integration%3A+timer_list%22+%22Add+timer+lists+to%22+in%3Atitle)): once your
+  speaker has a *Timers* entity on its device page, turn on
+  **Auto-discover voice timers**. The custom-firmware Voice PE setup
   (`mode: voice_pe`, `auto_voice_pe`) then becomes legacy; see the
   [migration steps](CONFIGURATION.md#moving-from-the-legacy-voice-pe-setup).
 

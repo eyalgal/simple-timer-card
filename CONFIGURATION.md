@@ -902,6 +902,12 @@ This requires a Home Assistant version in which your satellite has a timer list.
 Look for a *Timers* entity on the device page. Until then, use the
 [legacy Voice PE setup](#-voice-pe-integration).
 
+> **Coming soon.** Home Assistant is adding timer lists to voice satellites
+> ([follow the progress](https://github.com/home-assistant/core/pulls?q=is%3Apr+label%3A%22integration%3A+timer_list%22+%22Add+timer+lists+to%22+in%3Atitle)).
+> Voice PE and other ESPHome satellites are expected in Home Assistant 2026.12;
+> Wyoming, VoIP and phones are still in review. The card is ready and picks
+> them up as soon as they appear.
+
 ```yaml
 type: custom:simple-timer-card
 auto_discover_timer_lists: true
